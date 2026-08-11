@@ -10,14 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.73.0";
+export const APP_VERSION = "3.74.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.74.0",
+    date: "August 2026",
+    title: "Per-floor shapes, walls always on top, hallway fix, premium UI",
+    latest: true,
+    highlights: [
+      "Rooms/buildings can have a different polygon shape at each floor — draw via Transform → Add shape for floor N",
+      "Walls now always render above rooms in both builder and public map",
+      "Fixed hallways/walls giving 500 errors (coordinate column type corrected)",
+      "Room outlines now always visible with subtle styling for better map definition",
+      "Bolder, crisper room labels",
+      "Floor-shape rendering in CampusOverlay — right polygon per floor",
+    ],
+  },
   {
     version: "3.73.0",
     date: "August 2026",
     title: "Ortho fix, walls on top, multi-floor rooms, undo property changes",
-    latest: true,
     highlights: [
       "Ortho tool now snaps first edge to exact H/V, subsequent edges perpendicular — consistently 90°",
       "Walls and hallways always render on top of rooms and corridors",

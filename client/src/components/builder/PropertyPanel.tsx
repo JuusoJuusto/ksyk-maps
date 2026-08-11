@@ -74,6 +74,8 @@ interface PropertyPanelProps {
   onClose: () => void;
   onTabChange?: (tab: string) => void;
   onHistoryRecord?: (action: UndoAction) => void;
+  activeFloor?: number | null;
+  onAddFloorShape?: (floorNum: number) => void;
 }
 
 type HistoryRecordFn = (action: UndoAction) => void;
@@ -100,7 +102,7 @@ const TABS = [
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
-export default function PropertyPanel({ entity, onDelete, onClose, onTabChange, onHistoryRecord }: PropertyPanelProps) {
+export default function PropertyPanel({ entity, onDelete, onClose, onTabChange, onHistoryRecord, activeFloor, onAddFloorShape }: PropertyPanelProps) {
   const [tab, setTab] = useState<TabId>("props");
   const onHistoryRecordRef = useRef<HistoryRecordFn | undefined>(onHistoryRecord);
   onHistoryRecordRef.current = onHistoryRecord;
@@ -177,7 +179,7 @@ export default function PropertyPanel({ entity, onDelete, onClose, onTabChange, 
       <div className="p-4 max-h-[65vh] overflow-y-auto">
         {tab === "props" && <PropsTab entity={entity} onHistoryRecord={onHistoryRecordRef} />}
         {tab === "style" && <StyleTab entity={entity} />}
-        {tab === "transform" && <TransformTab entity={entity} />}
+        {tab === "transform" && <TransformTab entity={entity} activeFloor={activeFloor} onAddFloorShape={onAddFloorShape} />}
         {tab === "custom" && <CustomTab entity={entity} />}
       </div>
 
@@ -1413,7 +1415,11 @@ function SliderField({
 
 // ── Transform tab (position, rotation, size) ──────────────────────
 
-function TransformTab({ entity }: { entity: SelectedEntity }) {
+function TransformTab({ entity, activeFloor, onAddFloorShape }: {
+  entity: SelectedEntity;
+  activeFloor?: number | null;
+  onAddFloorShape?: (floorNum: number) => void;
+}) {
   if (entity.kind === "door" || entity.kind === "stair"
       || entity.kind === "elevator" || entity.kind === "poi") {
     return <p className="text-xs text-muted-foreground p-4">Point POIs move by dragging on the map. Coordinates shown in the Properties tab.</p>;
@@ -1423,20 +1429,24 @@ function TransformTab({ entity }: { entity: SelectedEntity }) {
       <div className="space-y-2 text-xs text-muted-foreground">
         <div className="rounded-lg border border-border p-2 bg-muted/40">
           <p className="text-[10px] font-semibold uppercase tracking-wider">Start</p>
-          <p className="font-mono">{entity.data.startY.toFixed(6)}, {entity.data.startX.toFixed(6)}</p>
+          <p className="font-mono">{(entity.data.startY ?? 0).toFixed(6)}, {(entity.data.startX ?? 0).toFixed(6)}</p>
         </div>
         <div className="rounded-lg border border-border p-2 bg-muted/40">
           <p className="text-[10px] font-semibold uppercase tracking-wider">End</p>
-          <p className="font-mono">{entity.data.endY.toFixed(6)}, {entity.data.endX.toFixed(6)}</p>
+          <p className="font-mono">{(entity.data.endY ?? 0).toFixed(6)}, {(entity.data.endX ?? 0).toFixed(6)}</p>
         </div>
         <p className="pt-2">Drag the endpoints on the canvas to move them.</p>
       </div>
     );
   }
-  return <PolygonTransformForm entity={entity} />;
+  return <PolygonTransformForm entity={entity} activeFloor={activeFloor} onAddFloorShape={onAddFloorShape} />;
 }
 
-function PolygonTransformForm({ entity }: { entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }> }) {
+function PolygonTransformForm({ entity, activeFloor, onAddFloorShape }: {
+  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }>;
+  activeFloor?: number | null;
+  onAddFloorShape?: (floorNum: number) => void;
+}) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const pts = (entity.data.points ?? []) as Array<{ lat: number; lng: number }>;
@@ -1596,6 +1606,77 @@ function PolygonTransformForm({ entity }: { entity: Exclude<SelectedEntity, { ki
       </p>
 
       <DirtySaveButton isDirty={dirty} isPending={patch.isPending} onSave={() => patch.mutate()} />
+
+      {/* Floor shapes — per-floor polygon overrides */}
+      {(entity.kind === "room" || entity.kind === "corridor" || entity.kind === "building") && (
+        <FloorShapesSection entity={entity} activeFloor={activeFloor ?? 1} onAddFloorShape={onAddFloorShape} />
+      )}
+    </div>
+  );
+}
+
+type FloorShapeEntry = { floor: number; coordinates: [number, number][] };
+
+function FloorShapesSection({
+  entity,
+  activeFloor,
+  onAddFloorShape,
+}: {
+  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }>;
+  activeFloor: number;
+  onAddFloorShape?: (floorNum: number) => void;
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const meta = (entity.data.metadata ?? {}) as Record<string, unknown>;
+  const floorShapes: FloorShapeEntry[] = Array.isArray(meta.floorShapes)
+    ? (meta.floorShapes as FloorShapeEntry[])
+    : [];
+
+  const deleteShape = useMutation({
+    mutationFn: async (floor: number) => {
+      const updated = floorShapes.filter((fs) => fs.floor !== floor);
+      const path = entity.kind === "building"
+        ? `/api/buildings/${entity.data.id}`
+        : `/api/rooms/${entity.data.id}`;
+      const res = await apiRequest("PATCH", path, { metadata: { ...meta, floorShapes: updated } });
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [entity.kind === "building" ? "/api/buildings" : "/api/rooms"] });
+    },
+    onError: (err: any) => toast({ title: "Delete failed", description: err?.message, variant: "destructive" }),
+  });
+
+  return (
+    <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/30 mt-1">
+      <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">Floor Shapes</p>
+      {floorShapes.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">No floor-specific shapes. Default shape used on all floors.</p>
+      ) : (
+        <div className="space-y-1">
+          {floorShapes.map((fs) => (
+            <div key={fs.floor} className="flex items-center justify-between text-[11px] rounded-md px-2 py-1 bg-background border border-border">
+              <span className="font-medium">Floor {fs.floor}</span>
+              <span className="text-muted-foreground mr-auto ml-2">{fs.coordinates.length} pts</span>
+              <button
+                type="button"
+                onClick={() => deleteShape.mutate(fs.floor)}
+                className="text-red-500 hover:text-red-700 px-1 rounded"
+                aria-label={`Delete floor ${fs.floor} shape`}
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => onAddFloorShape?.(activeFloor)}
+        className="w-full h-8 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-blue-400 text-[11px] text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium transition-colors"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Add shape for floor {activeFloor}
+      </button>
     </div>
   );
 }

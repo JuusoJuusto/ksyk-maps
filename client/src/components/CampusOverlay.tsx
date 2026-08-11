@@ -168,6 +168,11 @@ export default function CampusOverlay({
       // Sky layer disabled — current MapLibre version doesn't support type:"sky"
       // and logs a "missing required property source" error.
       // installSky(map);
+      // Walls must always render above rooms, corridors, and POIs — move
+      // wall layers to the very top of the stack after everything else is
+      // installed. Wrapped in try/catch because moveLayer throws if the
+      // layer doesn't exist yet (first cold start before any hallway data).
+      try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -1604,23 +1609,30 @@ function colorForRoomType(type: string | null | undefined): string | null {
 function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const corridors = rooms.filter(
     (r) => r.type === "hallway" && r.points && r.points.length >= 3
-  ).filter((r) => activeFloor === null || r.floor == null || r.floor === activeFloor);
+  ).filter((r) => {
+    if (activeFloor === null) return true;
+    const meta = r.metadata as RoomMeta;
+    const hasShapeForFloor = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
+    return r.floor == null || r.floor === activeFloor || hasShapeForFloor;
+  });
 
   const data = {
     type: "FeatureCollection" as const,
-    features: corridors.map((r) => ({
-      id: r.id,
-      type: "Feature" as const,
-      geometry: {
-        type: "Polygon" as const,
-        coordinates: [[
-          ...r.points!.map((p) => [p.lng, p.lat]),
-          [r.points![0].lng, r.points![0].lat],
-        ]],
-      },
-      // Use the corridor's stored colorCode (or a visible slate default).
-      properties: { id: r.id, floor: r.floor ?? 0, color: r.colorCode ?? "#94a3b8" },
-    })),
+    features: corridors.map((r) => {
+      const meta = r.metadata as RoomMeta;
+      const floorShape = activeFloor != null ? meta?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
+      const pts: [number, number][] = floorShape?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
+      return {
+        id: r.id,
+        type: "Feature" as const,
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [[...pts, pts[0]]],
+        },
+        // Use the corridor's stored colorCode (or a visible slate default).
+        properties: { id: r.id, floor: r.floor ?? 0, color: r.colorCode ?? "#94a3b8" },
+      };
+    }),
   };
   upsertGeoJSONSource(map, "campus-corridors", data);
   addLayerIfMissing(map, {
@@ -1645,15 +1657,27 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
   });
 }
 
+type FloorShape = { floor: number; coordinates: [number, number][] };
+type RoomMeta = { style?: Record<string, unknown>; floorShapes?: FloorShape[] } | null | undefined;
+
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
       .filter((r) => r.type !== "hallway") // corridors rendered separately
-      .filter((r) => activeFloor === null || r.floor == null || r.floor === activeFloor)
+      .filter((r) => {
+        if (activeFloor === null) return true;
+        const meta = r.metadata as RoomMeta;
+        const hasShapeForFloor = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
+        return r.floor == null || r.floor === activeFloor || hasShapeForFloor;
+      })
       .map((r) => {
-        const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        const meta = r.metadata as RoomMeta;
+        const style = meta?.style ?? {};
+        // Use floor-specific polygon when available, fall back to default points
+        const floorShape = activeFloor != null ? meta?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
+        const pts: [number, number][] = floorShape?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
         return {
           // Feature-level id lets setFeatureState() target this room
           // for hover highlight without re-rendering the source.
@@ -1661,10 +1685,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
           type: "Feature" as const,
           geometry: {
             type: "Polygon" as const,
-            coordinates: [[
-              ...r.points!.map((p) => [p.lng, p.lat]),
-              [r.points![0].lng, r.points![0].lat],
-            ]],
+            coordinates: [[...pts, pts[0]]],
           },
           // v3.29.0 — MazeMap-style bilingual label. Show nameEn AND
           // nameFi (separated by " / ") when both exist; otherwise
@@ -1721,7 +1742,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       .map((r) => {
         const floor = r.floor ?? 1;
         const floorIdx = Math.max(0, floor - 1);
-        const style = (r.metadata as { style?: Record<string, unknown> } | null | undefined)?.style ?? {};
+        const meta3d = r.metadata as RoomMeta;
+        const style = meta3d?.style ?? {};
         const perFloor = typeof style.perFloor === "number" && style.perFloor > 0
           ? style.perFloor
           : METERS_PER_FLOOR;
@@ -1729,14 +1751,13 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
           ? style.slabHeight
           : ROOM_SLAB_METERS;
         const base = floorIdx * perFloor + 0.08;
+        const floorShape3D = activeFloor != null ? meta3d?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
+        const pts3D: [number, number][] = floorShape3D?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
         return {
           type: "Feature" as const,
           geometry: {
             type: "Polygon" as const,
-            coordinates: [[
-              ...r.points!.map((p) => [p.lng, p.lat]),
-              [r.points![0].lng, r.points![0].lat],
-            ]],
+            coordinates: [[...pts3D, pts3D[0]]],
           },
           properties: {
             id: r.id,
@@ -1786,9 +1807,9 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
       "line-color": ["get", "color"],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 2, 22, 3],
-      // Only show when metadata.style.showOutline is explicitly true.
-      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.85, 0],
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.5, 22, 2.5],
+      // Always show a subtle outline for room definition; stronger when showOutline is on.
+      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0.4],
     },
   });
 
@@ -1884,28 +1905,22 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "symbol",
     layout: {
       "text-field": ["get", "label"],
-      // MazeMap uses a compact, weightier label that scales with zoom.
-      // At full zoom we grow the label so users reading the fully-
-      // zoomed floor plate can actually read room numbers without
-      // squinting.
-      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 10, 19, 14, 21, 20],
-      "text-font": ["Noto Sans Regular"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 11, 19, 15, 21, 22],
+      "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
       "text-optional": true,
       "text-anchor": "center",
-      "text-max-width": 10,
-      "text-padding": 2,
+      "text-max-width": 12,
+      "text-padding": 3,
+      "text-letter-spacing": 0.03,
     },
     paint: {
       "text-color": "#0b1220",
-      "text-halo-color": "#ffffff",
-      "text-halo-width": 1.8,
-      "text-halo-blur": 0.4,
+      "text-halo-color": "rgba(255,255,255,0.95)",
+      "text-halo-width": 2,
+      "text-halo-blur": 0.3,
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
-    // Rooms become distinguishable at zoom 16 with the boosted room
-    // fill opacity — pull the label-minzoom down to match so users see
-    // labels the moment the rooms themselves become visible.
     minzoom: 16,
   });
 }

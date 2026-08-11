@@ -7,6 +7,7 @@ import {
   varchar,
   text,
   integer,
+  real,
   boolean,
   numeric,
 } from "drizzle-orm/pg-core";
@@ -210,10 +211,10 @@ export const hallways = pgTable("hallways", {
   description: text("description"),
   descriptionEn: text("description_en"),
   descriptionFi: text("description_fi"),
-  startX: integer("start_x"),
-  startY: integer("start_y"),
-  endX: integer("end_x"),
-  endY: integer("end_y"),
+  startX: real("start_x"),
+  startY: real("start_y"),
+  endX: real("end_x"),
+  endY: real("end_y"),
   // v3.30.0 â€” multi-vertex polyline. When set, this array of
   // { lat, lng } wins over startX/Y + endX/Y (which we still keep
   // in sync as the first/last points for backward compat).
