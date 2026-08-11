@@ -1642,8 +1642,23 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     
     // Auth user endpoint
     if (apiPath === '/auth/user' && req.method === 'GET') {
-      // For now, return unauthorized
-      // TODO: Implement proper auth with sessions
+      // Check admin token — returns user info when a valid token is present,
+      // 401 otherwise (expected for unauthenticated public visitors).
+      const header = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
+      const token = header?.replace(/^Bearer\s+/i, '').trim();
+      if (token) {
+        const payload = verifyAdminToken(token);
+        if (payload) {
+          try {
+            const u = await storage.getUser(payload.userId);
+            if (u) {
+              const { password: _p, passwordResetToken: _t, passwordResetExpiry: _e, ...safe } = u as any;
+              return res.status(200).json(safe);
+            }
+          } catch { /* fall through to 401 */ }
+          return res.status(200).json({ id: payload.userId, role: payload.role });
+        }
+      }
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -2278,6 +2293,64 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     //  the app-log write as a merge into that handler is safer done at
     //  its site. The existing handler at line ~452 already writes to
     //  the counters. We'll piggy-back a log via a separate collection.)
+
+    // ── Telemetry aliases (/api/telemetry/*) ─────────────────────────────
+    // analytics.ts sends to /api/telemetry/* to avoid adblocker URL
+    // pattern matching. Mirror each to the canonical analytics handler.
+    if (apiPath === '/telemetry/pageview' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { page, sessionId, userId, referrer } = req.body || {};
+        await db.collection('analytics_pageviews').add({
+          page: (page || '/').toString().slice(0, 200),
+          sessionId: (sessionId || '').toString().slice(0, 60),
+          userId: (userId || '').toString().slice(0, 60),
+          referrer: (referrer || '').toString().slice(0, 200),
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          createdAt: new Date(),
+        });
+      } catch { /* non-critical */ }
+      return res.status(204).end();
+    }
+    if (apiPath === '/telemetry/track' && req.method === 'POST') {
+      try {
+        const { db } = await import('../server/firebaseStorage.js');
+        const { events, sessionInfo } = req.body || {};
+        if (Array.isArray(events)) {
+          for (const ev of events.slice(0, 50)) {
+            await db.collection('analyticsEvents').add({
+              ...ev,
+              sessionId: sessionInfo?.sessionId,
+              userId: sessionInfo?.userId,
+              createdAt: new Date(),
+            });
+          }
+        }
+      } catch { /* non-critical */ }
+      return res.status(204).end();
+    }
+    // Accept but discard feature/search sub-events — aggregated via /track.
+    if ((apiPath === '/telemetry/feature' || apiPath === '/telemetry/search') && req.method === 'POST') {
+      return res.status(204).end();
+    }
+    // Pixel beacon fallback — tiny 1×1 GIF response.
+    if (apiPath === '/t/p' && req.method === 'GET') {
+      const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+      res.setHeader('Content-Type', 'image/gif');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).end(gif);
+    }
+
+    // ── Wilma config stub (Wilma removed; returns "not configured") ──────
+    if (apiPath === '/admin/wilma-config' && req.method === 'GET') {
+      return res.status(200).json({ configured: false, serverUrl: '', connectionStatus: 'not_configured', lastSync: null, lastTestAt: null });
+    }
+    if (apiPath === '/admin/wilma-config' && req.method === 'POST') {
+      return res.status(410).json({ message: 'Wilma integration has been removed.' });
+    }
+    if (apiPath === '/admin/wilma-config/test' && req.method === 'POST') {
+      return res.status(410).json({ success: false, status: 'removed', message: 'Wilma integration has been removed.' });
+    }
 
     // 404 for unknown routes
     return res.status(404).json({

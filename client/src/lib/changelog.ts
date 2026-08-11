@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.62.0";
+export const APP_VERSION = "3.63.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.63.0",
+    date: "August 2026",
+    title: "Fix all console 404/401 errors",
+    latest: true,
+    highlights: [
+      "Added /api/telemetry/pageview and /api/telemetry/track endpoints — no more 404 spam from analytics.ts",
+      "Added /api/t/p pixel beacon fallback endpoint",
+      "Added /api/admin/wilma-config stub returning not_configured (Wilma removed, UI no longer crashes)",
+      "/api/auth/user now returns user data when a valid admin token is present instead of always 401",
+    ],
+  },
   {
     version: "3.62.0",
     date: "August 2026",
     title: "Firebase → Supabase data migration endpoint",
-    latest: true,
+    latest: false,
     highlights: [
       "POST /api/admin/migrate-from-firebase — migrates buildings, floors, rooms, hallways, staff, events, announcements from Firestore to Supabase in one call",
       "Migration is idempotent (ON CONFLICT DO NOTHING) — safe to run multiple times",
