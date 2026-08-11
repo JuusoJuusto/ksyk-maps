@@ -88,6 +88,7 @@ function SelectionHandlesInner({ map, selection }: SelectionHandlesProps) {
   // Refresh the source data on the map from either the drag-live copy
   // or the entity's canonical points.
   const refreshSources = useCallback((m: MaplibreMap) => {
+    if (!m.isStyleLoaded()) return;
     const pts = localPointsRef.current;
     if (!pts || pts.length < 3) {
       // Clear
@@ -241,16 +242,23 @@ function SelectionHandlesInner({ map, selection }: SelectionHandlesProps) {
 
   useEffect(() => {
     if (!map) return;
-    refreshSources(map);
-    // Cleanup on unmount / selection loss.
+    if (map.isStyleLoaded()) {
+      refreshSources(map);
+    } else {
+      const onLoad = () => refreshSources(map);
+      map.once("styledata", onLoad);
+      return () => { map.off("styledata", onLoad); };
+    }
     return () => {
-      if (!selection) return;
-      for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE, LAYER_TRANSLATE_HIT, LAYER_DIMS_LINES, LAYER_DIMS_LABELS]) {
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-      }
-      for (const srcId of [SRC_VERTS, SRC_ROTATOR, SRC_OUTLINE, SRC_DIMS]) {
-        if (map.getSource(srcId)) map.removeSource(srcId);
-      }
+      try {
+        if (!map.isStyleLoaded()) return;
+        for (const layerId of [LAYER_VERTS, LAYER_ROTATOR, LAYER_ROTATOR_STEM, LAYER_OUTLINE, LAYER_TRANSLATE_HIT, LAYER_DIMS_LINES, LAYER_DIMS_LABELS]) {
+          try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch { /* layer gone */ }
+        }
+        for (const srcId of [SRC_VERTS, SRC_ROTATOR, SRC_OUTLINE, SRC_DIMS]) {
+          try { if (map.getSource(srcId)) map.removeSource(srcId); } catch { /* source gone */ }
+        }
+      } catch { /* map destroyed */ }
     };
   }, [map, selection, refreshSources]);
 
