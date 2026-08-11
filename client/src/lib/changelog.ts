@@ -10,14 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.75.0";
+export const APP_VERSION = "3.75.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.75.1",
+    date: "August 2026",
+    title: "Ortho straight lines fixed, publish no longer fails",
+    latest: true,
+    highlights: [
+      "Ortho tool now produces truly straight H/V lines at any map rotation (screen-space math)",
+      "Builder publish no longer returns 500 when Firebase is unavailable — data still saves to Postgres",
+    ],
+  },
   {
     version: "3.75.0",
     date: "August 2026",
     title: "Mobile beacons fixed, better POI icons, builder floor switching",
-    latest: true,
     highlights: [
       "Android admin app: beacon capture, view, and delete now work with the new server",
       "Android: admin token persisted across app restarts — no re-login needed",

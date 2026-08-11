@@ -1179,29 +1179,38 @@ function BuilderWorkspace() {
             : e.lngLat;
           if (orthoOn && wps.length >= 1) {
             const prev = wps[wps.length - 1];
-            const mPerLat = 111320;
-            const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
-            const dx = (p.lng - prev.lng) * mPerLng;
-            const dy = (p.lat - prev.lat) * mPerLat;
+            // Screen-space ortho: correct for any map rotation/bearing.
+            const prevSc = map.project([prev.lng, prev.lat]);
+            const curSc  = map.project([p.lng,    p.lat   ]);
+            const sdx = curSc.x - prevSc.x;
+            const sdy = curSc.y - prevSc.y;
+            let nx: number, ny: number;
             if (wps.length === 1) {
-              // First edge: axis-align to H or V.
-              p = Math.abs(dx) >= Math.abs(dy)
-                ? new maplibregl.LngLat(p.lng, prev.lat)
-                : new maplibregl.LngLat(prev.lng, p.lat);
+              // First edge: snap to screen H or V.
+              [nx, ny] = Math.abs(sdx) >= Math.abs(sdy)
+                ? [curSc.x, prevSc.y]
+                : [prevSc.x, curSc.y];
             } else {
-              const prevPrev = wps[wps.length - 2];
-              const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
-              const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
-              const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-              if (edgeLen > 0.001) {
-                const ex = edgeDx / edgeLen, ey = edgeDy / edgeLen;
-                const tFwd  =  dx * ex + dy * ey;
-                const tPerp = -dx * ey + dy * ex;
-                p = Math.abs(tFwd) >= Math.abs(tPerp)
-                  ? new maplibregl.LngLat(prev.lng + (tFwd * ex) / mPerLng, prev.lat + (tFwd * ey) / mPerLat)
-                  : new maplibregl.LngLat(prev.lng + (tPerp * (-ey)) / mPerLng, prev.lat + (tPerp * ex) / mPerLat);
+              const pp = wps[wps.length - 2];
+              const ppSc = map.project([pp.lng, pp.lat]);
+              const edSx = prevSc.x - ppSc.x;
+              const edSy = prevSc.y - ppSc.y;
+              const edLen = Math.sqrt(edSx * edSx + edSy * edSy);
+              if (edLen > 0.5) {
+                const ex = edSx / edLen, ey = edSy / edLen;
+                const tFwd  =  sdx * ex + sdy * ey;
+                const tPerp = -sdx * ey + sdy * ex;
+                if (Math.abs(tFwd) >= Math.abs(tPerp)) {
+                  nx = prevSc.x + tFwd * ex; ny = prevSc.y + tFwd * ey;
+                } else {
+                  nx = prevSc.x + tPerp * (-ey); ny = prevSc.y + tPerp * ex;
+                }
+              } else {
+                nx = curSc.x; ny = curSc.y;
               }
             }
+            const snp = map.unproject([nx, ny]);
+            p = new maplibregl.LngLat(snp.lng, snp.lat);
           }
         }
         setDistanceInput(""); // clear distance constraint after placing waypoint
@@ -2284,41 +2293,41 @@ function BuilderWorkspace() {
 
     const last = waypoints[waypoints.length - 1];
 
-    // Ortho v8 — axis-aligned first edge + perpendicular-to-previous for
-    // subsequent edges. Normalised edge vectors eliminate atan2 issues.
+    // Screen-space ortho — works at any map bearing/rotation.
+    // Project into pixels, constrain there, unproject back.
     if (orthoEnabled && waypoints.length >= 1) {
-      const mPerLat = 111320;
-      const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
-      const dx = (endLng - last.lng) * mPerLng;
-      const dy = (endLat - last.lat) * mPerLat;
+      const lastSc = map.project([last.lng, last.lat]);
+      const curSc  = map.project([endLng,   endLat  ]);
+      const sdx = curSc.x - lastSc.x;
+      const sdy = curSc.y - lastSc.y;
+      let nx: number, ny: number;
       if (waypoints.length === 1) {
-        // First edge: snap to H or V (nearest of the two axis directions).
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          endLat = last.lat;           // horizontal
-        } else {
-          endLng = last.lng;           // vertical
-        }
-      } else if (waypoints.length >= 2) {
-        // Subsequent edges: perpendicular to previous edge using normalised
-        // edge vector — avoids atan2 numerical issues.
+        // First edge: screen H (const y) or screen V (const x).
+        [nx, ny] = Math.abs(sdx) >= Math.abs(sdy)
+          ? [curSc.x, lastSc.y]
+          : [lastSc.x, curSc.y];
+      } else {
+        // Subsequent: perpendicular to previous edge in screen space.
         const prevPrev = waypoints[waypoints.length - 2];
-        const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
-        const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
-        const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-        if (edgeLen > 0.001) {
-          const ex = edgeDx / edgeLen;   // unit east component
-          const ey = edgeDy / edgeLen;   // unit north component
-          const tFwd  =  dx * ex + dy * ey;      // along-edge projection
-          const tPerp = -dx * ey + dy * ex;      // perpendicular (CCW 90°)
+        const ppSc = map.project([prevPrev.lng, prevPrev.lat]);
+        const edSx = lastSc.x - ppSc.x;
+        const edSy = lastSc.y - ppSc.y;
+        const edLen = Math.sqrt(edSx * edSx + edSy * edSy);
+        if (edLen > 0.5) {
+          const ex = edSx / edLen, ey = edSy / edLen;
+          const tFwd  =  sdx * ex + sdy * ey;
+          const tPerp = -sdx * ey + sdy * ex;
           if (Math.abs(tFwd) >= Math.abs(tPerp)) {
-            endLng = last.lng + (tFwd * ex) / mPerLng;
-            endLat = last.lat + (tFwd * ey) / mPerLat;
+            nx = lastSc.x + tFwd * ex; ny = lastSc.y + tFwd * ey;
           } else {
-            endLng = last.lng + (tPerp * (-ey)) / mPerLng;
-            endLat = last.lat + (tPerp * ex) / mPerLat;
+            nx = lastSc.x + tPerp * (-ey); ny = lastSc.y + tPerp * ex;
           }
+        } else {
+          nx = curSc.x; ny = curSc.y;
         }
       }
+      const snp = map.unproject([nx, ny]);
+      endLng = snp.lng; endLat = snp.lat;
     }
 
     // Distance constraint: if the user has typed a length, project the

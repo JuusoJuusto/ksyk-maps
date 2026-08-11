@@ -2222,14 +2222,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
           buildings, floors, rooms, hallways, doors: doorsSnap, stairs: stairsSnap, elevators: elevatorsSnap,
         };
-        await db.collection('mapVersions').doc(versionId).set({
-          id: versionId, packageId: 'current', version: versionNumber,
-          savedAt: publishedAt, savedBy: null, published: true,
-          message, payloadKey: versionId, payload: pkg,
-        });
-        await db.collection('mapPackages').doc('published').set({
-          pointer: versionId, publishedAt, publishedBy: null,
-        });
+        try {
+          await db.collection('mapVersions').doc(versionId).set({
+            id: versionId, packageId: 'current', version: versionNumber,
+            savedAt: publishedAt, savedBy: null, published: true,
+            message, payloadKey: versionId, payload: pkg,
+          });
+          await db.collection('mapPackages').doc('published').set({
+            pointer: versionId, publishedAt, publishedBy: null,
+          });
+        } catch (fbErr) {
+          console.warn('publish: Firebase write skipped (non-fatal):', fbErr);
+        }
         return res.status(200).json({ ...pkg, versionId, version: versionNumber });
       } catch (err) {
         console.error('publish failed:', err);

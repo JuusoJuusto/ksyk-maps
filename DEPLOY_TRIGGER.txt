@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.75.0 — mobile beacons, POI icons, builder floor switching
+Bump reason: v3.75.1 — screen-space ortho fix, publish non-fatal Firebase
 
-Timestamp: 1787031000
-Build: FORCE_REBUILD_v3.75.0_MOBILEBEACONS_POIICONS_FLOORSWITCH
+Timestamp: 1787031600
+Build: FORCE_REBUILD_v3.75.1_ORTHOFIX_PUBLISHFIX
 
