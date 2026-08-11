@@ -510,6 +510,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     const sourceId = "builder-waypoints";
     const layerId = "builder-waypoints-line";
     const pointsLayerId = "builder-waypoints-points";
@@ -667,6 +668,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     // Note: no early-return on empty buildings — we still need to
     // upsert an empty FeatureCollection so leftover features clear.
     const sourceId = "builder-buildings";
@@ -765,6 +767,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
 
     // Rooms
     const roomsSrcId = "builder-rooms";
@@ -954,6 +957,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     const NODE_SRC = "builder-nav-nodes-src";
     const NODE_LAYER = "builder-nav-nodes";
     const NODE_HALO = "builder-nav-nodes-halo";
@@ -1049,6 +1053,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
 
     const onClick = (e: MapMouseEvent) => {
       if (activeTool === "select") {
@@ -1949,6 +1954,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     const SRC = "builder-snap-indicator";
     const LAYER = "builder-snap-indicator-circle";
     const RING = "builder-snap-indicator-ring";
@@ -2075,6 +2081,7 @@ function BuilderWorkspace() {
     return () => {
       map.off("mousemove", onMove);
       map.off("mouseleave", onLeave);
+      if (!map.isStyleLoaded()) return;
       if (map.getLayer(LAYER)) map.removeLayer(LAYER);
       if (map.getLayer(RING)) map.removeLayer(RING);
       if (map.getSource(SRC)) map.removeSource(SRC);
@@ -2092,6 +2099,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     const SRC = "builder-ghost-preview";
     const LAYER = "builder-ghost-preview-line";
 
@@ -2541,7 +2549,7 @@ function BuilderWorkspace() {
   useEffect(() => {
     if (!mapReady) return;
     const map = handleRef.current?.map;
-    if (!map) return;
+    if (!map || !map.isStyleLoaded()) return;
     const SRC = "builder-temp-lines";
     const LAYER = "builder-temp-lines-line";
     const LAYER_SEL = "builder-temp-lines-selected";
@@ -2592,6 +2600,7 @@ function BuilderWorkspace() {
     const h = handleRef.current;
     if (!h) return;
     const map = h.map;
+    if (!map.isStyleLoaded()) return;
     const SRC = "builder-route-preview-src";
     const LINE = "builder-route-preview-line";
     const CASING = "builder-route-preview-casing";
