@@ -98,6 +98,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     
+    // One-time Firebase → Postgres migration endpoint — admin only.
+    // Reads every collection from Firestore and upserts into Supabase.
+    // Safe to call multiple times (ON CONFLICT DO NOTHING).
+    if (apiPath === '/admin/migrate-from-firebase' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { runMigration } = await import('../server/migrateFirebaseToPostgres.js');
+        const result = await runMigration();
+        return res.status(200).json({ success: true, ...result });
+      } catch (err: any) {
+        console.error('Migration error:', err);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
+
     // Debug endpoint â€” admin only
     if (apiPath === '/debug') {
       if (!requireAdminAuth(req, res)) return;

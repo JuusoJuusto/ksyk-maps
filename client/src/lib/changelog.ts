@@ -10,14 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.61.0";
+export const APP_VERSION = "3.62.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.62.0",
+    date: "August 2026",
+    title: "Firebase → Supabase data migration endpoint",
+    latest: true,
+    highlights: [
+      "POST /api/admin/migrate-from-firebase — migrates buildings, floors, rooms, hallways, staff, events, announcements from Firestore to Supabase in one call",
+      "Migration is idempotent (ON CONFLICT DO NOTHING) — safe to run multiple times",
+    ],
+  },
   {
     version: "3.61.0",
     date: "August 2026",
     title: "Fix MapLibre expression crash, builder usable again",
-    latest: true,
+    latest: false,
     highlights: [
       "Fixed invalid nested zoom expressions in builder-hallways-line line-width and builder-pois circle-radius (MapLibre crash)",
       "Builder map now renders correctly without crashing to error boundary",
