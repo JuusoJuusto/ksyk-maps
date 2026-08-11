@@ -10,14 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.68.0";
+export const APP_VERSION = "3.69.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.69.0",
+    date: "August 2026",
+    title: "Fix getLayer crash in BuilderPois unmount",
+    latest: true,
+    highlights: [
+      "BuilderPois cleanup guards with !map.style before calling getLayer — prevents crash when navigating away from builder",
+      "Root cause: map.remove() sets map.style = undefined; child cleanups run before parent, crashing on dead map",
+    ],
+  },
   {
     version: "3.68.0",
     date: "August 2026",
     title: "Security hardening — remove password logs, fix session secret",
-    latest: true,
+    latest: false,
     highlights: [
       "Removed plaintext password from server logs (routes.ts, resendEmail.ts, createFirebaseAdmin.ts)",
       "SESSION_SECRET now throws in production if not set — no hardcoded fallback",

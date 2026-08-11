@@ -394,7 +394,7 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
   // Cleanup on unmount — remove all layers + sources we added.
   useEffect(() => {
     return () => {
-      if (!map) return;
+      if (!map || !map.style) return;
       for (const l of Object.values(LYR)) {
         if (map.getLayer(l)) map.removeLayer(l);
       }
