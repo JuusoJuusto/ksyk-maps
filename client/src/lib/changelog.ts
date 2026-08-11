@@ -10,14 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.72.0";
+export const APP_VERSION = "3.72.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.72.1",
+    date: "August 2026",
+    title: "Fix storage factory and hallways write error handling",
+    latest: true,
+    highlights: [
+      "Storage factory now recognises POSTGRES_PRISMA_URL so Transaction Mode pooler is picked up correctly",
+      "Hallways POST/PATCH/DELETE now return proper error messages instead of unhandled 500s",
+    ],
+  },
   {
     version: "3.72.0",
     date: "August 2026",
     title: "Fix auth 401 loop and hallways 500 — production auth now works",
-    latest: true,
     highlights: [
       "All React Query GET requests now include Authorization: Bearer token — /api/auth/user no longer returns 401 after login",
       "Builder auth check also sends the token",
