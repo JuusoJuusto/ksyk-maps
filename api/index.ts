@@ -1,5 +1,46 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
+import crypto from 'node:crypto';
+
+// ── Stateless admin token (HMAC-signed, 24h TTL) ──────────────────
+// Sessions don't persist across Vercel Lambda cold starts. Instead,
+// the login endpoint issues a signed token that the client stores and
+// sends back via Authorization header on sensitive mutations.
+
+function _adminSecret(): string {
+  const s = process.env.SESSION_SECRET;
+  if (!s || s.length < 32) console.warn('⚠️ SESSION_SECRET missing or too short — admin tokens are insecure');
+  return s || 'ksyk-insecure-fallback-set-session-secret-in-vercel';
+}
+
+function generateAdminToken(userId: string, role: string): string {
+  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 86_400_000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyAdminToken(token: string): { userId: string; role: string } | null {
+  try {
+    const dot = token.lastIndexOf('.');
+    if (dot === -1) return null;
+    const payload = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    const expected = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (parsed.exp < Date.now()) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: string; role: string } | null {
+  const header = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
+  const token = header?.replace(/^Bearer\s+/i, '').trim();
+  if (!token) { res.status(401).json({ message: 'Admin authentication required' }); return null; }
+  const payload = verifyAdminToken(token);
+  if (!payload) { res.status(401).json({ message: 'Invalid or expired admin token' }); return null; }
+  return payload;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set security headers
@@ -8,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
   
   // Rate limiting
   const clientIP = getRealIP(req.headers);
@@ -57,17 +98,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     
-    // Debug endpoint to check storage
+    // Debug endpoint — admin only
     if (apiPath === '/debug') {
+      if (!requireAdminAuth(req, res)) return;
       const { storage } = await import('../server/storage.js');
       const buildings = await storage.getBuildings();
       return res.status(200).json({
         storageType: storage.constructor.name,
         buildingCount: buildings.length,
-        buildings: buildings,
         env: {
-          USE_FIREBASE: process.env.USE_FIREBASE,
-          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT
+          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+          HAS_POSTGRES_URL: !!process.env.POSTGRES_URL,
         }
       });
     }
@@ -103,6 +144,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // PUT /api/security-settings — admin write. Whitelist + validate so
     // a malformed body can't poison the doc.
     if (apiPath === '/security-settings' && req.method === 'PUT') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         const { db } = await import('../server/firebaseStorage.js');
         const src = req.body || {};
@@ -192,6 +234,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // PUT /api/map-defaults — admin write.
     if (apiPath === '/map-defaults' && req.method === 'PUT') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         const { db } = await import('../server/firebaseStorage.js');
         const allowed = [
@@ -214,8 +257,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // GET /api/admin-login-logs — recent admin sign-in events.
+    // GET /api/admin-login-logs — recent admin sign-in events (admin only).
     if ((apiPath === '/admin-login-logs' || apiPath.startsWith('/admin-login-logs?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         if ((storage as any).getAdminLoginLogs) {
           const limit = parseInt((req.query.limit as string) || '100', 10);
@@ -1057,6 +1101,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
     // Complete data cleanup endpoint - DELETE EVERYTHING
     if (apiPath === '/admin/cleanup-all' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
       const { confirmDelete } = req.body;
       
       if (confirmDelete !== 'DELETE_EVERYTHING') {
@@ -1167,6 +1212,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
     // Admin cleanup endpoint - DELETE ALL DATA
     if (apiPath === '/admin/cleanup' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
       const { confirmDelete } = req.body;
       
       if (confirmDelete !== 'DELETE_ALL') {
@@ -1293,7 +1339,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           }
         }
         const { password: _pw, passwordResetToken: _tk, passwordResetExpiry: _ex, ...safeUser } = ownerUser;
-        return res.status(200).json({ success: true, user: safeUser, requirePasswordChange: false });
+        const ownerToken = generateAdminToken(safeUser.id || 'owner-admin-user', safeUser.role || 'owner');
+        return res.status(200).json({ success: true, user: safeUser, requirePasswordChange: false, adminToken: ownerToken });
       }
 
       // ── Case-insensitive user lookup with graceful fallbacks. ─────
@@ -1341,24 +1388,25 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
       const ok = await verifyAndUpgrade(password, user.password, user.id);
       if (!ok) {
-        console.log(`❌ Password mismatch (${isOwner ? 'owner' : 'admin'}) — stored is ${isAlreadyHashed(user.password) ? 'bcrypt' : 'plaintext(' + user.password.length + ')'}`);
+        console.log(`❌ Password mismatch (${isOwner ? 'owner' : 'admin'}) — stored format: ${isAlreadyHashed(user.password) ? 'bcrypt' : 'plaintext'}`);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       console.log(`✅ ${isOwner ? 'OWNER' : 'ADMIN'} login successful for ${email}`);
       const { password: _pw2, passwordResetToken: _tk2, passwordResetExpiry: _ex2, ...safeUser } = user as any;
+      const adminToken = generateAdminToken(user.id, user.role || 'admin');
       return res.status(200).json({
         success: true,
         user: safeUser,
         requirePasswordChange: user.isTemporaryPassword || false,
+        adminToken,
       });
     }
 
     // ── Debug: GET /api/auth/admin-diag — sanity check on the login path.
-    // Safe to expose: only returns whether the account exists + shape of
-    // its stored password (bcrypt vs plaintext len), never the value.
-    // Available on any deployment so admins can debug from the browser.
+    // Requires admin token because it reveals account existence.
     if (apiPath === '/auth/admin-diag' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       const email = ((req.query.email as string) || '').trim();
       if (!email) return res.status(400).json({ message: 'email query param required' });
       try {
@@ -1388,8 +1436,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
-    // Password change endpoint
+    // Password change endpoint — requires admin token (admin setting another user's password)
     if (apiPath === '/auth/change-password' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
       const { newPassword } = req.body;
       
       console.log('\n🔐 ========== PASSWORD CHANGE ==========');
@@ -1610,6 +1659,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     
     // Users endpoints
     if (apiPath.startsWith('/users')) {
+      if (!requireAdminAuth(req, res)) return;
       if (req.method === 'GET') {
         const users = await storage.getAllUsers();
         return res.status(200).json(users);
@@ -1654,7 +1704,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           console.log(`\n📧 ========== EMAIL INVITATION ==========`);
           console.log(`Target: ${email}`);
           console.log(`Name: ${firstName} ${lastName}`);
-          console.log(`Password: ${finalPassword}`);
           
           try {
             const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
@@ -1666,11 +1715,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
             if (emailResult.success) {
               console.log(`✅ EMAIL SENT to ${email}`);
             } else {
-              console.log(`⚠️ EMAIL NOT SENT - Password: ${finalPassword}`);
+              console.log(`⚠️ EMAIL NOT SENT (mode: ${emailResult.mode})`);
             }
           } catch (error: any) {
             console.error('❌ EMAIL ERROR:', error.message);
-            console.log(`📝 Password: ${finalPassword}`);
           }
           
           console.log(`==========================================\n`);
@@ -1699,8 +1747,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
-    // Email diagnostic endpoint
+    // Email diagnostic endpoint — admin only (leaks config info)
     if (apiPath === '/email-diagnostic' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       return res.status(200).json({
         emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
         emailUser: process.env.EMAIL_USER || 'NOT SET',
@@ -1867,8 +1916,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     
     // Wilma User routes
     if (apiPath.startsWith('/wilma')) {
-      // GET /wilma/users - List all Wilma users (with or without query params)
+      // GET /wilma/users - List all Wilma users (admin only — full user list)
       if ((apiPath === '/wilma/users' || apiPath.startsWith('/wilma/users?')) && req.method === 'GET') {
+        if (!requireAdminAuth(req, res)) return;
         console.log('🔵 GET /api/wilma/users called');
         const role = req.query.role as string | undefined;
         console.log('📝 Role filter:', role || 'none');
@@ -2066,8 +2116,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
       }
       
-      // POST /wilma/users - Create Wilma user
+      // POST /wilma/users - Create Wilma user (admin only)
       if (apiPath === '/wilma/users' && req.method === 'POST') {
+        if (!requireAdminAuth(req, res)) return;
         console.log('🔵 POST /api/wilma/users called');
         console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
         
@@ -2285,8 +2336,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
       }
       
-      // DELETE /wilma/users/:id - Delete Wilma user
+      // DELETE /wilma/users/:id - Delete Wilma user (admin only)
       if (updateMatch && req.method === 'DELETE') {
+        if (!requireAdminAuth(req, res)) return;
         const id = updateMatch[1];
         console.log('🔵 DELETE /api/wilma/users/' + id);
         
@@ -2299,9 +2351,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
       }
       
-      // POST /wilma/users/:id/send-password-reset - Send password reset email to specific user
+      // POST /wilma/users/:id/send-password-reset - Send password reset email (admin only)
       const passwordResetMatch = apiPath.match(/^\/wilma\/users\/([^\/]+)\/send-password-reset$/);
       if (passwordResetMatch && req.method === 'POST') {
+        if (!requireAdminAuth(req, res)) return;
         const userId = passwordResetMatch[1];
         console.log('🔵 POST /api/wilma/users/' + userId + '/send-password-reset');
         

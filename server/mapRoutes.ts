@@ -12,11 +12,11 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { db } from "./db.js";
 import { mapVersions, mapPackages } from "../shared/schema.js";
-import { isAuthenticated } from "./simpleAuth";
-import { rateLimiters } from "./rateLimiter";
+import { isAuthenticated } from "./simpleAuth.js";
+import { rateLimiters } from "./rateLimiter.js";
 import {
   buildNavGraph,
   buildGraph,

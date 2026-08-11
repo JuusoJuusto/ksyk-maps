@@ -10,14 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.58.0";
+export const APP_VERSION = "3.59.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.59.0",
+    date: "August 2026",
+    title: "Security hardening — admin auth tokens, endpoint protection, Supabase fix",
+    latest: true,
+    highlights: [
+      "All admin endpoints now require HMAC-signed token (no more unauthenticated access)",
+      "Fixed Supabase connection: missing .js extension in server/postgresStorage import",
+      "Removed sensitive data from server logs (passwords, plaintext lengths)",
+      "CSP hardened: removed unsafe-eval",
+      "Admin token issued on login and sent on all protected API calls",
+    ],
+  },
   {
     version: "3.58.0",
     date: "August 2026",
     title: "Fix @shared path alias — Supabase now connects in production",
-    latest: true,
+    latest: false,
     highlights: [
       "Fixed ERR_MODULE_NOT_FOUND: @shared/schema is a TypeScript path alias that dev resolves but Vercel's Lambda runtime cannot. Replaced with relative paths (../shared/schema.js) in all server files. Supabase now connects correctly and buildings/rooms/announcements load from Postgres.",
     ],

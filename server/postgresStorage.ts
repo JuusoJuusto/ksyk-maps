@@ -30,9 +30,9 @@ import {
   type AppSettings,
   type InsertAppSettings,
 } from "../shared/schema.js";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
-import type { IStorage } from "./storage";
+import type { IStorage } from "./storage.js";
 // NOTE: `.js` REQUIRED for Vercel ESM runtime — see firebaseStorage.ts.
 import { hashPasswordFieldsInPlace } from "./passwordUtils.js";
 

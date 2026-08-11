@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementManager from "@/components/AnnouncementManager";
@@ -761,7 +762,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await fetch("/api/users");
+      const response = await fetch("/api/users", { headers: getAdminHeaders() });
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
     },
@@ -1602,7 +1603,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                                 // Update user
                                 const response = await fetch(`/api/users/${editingUser.id}`, {
                                   method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
                                   body: JSON.stringify(editingUser)
                                 });
                                 
@@ -1629,7 +1630,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                                 
                                 const response = await fetch('/api/users', {
                                   method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
                                   body: JSON.stringify(newUser)
                                 });
                                 
@@ -1743,7 +1744,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
                                       className="h-7 px-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700"
                                       onClick={async () => {
                                         try {
-                                          const r = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+                                          const r = await fetch(`/api/users/${user.id}`, { method: "DELETE", headers: getAdminHeaders() });
                                           if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Failed"); }
                                           toast({ title: "User deleted" });
                                           queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -2392,9 +2393,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
                     onClick={async () => {
                       setDangerDeleting(true);
                       try {
+                        const _adminTok = localStorage.getItem('ksyk_admin_token');
                         const response = await fetch('/api/admin/cleanup-all', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(_adminTok ? { 'Authorization': `Bearer ${_adminTok}` } : {}),
+                          },
                           credentials: 'include',
                           body: JSON.stringify({ confirmDelete: 'DELETE_EVERYTHING' })
                         });

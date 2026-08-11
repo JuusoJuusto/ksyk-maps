@@ -45,6 +45,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         localStorage.setItem('ksyk_admin_logged_in', 'true');
         localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
         localStorage.setItem('ksyk_admin_login_at', String(Date.now()));
+        if (data.adminToken) localStorage.setItem('ksyk_admin_token', data.adminToken);
         toast({ title: 'Signed in', description: 'Welcome back.' });
         onLoginSuccess();
       } else {

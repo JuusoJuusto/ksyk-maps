@@ -9,7 +9,7 @@ import * as fs from 'fs';
 // the whole site down (that's the 2026-07-16 outage). Do not remove the
 // `.js` even though TS/tsx tolerate it during dev.
 import { hashPasswordFieldsInPlace } from './passwordUtils.js';
-import type { IStorage } from './storage';
+import type { IStorage } from './storage.js';
 import type {
   User,
   UpsertUser,
