@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./simpleAuth";
+import { setupAuth, isAuthenticated, signChallenge, verifyChallenge } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "../shared/schema.js";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ipAddress: req.ip || req.connection?.remoteAddress || null,
           userAgent: req.headers['user-agent'] || null,
           loginStatus: 'success',
-          sessionId: req.sessionID || null
+          sessionId: null
         });
 
         req.login({
@@ -299,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ipAddress: req.ip || req.connection?.remoteAddress || null,
           userAgent: req.headers['user-agent'] || null,
           loginStatus: 'success',
-          sessionId: req.sessionID || null
+          sessionId: null
         });
         
         console.log('✅ User logged in');
@@ -328,9 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { TwoFactorAuthService } = await import('./twoFactorAuth');
       const setup = TwoFactorAuthService.generateSecret(userEmail, userName);
 
-      // Store the secret temporarily in session
-      req.session.tempTwoFactorSecret = setup.secret;
-
+      // Return the secret to the client — it must send it back on /enable
       res.json({
         secret: setup.secret,
         otpauthUrl: setup.otpauthUrl,
@@ -345,11 +343,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/2fa/enable', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { code } = req.body;
-      const secret = req.session.tempTwoFactorSecret;
+      // Client must echo back the secret it received from /generate
+      const { code, secret } = req.body;
 
       if (!secret) {
-        return res.status(400).json({ message: 'No 2FA setup in progress' });
+        return res.status(400).json({ message: 'No 2FA setup in progress. Call /generate first.' });
       }
 
       if (!code || code.length !== 6) {
@@ -360,8 +358,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await TwoFactorAuthService.enableTwoFactor(userId, secret, code);
 
       if (result.success) {
-        // Clear temp secret
-        delete req.session.tempTwoFactorSecret;
         
         // Generate backup codes
         const backupCodes = TwoFactorAuthService.generateBackupCodes();
@@ -417,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         enabled: user.twoFactorEnabled || false,
-        secret: req.session.tempTwoFactorSecret || null,
+        secret: (!user.twoFactorEnabled && user.twoFactorSecret) ? user.twoFactorSecret : null,
       });
     } catch (error) {
       console.error('Error checking 2FA status:', error);
@@ -499,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ipAddress: req.ip || req.connection?.remoteAddress || null,
           userAgent: req.headers['user-agent'] || null,
           loginStatus: 'success',
-          sessionId: req.sessionID || null
+          sessionId: null
         });
         res.json({ success: true, user, usedBackupCode: isBackup });
       });
@@ -519,11 +515,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await TwoFactorAuthService.sendEmailCode(userEmail);
       
       if (result.success && result.code) {
-        // Store code in session with expiry
-        req.session.emailVerificationCode = result.code;
-        req.session.emailCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
-        
-        res.json({ success: true, message: 'Verification code sent to your email' });
+        // Sign the code into a short-lived JWT challenge — no session needed
+        const challengeToken = signChallenge({ userId, code: result.code }, "10m");
+        res.json({ success: true, message: 'Verification code sent to your email', challengeToken });
       } else {
         res.status(500).json({ success: false, message: 'Failed to send email' });
       }
@@ -536,21 +530,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Verify email code for 2FA
   app.post('/api/auth/2fa/verify-email-code', isAuthenticated, async (req: any, res) => {
     try {
-      const { code } = req.body;
-      
-      if (!req.session.emailVerificationCode || !req.session.emailCodeExpiry) {
+      const { code, challengeToken } = req.body;
+
+      if (!challengeToken) {
         return res.status(400).json({ success: false, message: 'No verification code sent' });
       }
-      
-      if (Date.now() > req.session.emailCodeExpiry) {
-        delete req.session.emailVerificationCode;
-        delete req.session.emailCodeExpiry;
+      const challenge = verifyChallenge(challengeToken);
+      if (!challenge) {
         return res.status(400).json({ success: false, message: 'Verification code expired' });
       }
-      
-      if (code === req.session.emailVerificationCode) {
-        delete req.session.emailVerificationCode;
-        delete req.session.emailCodeExpiry;
+      if (code === challenge.code) {
         res.json({ success: true });
       } else {
         res.status(401).json({ success: false, message: 'Invalid verification code' });
@@ -747,21 +736,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Logout endpoint
-  app.post('/api/auth/logout', (req, res) => {
+  // Logout endpoint — clears the JWT auth cookie
+  app.post('/api/auth/logout', (req: any, res) => {
     req.logout((err: any) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      req.session.destroy((err: any) => {
-        if (err) {
-          console.error("Session destroy error:", err);
-          return res.status(500).json({ message: "Session cleanup failed" });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ success: true, message: "Logged out successfully" });
-      });
+      if (err) console.error("Logout error:", err);
+      res.json({ success: true, message: "Logged out successfully" });
     });
   });
 

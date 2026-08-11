@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.69.0";
+export const APP_VERSION = "3.70.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.70.0",
+    date: "August 2026",
+    title: "Fix admin writes — JWT auth replaces broken session auth",
+    latest: true,
+    highlights: [
+      "Replaced express-session (MemoryStore) with JWT httpOnly cookies — sessions now survive across Vercel serverless instances",
+      "Root cause: Vercel is stateless — MemoryStore sessions died between lambda invocations, making every write appear as unauthenticated",
+      "2FA email verification codes now use signed JWT challenge tokens instead of session",
+    ],
+  },
   {
     version: "3.69.0",
     date: "August 2026",
     title: "Fix getLayer crash in BuilderPois unmount",
-    latest: true,
+    latest: false,
     highlights: [
       "BuilderPois cleanup guards with !map.style before calling getLayer — prevents crash when navigating away from builder",
       "Root cause: map.remove() sets map.style = undefined; child cleanups run before parent, crashing on dead map",
