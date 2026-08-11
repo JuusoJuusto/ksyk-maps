@@ -13,14 +13,32 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.production" });
 
+function parseServiceAccount(raw: string): Record<string, unknown> {
+  // Try direct parse first (valid single-line JSON).
+  try { return JSON.parse(raw); } catch { /* fall through */ }
+
+  // Walk char-by-char and escape newlines only INSIDE JSON string literals.
+  // Structural newlines between tokens are left as-is; only those inside
+  // "..." get turned into \n so JSON.parse accepts the private_key value.
+  let out = "";
+  let inStr = false;
+  let esc = false;
+  for (const ch of raw) {
+    if (esc) { out += ch; esc = false; continue; }
+    if (ch === "\\") { out += ch; esc = true; continue; }
+    if (ch === '"') { out += ch; inStr = !inStr; continue; }
+    if (inStr && ch === "\n") { out += "\\n"; continue; }
+    if (inStr && ch === "\r") { out += "\\r"; continue; }
+    out += ch;
+  }
+  return JSON.parse(out);
+}
+
 function initFirebase() {
   if (!getApps().length) {
     const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!sa) throw new Error("FIREBASE_SERVICE_ACCOUNT not set");
-    // Literal newlines in the private_key value break JSON.parse.
-    // Replace bare 0x0A characters with the JSON escape sequence.
-    const parsed = JSON.parse(sa.replace(/\n/g, "\\n"));
-    initializeApp({ credential: cert(parsed) });
+    initializeApp({ credential: cert(parseServiceAccount(sa)) });
   }
   return getFirestore();
 }
