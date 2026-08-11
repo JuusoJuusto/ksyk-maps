@@ -26,7 +26,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { trackEasterEgg, trackFeature } from "@/lib/analytics";
 import { eggLocalKey, EASTER_EGGS, EGG_RESET_EPOCH, resetLocalEggFlags } from "@/lib/easterEggRegistry";
-import { barrelRoll, confetti, crtBurst, eggToast } from "@/lib/easterEggEffects";
+import { achievementCard, barrelRoll, confetti, crtBurst, eggToast, matrixRain, snowfall } from "@/lib/easterEggEffects";
 
 const FINNISH_COLORS = ["#003580", "#003580", "#ffffff", "#e5edff"];
 const RETRO_COLORS = ["#22c55e", "#84cc16", "#4ade80"];
@@ -60,8 +60,15 @@ function markAndReport(id: string): boolean {
       credentials: "include",
       body: JSON.stringify({ egg: "full-hunter" }),
     }).catch(() => {});
-    eggToast("Full Hunter! Every egg found.", { emoji: "🏆", ms: 5000 });
-    confetti({ count: 180, duration: 4500 });
+    confetti({ colors: ["#fbbf24","#f59e0b","#fcd34d","#fde68a","#fff"], count: 220, duration: 5000 });
+    achievementCard({
+      emoji: "🏆",
+      name: "Full Hunter",
+      description: "Every single easter egg discovered. You found them all.",
+      rarity: "legendary",
+      reward: "Permanent gold ring on the badge of honour.",
+      ms: 7000,
+    });
   }
   return true;
 }
@@ -138,6 +145,30 @@ export function useKsykEasterEggs() {
           if (markAndReport("retro-crt")) {
             crtBurst(15_000);
             eggToast("1985 system online.", { emoji: "📼" });
+          }
+        },
+      },
+      {
+        word: "snow",
+        onFound: () => {
+          if (markAndReport("snow-typed")) {
+            snowfall(6000);
+            eggToast("It's snowing! ❄️", { emoji: "🌨️" });
+          }
+        },
+      },
+      {
+        word: "matrix",
+        onFound: () => {
+          if (markAndReport("matrix-typed")) {
+            matrixRain(8000);
+            achievementCard({
+              emoji: "🟩",
+              name: "Wake Up, Neo",
+              description: "You found the rabbit hole.",
+              rarity: "epic",
+              reward: "Matrix rain cascade for 8 seconds.",
+            });
           }
         },
       },
@@ -243,12 +274,18 @@ export function useKsykEasterEggs() {
         resetCombo();
         if (markAndReport("debug-combo")) {
           trackFeature("easter_debug_combo_unlocked");
-          eggToast("Debug combo unlocked.", { emoji: "🐛" });
           try {
             // eslint-disable-next-line no-console
             console.log("%cKSYK debug combo unlocked ✅",
               "background:#2563eb;color:#fff;padding:4px 8px;border-radius:6px;font-weight:700");
           } catch { /* ignore */ }
+          achievementCard({
+            emoji: "🐛",
+            name: "Debug Combo",
+            description: "Ctrl+Shift+K · Ctrl+Shift+D — back to back.",
+            rarity: "epic",
+            reward: "Dev banner logged to console.",
+          });
         }
       }
     };
@@ -270,8 +307,15 @@ export function useKsykEasterEggs() {
         if (konamiPos === KONAMI.length) {
           resetKonami();
           if (markAndReport("konami")) {
-            eggToast("Konami code! +30 lives.", { emoji: "🎮" });
             crtBurst(8000);
+            confetti({ count: 100, duration: 3000 });
+            achievementCard({
+              emoji: "🎮",
+              name: "Konami Code",
+              description: "↑↑↓↓←→←→BA — the one from every 8-bit game.",
+              rarity: "epic",
+              reward: "+30 lives & CRT theme overlay.",
+            });
           }
         }
       } else {
@@ -364,8 +408,14 @@ export function useKsykEasterEggs() {
       if (zoomStreak >= 10) {
         zoomStreak = 0;
         if (markAndReport("zoom-lord")) {
-          eggToast("Zoom Lord!", { emoji: "🔎" });
-          confetti({ count: 60, duration: 2500 });
+          confetti({ colors: ["#fbbf24","#f59e0b","#d97706","#fcd34d"], count: 120, duration: 3500 });
+          achievementCard({
+            emoji: "🔎",
+            name: "Zoom Lord",
+            description: "Zoomed in 10 times in a row — truly a legend of exploration.",
+            rarity: "legendary",
+            reward: "Hidden Zoom Lord badge added to your profile.",
+          });
         }
       }
     };

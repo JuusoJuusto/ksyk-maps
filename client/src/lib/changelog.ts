@@ -10,14 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.75.1";
+export const APP_VERSION = "3.76.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.76.0",
+    date: "August 2026",
+    title: "Analytics consent, premium Easter eggs, outline control, bathroom icon fix",
+    latest: true,
+    highlights: [
+      "Analytics only fire after cookie consent — fully GDPR-compliant now",
+      "Easter eggs upgraded: premium achievement card overlay for epic & legendary discoveries",
+      "2 new Easter eggs: type 'snow' for snowfall, type 'matrix' for Matrix rain",
+      "Building & room outlines fully removable — showOutline=false now hides all lines including fill-outline",
+      "Bathroom/restroom POI icons now 'WC' — cleaner, universally rendered",
+      "POI pin: much more spacing between icon chip and arrow tail",
+      "Command palette: removed Open Builder / Open Admin from the public search menu",
+    ],
+  },
   {
     version: "3.75.1",
     date: "August 2026",
     title: "Ortho straight lines fixed, publish no longer fails",
-    latest: true,
     highlights: [
       "Ortho tool now produces truly straight H/V lines at any map rotation (screen-space math)",
       "Builder publish no longer returns 500 when Firebase is unavailable — data still saves to Postgres",

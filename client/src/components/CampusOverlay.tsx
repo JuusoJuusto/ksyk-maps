@@ -718,7 +718,7 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
         17, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.06]],
         20, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.02]],
       ],
-      "fill-outline-color": ["get", "color"],
+      "fill-outline-color": ["case", ["get", "showOutline"], ["get", "color"], "rgba(0,0,0,0)"],
       "fill-antialias": true,
     },
   });
@@ -741,13 +741,13 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
         17, ["case", ["boolean", ["feature-state", "hover"], false], 5, 2.5],
         20, ["case", ["boolean", ["feature-state", "hover"], false], 7, 3.5],
       ],
-      // Per-feature outline toggle — false collapses the line to zero
-      // opacity without hiding the layer for every building.
+      // Per-feature outline toggle — showOutline=false hides the line
+      // completely (even on hover) so admins can go fully line-free.
       "line-opacity": [
         "case",
-        ["boolean", ["feature-state", "hover"], false],
-        1.0,
-        ["case", ["get", "showOutline"], 0.95, 0],
+        ["!", ["get", "showOutline"]], 0,
+        ["boolean", ["feature-state", "hover"], false], 1.0,
+        0.95,
       ],
     },
   });
@@ -1808,8 +1808,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     paint: {
       "line-color": ["get", "color"],
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.5, 22, 2.5],
-      // Always show a subtle outline for room definition; stronger when showOutline is on.
-      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0.4],
+      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0],
     },
   });
 
@@ -1940,13 +1939,13 @@ const POI_ICON: Record<string, string> = {
   door:          "🚪",   // door
   entrance:      "⊙",   // bullseye entry point
   exit:          "↪",   // exit arrow
-  bathroom:      "🚻",   // restroom (unisex)
+  bathroom:      "WC",   // restroom (unisex) — clean text renders everywhere
   info:          "ⓘ",
   reception:     "☎",
   parking:       "Ⓟ",
   bike:          "🚲",
-  restroom_m:    "🚹",   // men
-  restroom_f:    "🚺",   // women
+  restroom_m:    "♂",   // men
+  restroom_f:    "♀",   // women
   restroom_a:    "♿",   // accessible
   cafe:          "☕",
   vending:       "🍫",
@@ -1955,7 +1954,7 @@ const POI_ICON: Record<string, string> = {
   defibrillator: "⚡",
   printer:       "🖨",
   meeting_point: "⚑",
-  restroom:      "🚻",
+  restroom:      "WC",
 };
 
 interface GenericPOI {
@@ -2076,13 +2075,11 @@ function installPOIs(
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      // v3.30.1 — pin-style POI markers. Chip is translated UP by
-      // its own radius so the CIRCLE sits above the coordinate and
-      // the coordinate lines up with the pin's bottom edge — same
-      // affordance as a Google Maps / MazeMap teardrop pin. Slightly
-      // bigger baseline size too.
+      // Pin chip sits well above the tail arrow so the two never collide.
+      // Translate values computed so: chip_bottom = translate+radius,
+      // tail_top ≈ -text-size. Gap at each zoom: ~7-10 px.
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 16, 21, 24],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
       "circle-translate-anchor": "viewport",
       "circle-color": [
         "match", ["get", "kind"],
@@ -2153,9 +2150,7 @@ function installPOIs(
     },
     paint: {
       "text-color": "#111827",
-      // v3.30.1 — translate the emoji UP to match the pin chip
-      // translation. Keeps the glyph centered inside the pin head.
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
       "text-translate-anchor": "viewport",
     },
     minzoom: 14,
@@ -2170,7 +2165,7 @@ function installPOIs(
     type: "symbol",
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 20, 21, 28],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 15, 21, 20],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
