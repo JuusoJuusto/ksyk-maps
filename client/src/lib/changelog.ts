@@ -10,14 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.59.0";
+export const APP_VERSION = "3.60.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.60.0",
+    date: "August 2026",
+    title: "Remove Wilma/coding, full endpoint auth, Supabase now working",
+    latest: true,
+    highlights: [
+      "All Wilma and coding platform tables/routes/files removed from codebase",
+      "All write endpoints now require admin HMAC token (buildings, rooms, hallways, pois, map-package, analytics)",
+      "apiRequest() automatically includes admin token on every API call",
+      "Schema cleaned from 1838 to 890 lines",
+    ],
+  },
   {
     version: "3.59.0",
     date: "August 2026",
     title: "Security hardening — admin auth tokens, endpoint protection, Supabase fix",
-    latest: true,
+    latest: false,
     highlights: [
       "All admin endpoints now require HMAC-signed token (no more unauthenticated access)",
       "Fixed Supabase connection: missing .js extension in server/postgresStorage import",

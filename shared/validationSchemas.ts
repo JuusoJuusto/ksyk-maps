@@ -1,52 +1,5 @@
 import { z } from 'zod';
 
-// Wilma Login Schema
-export const wilmaLoginSchema = z.object({
-  username: z.string()
-    .min(1, 'Username is required')
-    .max(50, 'Username must be less than 50 characters'),
-  password: z.string()
-    .min(1, 'Password is required')
-    .max(100, 'Password must be less than 100 characters')
-});
-
-// Wilma User Creation Schema
-export const wilmaUserCreateSchema = z.object({
-  username: z.string()
-    .min(1, 'Username is required')
-    .max(50, 'Username must be less than 50 characters'),
-  password: z.string()
-    .max(100, 'Password must be less than 100 characters')
-    .optional(),
-  firstName: z.string()
-    .min(1, 'First name is required')
-    .max(100, 'First name must be less than 100 characters'),
-  lastName: z.string()
-    .min(1, 'Last name is required')
-    .max(100, 'Last name must be less than 100 characters'),
-  email: z.string()
-    .email('Invalid email address')
-    .optional()
-    .or(z.literal('')),
-  role: z.enum(['student', 'teacher', 'substitute', 'parent', 'admin', 'principal', 'vice_principal', 
-    'counselor', 'curator', 'social_worker', 'psychologist', 'nurse', 'special_ed_teacher', 'assistant', 
-    'librarian', 'it_support', 'secretary', 'janitor', 'cafeteria_staff', 'student_teacher', 
-    'sivari', 'nuoriso-ohjaaja', 'custom', 'owner']),
-  roles: z.array(z.string()).optional(),
-  studentId: z.string().optional(),
-  studentClass: z.string().optional(),
-  department: z.string().optional(),
-  position: z.string().optional(),
-  customRoleName: z.string().optional(),
-  sendEmailInvitation: z.boolean().optional(),
-  isTemporaryPassword: z.boolean().optional(),
-  isActive: z.boolean().optional(),
-  phone: z.string().optional(),
-  specialization: z.string().optional(),
-  officeRoom: z.string().optional(),
-  bio: z.string().optional(),
-});
-
 // Admin Login Schema
 export const adminLoginSchema = z.object({
   email: z.string().email('Invalid email address'),

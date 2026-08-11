@@ -6,7 +6,7 @@ import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoo
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
 import { getFirestore } from 'firebase-admin/firestore';
-import { registerWilmaExtendedRoutes } from "./wilmaExtendedRoutes";
+
 import { registerCampusRoutes } from "./campusRoutes";
 import { registerMapRoutes } from "./mapRoutes";
 import { registerEasterEggRoutes } from "./easterEggRoutes";
@@ -5272,12 +5272,6 @@ https://ksykmaps.vercel.app
       res.status(500).json({ success: false, message: 'Test failed due to server error' });
     }
   });
-
-  // ============================================
-  // REGISTER WILMA EXTENDED ROUTES
-  // ============================================
-  console.log('🔵 Registering Wilma Extended Routes...');
-  registerWilmaExtendedRoutes(app);
 
   // ============================================
   // REGISTER AALTO SPACE ROUTES
