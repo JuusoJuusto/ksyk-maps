@@ -323,6 +323,11 @@ function BuilderWorkspace() {
   const history = useUndoStack();
   // Active tab in the PropertyPanel — drives whether translate-drag is enabled.
   const [propPanelTab, setPropPanelTab] = useState<string>("props");
+  // Floor-shape drawing mode: when set, the next polygon commit saves as
+  // a per-floor shape override instead of creating a new room.
+  const [floorShapeTarget, setFloorShapeTarget] = useState<{
+    entityId: string; entityKind: "room" | "building"; floor: number;
+  } | null>(null);
   // Local-first navigation graph. Nodes + edges live in localStorage
   // until the server-side /api/nav-nodes API lands.
   const navGraph = useNavGraph();
@@ -788,19 +793,23 @@ function BuilderWorkspace() {
       features: rooms
         .filter((r) => r.points && r.points.length >= 3)
         .map((r) => {
-          const meta = r.metadata as { floorIds?: number[] } | null | undefined;
+          type BldMeta = { floorIds?: number[]; floorShapes?: Array<{ floor: number; coordinates: [number, number][] }> };
+          const meta = r.metadata as BldMeta | null | undefined;
           const floorIds = Array.isArray(meta?.floorIds) ? meta!.floorIds as number[] : null;
+          const floorShapeFloors = Array.isArray(meta?.floorShapes) ? meta!.floorShapes!.map((fs) => fs.floor) : null;
+          const allFloors = floorIds ?? floorShapeFloors;
+          const hasShapeForActive = activeFloor != null && meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
           const onFloor = activeFloor === null ||
-            (floorIds ? floorIds.includes(activeFloor) : r.floor === activeFloor);
+            (allFloors ? (allFloors.includes(activeFloor) || r.floor === activeFloor) : r.floor === activeFloor) ||
+            hasShapeForActive;
+          const floorShape = activeFloor != null ? meta?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
+          const builderPts: [number, number][] = floorShape?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
           const isSelected = selectedRoomIds.has(r.id);
           return {
             type: "Feature" as const,
             geometry: {
               type: "Polygon" as const,
-              coordinates: [[
-                ...r.points!.map((p) => [p.lng, p.lat]),
-                [r.points![0].lng, r.points![0].lat],
-              ]],
+              coordinates: [[...builderPts, builderPts[0]]],
             },
             properties: {
               id: r.id,
@@ -1336,6 +1345,7 @@ function BuilderWorkspace() {
         if (showShortcuts) { setShowShortcuts(false); return; }
         if (contextMenu) { setContextMenu(null); return; }
         if (connectFrom) { setConnectFrom(null); return; }
+        if (floorShapeTarget) { setFloorShapeTarget(null); }
         setWaypoints([]);
         setActiveTool("select");
         return;
@@ -1615,6 +1625,47 @@ function BuilderWorkspace() {
         if (variables.surface !== "inner-wall") setSidebarTab("pois");
       }
     },
+    onError: (err: any) => toast({
+      title: "Hallway save failed",
+      description: err?.message ?? "Could not create hallway — are you logged in?",
+      variant: "destructive",
+    }),
+  });
+
+  const saveFloorShape = useMutation({
+    mutationFn: async (vars: {
+      entityId: string;
+      entityKind: "room" | "building";
+      floor: number;
+      coordinates: Array<[number, number]>;
+    }) => {
+      const existingEntity = vars.entityKind === "building"
+        ? buildings.find((b) => b.id === vars.entityId)
+        : roomsQ.data?.find((r) => r.id === vars.entityId);
+      const existingMeta = (((existingEntity as { metadata?: unknown })?.metadata) ?? {}) as Record<string, unknown>;
+      const existing = (Array.isArray(existingMeta.floorShapes) ? existingMeta.floorShapes as Array<{ floor: number }> : [])
+        .filter((fs) => fs.floor !== vars.floor);
+      const newShapes = [...existing, { floor: vars.floor, coordinates: vars.coordinates }];
+      const path = vars.entityKind === "building"
+        ? `/api/buildings/${vars.entityId}`
+        : `/api/rooms/${vars.entityId}`;
+      const res = await apiRequest("PATCH", path, { metadata: { ...existingMeta, floorShapes: newShapes } });
+      return { ...(await res.json()), _vars: vars };
+    },
+    onSuccess: (result) => {
+      const vars = (result as { _vars: { entityId: string; entityKind: "room" | "building"; floor: number } })._vars;
+      qc.invalidateQueries({ queryKey: [vars.entityKind === "building" ? "/api/buildings" : "/api/rooms"] });
+      setFloorShapeTarget(null);
+      setWaypoints([]);
+      setActiveTool("select");
+      setSelection({ kind: vars.entityKind === "building" ? "building" : "room", id: vars.entityId });
+      toast({ title: `Floor ${vars.floor} shape saved` });
+    },
+    onError: (err: any) => toast({
+      title: "Floor shape save failed",
+      description: err?.message,
+      variant: "destructive",
+    }),
   });
 
   const createStair = useMutation({
@@ -1852,6 +1903,17 @@ function BuilderWorkspace() {
         const D = { lng: A.lng + C.lng - B.lng, lat: A.lat + C.lat - B.lat };
         pts = [A, B, C, D];
       }
+      // Floor-shape mode: save polygon as a floor-specific override on an
+      // existing entity instead of creating a new room.
+      if (floorShapeTarget) {
+        saveFloorShape.mutate({
+          entityId: floorShapeTarget.entityId,
+          entityKind: floorShapeTarget.entityKind,
+          floor: floorShapeTarget.floor,
+          coordinates: pts.map((p) => [p.lng, p.lat] as [number, number]),
+        });
+        return;
+      }
       // Rooms MUST belong to a building.
       const centroid = {
         lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
@@ -1954,7 +2016,7 @@ function BuilderWorkspace() {
       }
       return;
     }
-  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, roomsQ.data, cameraState.activeFloor, navGraph, setTempLines]);
+  }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, saveFloorShape, floorShapeTarget, roomsQ.data, cameraState.activeFloor, navGraph, setTempLines]);
 
   // ── Snap-to-vertex ───────────────────────────────────────────────
   // On mousemove while a DRAW tool is active, scan every building /
@@ -3250,6 +3312,16 @@ function BuilderWorkspace() {
                 onClose={() => setSelection(null)}
                 onTabChange={setPropPanelTab}
                 onHistoryRecord={history.record}
+                activeFloor={cameraState.activeFloor}
+                onAddFloorShape={(floorNum) => {
+                  if (selection.kind !== "building" && selection.kind !== "room") return;
+                  const entityKind = selection.kind === "building" ? "building" : "room";
+                  setFloorShapeTarget({ entityId: selection.id, entityKind, floor: floorNum });
+                  setActiveTool("room");
+                  setWaypoints([]);
+                  setSelection(null);
+                  toast({ title: `Drawing floor ${floorNum} shape`, description: "Click corners then press Enter to save. Esc to cancel." });
+                }}
               />
             );
           })()}

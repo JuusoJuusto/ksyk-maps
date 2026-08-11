@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.73.0 — ortho fix, walls on top, multi-floor rooms, undo prop changes
+Bump reason: v3.74.0 — per-floor shapes, walls on top, hallway fix, premium UI
 
-Timestamp: 1787023000
-Build: FORCE_REBUILD_v3.73.0_ORTHO_WALLS_MULTIFLOOR_UNDO
+Timestamp: 1787030000
+Build: FORCE_REBUILD_v3.74.0_FLOORSHAPES_WALLS_HALLWAYFIX_UI
 
