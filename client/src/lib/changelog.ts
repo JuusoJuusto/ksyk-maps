@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.71.0";
+export const APP_VERSION = "3.72.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.72.0",
+    date: "August 2026",
+    title: "Fix auth 401 loop and hallways 500 — production auth now works",
+    latest: true,
+    highlights: [
+      "All React Query GET requests now include Authorization: Bearer token — /api/auth/user no longer returns 401 after login",
+      "Builder auth check also sends the token",
+      "Added PATCH handler for /api/hallways/:id — hallway saves no longer silently 404",
+      "Hallways GET returns [] instead of crashing with 500 on DB error",
+    ],
+  },
   {
     version: "3.71.0",
     date: "August 2026",
     title: "Builder save errors now visible — toast on failed writes",
-    latest: true,
     highlights: [
       "All builder mutations (buildings, rooms, corridors, hallways, POIs, style, transform) now show a toast notification on failure",
       "Previously, a 401 or 500 from the server would silently do nothing — you had no idea if Save failed",
