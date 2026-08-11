@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-11
 
-Bump reason: v3.70.0 — JWT cookie auth replaces express-session MemoryStore, fixes admin writes on Vercel
+Bump reason: v3.70.1 — force lambda restart after SESSION_SECRET rotation
 
-Timestamp: 1786935100
-Build: FORCE_REBUILD_v3.70.0_JWT_AUTH_FIX
+Timestamp: 1786935400
+Build: FORCE_REBUILD_v3.70.1_SESSION_SECRET_ROTATION
