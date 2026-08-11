@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit
 object Api {
     var base = "https://ksykmaps.fi/api"
     var sessionEmail: String? = null
+    /** HMAC admin token issued by /auth/admin-login (7-day TTL). */
+    var adminToken: String? = null
 
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
@@ -30,7 +32,7 @@ object Api {
         "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
 
-    private fun base(req: Request.Builder) = req
+    private fun base(req: Request.Builder, includeAuth: Boolean = false) = req
         .header("User-Agent", UA)
         .header("Accept", "application/json, text/plain, */*")
         .header("Accept-Language", "en-US,en;q=0.9,fi;q=0.8")
@@ -39,6 +41,7 @@ object Api {
         .header("Sec-Fetch-Dest", "empty")
         .header("Referer", "https://ksykmaps.fi/")
         .header("X-KSYK-Client", "KSYK-Maps-Android/1.0")
+        .apply { if (includeAuth) adminToken?.let { header("Authorization", "Bearer $it") } }
 
     @Throws(ApiException::class)
     fun get(path: String): JsonElement {
@@ -75,7 +78,8 @@ object Api {
 
     private fun request(path: String, method: String, body: JsonElement?): JsonElement {
         val builder = Request.Builder().url(base + path)
-        base(builder)
+        val isWrite = method != "GET"
+        base(builder, includeAuth = isWrite)
 
         when (method) {
             "GET" -> builder.get()

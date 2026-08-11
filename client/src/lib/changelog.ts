@@ -10,14 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.74.0";
+export const APP_VERSION = "3.75.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.75.1",
+    date: "August 2026",
+    title: "Ortho straight lines fixed, publish no longer fails",
+    latest: true,
+    highlights: [
+      "Ortho tool now produces truly straight H/V lines at any map rotation (screen-space math)",
+      "Builder publish no longer returns 500 when Firebase is unavailable — data still saves to Postgres",
+    ],
+  },
+  {
+    version: "3.75.0",
+    date: "August 2026",
+    title: "Mobile beacons fixed, better POI icons, builder floor switching",
+    highlights: [
+      "Android admin app: beacon capture, view, and delete now work with the new server",
+      "Android: admin token persisted across app restarts — no re-login needed",
+      "POI icons upgraded to clear emoji: 🪜 stairs, 🛗 elevator, 🚪 door, 🚹🚺 restrooms",
+      "Builder floor switching now hides other-floor rooms completely (matches public map)",
+      "Beacon server now saves GPS coordinates with each captured position",
+    ],
+  },
   {
     version: "3.74.0",
     date: "August 2026",
     title: "Per-floor shapes, walls always on top, hallway fix, premium UI",
-    latest: true,
     highlights: [
       "Rooms/buildings can have a different polygon shape at each floor — draw via Transform → Add shape for floor N",
       "Walls now always render above rooms in both builder and public map",

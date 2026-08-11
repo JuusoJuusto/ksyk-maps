@@ -783,25 +783,26 @@ function BuilderWorkspace() {
     const roomsOutlineId = "builder-rooms-outline";
     const roomsLabelId = "builder-rooms-labels";
     const rooms = roomsQ.data ?? [];
-    // MazeMap-style per-floor filtering — rooms not on the current
-    // floor render as a very faded "ghost" so the user sees which
-    // floor they're editing without losing spatial context. Selected
-    // room always renders full opacity even off-floor.
+    // Same floor filtering as the normal public map (CampusOverlay):
+    // only rooms on the active floor are shown. When no floor is active
+    // (null), all rooms are shown. Selected rooms are always visible
+    // regardless of floor for selection feedback.
     const activeFloor = cameraState.activeFloor;
     const roomsFC = {
       type: "FeatureCollection" as const,
       features: rooms
         .filter((r) => r.points && r.points.length >= 3)
+        .filter((r) => {
+          if (activeFloor === null) return true;
+          if (selectedRoomIds.has(r.id)) return true; // always show selected
+          type BldMeta = { floorIds?: number[]; floorShapes?: Array<{ floor: number; coordinates: [number, number][] }> };
+          const meta = r.metadata as BldMeta | null | undefined;
+          const hasShapeForActive = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
+          return r.floor == null || r.floor === activeFloor || hasShapeForActive;
+        })
         .map((r) => {
           type BldMeta = { floorIds?: number[]; floorShapes?: Array<{ floor: number; coordinates: [number, number][] }> };
           const meta = r.metadata as BldMeta | null | undefined;
-          const floorIds = Array.isArray(meta?.floorIds) ? meta!.floorIds as number[] : null;
-          const floorShapeFloors = Array.isArray(meta?.floorShapes) ? meta!.floorShapes!.map((fs) => fs.floor) : null;
-          const allFloors = floorIds ?? floorShapeFloors;
-          const hasShapeForActive = activeFloor != null && meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
-          const onFloor = activeFloor === null ||
-            (allFloors ? (allFloors.includes(activeFloor) || r.floor === activeFloor) : r.floor === activeFloor) ||
-            hasShapeForActive;
           const floorShape = activeFloor != null ? meta?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
           const builderPts: [number, number][] = floorShape?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
           const isSelected = selectedRoomIds.has(r.id);
@@ -816,9 +817,8 @@ function BuilderWorkspace() {
               color: r.colorCode ?? (r.type === "hallway" ? "#64748b" : "#059669"),
               label: [r.roomNumber, r.name].filter(Boolean).join(" "),
               selected: isSelected,
-              onFloor,
               floor: r.floor ?? 1,
-              type: r.type ?? null, // needed for corridor detection in click handler
+              type: r.type ?? null,
               showOutline: ((r.metadata as { style?: { showOutline?: boolean } } | null)?.style?.showOutline) === true,
             },
           };
@@ -832,12 +832,7 @@ function BuilderWorkspace() {
         id: roomsFillId, source: roomsSrcId, type: "fill",
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": [
-            "case",
-            ["boolean", ["get", "selected"], false], 0.65,
-            ["boolean", ["get", "onFloor"], true], 0.50,
-            0.10, // off-floor ghost
-          ],
+          "fill-opacity": ["case", ["boolean", ["get", "selected"], false], 0.65, 0.50],
         },
       });
       map.addLayer({
@@ -847,11 +842,8 @@ function BuilderWorkspace() {
           "line-width": ["case", ["boolean", ["get", "selected"], false], 3, 1.2],
           "line-opacity": [
             "case",
-            // Selected rooms always show their outline for selection feedback.
             ["boolean", ["get", "selected"], false], 1,
-            // Non-selected: only when showOutline is on.
-            ["boolean", ["get", "showOutline"], false],
-            ["case", ["boolean", ["get", "onFloor"], true], 0.9, 0.2],
+            ["boolean", ["get", "showOutline"], false], 0.9,
             0,
           ],
         },
@@ -863,7 +855,7 @@ function BuilderWorkspace() {
           "text-color": "#0f172a",
           "text-halo-color": "#ffffff",
           "text-halo-width": 1.2,
-          "text-opacity": ["case", ["boolean", ["get", "onFloor"], true], 1, 0.35],
+          "text-opacity": 1,
         },
         minzoom: 17,
       });
@@ -1187,29 +1179,38 @@ function BuilderWorkspace() {
             : e.lngLat;
           if (orthoOn && wps.length >= 1) {
             const prev = wps[wps.length - 1];
-            const mPerLat = 111320;
-            const mPerLng = 111320 * Math.cos((prev.lat * Math.PI) / 180);
-            const dx = (p.lng - prev.lng) * mPerLng;
-            const dy = (p.lat - prev.lat) * mPerLat;
+            // Screen-space ortho: correct for any map rotation/bearing.
+            const prevSc = map.project([prev.lng, prev.lat]);
+            const curSc  = map.project([p.lng,    p.lat   ]);
+            const sdx = curSc.x - prevSc.x;
+            const sdy = curSc.y - prevSc.y;
+            let nx: number, ny: number;
             if (wps.length === 1) {
-              // First edge: axis-align to H or V.
-              p = Math.abs(dx) >= Math.abs(dy)
-                ? new maplibregl.LngLat(p.lng, prev.lat)
-                : new maplibregl.LngLat(prev.lng, p.lat);
+              // First edge: snap to screen H or V.
+              [nx, ny] = Math.abs(sdx) >= Math.abs(sdy)
+                ? [curSc.x, prevSc.y]
+                : [prevSc.x, curSc.y];
             } else {
-              const prevPrev = wps[wps.length - 2];
-              const edgeDx = (prev.lng - prevPrev.lng) * mPerLng;
-              const edgeDy = (prev.lat - prevPrev.lat) * mPerLat;
-              const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-              if (edgeLen > 0.001) {
-                const ex = edgeDx / edgeLen, ey = edgeDy / edgeLen;
-                const tFwd  =  dx * ex + dy * ey;
-                const tPerp = -dx * ey + dy * ex;
-                p = Math.abs(tFwd) >= Math.abs(tPerp)
-                  ? new maplibregl.LngLat(prev.lng + (tFwd * ex) / mPerLng, prev.lat + (tFwd * ey) / mPerLat)
-                  : new maplibregl.LngLat(prev.lng + (tPerp * (-ey)) / mPerLng, prev.lat + (tPerp * ex) / mPerLat);
+              const pp = wps[wps.length - 2];
+              const ppSc = map.project([pp.lng, pp.lat]);
+              const edSx = prevSc.x - ppSc.x;
+              const edSy = prevSc.y - ppSc.y;
+              const edLen = Math.sqrt(edSx * edSx + edSy * edSy);
+              if (edLen > 0.5) {
+                const ex = edSx / edLen, ey = edSy / edLen;
+                const tFwd  =  sdx * ex + sdy * ey;
+                const tPerp = -sdx * ey + sdy * ex;
+                if (Math.abs(tFwd) >= Math.abs(tPerp)) {
+                  nx = prevSc.x + tFwd * ex; ny = prevSc.y + tFwd * ey;
+                } else {
+                  nx = prevSc.x + tPerp * (-ey); ny = prevSc.y + tPerp * ex;
+                }
+              } else {
+                nx = curSc.x; ny = curSc.y;
               }
             }
+            const snp = map.unproject([nx, ny]);
+            p = new maplibregl.LngLat(snp.lng, snp.lat);
           }
         }
         setDistanceInput(""); // clear distance constraint after placing waypoint
@@ -2292,41 +2293,41 @@ function BuilderWorkspace() {
 
     const last = waypoints[waypoints.length - 1];
 
-    // Ortho v8 — axis-aligned first edge + perpendicular-to-previous for
-    // subsequent edges. Normalised edge vectors eliminate atan2 issues.
+    // Screen-space ortho — works at any map bearing/rotation.
+    // Project into pixels, constrain there, unproject back.
     if (orthoEnabled && waypoints.length >= 1) {
-      const mPerLat = 111320;
-      const mPerLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
-      const dx = (endLng - last.lng) * mPerLng;
-      const dy = (endLat - last.lat) * mPerLat;
+      const lastSc = map.project([last.lng, last.lat]);
+      const curSc  = map.project([endLng,   endLat  ]);
+      const sdx = curSc.x - lastSc.x;
+      const sdy = curSc.y - lastSc.y;
+      let nx: number, ny: number;
       if (waypoints.length === 1) {
-        // First edge: snap to H or V (nearest of the two axis directions).
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          endLat = last.lat;           // horizontal
-        } else {
-          endLng = last.lng;           // vertical
-        }
-      } else if (waypoints.length >= 2) {
-        // Subsequent edges: perpendicular to previous edge using normalised
-        // edge vector — avoids atan2 numerical issues.
+        // First edge: screen H (const y) or screen V (const x).
+        [nx, ny] = Math.abs(sdx) >= Math.abs(sdy)
+          ? [curSc.x, lastSc.y]
+          : [lastSc.x, curSc.y];
+      } else {
+        // Subsequent: perpendicular to previous edge in screen space.
         const prevPrev = waypoints[waypoints.length - 2];
-        const edgeDx = (last.lng - prevPrev.lng) * mPerLng;
-        const edgeDy = (last.lat - prevPrev.lat) * mPerLat;
-        const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-        if (edgeLen > 0.001) {
-          const ex = edgeDx / edgeLen;   // unit east component
-          const ey = edgeDy / edgeLen;   // unit north component
-          const tFwd  =  dx * ex + dy * ey;      // along-edge projection
-          const tPerp = -dx * ey + dy * ex;      // perpendicular (CCW 90°)
+        const ppSc = map.project([prevPrev.lng, prevPrev.lat]);
+        const edSx = lastSc.x - ppSc.x;
+        const edSy = lastSc.y - ppSc.y;
+        const edLen = Math.sqrt(edSx * edSx + edSy * edSy);
+        if (edLen > 0.5) {
+          const ex = edSx / edLen, ey = edSy / edLen;
+          const tFwd  =  sdx * ex + sdy * ey;
+          const tPerp = -sdx * ey + sdy * ex;
           if (Math.abs(tFwd) >= Math.abs(tPerp)) {
-            endLng = last.lng + (tFwd * ex) / mPerLng;
-            endLat = last.lat + (tFwd * ey) / mPerLat;
+            nx = lastSc.x + tFwd * ex; ny = lastSc.y + tFwd * ey;
           } else {
-            endLng = last.lng + (tPerp * (-ey)) / mPerLng;
-            endLat = last.lat + (tPerp * ex) / mPerLat;
+            nx = lastSc.x + tPerp * (-ey); ny = lastSc.y + tPerp * ex;
           }
+        } else {
+          nx = curSc.x; ny = curSc.y;
         }
       }
+      const snp = map.unproject([nx, ny]);
+      endLng = snp.lng; endLat = snp.lat;
     }
 
     // Distance constraint: if the user has typed a length, project the

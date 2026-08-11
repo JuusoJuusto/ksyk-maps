@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.74.0 — per-floor shapes, walls on top, hallway fix, premium UI
+Bump reason: v3.75.1 — screen-space ortho fix, publish non-fatal Firebase
 
-Timestamp: 1787030000
-Build: FORCE_REBUILD_v3.74.0_FLOORSHAPES_WALLS_HALLWAYFIX_UI
+Timestamp: 1787031600
+Build: FORCE_REBUILD_v3.75.1_ORTHOFIX_PUBLISHFIX
 

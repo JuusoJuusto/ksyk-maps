@@ -337,7 +337,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const roomId = beaconListMatch[1];
         try {
           const { db } = await import('../server/firebaseStorage.js');
-          const { positionLabel, capturedAt, readings } = req.body || {};
+          const { positionLabel, capturedAt, readings, lat, lng, accuracyM } = req.body || {};
           if (!positionLabel || !Array.isArray(readings)) {
             return res.status(400).json({ message: 'positionLabel and readings[] required' });
           }
@@ -346,13 +346,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             rssi: Number(r.rssi) || 0,
             ssid: r.ssid ? String(r.ssid).slice(0, 64) : undefined,
           })).filter((r: any) => r.bssid);
+          const record: Record<string, any> = {
+            positionLabel: String(positionLabel).slice(0, 60),
+            capturedAt: capturedAt || new Date().toISOString(),
+            readings: safeReadings,
+            createdAt: new Date(),
+          };
+          if (typeof lat === 'number' && lat !== 0) record.lat = lat;
+          if (typeof lng === 'number' && lng !== 0) record.lng = lng;
+          if (typeof accuracyM === 'number') record.accuracyM = accuracyM;
           const doc = await db.collection('beaconSurveys').doc(roomId)
-            .collection('positions').add({
-              positionLabel: String(positionLabel).slice(0, 60),
-              capturedAt: capturedAt || new Date().toISOString(),
-              readings: safeReadings,
-              createdAt: new Date(),
-            });
+            .collection('positions').add(record);
           return res.status(201).json({ id: doc.id, success: true });
         } catch (err) {
           console.error('beacons POST error:', err);
@@ -2218,14 +2222,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
           buildings, floors, rooms, hallways, doors: doorsSnap, stairs: stairsSnap, elevators: elevatorsSnap,
         };
-        await db.collection('mapVersions').doc(versionId).set({
-          id: versionId, packageId: 'current', version: versionNumber,
-          savedAt: publishedAt, savedBy: null, published: true,
-          message, payloadKey: versionId, payload: pkg,
-        });
-        await db.collection('mapPackages').doc('published').set({
-          pointer: versionId, publishedAt, publishedBy: null,
-        });
+        try {
+          await db.collection('mapVersions').doc(versionId).set({
+            id: versionId, packageId: 'current', version: versionNumber,
+            savedAt: publishedAt, savedBy: null, published: true,
+            message, payloadKey: versionId, payload: pkg,
+          });
+          await db.collection('mapPackages').doc('published').set({
+            pointer: versionId, publishedAt, publishedBy: null,
+          });
+        } catch (fbErr) {
+          console.warn('publish: Firebase write skipped (non-fatal):', fbErr);
+        }
         return res.status(200).json({ ...pkg, versionId, version: versionNumber });
       } catch (err) {
         console.error('publish failed:', err);
