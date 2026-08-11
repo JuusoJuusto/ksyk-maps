@@ -7,7 +7,6 @@ import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Lazy load all desktop app components
-const WilmaApp = lazy(() => import('./WilmaApp'));
 const ZoomApp = lazy(() => import('./ZoomApp'));
 const GitHubApp = lazy(() => import('./GitHubApp'));
 const SlackApp = lazy(() => import('./SlackApp'));
@@ -43,8 +42,6 @@ const DuolingoApp = lazy(() => import('./DuolingoApp'));
 
 // App registry mapping componentName to actual component
 const APP_REGISTRY: Record<string, React.ComponentType<{ onClose: () => void }>> = {
-  // New apps
-  'WilmaApp': WilmaApp,
   'ZoomApp': ZoomApp,
   'GitHubApp': GitHubApp,
   'SlackApp': SlackApp,

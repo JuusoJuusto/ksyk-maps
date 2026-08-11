@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.63.0";
+export const APP_VERSION = "3.64.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.64.0",
+    date: "August 2026",
+    title: "Remove all Wilma/coding dead client code",
+    latest: true,
+    highlights: [
+      "Deleted 23 dead Wilma/coding page files and 5 dead components from client bundle",
+      "AppRegistry: removed WilmaApp lazy import",
+      "Smaller bundle — no dead Wilma code shipped to users",
+    ],
+  },
   {
     version: "3.63.0",
     date: "August 2026",
     title: "Fix all console 404/401 errors",
-    latest: true,
+    latest: false,
     highlights: [
       "Added /api/telemetry/pageview and /api/telemetry/track endpoints — no more 404 spam from analytics.ts",
       "Added /api/t/p pixel beacon fallback endpoint",
