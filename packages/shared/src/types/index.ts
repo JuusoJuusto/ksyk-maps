@@ -39,6 +39,7 @@ export type RoomType =
   | "classroom"
   | "lab"
   | "office"
+  | "lobby"
   | "auditorium"
   | "gym"
   | "storage"

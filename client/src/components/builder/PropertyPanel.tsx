@@ -13,8 +13,9 @@
  * tab exposes `metadata` as a JSON editor for anything that doesn't
  * fit the typed schema.
  */
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { UndoAction } from "@/hooks/useUndoStack";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,26 @@ import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation,
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
 import { useNavGraph } from "@/lib/navGraph";
+
+type HistoryRecord = React.RefObject<HistoryRecordFn | undefined>;
+
+function makeUpdateInverse(
+  label: string,
+  url: string,
+  from: unknown,
+  to: unknown,
+  qc: QueryClient,
+  invalidateKey: string[],
+): UndoAction {
+  return {
+    label: `Undo ${label}`,
+    run: async () => {
+      await apiRequest("PATCH", url, from);
+      qc.invalidateQueries({ queryKey: invalidateKey });
+      return makeUpdateInverse(label, url, to, from, qc, invalidateKey);
+    },
+  };
+}
 
 /** Selection dispatched to the panel. Union so the panel can render
  *  a different form per entity kind. v3.28.1 — added point-POI kinds
@@ -51,7 +72,11 @@ interface PropertyPanelProps {
   entity: SelectedEntity;
   onDelete: () => void;
   onClose: () => void;
+  onTabChange?: (tab: string) => void;
+  onHistoryRecord?: (action: UndoAction) => void;
 }
+
+type HistoryRecordFn = (action: UndoAction) => void;
 
 /** Same eight-swatch palette the previous inline builder used. Extended
  *  slightly to give rooms + buildings the same swatch set. */
@@ -61,7 +86,7 @@ const COLORS = [
 ];
 
 const ROOM_TYPES: RoomType[] = [
-  "classroom", "lab", "office", "auditorium", "gym", "storage",
+  "classroom", "lab", "office", "lobby", "auditorium", "gym", "storage",
   "bathroom", "locker_room", "elevator", "stairs", "mechanical",
   "cafeteria", "library", "entrance", "exit", "outdoor", "emergency",
   "other",
@@ -75,8 +100,11 @@ const TABS = [
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
-export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPanelProps) {
+export default function PropertyPanel({ entity, onDelete, onClose, onTabChange, onHistoryRecord }: PropertyPanelProps) {
   const [tab, setTab] = useState<TabId>("props");
+  const onHistoryRecordRef = useRef<HistoryRecordFn | undefined>(onHistoryRecord);
+  onHistoryRecordRef.current = onHistoryRecord;
+  const changeTab = (t: TabId) => { setTab(t); onTabChange?.(t); };
   const title = useMemo(() => {
     if (entity.kind === "corridor") return "Corridor";
     if (entity.kind === "hallway") {
@@ -129,7 +157,7 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => changeTab(t.id)}
               className={cn(
                 "flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold transition-colors border-b-2",
                 active
@@ -147,7 +175,7 @@ export default function PropertyPanel({ entity, onDelete, onClose }: PropertyPan
 
       {/* Body */}
       <div className="p-4 max-h-[65vh] overflow-y-auto">
-        {tab === "props" && <PropsTab entity={entity} />}
+        {tab === "props" && <PropsTab entity={entity} onHistoryRecord={onHistoryRecordRef} />}
         {tab === "style" && <StyleTab entity={entity} />}
         {tab === "transform" && <TransformTab entity={entity} />}
         {tab === "custom" && <CustomTab entity={entity} />}
@@ -284,11 +312,11 @@ function DirtySaveButton({
 
 // ── Per-kind tabs ─────────────────────────────────────────────────
 
-function PropsTab({ entity }: { entity: SelectedEntity }) {
-  if (entity.kind === "building") return <BuildingProps building={entity.data} />;
-  if (entity.kind === "room") return <RoomProps room={entity.data} />;
-  if (entity.kind === "corridor") return <CorridorProps room={entity.data} />;
-  if (entity.kind === "hallway") return <HallwayProps hallway={entity.data} />;
+function PropsTab({ entity, onHistoryRecord }: { entity: SelectedEntity; onHistoryRecord?: React.RefObject<((a: UndoAction) => void) | undefined> }) {
+  if (entity.kind === "building") return <BuildingProps building={entity.data} onHistoryRecord={onHistoryRecord} />;
+  if (entity.kind === "room") return <RoomProps room={entity.data} onHistoryRecord={onHistoryRecord} />;
+  if (entity.kind === "corridor") return <CorridorProps room={entity.data} onHistoryRecord={onHistoryRecord} />;
+  if (entity.kind === "hallway") return <HallwayProps hallway={entity.data} onHistoryRecord={onHistoryRecord} />;
   // v3.28.1 — point POI forms. All four share the same core (floor +
   // position + delete); doors additionally have isEntrance/isExit
   // toggles; generic POIs have a `kind` string.
@@ -439,7 +467,7 @@ function PointPoiProps({
   );
 }
 
-function BuildingProps({ building }: { building: Building }) {
+function BuildingProps({ building, onHistoryRecord }: { building: Building; onHistoryRecord?: HistoryRecord }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [name, setName] = useState(building.name);
@@ -455,9 +483,17 @@ function BuildingProps({ building }: { building: Building }) {
   const patch = useMutation({
     mutationFn: async (body: Partial<Building>) => {
       const res = await apiRequest("PATCH", `/api/buildings/${building.id}`, body);
-      return res.json();
+      return { result: await res.json(), body };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/buildings"] }),
+    onSuccess: ({ body }) => {
+      qc.invalidateQueries({ queryKey: ["/api/buildings"] });
+      const oldBody: Partial<Building> = {
+        name: building.name, nameEn: building.nameEn ?? null, nameFi: building.nameFi ?? null,
+        floors: building.floors ?? 1, floorMin: building.floorMin ?? 1,
+        floorMax: building.floorMax ?? building.floors ?? 1, address: building.address ?? null,
+      };
+      onHistoryRecord?.current?.(makeUpdateInverse("building edit", `/api/buildings/${building.id}`, oldBody, body, qc, ["/api/buildings"]));
+    },
     onError: (err: any) => toast({
       title: "Save failed",
       description: err?.message ?? "Could not save building. Are you logged in?",
@@ -519,7 +555,7 @@ function BuildingProps({ building }: { building: Building }) {
   );
 }
 
-function RoomProps({ room }: { room: Room }) {
+function RoomProps({ room, onHistoryRecord }: { room: Room; onHistoryRecord?: HistoryRecord }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [roomNumber, setRoomNumber] = useState(room.roomNumber);
@@ -561,13 +597,26 @@ function RoomProps({ room }: { room: Room }) {
     ?? (initialMeta.scheduleLabel as string | undefined) ?? "";
   const [scheduleUrl, setScheduleUrl] = useState(initialScheduleUrl);
   const [scheduleLabel, setScheduleLabel] = useState(initialScheduleLabel);
+  // Multi-floor: stored as metadata.floorIds (number[]). A room can
+  // appear on more than one floor with the same polygon.
+  const initialFloorIds: number[] = Array.isArray(initialMeta.floorIds) ? (initialMeta.floorIds as number[]) : [];
+  const [floorIdsInput, setFloorIdsInput] = useState(initialFloorIds.join(", "));
 
   const patch = useMutation({
     mutationFn: async (body: Partial<Room>) => {
       const res = await apiRequest("PATCH", `/api/rooms/${room.id}`, body);
-      return res.json();
+      return { result: await res.json(), body };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+    onSuccess: ({ body }) => {
+      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      const oldBody: Partial<Room> = {
+        roomNumber: room.roomNumber, name: room.name ?? null, nameEn: (room as any).nameEn ?? null,
+        nameFi: (room as any).nameFi ?? null, type: room.type ?? null, floor: room.floor ?? 1,
+        capacity: room.capacity ?? null, department: room.department ?? null, teacher: room.teacher ?? null,
+        description: room.description ?? null, metadata: room.metadata ?? null,
+      };
+      onHistoryRecord?.current?.(makeUpdateInverse("room edit", `/api/rooms/${room.id}`, oldBody, body, qc, ["/api/rooms"]));
+    },
     onError: (err: any) => toast({
       title: "Save failed",
       description: err?.message ?? "Could not save room. Are you logged in?",
@@ -590,7 +639,8 @@ function RoomProps({ room }: { room: Room }) {
     hours !== initialHoursVal ||
     scheduleUrl !== initialScheduleUrl ||
     scheduleLabel !== initialScheduleLabel ||
-    description !== (room.description ?? "");
+    description !== (room.description ?? "") ||
+    floorIdsInput !== initialFloorIds.join(", ");
 
   return (
     <div className="space-y-3">
@@ -623,6 +673,12 @@ function RoomProps({ room }: { room: Room }) {
         <NumberField label="Capacity" value={capacity} onChange={setCapacity} min={0} max={5000} />
         <TextField label="Department" value={department} onChange={setDepartment} />
       </div>
+      <TextField
+        label="Also on floors (comma-separated)"
+        value={floorIdsInput}
+        onChange={setFloorIdsInput}
+        placeholder="e.g. 1, 2, 3 — room appears on all listed floors"
+      />
       <TextField label="Teacher" value={teacher} onChange={setTeacher} />
       <TextField label="Tags (comma-separated)" value={tagsInput} onChange={setTagsInput} />
       {/* v3.27.3 — info fields section. Anything typed here becomes
@@ -694,6 +750,10 @@ function RoomProps({ room }: { room: Room }) {
           else delete nextMeta.photoUrl;
           if (hours.trim()) nextMeta.hours = hours.trim();
           else delete nextMeta.hours;
+          const parsedFloorIds = floorIdsInput
+            .split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+          if (parsedFloorIds.length > 0) nextMeta.floorIds = parsedFloorIds;
+          else delete nextMeta.floorIds;
           patch.mutate({
             roomNumber,
             name: name || null,
@@ -726,7 +786,7 @@ function RoomProps({ room }: { room: Room }) {
   );
 }
 
-function CorridorProps({ room }: { room: Room }) {
+function CorridorProps({ room, onHistoryRecord }: { room: Room; onHistoryRecord?: HistoryRecord }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [name, setName] = useState(room.name ?? "");
@@ -786,9 +846,13 @@ function CorridorProps({ room }: { room: Room }) {
   const patch = useMutation({
     mutationFn: async (body: Partial<Room>) => {
       const res = await apiRequest("PATCH", `/api/rooms/${room.id}`, body);
-      return res.json();
+      return { result: await res.json(), body };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rooms"] }),
+    onSuccess: ({ body }) => {
+      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      const oldBody = { name: room.name ?? null, roomNumber: room.roomNumber, floor: room.floor ?? 1, metadata: room.metadata ?? null };
+      onHistoryRecord?.current?.(makeUpdateInverse("corridor edit", `/api/rooms/${room.id}`, oldBody, body, qc, ["/api/rooms"]));
+    },
     onError: (err: any) => toast({
       title: "Save failed",
       description: err?.message ?? "Could not save corridor. Are you logged in?",
@@ -936,7 +1000,7 @@ function CorridorProps({ room }: { room: Room }) {
   );
 }
 
-function HallwayProps({ hallway }: { hallway: Hallway }) {
+function HallwayProps({ hallway, onHistoryRecord }: { hallway: Hallway; onHistoryRecord?: HistoryRecord }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [width, setWidth] = useState(hallway.width ?? 2);
@@ -950,9 +1014,13 @@ function HallwayProps({ hallway }: { hallway: Hallway }) {
   const patch = useMutation({
     mutationFn: async (body: Partial<Hallway>) => {
       const res = await apiRequest("PATCH", `/api/hallways/${hallway.id}`, body);
-      return res.json();
+      return { result: await res.json(), body };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/hallways"] }),
+    onSuccess: ({ body }) => {
+      qc.invalidateQueries({ queryKey: ["/api/hallways"] });
+      const oldBody = { width: hallway.width ?? 2, surface: hallway.surface, directions: hallway.directions };
+      onHistoryRecord?.current?.(makeUpdateInverse("wall/hallway edit", `/api/hallways/${hallway.id}`, oldBody, body, qc, ["/api/hallways"]));
+    },
     onError: (err: any) => toast({
       title: "Save failed",
       description: err?.message ?? "Could not save hallway. Are you logged in?",

@@ -32,6 +32,10 @@ export interface SelectionHandlesProps {
     | { kind: "building"; entity: Building }
     | { kind: "room"; entity: Room }
     | null;
+  /** When false, clicking the polygon body does NOT start a translate drag.
+   *  Vertex editing and rotation are unaffected — those always require the
+   *  handle gizmos directly. Defaults to true. */
+  translateEnabled?: boolean;
 }
 
 const SRC_VERTS = "selection-vertices-src";
@@ -54,8 +58,11 @@ const LAYER_DIMS_LABELS = "selection-dimensions-labels";
  *  stay in-frame at typical builder zoom. */
 const ROTATOR_OFFSET_METERS = 6;
 
-function SelectionHandlesInner({ map, selection }: SelectionHandlesProps) {
+function SelectionHandlesInner({ map, selection, translateEnabled = true }: SelectionHandlesProps) {
   const qc = useQueryClient();
+
+  const translateEnabledRef = useRef(translateEnabled);
+  translateEnabledRef.current = translateEnabled;
 
   // Live copy of the polygon during a drag so we can update the
   // MapLibre source at 60 FPS without waiting for the network round-
@@ -313,7 +320,8 @@ function SelectionHandlesInner({ map, selection }: SelectionHandlesProps) {
       }
       // No handle → check for a hit on the selection's translate-hit
       // fill (an invisible fill covering the whole selected polygon).
-      // Drag-to-move translates the whole shape.
+      // Drag-to-move translates the whole shape — only when transform tab active.
+      if (!translateEnabledRef.current) return;
       const activeFillLayers = [LAYER_TRANSLATE_HIT].filter((id) => map.getLayer(id));
       const bodyFeats = activeFillLayers.length
         ? map.queryRenderedFeatures(e.point, { layers: activeFillLayers })

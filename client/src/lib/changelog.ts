@@ -10,14 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.72.0";
+export const APP_VERSION = "3.73.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.73.0",
+    date: "August 2026",
+    title: "Ortho fix, walls on top, multi-floor rooms, undo property changes",
+    latest: true,
+    highlights: [
+      "Ortho tool now snaps first edge to exact H/V, subsequent edges perpendicular — consistently 90°",
+      "Walls and hallways always render on top of rooms and corridors",
+      "Rooms can appear on multiple floors via 'Also on floors' field",
+      "Undo now catches property changes (name, type, etc.) not just create/delete",
+      "Moving shapes only allowed when Transform tab is active",
+      "Added 'lobby' room type",
+      "Admin token TTL extended to 7 days — fewer 401s after login",
+    ],
+  },
+  {
+    version: "3.72.1",
+    date: "August 2026",
+    title: "Fix storage factory and hallways write error handling",
+    highlights: [
+      "Storage factory now recognises POSTGRES_PRISMA_URL so Transaction Mode pooler is picked up correctly",
+      "Hallways POST/PATCH/DELETE now return proper error messages instead of unhandled 500s",
+    ],
+  },
   {
     version: "3.72.0",
     date: "August 2026",
     title: "Fix auth 401 loop and hallways 500 — production auth now works",
-    latest: true,
     highlights: [
       "All React Query GET requests now include Authorization: Bearer token — /api/auth/user no longer returns 401 after login",
       "Builder auth check also sends the token",

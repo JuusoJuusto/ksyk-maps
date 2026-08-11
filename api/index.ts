@@ -14,7 +14,7 @@ function _adminSecret(): string {
 }
 
 function generateAdminToken(userId: string, role: string): string {
-  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 86_400_000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 604_800_000 })).toString('base64url');
   const sig = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -764,8 +764,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (req.method === 'POST' && apiPath === '/hallways') {
-        const hallway = await storage.createHallway(req.body);
-        return res.status(201).json(hallway);
+        try {
+          const hallway = await storage.createHallway(req.body);
+          return res.status(201).json(hallway);
+        } catch (err: any) {
+          console.error('createHallway error:', err?.message || err);
+          return res.status(500).json({ message: err?.message ?? 'Failed to create hallway' });
+        }
       }
 
       // Handle /hallways/:id routes
@@ -774,12 +779,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const id = idMatch[1];
 
         if (req.method === 'PUT' || req.method === 'PATCH') {
-          const hallway = await storage.updateHallway(id, req.body);
-          return res.status(200).json(hallway);
+          try {
+            const hallway = await storage.updateHallway(id, req.body);
+            return res.status(200).json(hallway);
+          } catch (err: any) {
+            console.error('updateHallway error:', err?.message || err);
+            return res.status(500).json({ message: err?.message ?? 'Failed to update hallway' });
+          }
         }
 
         if (req.method === 'DELETE') {
-          await storage.deleteHallway(id);
+          try {
+            await storage.deleteHallway(id);
+          } catch (err: any) {
+            console.error('deleteHallway error:', err?.message || err);
+          }
           return res.status(204).send('');
         }
       }
