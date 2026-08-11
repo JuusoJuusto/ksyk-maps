@@ -17,7 +17,10 @@ function initFirebase() {
   if (!getApps().length) {
     const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!sa) throw new Error("FIREBASE_SERVICE_ACCOUNT not set");
-    initializeApp({ credential: cert(JSON.parse(sa)) });
+    // Literal newlines in the private_key value break JSON.parse.
+    // Replace bare 0x0A characters with the JSON escape sequence.
+    const parsed = JSON.parse(sa.replace(/\n/g, "\\n"));
+    initializeApp({ credential: cert(parsed) });
   }
   return getFirestore();
 }
