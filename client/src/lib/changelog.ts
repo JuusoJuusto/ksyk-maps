@@ -10,14 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.60.0";
+export const APP_VERSION = "3.61.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.61.0",
+    date: "August 2026",
+    title: "Fix MapLibre expression crash, builder usable again",
+    latest: true,
+    highlights: [
+      "Fixed invalid nested zoom expressions in builder-hallways-line line-width and builder-pois circle-radius (MapLibre crash)",
+      "Builder map now renders correctly without crashing to error boundary",
+      "Added missing admin auth guard on POST/DELETE doors, stairs, elevators endpoints",
+    ],
+  },
   {
     version: "3.60.0",
     date: "August 2026",
     title: "Remove Wilma/coding, full endpoint auth, Supabase now working",
-    latest: true,
+    latest: false,
     highlights: [
       "All Wilma and coding platform tables/routes/files removed from codebase",
       "All write endpoints now require admin HMAC token (buildings, rooms, hallways, pois, map-package, analytics)",

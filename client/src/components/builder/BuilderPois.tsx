@@ -277,10 +277,10 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
           minzoom: 14,
           paint: {
             "circle-radius": [
-              "case",
-              ["has", "iconSize"],
-              ["get", "iconSize"],
-              ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 9, 20, 13],
+              "interpolate", ["linear"], ["zoom"],
+              15, ["coalesce", ["get", "iconSize"], 5],
+              18, ["coalesce", ["get", "iconSize"], 9],
+              20, ["coalesce", ["get", "iconSize"], 13],
             ],
             "circle-color": [
               "match", ["get", "kind"],

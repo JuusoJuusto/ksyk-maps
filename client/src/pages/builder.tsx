@@ -900,17 +900,19 @@ function BuilderWorkspace() {
             "#f59e0b",  // amber walkable
           ],
           "line-width": [
-            "case",
-            ["boolean", ["get", "selected"], false],
-            ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 16],
-            // Exterior walls: thick dark barrier segments.
-            ["==", ["get", "surface"], "wall"],
-            ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 12],
-            // Interior walls: thinner, clearly lighter-weight.
-            ["==", ["get", "surface"], "inner-wall"],
-            ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 5],
-            // Walkable paths.
-            ["interpolate", ["linear"], ["zoom"], 15, 2, 20, 8],
+            "interpolate", ["linear"], ["zoom"],
+            15, ["case",
+              ["boolean", ["get", "selected"], false], 4,
+              ["==", ["get", "surface"], "wall"], 3,
+              ["==", ["get", "surface"], "inner-wall"], 1.5,
+              2
+            ],
+            20, ["case",
+              ["boolean", ["get", "selected"], false], 16,
+              ["==", ["get", "surface"], "wall"], 12,
+              ["==", ["get", "surface"], "inner-wall"], 5,
+              8
+            ],
           ],
           "line-opacity": [
             "case",

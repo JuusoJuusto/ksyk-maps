@@ -1930,6 +1930,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // as the Express variant: store both `position.{lat,lng}` and the
     // legacy mapPositionX/Y so either consumer keeps working.
     if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         const { db } = await import('../server/firebaseStorage.js');
         const kind = apiPath.slice(1);
@@ -1963,6 +1964,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     }
     // POI deletes â€” /api/{kind}/{id}
     if (['/doors', '/stairs', '/elevators'].some((k) => apiPath.startsWith(k + '/')) && req.method === 'DELETE') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         const { db } = await import('../server/firebaseStorage.js');
         const [_, kind, id] = apiPath.split('/');
