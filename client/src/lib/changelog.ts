@@ -10,14 +10,19 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.65.0";
+export const APP_VERSION = "3.66.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.66.0",
+    date: "August 2026",
+    title: "Fix MapLibre getLayer crash + Firebase export script",
+    latest: true,
+  },
   {
     version: "3.64.0",
     date: "August 2026",
     title: "Remove all Wilma/coding dead client code",
-    latest: true,
     highlights: [
       "Deleted 23 dead Wilma/coding page files and 5 dead components from client bundle",
       "AppRegistry: removed WilmaApp lazy import",

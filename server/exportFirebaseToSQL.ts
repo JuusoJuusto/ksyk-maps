@@ -261,7 +261,7 @@ async function main() {
   const sSnap = await db.collection("staff").get();
   for (const d of sSnap.docs) {
     const r = d.data();
-    const fullName: string = r.name ?? `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim() || "Staff";
+    const fullName: string = (r.name ?? `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim()) || "Staff";
     const parts = fullName.split(" ");
     const firstName = parts[0] ?? fullName;
     const lastName = parts.slice(1).join(" ") || "-";

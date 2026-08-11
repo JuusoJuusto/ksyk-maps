@@ -166,7 +166,7 @@ export default function ImageOverlay({ map }: Props) {
 
   // ── Sync every overlay into MapLibre as a raster layer ──────────
   useEffect(() => {
-    if (!map) return;
+    if (!map || !map.isStyleLoaded()) return;
     // Track which ids currently exist so we can garbage-collect any
     // sources/layers whose overlay was deleted.
     const wantedIds = new Set(overlays.map((o) => o.id));
