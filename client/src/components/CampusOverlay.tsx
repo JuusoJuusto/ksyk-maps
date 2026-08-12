@@ -175,7 +175,14 @@ export default function CampusOverlay({
       // Outer walls on top, inner walls just below outer walls.
       try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
       try { map.moveLayer("campus-walls-inner-line", "campus-walls-line"); } catch { /* not yet added */ }
-      // POI chips and icons must render above all walls.
+      // Door/entrance pins and POI chips+icons all above walls.
+      try { map.moveLayer("campus-doors-chip"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-doors-tail"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-doors-letter"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-entrances-chip"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-entrances-tail"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-entrances-letter"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-entrances-label"); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisChip); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisIcon); } catch { /* not yet added */ }
       applyVisibility();
@@ -228,6 +235,7 @@ export default function CampusOverlay({
       setVis(LAYERS.doorMarker,       true);
       setVis(LAYERS.entranceMarker,   true);
       setVis(LAYERS.entranceGlow,     true);
+      setVis("campus-entrances-label", true);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
       // rectangle (campus-walls-3d) when 3D is active.
@@ -1316,58 +1324,33 @@ function installPoiPillars(
       // cues in 2D, not subtle background tint. Zoom-interpolated so
       // the campus-wide view stays clean and the walk-up view really
       // shouts "you can get in here."
-      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.0, 16, 0.28, 18, 0.55, 20, 0.65],
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.0, 15, 0.15, 16, 0.35, 18, 0.55, 20, 0.65],
       "fill-antialias": true,
     },
-    minzoom: 15,
+    minzoom: 14,
   });
 
-  // v3.25.6 — dedicated CIRCLE overlay for doors + entrances, always
+  // Door + entrance pins, always
   // visible in 2D. The extrusion pads read well in 3D but disappear
   // as tiny squares from a top-down view; a circle marker gives users
   // an unambiguous "door here" chip at every zoom above 16. Green =
   // entrance (way in), red = exit-only, grey = interior door.
-  addLayerIfMissing(map, {
+  // ── Door pin: dark chip + ▼ tail + letter ─────────────────────────
+  replaceLayer(map, {
     id: "campus-doors-chip",
     source: "campus-doors-marker-src",
     type: "circle",
     minzoom: 16,
     paint: {
-      // v3.31.0 — pin translate + bigger chip, matching the generic
-      // POI pin treatment from 3.30.1. Chip sits ABOVE the door
-      // coordinate; the tail glyph below points to the exact spot.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 6, 18, 10, 20, 14],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -8]], 18, ["literal", [0, -13]], 20, ["literal", [0, -18]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 12, 20, 16],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
       "circle-translate-anchor": "viewport",
-      "circle-color": [
-        "match", ["get", "kind"],
-        "exit", "#dc2626",
-                "#374151",
-      ],
+      "circle-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "circle-stroke-color": "#ffffff",
       "circle-stroke-width": 2.5,
-      "circle-opacity": 1,
     },
   });
-  addLayerIfMissing(map, {
-    id: "campus-entrances-chip",
-    source: "campus-entrances-marker-src",
-    type: "circle",
-    minzoom: 15,
-    paint: {
-      // v3.31.0 — bigger pin for entrances, translated up like doors.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 14, 20, 20],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 18, ["literal", [0, -18]], 20, ["literal", [0, -26]]],
-      "circle-translate-anchor": "viewport",
-      "circle-color": "#16a34a",
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 3,
-      "circle-opacity": 1,
-    },
-  });
-  // v3.31.0 — pin TAILS. Small ▼ pointing at each door/entrance
-  // coordinate so the whole marker reads as a MazeMap teardrop.
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-doors-tail",
     source: "campus-doors-marker-src",
     type: "symbol",
@@ -1381,78 +1364,102 @@ function installPoiPillars(
       "text-anchor": "bottom",
     },
     paint: {
-      "text-color": [
-        "match", ["get", "kind"],
-        "exit", "#dc2626",
-                "#374151",
-      ],
+      "text-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1,
+      "text-halo-width": 1.5,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
+    id: "campus-doors-letter",
+    source: "campus-doors-marker-src",
+    type: "symbol",
+    minzoom: 16,
+    layout: {
+      "text-field": ["match", ["get", "kind"], "exit", "!", "D"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 9, 18, 13, 20, 17],
+      "text-font": ["Noto Sans Bold"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
+      "text-translate-anchor": "viewport",
+    },
+  });
+
+  // ── Entrance pin: large green beacon ──────────────────────────────
+  replaceLayer(map, {
+    id: "campus-entrances-chip",
+    source: "campus-entrances-marker-src",
+    type: "circle",
+    minzoom: 14,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 10, 16, 14, 18, 18, 20, 23],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -12]], 16, ["literal", [0, -17]], 18, ["literal", [0, -22]], 20, ["literal", [0, -29]]],
+      "circle-translate-anchor": "viewport",
+      "circle-color": "#22c55e",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 3,
+    },
+  });
+  replaceLayer(map, {
     id: "campus-entrances-tail",
     source: "campus-entrances-marker-src",
     type: "symbol",
-    minzoom: 15,
+    minzoom: 14,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 18, 18, 20, 24],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 13, 16, 16, 18, 20, 20, 26],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
       "text-anchor": "bottom",
     },
     paint: {
-      "text-color": "#16a34a",
+      "text-color": "#22c55e",
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1,
+      "text-halo-width": 2,
     },
   });
-  // v3.27.1 — "D" / "E" letter inside each chip. Reads clearly even
-  // in high-contrast / monochrome and helps colorblind users tell
-  // doors from entrances at a glance.
-  addLayerIfMissing(map, {
-    id: "campus-doors-letter",
-    source: "campus-doors-marker-src",
-    type: "symbol",
-    minzoom: 17,
-    layout: {
-      "text-field": "D",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 9, 20, 14],
-      "text-font": ["Noto Sans Regular"],
-      "text-allow-overlap": true,
-      "text-ignore-placement": true,
-    },
-    paint: {
-      "text-color": "#ffffff",
-      "text-halo-color": "#00000060",
-      "text-halo-width": 0.4,
-      // v3.31.0 — match the chip's translate so the letter sits
-      // inside the pin head, not floating below.
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 17, ["literal", [0, -10]], 20, ["literal", [0, -18]]],
-      "text-translate-anchor": "viewport",
-    },
-  });
-  addLayerIfMissing(map, {
+  // ↑ arrow symbol inside the entrance chip
+  replaceLayer(map, {
     id: "campus-entrances-letter",
     source: "campus-entrances-marker-src",
     type: "symbol",
-    minzoom: 16,
+    minzoom: 14,
     layout: {
-      "text-field": "E",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 11, 20, 18],
-      "text-font": ["Noto Sans Regular"],
+      "text-field": "↑",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 16, 16, 18, 19, 20, 24],
+      "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-halo-color": "#00000060",
-      "text-halo-width": 0.4,
-      // v3.31.0 — translate to sit inside the pin head.
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 20, ["literal", [0, -26]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -12]], 16, ["literal", [0, -17]], 18, ["literal", [0, -22]], 20, ["literal", [0, -29]]],
       "text-translate-anchor": "viewport",
+    },
+  });
+  // Text label "Entrance" at close zoom
+  replaceLayer(map, {
+    id: "campus-entrances-label",
+    source: "campus-entrances-marker-src",
+    type: "symbol",
+    minzoom: 18,
+    layout: {
+      "text-field": "Entrance",
+      "text-size": 11,
+      "text-font": ["Noto Sans Bold"],
+      "text-allow-overlap": false,
+      "text-ignore-placement": false,
+      "text-anchor": "top",
+      "text-offset": [0, 0.4],
+    },
+    paint: {
+      "text-color": "#15803d",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 2,
     },
   });
 
@@ -1636,7 +1643,8 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
     if (activeFloor === null) return true;
     const meta = r.metadata as RoomMeta;
     const hasShapeForFloor = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
-    return r.floor == null || r.floor === activeFloor || hasShapeForFloor;
+    const alsoOnFloors = Array.isArray(meta?.floorIds) ? (meta.floorIds as number[]) : [];
+    return r.floor == null || r.floor === activeFloor || hasShapeForFloor || alsoOnFloors.includes(activeFloor);
   });
 
   const data = {
@@ -1681,7 +1689,7 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
 }
 
 type FloorShape = { floor: number; coordinates: [number, number][] };
-type RoomMeta = { style?: Record<string, unknown>; floorShapes?: FloorShape[] } | null | undefined;
+type RoomMeta = { style?: Record<string, unknown>; floorShapes?: FloorShape[]; floorIds?: number[] } | null | undefined;
 
 function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | null) {
   const data = {
@@ -1693,7 +1701,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
         if (activeFloor === null) return true;
         const meta = r.metadata as RoomMeta;
         const hasShapeForFloor = meta?.floorShapes?.some((fs) => fs.floor === activeFloor);
-        return r.floor == null || r.floor === activeFloor || hasShapeForFloor;
+        const alsoOnFloors = Array.isArray(meta?.floorIds) ? (meta.floorIds as number[]) : [];
+        return r.floor == null || r.floor === activeFloor || hasShapeForFloor || alsoOnFloors.includes(activeFloor);
       })
       .map((r) => {
         const meta = r.metadata as RoomMeta;
@@ -2278,6 +2287,12 @@ function upsertGeoJSONSource(map: MaplibreMap, id: string, data: unknown) {
   } else {
     map.addSource(id, { type: "geojson", data: data as never });
   }
+}
+
+/** Remove+re-add a layer so style changes in existing sessions take effect. */
+function replaceLayer(map: MaplibreMap, layer: import("maplibre-gl").AddLayerObject) {
+  try { map.removeLayer(layer.id); } catch { /* not present yet */ }
+  try { map.addLayer(layer); } catch { /* style not ready */ }
 }
 
 function addLayerIfMissing(map: MaplibreMap, layer: import("maplibre-gl").AddLayerObject) {

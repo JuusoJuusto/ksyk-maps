@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.79.0";
+export const APP_VERSION = "3.80.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.80.0",
+    date: "August 2026",
+    title: "Ortho ON by default, entrance/door redesign, multi-floor room visibility",
+    titleFi: "Ortho oletuksena päällä, sisäänkäynnit uusittu, huoneet usealla kerroksella",
+    latest: true,
+    highlights: [
+      "Ortho mode now defaults to ON — all lines snap to 90°/180° automatically",
+      "Entrance markers redesigned: larger green beacon with ↑ arrow, visible from zoom 14, 'Entrance' label at close zoom",
+      "Door markers cleaner: dark pin with D/! for regular/exit doors, bold typography",
+      "Entrance glow ring starts at zoom 14 with higher opacity",
+      "Also on floors: rooms set to appear on multiple floors now actually show on all listed floors",
+    ],
+    highlightsFi: [
+      "Ortho-tila on nyt oletuksena päällä — kaikki viivat napsahtavat 90°/180° automaattisesti",
+      "Sisäänkäyntimerkit uusittu: suurempi vihreä majakka ↑ nuolella, näkyvissä zoomista 14, 'Entrance'-teksti läheltä",
+      "Ovimerkit siistimpiä: tumma tappi D/! tavallisille/poistumisille, lihavoitu typografia",
+      "Sisäänkäynnin hehku alkaa zoomista 14 suuremmalla peittävyydellä",
+      "Myös kerroksilla: huoneet, jotka on asetettu näkymään usealla kerroksella, näkyvät nyt kaikilla luetelluilla kerroksilla",
+    ],
+  },
   {
     version: "3.79.0",
     date: "August 2026",

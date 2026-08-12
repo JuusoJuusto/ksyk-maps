@@ -299,7 +299,7 @@ function BuilderWorkspace() {
   // v3.31.2 — ortho (right-angle) constraint. On → new waypoint
   // clicks snap to horizontal/vertical from the previous vertex.
   // Off → free-form clicks (current behaviour).
-  const [orthoEnabled, setOrthoEnabled] = useState(false);
+  const [orthoEnabled, setOrthoEnabled] = useState(true);
   // Smart guides — orange alignment lines + guide snap. Off = guides
   // hidden and guide snap disabled (raw cursor or vertex snap only).
   const [guidesEnabled, setGuidesEnabled] = useState(true);

@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.79.0 — POI icons on top, draggable nav sheet, admin 401 fixed, inner wall floors, bilingual schedule button
+Bump reason: v3.80.0 — ortho default ON, entrance/door redesign, multi-floor rooms
 
-Timestamp: 1787042000
-Build: FORCE_REBUILD_v3.79.0_POI_NAV_DRAG_ADMIN_AUTH_INNER_WALLS
+Timestamp: 1787045000
+Build: FORCE_REBUILD_v3.80.0_ORTHO_DOORS_MULTIFLOOR
 
