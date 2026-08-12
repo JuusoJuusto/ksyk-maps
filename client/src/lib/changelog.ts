@@ -10,7 +10,7 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.76.0";
+export const APP_VERSION = "3.77.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {

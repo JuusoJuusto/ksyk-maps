@@ -156,7 +156,7 @@ export default function CampusOverlay({
 
     const install = () => {
       installBuildings(map, buildings);
-      installHallways(map, hallways);
+      installHallways(map, hallways, activeFloor ?? null);
       installCorridors(map, rooms, activeFloor ?? null);
       installRooms(map, rooms, activeFloor ?? null);
       // Stair + elevator 3D towers — sit above buildings so users see
@@ -172,7 +172,9 @@ export default function CampusOverlay({
       // wall layers to the very top of the stack after everything else is
       // installed. Wrapped in try/catch because moveLayer throws if the
       // layer doesn't exist yet (first cold start before any hallway data).
+      // Outer walls on top, inner walls just below outer walls.
       try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-walls-inner-line", "campus-walls-line"); } catch { /* not yet added */ }
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -441,13 +443,15 @@ export default function CampusOverlay({
     };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, poiFilter, is3D]);
 
-  // Update wall line color when dark mode toggles without reinstalling layers.
+  // Update wall line colors when dark mode toggles without reinstalling layers.
   useEffect(() => {
     if (!map) return;
-    const wallColor = darkMode ? "#94a3b8" : "#374151";
-    if (map.getLayer("campus-walls-line")) {
+    const wallColor      = darkMode ? "#94a3b8" : "#374151";
+    const innerWallColor = darkMode ? "#9ca3af" : "#6b7280";
+    if (map.getLayer("campus-walls-line"))
       map.setPaintProperty("campus-walls-line", "line-color", wallColor);
-    }
+    if (map.getLayer("campus-walls-inner-line"))
+      map.setPaintProperty("campus-walls-inner-line", "line-color", innerWallColor);
   }, [map, darkMode]);
 
   return null;
@@ -977,40 +981,43 @@ function insetPolygonMeters(pts: Array<[number, number]>, insetMeters: number): 
   ]);
 }
 
-function installHallways(map: MaplibreMap, hallways: Hallway[]) {
+function installHallways(map: MaplibreMap, hallways: Hallway[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
-    features: hallways.map((h) => {
-      // v3.30.0 — polyline support. If a `points` array is set,
-      // walk every vertex; otherwise fall back to the legacy
-      // startX/Y → endX/Y two-point segment. Vertices in the DB
-      // are stored as { lat, lng } but GeoJSON expects [lng, lat].
-      const coords: [number, number][] = (Array.isArray(h.points) && h.points.length >= 2)
-        ? h.points.map((p) => [p.lng, p.lat] as [number, number])
-        : [[h.startX, h.startY], [h.endX, h.endY]];
-      return {
-        type: "Feature" as const,
-        geometry: {
-          type: "LineString" as const,
-          coordinates: coords,
-        },
-        properties: {
-          id: h.id,
-          width: h.width ?? 2,
-          floor: h.floor ?? 0,
-          // Walls are stored as hallways with surface="wall". The renderer
-          // uses this to switch to a dark thick line instead of the
-          // walkable amber path.
-          isWall: h.surface === "wall",
-        },
-      };
-    }),
+    features: hallways
+      .filter((h) => {
+        // Inner walls are only visible on the active floor.
+        if (h.surface === "inner-wall" && activeFloor !== null && h.floor != null) {
+          return h.floor === activeFloor;
+        }
+        return true;
+      })
+      .map((h) => {
+        // v3.30.0 — polyline support. If a `points` array is set,
+        // walk every vertex; otherwise fall back to the legacy
+        // startX/Y → endX/Y two-point segment.
+        const coords: [number, number][] = (Array.isArray(h.points) && h.points.length >= 2)
+          ? h.points.map((p) => [p.lng, p.lat] as [number, number])
+          : [[h.startX, h.startY], [h.endX, h.endY]];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: coords },
+          properties: {
+            id: h.id,
+            width: h.width ?? 2,
+            floor: h.floor ?? 0,
+            // isWall: outer/exterior walls (surface="wall")
+            // isInnerWall: interior partition walls (surface="inner-wall")
+            isWall: h.surface === "wall",
+            isInnerWall: h.surface === "inner-wall",
+          },
+        };
+      }),
   };
   upsertGeoJSONSource(map, SOURCES.hallways, data);
-  // MazeMap-style hallway: a soft cream "corridor" (light fill line
-  // for the walkable strip) sitting under a slightly thinner outline
-  // so the corridor reads as an area with edges rather than a raw
-  // colored stroke.
+  // Corridor layers — exclude both outer and inner walls so they don't
+  // accidentally render as cream/amber walkable paths.
+  const corridorFilter = ["all", ["!=", ["get", "isWall"], true], ["!=", ["get", "isInnerWall"], true]] as unknown as maplibregl.FilterSpecification;
   addLayerIfMissing(map, {
     id: `${LAYERS.hallwaysLine}-under`,
     source: SOURCES.hallways,
@@ -1021,7 +1028,7 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 14],
       "line-opacity": 0.75,
     },
-    filter: ["!=", ["get", "isWall"], true],
+    filter: corridorFilter,
   });
   addLayerIfMissing(map, {
     id: LAYERS.hallwaysLine,
@@ -1033,11 +1040,24 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 20, 2.2],
       "line-opacity": 0.5,
     },
-    filter: ["!=", ["get", "isWall"], true],
+    filter: corridorFilter,
   });
-  // Walls — thick dark segments with rounded caps for a MazeMap look.
-  // Slightly heavier than the previous version so barriers really stand
-  // out against room fills.
+  // Inner walls — lighter gray partition lines, rendered below outer walls.
+  // Floor-filtered in the GeoJSON data preparation above.
+  addLayerIfMissing(map, {
+    id: "campus-walls-inner-line",
+    source: SOURCES.hallways,
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#6b7280",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 5],
+      "line-opacity": 0.85,
+    },
+    filter: ["==", ["get", "isInnerWall"], true],
+  });
+  // Outer/exterior walls — thick dark segments. Rendered above inner walls
+  // and everything else (moveLayer called in install()).
   addLayerIfMissing(map, {
     id: "campus-walls-line",
     source: SOURCES.hallways,
