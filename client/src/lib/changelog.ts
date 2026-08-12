@@ -10,14 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.78.0";
+export const APP_VERSION = "3.79.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.79.0",
+    date: "August 2026",
+    title: "POI icons on top, draggable nav sheet, admin 401 fixed, inner wall floors",
+    titleFi: "POI-kuvakkeet päällimmäisenä, vedettävä navigointipaneeli, admin 401 korjattu, sisäseinien kerrokset",
+    latest: true,
+    highlights: [
+      "POI icons and text now render above all walls on the map",
+      "Navigation panel on mobile: drag the handle up/down to expand or collapse",
+      "Schedule button now bilingual (Finnish: Avaa lukujärjestys)",
+      "Admin settings no longer return 401 — Authorization header now included on all PUT requests",
+      "Inner walls in builder: choose the floor when creating or editing, visible only on that floor",
+    ],
+    highlightsFi: [
+      "POI-kuvakkeet ja teksti näkyvät nyt kaikkien seinien päällä kartalla",
+      "Navigointipaneeli mobiilissa: vedä kahvaa ylös tai alas laajentaaksesi tai tiivistääksesi",
+      "Aikataulu-painike on nyt kaksikielinen (Avaa lukujärjestys)",
+      "Admin-asetukset eivät enää palauta 401 — Authorization-otsikko lisätty kaikkiin PUT-pyyntöihin",
+      "Rakentajassa sisäseinät: valitse kerros luomisen tai muokkaamisen yhteydessä, näkyvissä vain kyseisellä kerroksella",
+    ],
+  },
   {
     version: "3.76.0",
     date: "August 2026",
     title: "Analytics consent, premium Easter eggs, outline control, bathroom icon fix",
-    latest: true,
     highlights: [
       "Analytics only fire after cookie consent — fully GDPR-compliant now",
       "Easter eggs upgraded: premium achievement card overlay for epic & legendary discoveries",

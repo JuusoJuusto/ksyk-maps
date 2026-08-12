@@ -1010,6 +1010,7 @@ function HallwayProps({ hallway, onHistoryRecord }: { hallway: Hallway; onHistor
   const [surface, setSurface] = useState(initialSurface);
   const [directions, setDirections] = useState(hallway.directions ?? "both");
   const [accessible, setAccessible] = useState(hallway.accessible ?? true);
+  const [floor, setFloor] = useState<number>(hallway.floor ?? 1);
 
   const isBarrier = surface === "wall" || surface === "inner-wall";
 
@@ -1034,7 +1035,8 @@ function HallwayProps({ hallway, onHistoryRecord }: { hallway: Hallway; onHistor
     width !== (hallway.width ?? 2) ||
     surface !== initialSurface ||
     directions !== (hallway.directions ?? "both") ||
-    accessible !== (hallway.accessible ?? true);
+    accessible !== (hallway.accessible ?? true) ||
+    (surface === "inner-wall" && floor !== (hallway.floor ?? 1));
 
   return (
     <div className="space-y-3">
@@ -1070,6 +1072,11 @@ function HallwayProps({ hallway, onHistoryRecord }: { hallway: Hallway; onHistor
           </optgroup>
         </select>
       </div>
+
+      {/* Floor selector — only for inner walls (they're floor-specific) */}
+      {surface === "inner-wall" && (
+        <NumberField label="Floor" value={floor} onChange={setFloor} min={-5} max={30} step={1} />
+      )}
 
       {/* Width only makes sense for walkable paths; walls use render-time width */}
       {!isBarrier && (
@@ -1111,7 +1118,7 @@ function HallwayProps({ hallway, onHistoryRecord }: { hallway: Hallway; onHistor
       <DirtySaveButton
         isDirty={dirty}
         isPending={patch.isPending}
-        onSave={() => patch.mutate({ width, surface: surface as Hallway["surface"], directions, accessible })}
+        onSave={() => patch.mutate({ width, surface: surface as Hallway["surface"], directions, accessible, ...(surface === "inner-wall" ? { floor } : {}) })}
       />
     </div>
   );

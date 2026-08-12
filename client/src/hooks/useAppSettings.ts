@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import {
   AppSettings,
   DEFAULT_APP_SETTINGS,
@@ -139,7 +140,7 @@ export async function saveMapDefaultsToServer(settings: AppSettings): Promise<vo
   }
   const res = await fetch('/api/map-defaults', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
     credentials: 'include',
     body: JSON.stringify(body),
   });

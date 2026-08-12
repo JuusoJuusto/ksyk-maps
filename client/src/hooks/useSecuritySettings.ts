@@ -5,6 +5,7 @@ import {
   SecuritySettings,
   DEFAULT_SECURITY_SETTINGS,
 } from "@/lib/securitySettings";
+import { getAdminHeaders } from "@/lib/adminAuth";
 
 let snapshot: SecuritySettings = loadSecuritySettings();
 const listeners = new Set<() => void>();
@@ -51,7 +52,7 @@ export async function loadSecurityFromServer(): Promise<void> {
 export async function saveSecurityToServer(s: SecuritySettings): Promise<void> {
   const r = await fetch("/api/security-settings", {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAdminHeaders() },
     credentials: "include",
     body: JSON.stringify(s),
   });
