@@ -789,7 +789,7 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // Scale up as the user zooms in — hard to read a tiny label on a
       // big polygon at zoom 19+. At very close zoom we shrink the
       // building label so rooms don't fight it for legibility.
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 15, 19, 16, 21, 13],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 14, 13, 16, 15, 18, 16, 20, 14],
       "text-font": ["Noto Sans Regular"],
       // Force labels to draw even if they overlap the basemap's street
       // labels — the user wants building names always visible, not
@@ -1930,20 +1930,20 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     filter: ["!", ["boolean", ["get", "isActive"], true]],
     minzoom: 16,
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: LAYERS.roomsLabel,
     source: SOURCES.rooms,
     type: "symbol",
     layout: {
       "text-field": ["get", "label"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 11, 19, 15, 21, 22],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 16, 11, 17, 13, 19, 15, 21, 20],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
       "text-optional": true,
       "text-anchor": "center",
       "text-max-width": 12,
       "text-padding": 3,
-      "text-letter-spacing": 0.03,
+      "text-letter-spacing": 0.02,
     },
     paint: {
       "text-color": "#0b1220",
@@ -1952,7 +1952,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "text-halo-blur": 0.3,
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
-    minzoom: 16,
+    minzoom: 15,
   });
 }
 

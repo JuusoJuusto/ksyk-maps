@@ -99,10 +99,9 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Mobile bottom-sheet snap: "peek" shows from/to + summary, "full" reveals turn-by-turn.
-  const [mobileExpanded, setMobileExpanded] = useState(false);
+  // 3-snap mobile sheet: peek = Google Maps style compact bar, half = inputs + summary, full = turn-by-turn.
+  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
   const dragStartYRef = useRef<number | null>(null);
-  const dragStartExpandedRef = useRef(false);
 
   // Prefers /api/map-package/published when the admin has published;
   // falls back to live tables otherwise. Same shape either way.
@@ -238,10 +237,9 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   // pointing at a step that no longer exists.
   useEffect(() => { setActiveStepIdx(0); }, [from?.kind, to?.kind, (from as { room?: { id: string } })?.room?.id, (to as { room?: { id: string } })?.room?.id]);
 
-  // Auto-expand the mobile sheet when a route is computed so users
-  // immediately see the turn-by-turn list without having to tap the handle.
+  // Bump from peek to half when a route is computed so summary is visible.
   useEffect(() => {
-    if (route && isSmall) setMobileExpanded(true);
+    if (route && isSmall) setMobileSnap(s => s === "peek" ? "half" : s);
   }, [!!route, isSmall]);
 
   // Remaining distance/time from the active step to the end — helps
@@ -493,12 +491,10 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           : "left-2 right-2 sm:left-3 sm:right-auto sm:rounded-2xl sm:border sm:border-border sm:shadow-xl sm:w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)]",
       )}
       style={isSmall ? {
-        // Mobile: anchored to bottom of screen.
         bottom: 0,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // Peek = ~52dvh (map is visible above), Expanded = 88dvh.
-        maxHeight: mobileExpanded ? "88dvh" : "52dvh",
-        transition: "max-height 320ms cubic-bezier(0.32, 0.72, 0, 1)",
+        maxHeight: mobileSnap === "peek" ? "80px" : mobileSnap === "half" ? "50dvh" : "88dvh",
+        transition: "max-height 300ms cubic-bezier(0.32, 0.72, 0, 1)",
       } : {
         // Desktop: below the header, retract to bottom when search is up.
         top: searchActive ? undefined : headerBottom,
@@ -511,43 +507,76 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       role="dialog"
       aria-label="Navigation directions"
     >
-      {/* Mobile grab handle — tap or drag to expand / collapse */}
+      {/* Drag handle — always on mobile. Tap: peek↔half, drag: 3 snaps */}
       {isSmall && (
         <button
           type="button"
-          onClick={() => setMobileExpanded((v) => !v)}
+          onClick={() => setMobileSnap(s => s === "peek" ? "half" : "peek")}
           onPointerDown={(e) => {
             dragStartYRef.current = e.clientY;
-            dragStartExpandedRef.current = mobileExpanded;
             (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
           }}
           onPointerMove={(e) => {
             const startY = dragStartYRef.current;
             if (startY === null) return;
             const dy = e.clientY - startY;
-            if (Math.abs(dy) < 30) return;
-            setMobileExpanded(dy < 0);
+            if (Math.abs(dy) < 28) return;
+            setMobileSnap(s => dy < 0 ? (s === "peek" ? "half" : "full") : (s === "full" ? "half" : "peek"));
             dragStartYRef.current = null;
           }}
           onPointerUp={() => { dragStartYRef.current = null; }}
-          className="flex justify-center pt-3 pb-1 w-full touch-none select-none"
-          aria-label={mobileExpanded ? "Collapse directions" : "Expand directions"}
+          className="flex justify-center pt-3 pb-1 w-full touch-none select-none shrink-0"
+          aria-label={mobileSnap === "peek" ? "Expand navigation" : "Collapse navigation"}
         >
           <span className="h-[5px] w-10 rounded-full bg-black/15 dark:bg-white/20" />
         </button>
       )}
 
-      <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border">
+      {/* Peek bar — compact Google Maps style summary strip */}
+      {isSmall && mobileSnap === "peek" ? (
+        <div className="flex items-center gap-3 px-4 pb-3 shrink-0">
+          <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            {to ? (
+              <>
+                <p className="text-[13px] font-semibold text-foreground truncate">{endpointLabel(to)}</p>
+                {route ? (
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {route.distanceMeters < 1000 ? `${route.distanceMeters.toFixed(0)} m` : `${(route.distanceMeters / 1000).toFixed(2)} km`}
+                    {" · "}{formatWalkTime(walkingSeconds)}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">Tap to plan route</p>
+                )}
+              </>
+            ) : (
+              <p className="text-[13px] font-medium text-muted-foreground">Tap to open navigation</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <>
+      <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border shrink-0">
         <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
         <p className="text-[14px] font-bold text-foreground flex-1">Directions</p>
         {isSmall && (
           <button
             type="button"
-            onClick={() => setMobileExpanded((v) => !v)}
+            onClick={() => setMobileSnap(s => s === "full" ? "half" : "full")}
             className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
-            aria-label={mobileExpanded ? "Collapse" : "Expand"}
+            aria-label={mobileSnap === "full" ? "Collapse" : "Expand"}
           >
-            {mobileExpanded
+            {mobileSnap === "full"
               ? <ChevronsDown className="h-4 w-4" />
               : <ChevronsUp className="h-4 w-4" />}
           </button>
@@ -861,6 +890,8 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

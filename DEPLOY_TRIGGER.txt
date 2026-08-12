@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.80.0 — ortho default ON, entrance/door redesign, multi-floor rooms
+Bump reason: v3.81.0 — ortho localStorage, labels farther, nav 3-snap peek/half/full
 
-Timestamp: 1787045000
-Build: FORCE_REBUILD_v3.80.0_ORTHO_DOORS_MULTIFLOOR
+Timestamp: 1787048000
+Build: FORCE_REBUILD_v3.81.0_ORTHO_LABELS_NAV3SNAP
 
