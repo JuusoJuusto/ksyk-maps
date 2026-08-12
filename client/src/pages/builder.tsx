@@ -873,7 +873,12 @@ function BuilderWorkspace() {
     // drew before hitting publish.
     const hallSrcId = "builder-hallways";
     const hallLineId = "builder-hallways-line";
-    const halls = hallwaysQ.data ?? [];
+    const halls = (hallwaysQ.data ?? []).filter((hw) => {
+      if ((hw as { surface?: string | null }).surface === "inner-wall") {
+        return ((hw as { floor?: number | null }).floor ?? 1) === (cameraState.activeFloor ?? 1);
+      }
+      return true;
+    });
     const hallsFC = {
       type: "FeatureCollection" as const,
       features: halls.map((hw) => {

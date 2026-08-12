@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.81.0";
+export const APP_VERSION = "3.82.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.82.0",
+    date: "August 2026",
+    title: "Inner walls per-floor, security enforcement live",
+    titleFi: "Sisäseinät kerroskohtaisesti, tietoturva toimii",
+    latest: true,
+    highlights: [
+      "Inner walls now only visible on the floor they are placed on (builder + public map)",
+      "Floor 1 inner walls no longer appear on all floors (null floor treated as floor 1)",
+      "Security: restricted-tier users now lose routing, 3D, and schedule access as configured",
+      "Security: blocked users see the lockout screen; dry-run mode logs decisions without enforcing",
+    ],
+    highlightsFi: [
+      "Sisäseinät näkyvät vain sillä kerroksella, jolle ne on sijoitettu (rakentaja + julkinen kartta)",
+      "Kerroksen 1 sisäseinät eivät enää näy kaikilla kerroksilla (null-kerros tulkitaan kerrokseksi 1)",
+      "Tietoturva: rajattu taso menettää reititys-, 3D- ja lukujärjestyspääsyn asetetun mukaisesti",
+      "Tietoturva: estetyt käyttäjät näkevät lukitusnäytön; kuiva-ajo kirjaa päätökset valvomatta",
+    ],
+  },
   {
     version: "3.81.0",
     date: "August 2026",
     title: "Ortho persists, labels from farther, nav 3-snap Google Maps style",
     titleFi: "Ortho pysyy päällä, tekstit näkyvät kauempaa, navigaatio 3-tila Google Maps -tyyliin",
-    latest: true,
+    latest: false,
     highlights: [
       "Ortho mode now persists in localStorage — stays on across tool switches and page reloads",
       "Building labels visible from zoom 12, room labels from zoom 15 (was 16)",
@@ -37,7 +56,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     date: "August 2026",
     title: "Ortho ON by default, entrance/door redesign, multi-floor room visibility",
     titleFi: "Ortho oletuksena päällä, sisäänkäynnit uusittu, huoneet usealla kerroksella",
-    latest: true,
+    latest: false,
     highlights: [
       "Ortho mode now defaults to ON — all lines snap to 90°/180° automatically",
       "Entrance markers redesigned: larger green beacon with ↑ arrow, visible from zoom 14, 'Entrance' label at close zoom",
@@ -58,7 +77,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     date: "August 2026",
     title: "POI icons on top, draggable nav sheet, admin 401 fixed, inner wall floors",
     titleFi: "POI-kuvakkeet päällimmäisenä, vedettävä navigointipaneeli, admin 401 korjattu, sisäseinien kerrokset",
-    latest: true,
+    latest: false,
     highlights: [
       "POI icons and text now render above all walls on the map",
       "Navigation panel on mobile: drag the handle up/down to expand or collapse",

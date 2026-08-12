@@ -16,6 +16,9 @@ import {
 import { useTranslation } from "react-i18next";
 import type { Building, Room, Hallway } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
+import { useAccessDecision } from "@/hooks/useAccessDecision";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
+import { isFeatureAllowed } from "@/lib/accessControl";
 
 export type ClickedFeature =
   | { kind: "building"; entity: Building }
@@ -34,6 +37,10 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const title = featureTitle(feature, lang);
   const subtitle = featureSubtitle(feature, lang);
   const color = featureColor(feature);
+  const accessDecision = useAccessDecision();
+  const { settings: secSettings } = useSecuritySettings();
+  const canUseSchedules = isFeatureAllowed("schedules", accessDecision, secSettings);
+  const canUseRouting = isFeatureAllowed("routing", accessDecision, secSettings);
   const photoUrl = featurePhotoUrl(feature);
 
   const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
@@ -197,8 +204,8 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         {(feature.kind !== "hallway" || isWall) ? (
           feature.kind !== "hallway" ? (
             <div className="shrink-0 px-4 pb-4 pt-3 space-y-2 border-t border-black/8 dark:border-white/10">
-              {/* Schedule button — rooms only */}
-              {feature.kind === "room" && (() => {
+              {/* Schedule button — rooms only, hidden when schedules restricted */}
+              {canUseSchedules && feature.kind === "room" && (() => {
                 const sched = feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null };
                 if (!sched.scheduleUrl?.trim()) return null;
                 const label = sched.scheduleLabel?.trim() || (i18n.language === "fi" ? "Avaa lukujärjestys" : "Open schedule");
@@ -214,6 +221,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
                   </a>
                 );
               })()}
+              {canUseRouting && (
               <button
                 type="button"
                 onClick={() => onRouteTo(feature)}
@@ -222,6 +230,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
                 <Navigation2 className="h-4 w-4 shrink-0" />
                 {i18n.language === "fi" ? "Reittiohjeet" : "Get directions"}
               </button>
+              )}
             </div>
           ) : null
         ) : null}
