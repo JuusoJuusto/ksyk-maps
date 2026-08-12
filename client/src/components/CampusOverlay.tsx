@@ -997,9 +997,9 @@ function installHallways(map: MaplibreMap, hallways: Hallway[], activeFloor: num
     type: "FeatureCollection" as const,
     features: hallways
       .filter((h) => {
-        // Inner walls are only visible on the active floor.
-        if (h.surface === "inner-wall" && activeFloor !== null && h.floor != null) {
-          return h.floor === activeFloor;
+        // Inner walls are only visible on the active floor. Treat null floor as floor 1.
+        if (h.surface === "inner-wall" && activeFloor !== null) {
+          return (h.floor ?? 1) === activeFloor;
         }
         return true;
       })

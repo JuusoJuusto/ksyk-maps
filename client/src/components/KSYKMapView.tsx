@@ -16,6 +16,9 @@ import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResul
 // LayersToggle temporarily removed from public map — toggle lives only in builder.
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
 import { loadAppSettings } from "@/lib/appSettings";
+import { useAccessDecision } from "@/hooks/useAccessDecision";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
+import { isFeatureAllowed } from "@/lib/accessControl";
 import { LocateFixed, Plus, Minus, Navigation2, Layers } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
@@ -42,6 +45,10 @@ interface Building extends Pick<SharedBuilding, "id" | "name" | "floors" | "poin
 export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { searchQuery = "" } = props;
   const { settings, update } = useAppSettings();
+  const accessDecision = useAccessDecision();
+  const { settings: secSettings } = useSecuritySettings();
+  const canUseRouting = isFeatureAllowed("routing", accessDecision, secSettings);
+  const canUse3D = isFeatureAllowed("threeDView", accessDecision, secSettings);
   const handleRef = useRef<CampusMapHandle | null>(null);
   // Mirrored to state so children get an actual re-render when the
   // map is ready. Without this, CampusOverlay receives `map={null}`
@@ -428,6 +435,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       >
         {/* 3D toggle + Center */}
         <div className="flex flex-col gap-2">
+          {canUse3D && (
           <button
             type="button"
             aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
@@ -445,6 +453,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               {is3D ? "3D" : "2D"}
             </span>
           </button>
+          )}
 
           <button
             type="button"
@@ -486,7 +495,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         </div>
 
         {/* Directions — opens the NavigationPanel top-left. Toggle button
-         *  so users can retract it. */}
+         *  so users can retract it. Hidden for restricted users when routing
+         *  is disabled in security settings. */}
+        {canUseRouting && (
         <button
           type="button"
           onClick={() => setShowNav((v) => !v)}
@@ -502,6 +513,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         >
           <Navigation2 className="h-[19px] w-[19px]" strokeWidth={2.25} />
         </button>
+        )}
 
         {/* Compass — MazeMap-style rotation chip. Auto-hides when the
          *  map is at the admin's default bearing/pitch; taps to reset.

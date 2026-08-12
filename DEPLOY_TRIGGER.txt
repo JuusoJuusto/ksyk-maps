@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.81.0 — ortho localStorage, labels farther, nav 3-snap peek/half/full
+Bump reason: v3.82.0 — inner walls per-floor (builder+map), security enforcement live
 
-Timestamp: 1787048000
-Build: FORCE_REBUILD_v3.81.0_ORTHO_LABELS_NAV3SNAP
+Timestamp: 1787048100
+Build: FORCE_REBUILD_v3.82.0_INNER_WALL_FLOORS_SECURITY
 
