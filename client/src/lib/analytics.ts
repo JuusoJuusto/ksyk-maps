@@ -47,6 +47,16 @@ const getUserId = (): string => {
   return userId;
 };
 
+// ── Consent gate ─────────────────────────────────────────────────
+
+function hasAnalyticsConsent(): boolean {
+  try {
+    const raw = localStorage.getItem('cookie_consent');
+    if (!raw) return false;
+    return JSON.parse(raw)?.analytics === true;
+  } catch { return false; }
+}
+
 // ── Transport ────────────────────────────────────────────────────
 
 /** Send a payload to a telemetry endpoint. Never throws. Never awaits
@@ -96,6 +106,7 @@ function pixelBeacon(payload: unknown): void {
 // ── Public API — call sites don't change ─────────────────────────
 
 export const trackPageView = async (page: string) => {
+  if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'page_view',
     page,
@@ -132,6 +143,7 @@ export const trackEasterEgg = async (eggType: string) => {
 };
 
 export const trackFeatureUse = async (feature: string, meta?: Record<string, unknown>) => {
+  if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'feature_use',
     feature,
@@ -157,6 +169,7 @@ export const trackFeature = (name: string, meta?: Record<string, unknown>) =>
   trackFeatureUse(name, meta);
 
 export const trackSearch = async (query: string) => {
+  if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'search',
     query,
@@ -177,6 +190,7 @@ export const trackSearch = async (query: string) => {
 };
 
 export const trackNavigation = async (from: string, to: string) => {
+  if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'navigation',
     page: `${from} -> ${to}`,
@@ -190,9 +204,11 @@ export const trackNavigation = async (from: string, to: string) => {
   });
 };
 
-/** Kick off client-side telemetry. Fires the initial pageview and
- *  polls for pathname changes so SPA route swaps still count. */
-export const initAnalytics = () => {
+let _analyticsRunning = false;
+
+function _startPolling() {
+  if (_analyticsRunning) return;
+  _analyticsRunning = true;
   trackPageView(window.location.pathname);
   let lastPath = window.location.pathname;
   setInterval(() => {
@@ -202,6 +218,20 @@ export const initAnalytics = () => {
       lastPath = currentPath;
     }
   }, 1000);
+}
+
+/** Kick off client-side telemetry. Fires the initial pageview and
+ *  polls for pathname changes so SPA route swaps still count.
+ *  No-ops silently when consent has not been granted — starts
+ *  automatically once the user accepts (via ksyk:analytics-consent). */
+export const initAnalytics = () => {
+  if (hasAnalyticsConsent()) {
+    _startPolling();
+  } else {
+    window.addEventListener('ksyk:analytics-consent', () => {
+      if (hasAnalyticsConsent()) _startPolling();
+    }, { once: true });
+  }
 };
 
 export const useAnalytics = () => ({

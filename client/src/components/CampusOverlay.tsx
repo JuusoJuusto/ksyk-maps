@@ -156,7 +156,7 @@ export default function CampusOverlay({
 
     const install = () => {
       installBuildings(map, buildings);
-      installHallways(map, hallways);
+      installHallways(map, hallways, activeFloor ?? null);
       installCorridors(map, rooms, activeFloor ?? null);
       installRooms(map, rooms, activeFloor ?? null);
       // Stair + elevator 3D towers — sit above buildings so users see
@@ -172,7 +172,9 @@ export default function CampusOverlay({
       // wall layers to the very top of the stack after everything else is
       // installed. Wrapped in try/catch because moveLayer throws if the
       // layer doesn't exist yet (first cold start before any hallway data).
+      // Outer walls on top, inner walls just below outer walls.
       try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
+      try { map.moveLayer("campus-walls-inner-line", "campus-walls-line"); } catch { /* not yet added */ }
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -441,13 +443,15 @@ export default function CampusOverlay({
     };
   }, [map, buildings, rooms, hallways, stairs, elevators, doors, pois, activeFloor, layers, clientOverrides, poiFilter, is3D]);
 
-  // Update wall line color when dark mode toggles without reinstalling layers.
+  // Update wall line colors when dark mode toggles without reinstalling layers.
   useEffect(() => {
     if (!map) return;
-    const wallColor = darkMode ? "#94a3b8" : "#374151";
-    if (map.getLayer("campus-walls-line")) {
+    const wallColor      = darkMode ? "#94a3b8" : "#374151";
+    const innerWallColor = darkMode ? "#9ca3af" : "#6b7280";
+    if (map.getLayer("campus-walls-line"))
       map.setPaintProperty("campus-walls-line", "line-color", wallColor);
-    }
+    if (map.getLayer("campus-walls-inner-line"))
+      map.setPaintProperty("campus-walls-inner-line", "line-color", innerWallColor);
   }, [map, darkMode]);
 
   return null;
@@ -718,7 +722,7 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
         17, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.06]],
         20, ["case", ["boolean", ["feature-state", "hover"], false], 0.25, ["case", ["!=", ["get", "fillOpacity"], null], ["get", "fillOpacity"], 0.02]],
       ],
-      "fill-outline-color": ["get", "color"],
+      "fill-outline-color": ["case", ["get", "showOutline"], ["get", "color"], "rgba(0,0,0,0)"],
       "fill-antialias": true,
     },
   });
@@ -741,13 +745,13 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
         17, ["case", ["boolean", ["feature-state", "hover"], false], 5, 2.5],
         20, ["case", ["boolean", ["feature-state", "hover"], false], 7, 3.5],
       ],
-      // Per-feature outline toggle — false collapses the line to zero
-      // opacity without hiding the layer for every building.
+      // Per-feature outline toggle — showOutline=false hides the line
+      // completely (even on hover) so admins can go fully line-free.
       "line-opacity": [
         "case",
-        ["boolean", ["feature-state", "hover"], false],
-        1.0,
-        ["case", ["get", "showOutline"], 0.95, 0],
+        ["!", ["get", "showOutline"]], 0,
+        ["boolean", ["feature-state", "hover"], false], 1.0,
+        0.95,
       ],
     },
   });
@@ -977,40 +981,43 @@ function insetPolygonMeters(pts: Array<[number, number]>, insetMeters: number): 
   ]);
 }
 
-function installHallways(map: MaplibreMap, hallways: Hallway[]) {
+function installHallways(map: MaplibreMap, hallways: Hallway[], activeFloor: number | null) {
   const data = {
     type: "FeatureCollection" as const,
-    features: hallways.map((h) => {
-      // v3.30.0 — polyline support. If a `points` array is set,
-      // walk every vertex; otherwise fall back to the legacy
-      // startX/Y → endX/Y two-point segment. Vertices in the DB
-      // are stored as { lat, lng } but GeoJSON expects [lng, lat].
-      const coords: [number, number][] = (Array.isArray(h.points) && h.points.length >= 2)
-        ? h.points.map((p) => [p.lng, p.lat] as [number, number])
-        : [[h.startX, h.startY], [h.endX, h.endY]];
-      return {
-        type: "Feature" as const,
-        geometry: {
-          type: "LineString" as const,
-          coordinates: coords,
-        },
-        properties: {
-          id: h.id,
-          width: h.width ?? 2,
-          floor: h.floor ?? 0,
-          // Walls are stored as hallways with surface="wall". The renderer
-          // uses this to switch to a dark thick line instead of the
-          // walkable amber path.
-          isWall: h.surface === "wall",
-        },
-      };
-    }),
+    features: hallways
+      .filter((h) => {
+        // Inner walls are only visible on the active floor.
+        if (h.surface === "inner-wall" && activeFloor !== null && h.floor != null) {
+          return h.floor === activeFloor;
+        }
+        return true;
+      })
+      .map((h) => {
+        // v3.30.0 — polyline support. If a `points` array is set,
+        // walk every vertex; otherwise fall back to the legacy
+        // startX/Y → endX/Y two-point segment.
+        const coords: [number, number][] = (Array.isArray(h.points) && h.points.length >= 2)
+          ? h.points.map((p) => [p.lng, p.lat] as [number, number])
+          : [[h.startX, h.startY], [h.endX, h.endY]];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: coords },
+          properties: {
+            id: h.id,
+            width: h.width ?? 2,
+            floor: h.floor ?? 0,
+            // isWall: outer/exterior walls (surface="wall")
+            // isInnerWall: interior partition walls (surface="inner-wall")
+            isWall: h.surface === "wall",
+            isInnerWall: h.surface === "inner-wall",
+          },
+        };
+      }),
   };
   upsertGeoJSONSource(map, SOURCES.hallways, data);
-  // MazeMap-style hallway: a soft cream "corridor" (light fill line
-  // for the walkable strip) sitting under a slightly thinner outline
-  // so the corridor reads as an area with edges rather than a raw
-  // colored stroke.
+  // Corridor layers — exclude both outer and inner walls so they don't
+  // accidentally render as cream/amber walkable paths.
+  const corridorFilter = ["all", ["!=", ["get", "isWall"], true], ["!=", ["get", "isInnerWall"], true]] as unknown as maplibregl.FilterSpecification;
   addLayerIfMissing(map, {
     id: `${LAYERS.hallwaysLine}-under`,
     source: SOURCES.hallways,
@@ -1021,7 +1028,7 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 4, 20, 14],
       "line-opacity": 0.75,
     },
-    filter: ["!=", ["get", "isWall"], true],
+    filter: corridorFilter,
   });
   addLayerIfMissing(map, {
     id: LAYERS.hallwaysLine,
@@ -1033,11 +1040,24 @@ function installHallways(map: MaplibreMap, hallways: Hallway[]) {
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 20, 2.2],
       "line-opacity": 0.5,
     },
-    filter: ["!=", ["get", "isWall"], true],
+    filter: corridorFilter,
   });
-  // Walls — thick dark segments with rounded caps for a MazeMap look.
-  // Slightly heavier than the previous version so barriers really stand
-  // out against room fills.
+  // Inner walls — lighter gray partition lines, rendered below outer walls.
+  // Floor-filtered in the GeoJSON data preparation above.
+  addLayerIfMissing(map, {
+    id: "campus-walls-inner-line",
+    source: SOURCES.hallways,
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#6b7280",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 20, 5],
+      "line-opacity": 0.85,
+    },
+    filter: ["==", ["get", "isInnerWall"], true],
+  });
+  // Outer/exterior walls — thick dark segments. Rendered above inner walls
+  // and everything else (moveLayer called in install()).
   addLayerIfMissing(map, {
     id: "campus-walls-line",
     source: SOURCES.hallways,
@@ -1808,8 +1828,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     paint: {
       "line-color": ["get", "color"],
       "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.5, 22, 2.5],
-      // Always show a subtle outline for room definition; stronger when showOutline is on.
-      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0.4],
+      "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0],
     },
   });
 
@@ -1940,13 +1959,13 @@ const POI_ICON: Record<string, string> = {
   door:          "🚪",   // door
   entrance:      "⊙",   // bullseye entry point
   exit:          "↪",   // exit arrow
-  bathroom:      "🚻",   // restroom (unisex)
+  bathroom:      "WC",   // restroom (unisex) — clean text renders everywhere
   info:          "ⓘ",
   reception:     "☎",
   parking:       "Ⓟ",
   bike:          "🚲",
-  restroom_m:    "🚹",   // men
-  restroom_f:    "🚺",   // women
+  restroom_m:    "♂",   // men
+  restroom_f:    "♀",   // women
   restroom_a:    "♿",   // accessible
   cafe:          "☕",
   vending:       "🍫",
@@ -1955,7 +1974,7 @@ const POI_ICON: Record<string, string> = {
   defibrillator: "⚡",
   printer:       "🖨",
   meeting_point: "⚑",
-  restroom:      "🚻",
+  restroom:      "WC",
 };
 
 interface GenericPOI {
@@ -2076,13 +2095,11 @@ function installPOIs(
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      // v3.30.1 — pin-style POI markers. Chip is translated UP by
-      // its own radius so the CIRCLE sits above the coordinate and
-      // the coordinate lines up with the pin's bottom edge — same
-      // affordance as a Google Maps / MazeMap teardrop pin. Slightly
-      // bigger baseline size too.
+      // Pin chip sits well above the tail arrow so the two never collide.
+      // Translate values computed so: chip_bottom = translate+radius,
+      // tail_top ≈ -text-size. Gap at each zoom: ~7-10 px.
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 16, 21, 24],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
       "circle-translate-anchor": "viewport",
       "circle-color": [
         "match", ["get", "kind"],
@@ -2153,9 +2170,7 @@ function installPOIs(
     },
     paint: {
       "text-color": "#111827",
-      // v3.30.1 — translate the emoji UP to match the pin chip
-      // translation. Keeps the glyph centered inside the pin head.
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -10]], 19, ["literal", [0, -18]], 21, ["literal", [0, -26]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
       "text-translate-anchor": "viewport",
     },
     minzoom: 14,
@@ -2170,7 +2185,7 @@ function installPOIs(
     type: "symbol",
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 20, 21, 28],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 15, 21, 20],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,

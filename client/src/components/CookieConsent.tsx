@@ -3,54 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { X, Cookie } from "lucide-react";
 
-// Track page view function
-const trackPageView = () => {
-  try {
-    const consent = localStorage.getItem('cookie_consent');
-    if (consent) {
-      const consentData = JSON.parse(consent);
-      if (consentData.analytics) {
-        fetch('/api/analytics/pageview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            page: window.location.pathname,
-            timestamp: new Date().toISOString(),
-          })
-        }).catch(() => {
-          // Silently fail - analytics shouldn't break the app
-        });
-      }
-    }
-  } catch (error) {
-    // Silently fail
-  }
-};
-
-// Track event function
-const trackEvent = (eventName: string, data?: any) => {
-  try {
-    const consent = localStorage.getItem('cookie_consent');
-    if (consent) {
-      const consentData = JSON.parse(consent);
-      if (consentData.analytics) {
-        fetch('/api/analytics/event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: eventName,
-            data: data || {},
-            timestamp: new Date().toISOString(),
-          })
-        }).catch(() => {
-          // Silently fail
-        });
-      }
-    }
-  } catch (error) {
-    // Silently fail
-  }
-};
+const fireConsentEvent = () =>
+  window.dispatchEvent(new CustomEvent('ksyk:analytics-consent'));
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
@@ -60,55 +14,29 @@ export default function CookieConsent() {
     const consent = localStorage.getItem('cookie_consent');
     if (!consent) {
       setTimeout(() => setShow(true), 1000);
-    } else {
-      // Initialize analytics if consent given
-      const consentData = JSON.parse(consent);
-      if (consentData.analytics) {
-        // Track initial page view
-        trackPageView();
-        
-        // Track page views on navigation
-        const handleNavigation = () => trackPageView();
-        window.addEventListener('popstate', handleNavigation);
-        
-        return () => window.removeEventListener('popstate', handleNavigation);
-      }
     }
   }, []);
 
   const acceptAll = () => {
-    const consent = {
-      necessary: true,
-      analytics: true,
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('cookie_consent', JSON.stringify(consent));
-    trackEvent('cookie_consent', { type: 'accept_all' });
-    trackPageView(); // Track current page
+    localStorage.setItem('cookie_consent', JSON.stringify({
+      necessary: true, analytics: true, timestamp: new Date().toISOString(),
+    }));
+    fireConsentEvent();
     setShow(false);
   };
 
   const acceptNecessary = () => {
-    const consent = {
-      necessary: true,
-      analytics: false,
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('cookie_consent', JSON.stringify(consent));
+    localStorage.setItem('cookie_consent', JSON.stringify({
+      necessary: true, analytics: false, timestamp: new Date().toISOString(),
+    }));
     setShow(false);
   };
 
   const acceptCustom = (analytics: boolean) => {
-    const consent = {
-      necessary: true,
-      analytics,
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('cookie_consent', JSON.stringify(consent));
-    if (analytics) {
-      trackEvent('cookie_consent', { type: 'custom', analytics: true });
-      trackPageView(); // Track current page
-    }
+    localStorage.setItem('cookie_consent', JSON.stringify({
+      necessary: true, analytics, timestamp: new Date().toISOString(),
+    }));
+    if (analytics) fireConsentEvent();
     setShow(false);
     setShowDetails(false);
   };

@@ -29,8 +29,9 @@ interface FeatureInfoSheetProps {
 
 export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: FeatureInfoSheetProps) {
   const { i18n } = useTranslation();
-  const title = featureTitle(feature);
-  const subtitle = featureSubtitle(feature);
+  const lang = i18n.language;
+  const title = featureTitle(feature, lang);
+  const subtitle = featureSubtitle(feature, lang);
   const color = featureColor(feature);
   const photoUrl = featurePhotoUrl(feature);
 
@@ -123,7 +124,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
               style={{ background: color + "dd", color: "#fff" }}
             >
               <KindIcon feature={feature} size={10} />
-              {featureKindLabel(feature)}
+              {featureKindLabel(feature, lang)}
             </span>
             <h2 className="text-[17px] font-bold text-white leading-tight drop-shadow-md line-clamp-2">{title}</h2>
             {subtitle && <p className="text-[11px] text-white/80 mt-0.5 drop-shadow">{subtitle}</p>}
@@ -166,7 +167,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
             <div className="flex items-center gap-2 flex-wrap mb-2.5">
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.16em] uppercase px-2.5 py-1 rounded-full bg-white/20 text-white">
                 <KindIcon feature={feature} size={11} />
-                {featureKindLabel(feature)}
+                {featureKindLabel(feature, lang)}
               </span>
               {feature.kind === "room" && typeof feature.entity.floor === "number" && (
                 <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-white/15 text-white/85">
@@ -230,41 +231,77 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function featureTitle(f: ClickedFeature): string {
-  if (f.kind === "building") return f.entity.name || "(unnamed building)";
-  if (f.kind === "room") {
-    const parts = [f.entity.roomNumber, f.entity.name].filter(Boolean);
-    return parts.join(" · ") || "(unnamed room)";
-  }
-  // Hallway: distinguish walls from corridors
-  if (f.entity.surface === "wall") return "Interior Wall";
-  return "Corridor";
+const ROOM_TYPE_LABELS: Record<string, { fi: string; en: string }> = {
+  classroom:    { fi: "Luokkahuone",    en: "Classroom" },
+  lab:          { fi: "Laboratorio",    en: "Laboratory" },
+  gym:          { fi: "Liikuntasali",   en: "Gymnasium" },
+  cafeteria:    { fi: "Ruokala",        en: "Cafeteria" },
+  library:      { fi: "Kirjasto",       en: "Library" },
+  bathroom:     { fi: "WC",             en: "Bathroom" },
+  locker_room:  { fi: "Pukuhuone",      en: "Locker Room" },
+  storage:      { fi: "Varasto",        en: "Storage" },
+  mechanical:   { fi: "Tekninen tila",  en: "Mechanical" },
+  entrance:     { fi: "Sisäänkäynti",   en: "Entrance" },
+  exit:         { fi: "Poistumistie",   en: "Exit" },
+  outdoor:      { fi: "Ulkotila",       en: "Outdoor" },
+  elevator:     { fi: "Hissi",          en: "Elevator" },
+  stairs:       { fi: "Portaat",        en: "Stairs" },
+  auditorium:   { fi: "Auditorio",      en: "Auditorium" },
+  office:       { fi: "Toimisto",       en: "Office" },
+  hallway:      { fi: "Käytävä",        en: "Hallway" },
+  lobby:        { fi: "Aula",           en: "Lobby" },
+  other:        { fi: "Muu",            en: "Other" },
+};
+
+function roomTypeLabel(type: string | null | undefined, lang: string): string {
+  if (!type) return lang === "fi" ? "Huone" : "Room";
+  const entry = ROOM_TYPE_LABELS[type];
+  if (entry) return lang === "fi" ? entry.fi : entry.en;
+  return capitalise(type.replace(/_/g, " "));
 }
 
-function featureSubtitle(f: ClickedFeature): string | null {
+function featureTitle(f: ClickedFeature, lang: string): string {
   if (f.kind === "building") {
-    return [
-      f.entity.address,
-      typeof f.entity.floors === "number" ? `${f.entity.floors} floor${f.entity.floors === 1 ? "" : "s"}` : null,
-    ].filter(Boolean).join(" · ") || null;
+    const localName = lang === "fi" ? f.entity.nameFi : f.entity.nameEn;
+    return localName || f.entity.name || (lang === "fi" ? "(nimetön rakennus)" : "(unnamed building)");
+  }
+  if (f.kind === "room") {
+    const localName = lang === "fi" ? f.entity.nameFi : f.entity.nameEn;
+    const name = localName || f.entity.name;
+    const parts = [f.entity.roomNumber, name].filter(Boolean);
+    return parts.join(" · ") || (lang === "fi" ? "(nimetön huone)" : "(unnamed room)");
+  }
+  if (f.entity.surface === "inner-wall") return lang === "fi" ? "Väliseinä" : "Inner Wall";
+  if (f.entity.surface === "wall") return lang === "fi" ? "Ulkoseinä" : "Exterior Wall";
+  return lang === "fi" ? "Käytävä" : "Corridor";
+}
+
+function featureSubtitle(f: ClickedFeature, lang: string): string | null {
+  if (f.kind === "building") {
+    const floors = typeof f.entity.floors === "number"
+      ? lang === "fi"
+        ? `${f.entity.floors} ${f.entity.floors === 1 ? "kerros" : "kerrosta"}`
+        : `${f.entity.floors} floor${f.entity.floors === 1 ? "" : "s"}`
+      : null;
+    return [f.entity.address, floors].filter(Boolean).join(" · ") || null;
   }
   if (f.kind === "room") {
     const parts: string[] = [];
     if (f.entity.department) parts.push(f.entity.department);
-    if (f.entity.type && f.entity.type !== "other") parts.push(capitalise(f.entity.type.replace(/_/g, " ")));
+    if (f.entity.type && f.entity.type !== "other") parts.push(roomTypeLabel(f.entity.type, lang));
     return parts.join(" · ") || null;
   }
-  // Hallway subtitle
-  if (f.entity.surface === "wall") return "Interior partition";
-  return f.entity.surface ?? "Walkway";
+  if (f.entity.surface === "inner-wall") return lang === "fi" ? "Sisäinen väliseinä" : "Interior partition";
+  if (f.entity.surface === "wall") return lang === "fi" ? "Kantava rakenne" : "Load-bearing structure";
+  return f.entity.surface ?? (lang === "fi" ? "Kulkuväylä" : "Walkway");
 }
 
-function featureKindLabel(f: ClickedFeature): string {
-  if (f.kind === "building") return "Building";
-  if (f.kind === "room") return capitalise(f.entity.type?.replace(/_/g, " ") ?? "Room");
-  // Distinguish interior walls from navigable corridors
-  if (f.entity.surface === "wall") return "Interior Wall";
-  return "Corridor";
+function featureKindLabel(f: ClickedFeature, lang: string): string {
+  if (f.kind === "building") return lang === "fi" ? "Rakennus" : "Building";
+  if (f.kind === "room") return roomTypeLabel(f.entity.type, lang);
+  if (f.entity.surface === "inner-wall") return lang === "fi" ? "Väliseinä" : "Inner Wall";
+  if (f.entity.surface === "wall") return lang === "fi" ? "Ulkoseinä" : "Wall";
+  return lang === "fi" ? "Käytävä" : "Corridor";
 }
 
 function featureColor(f: ClickedFeature): string {
@@ -337,15 +374,18 @@ function KindIcon({ feature, size = 16 }: { feature: ClickedFeature; size?: numb
 }
 
 function MetadataRows({ feature }: { feature: ClickedFeature }) {
+  const { i18n } = useTranslation();
+  const fi = i18n.language === "fi";
   const contact = featureContact(feature);
+
   if (feature.kind === "building") {
     const b = feature.entity;
     return (
       <>
-        {b.description && <InfoRow label="About">{b.description}</InfoRow>}
-        {b.address && <InfoRow label="Address" icon={MapPin}>{b.address}</InfoRow>}
+        {b.description && <InfoRow label={fi ? "Tietoja" : "About"}>{b.description}</InfoRow>}
+        {b.address && <InfoRow label={fi ? "Osoite" : "Address"} icon={MapPin}>{b.address}</InfoRow>}
         {typeof b.floors === "number" && (
-          <InfoRow label="Floors" icon={LayersIcon}>
+          <InfoRow label={fi ? "Kerrokset" : "Floors"} icon={LayersIcon}>
             {(b.floorMin ?? 1) === 1 && (b.floorMax ?? b.floors) === b.floors
               ? `${b.floors}`
               : `${b.floorMin ?? 1} – ${b.floorMax ?? b.floors}`}
@@ -359,14 +399,18 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     const r = feature.entity;
     return (
       <>
-        {r.description && <InfoRow label="About">{r.description}</InfoRow>}
-        {r.teacher && <InfoRow label="Teacher" icon={User}>{r.teacher}</InfoRow>}
+        {r.description && <InfoRow label={fi ? "Tietoja" : "About"}>{r.description}</InfoRow>}
+        {r.teacher && <InfoRow label={fi ? "Opettaja" : "Teacher"} icon={User}>{r.teacher}</InfoRow>}
         {typeof r.capacity === "number" && r.capacity > 0 && (
-          <InfoRow label="Capacity" icon={Users}>{r.capacity} people</InfoRow>
+          <InfoRow label={fi ? "Kapasiteetti" : "Capacity"} icon={Users}>
+            {fi ? `${r.capacity} henkilöä` : `${r.capacity} people`}
+          </InfoRow>
         )}
         {r.tags && r.tags.length > 0 && (
           <div className="py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Tags</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+              {fi ? "Tunnisteet" : "Tags"}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {r.tags.map((t) => (
                 <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
@@ -381,17 +425,28 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     );
   }
   const h = feature.entity;
+  const surfaceLabel = (s: string) => {
+    const map: Record<string, { fi: string; en: string }> = {
+      wall:       { fi: "Ulkoseinä",    en: "Exterior wall" },
+      "inner-wall": { fi: "Väliseinä",  en: "Inner wall" },
+      concrete:   { fi: "Betoni",       en: "Concrete" },
+      carpet:     { fi: "Matto",        en: "Carpet" },
+      tile:       { fi: "Laatta",       en: "Tile" },
+      gravel:     { fi: "Sora",         en: "Gravel" },
+      asphalt:    { fi: "Asfaltti",     en: "Asphalt" },
+    };
+    const entry = map[s];
+    return entry ? (fi ? entry.fi : entry.en) : capitalise(s);
+  };
   return (
     <>
-      {h.width != null && <InfoRow label="Width">{h.width} m</InfoRow>}
-      {h.surface && (
-        <InfoRow label="Type">
-          {h.surface === "wall" ? "Interior partition wall" : capitalise(h.surface)}
-        </InfoRow>
-      )}
-      {h.floor != null && <InfoRow label="Floor" icon={LayersIcon}>{h.floor}</InfoRow>}
+      {h.width != null && <InfoRow label={fi ? "Leveys" : "Width"}>{h.width} m</InfoRow>}
+      {h.surface && <InfoRow label={fi ? "Tyyppi" : "Type"}>{surfaceLabel(h.surface)}</InfoRow>}
+      {h.floor != null && <InfoRow label={fi ? "Kerros" : "Floor"} icon={LayersIcon}>{h.floor}</InfoRow>}
       {h.accessible != null && (
-        <InfoRow label="Accessible">{h.accessible ? "Yes" : "No"}</InfoRow>
+        <InfoRow label={fi ? "Esteetön" : "Accessible"}>
+          {h.accessible ? (fi ? "Kyllä" : "Yes") : (fi ? "Ei" : "No")}
+        </InfoRow>
       )}
     </>
   );
@@ -423,31 +478,33 @@ function InfoRow({
 }
 
 function ContactRows({ contact }: { contact: { hours?: string; phone?: string; email?: string; website?: string } }) {
+  const { i18n } = useTranslation();
+  const fi = i18n.language === "fi";
   const { hours, phone, email, website } = contact;
   if (!hours && !phone && !email && !website) return null;
   return (
     <>
       {hours && (
-        <InfoRow label="Hours" icon={Clock}>
+        <InfoRow label={fi ? "Aukioloajat" : "Hours"} icon={Clock}>
           <span className="whitespace-pre-line">{hours}</span>
         </InfoRow>
       )}
       {phone && (
-        <InfoRow label="Phone" icon={Phone}>
+        <InfoRow label={fi ? "Puhelin" : "Phone"} icon={Phone}>
           <a href={`tel:${phone.replace(/\s+/g, "")}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             {phone}
           </a>
         </InfoRow>
       )}
       {email && (
-        <InfoRow label="Email" icon={Mail}>
+        <InfoRow label={fi ? "Sähköposti" : "Email"} icon={Mail}>
           <a href={`mailto:${email}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             {email}
           </a>
         </InfoRow>
       )}
       {website && (
-        <InfoRow label="Website" icon={ExternalLink}>
+        <InfoRow label={fi ? "Verkkosivusto" : "Website"} icon={ExternalLink}>
           <a
             href={website}
             target="_blank"

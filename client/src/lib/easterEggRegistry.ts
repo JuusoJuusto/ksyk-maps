@@ -12,7 +12,7 @@
  *   - analytics events (`easter_egg:<id>`)
  * Never rename an `id` — pick a new one and mark the old one legacy.
  */
-import { Award, Code, Flame, Flag, Gamepad2, Radio, RotateCw, Sparkles, Star, Trophy } from "lucide-react";
+import { Award, Code, Flame, Flag, Gamepad2, Radio, RotateCw, Snowflake, Sparkles, Star, Terminal, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type EggRarity = "common" | "rare" | "epic" | "legendary";
@@ -121,6 +121,28 @@ export const EASTER_EGGS: EasterEgg[] = [
     reward: "Dev banner in the console + telemetry pip.",
     icon: Code,
     color: "text-green-600",
+    bgColor: "bg-green-100 dark:bg-green-500/20",
+    rarity: "epic",
+  },
+  {
+    id: "snow-typed",
+    name: "First Snow",
+    description: "Typed 'snow' and it started snowing inside the browser.",
+    hint: "Type s · n · o · w anywhere.",
+    reward: "Gentle snowfall for 6 seconds.",
+    icon: Snowflake,
+    color: "text-sky-400",
+    bgColor: "bg-sky-100 dark:bg-sky-500/20",
+    rarity: "common",
+  },
+  {
+    id: "matrix-typed",
+    name: "Wake Up, Neo",
+    description: "Found the rabbit hole — typed the forbidden word.",
+    hint: "Type m · a · t · r · i · x anywhere.",
+    reward: "Matrix rain cascade for 8 seconds.",
+    icon: Terminal,
+    color: "text-green-500",
     bgColor: "bg-green-100 dark:bg-green-500/20",
     rarity: "epic",
   },

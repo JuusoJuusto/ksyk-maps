@@ -85,22 +85,6 @@ export default function CommandPalette() {
       onRun: () => setLocation("/"),
     },
     {
-      id: "nav.builder",
-      label: "Open builder",
-      group: "Navigation",
-      Icon: Building2,
-      keywords: "editor cad admin",
-      onRun: () => setLocation("/builder"),
-    },
-    {
-      id: "nav.admin",
-      label: "Open admin panel",
-      group: "Navigation",
-      Icon: ShieldCheck,
-      keywords: "admin control settings",
-      onRun: () => setLocation("/admin"),
-    },
-    {
       id: "map.toggle3d",
       label: "Toggle 3D view",
       group: "Map",

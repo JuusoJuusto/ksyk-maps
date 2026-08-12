@@ -1,7 +1,8 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.75.1 — screen-space ortho fix, publish non-fatal Firebase
+Bump reason: v3.77.0 — bilingual support (Finnish), inner walls fix, floor-filtered inner walls, layer ordering
 
-Timestamp: 1787031600
-Build: FORCE_REBUILD_v3.75.1_ORTHOFIX_PUBLISHFIX
+Timestamp: 1787036000
+Build: FORCE_REBUILD_v3.77.0_BILINGUAL_INNERWALLS_LAYERORDER
+
 
