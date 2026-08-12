@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.80.0";
+export const APP_VERSION = "3.81.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.81.0",
+    date: "August 2026",
+    title: "Ortho persists, labels from farther, nav 3-snap Google Maps style",
+    titleFi: "Ortho pysyy päällä, tekstit näkyvät kauempaa, navigaatio 3-tila Google Maps -tyyliin",
+    latest: true,
+    highlights: [
+      "Ortho mode now persists in localStorage — stays on across tool switches and page reloads",
+      "Building labels visible from zoom 12, room labels from zoom 15 (was 16)",
+      "Navigation panel: 3-snap states (peek/half/full) like Google Maps — collapsed bar shows destination + ETA",
+      "Swipe up from peek to half, drag to full — tap handle to toggle peek/half",
+    ],
+    highlightsFi: [
+      "Ortho-tila säilyy localStoragessa — pysyy päällä työkaluvaihdosten ja sivulatausten välillä",
+      "Rakennusten tekstit näkyvissä zoomista 12, huoneiden zoomista 15 (oli 16)",
+      "Navigaatiopaneeli: 3 snap-tilaa (peek/puoli/koko) kuten Google Maps — tiivistetty palkki näyttää kohteen ja ETA:n",
+      "Pyyhkäise ylös peekistä puolelle, vedä täyteen — napauta kahvaa vaihtaaksesi peek/puoli",
+    ],
+  },
   {
     version: "3.80.0",
     date: "August 2026",

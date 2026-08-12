@@ -296,10 +296,14 @@ function BuilderWorkspace() {
   const [showSvgImport, setShowSvgImport] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
-  // v3.31.2 — ortho (right-angle) constraint. On → new waypoint
-  // clicks snap to horizontal/vertical from the previous vertex.
-  // Off → free-form clicks (current behaviour).
-  const [orthoEnabled, setOrthoEnabled] = useState(true);
+  // Ortho: defaults ON, persists in localStorage so tool switches and
+  // page reloads don't reset it to off unexpectedly.
+  const [orthoEnabled, setOrthoEnabled] = useState(() => {
+    try { return localStorage.getItem("ksyk_builder_ortho") !== "false"; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("ksyk_builder_ortho", String(orthoEnabled)); } catch {}
+  }, [orthoEnabled]);
   // Smart guides — orange alignment lines + guide snap. Off = guides
   // hidden and guide snap disabled (raw cursor or vertex snap only).
   const [guidesEnabled, setGuidesEnabled] = useState(true);
