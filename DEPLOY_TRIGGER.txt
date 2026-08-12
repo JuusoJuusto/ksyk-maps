@@ -1,8 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-12
 
-Bump reason: v3.78.0 — security gate wired, icon improvements, settings functional
+Bump reason: v3.79.0 — POI icons on top, draggable nav sheet, admin 401 fixed, inner wall floors, bilingual schedule button
 
-Timestamp: 1787039000
-Build: FORCE_REBUILD_v3.78.0_SECGATE_ICONS_SETTINGS
-
+Timestamp: 1787042000
+Build: FORCE_REBUILD_v3.79.0_POI_NAV_DRAG_ADMIN_AUTH_INNER_WALLS
 

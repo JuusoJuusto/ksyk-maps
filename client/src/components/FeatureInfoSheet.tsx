@@ -201,7 +201,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
               {feature.kind === "room" && (() => {
                 const sched = feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null };
                 if (!sched.scheduleUrl?.trim()) return null;
-                const label = sched.scheduleLabel?.trim() || "Open schedule";
+                const label = sched.scheduleLabel?.trim() || (i18n.language === "fi" ? "Avaa lukujärjestys" : "Open schedule");
                 return (
                   <a
                     href={sched.scheduleUrl}

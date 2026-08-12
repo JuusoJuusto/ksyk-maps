@@ -1594,7 +1594,7 @@ function BuilderWorkspace() {
   });
 
   const createHallway = useMutation({
-    mutationFn: async (payload: { points: Array<{ lng: number; lat: number }>; surface?: string }) => {
+    mutationFn: async (payload: { points: Array<{ lng: number; lat: number }>; surface?: string; floor?: number }) => {
       // v3.30.0 — single POST with the full polyline as `points`.
       // Server-side we still populate startX/Y + endX/Y with the
       // first + last vertex so older clients that don't understand
@@ -1843,6 +1843,7 @@ function BuilderWorkspace() {
       createHallway.mutate({
         points: waypoints.map((w) => ({ lng: w.lng, lat: w.lat })),
         surface: "inner-wall",
+        floor: activeFloorRef.current ?? 1,
       });
       return;
     }

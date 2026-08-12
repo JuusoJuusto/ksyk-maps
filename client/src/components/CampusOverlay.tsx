@@ -175,6 +175,9 @@ export default function CampusOverlay({
       // Outer walls on top, inner walls just below outer walls.
       try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
       try { map.moveLayer("campus-walls-inner-line", "campus-walls-line"); } catch { /* not yet added */ }
+      // POI chips and icons must render above all walls.
+      try { map.moveLayer(LAYERS.poisChip); } catch { /* not yet added */ }
+      try { map.moveLayer(LAYERS.poisIcon); } catch { /* not yet added */ }
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes

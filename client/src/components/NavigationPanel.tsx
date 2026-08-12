@@ -101,6 +101,8 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
 
   // Mobile bottom-sheet snap: "peek" shows from/to + summary, "full" reveals turn-by-turn.
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  const dragStartYRef = useRef<number | null>(null);
+  const dragStartExpandedRef = useRef(false);
 
   // Prefers /api/map-package/published when the admin has published;
   // falls back to live tables otherwise. Same shape either way.
@@ -509,11 +511,25 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       role="dialog"
       aria-label="Navigation directions"
     >
-      {/* Mobile grab handle — tap to expand / collapse */}
+      {/* Mobile grab handle — tap or drag to expand / collapse */}
       {isSmall && (
         <button
           type="button"
           onClick={() => setMobileExpanded((v) => !v)}
+          onPointerDown={(e) => {
+            dragStartYRef.current = e.clientY;
+            dragStartExpandedRef.current = mobileExpanded;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            const startY = dragStartYRef.current;
+            if (startY === null) return;
+            const dy = e.clientY - startY;
+            if (Math.abs(dy) < 30) return;
+            setMobileExpanded(dy < 0);
+            dragStartYRef.current = null;
+          }}
+          onPointerUp={() => { dragStartYRef.current = null; }}
           className="flex justify-center pt-3 pb-1 w-full touch-none select-none"
           aria-label={mobileExpanded ? "Collapse directions" : "Expand directions"}
         >

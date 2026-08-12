@@ -14,6 +14,7 @@ import {
   RefreshCw, Eye, EyeOff, Egg,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { getAdminHeaders } from '@/lib/adminAuth';
 
 interface AppSettings {
   id?: string;
@@ -83,7 +84,7 @@ export default function AppSettingsManager() {
     mutationFn: async (settings: AppSettings) => {
       const res = await fetch('/api/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
         credentials: 'include',
         body: JSON.stringify(settings),
       });
