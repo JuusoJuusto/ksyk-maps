@@ -14,6 +14,9 @@ import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
 import CampusSettingsPanel from "@/components/CampusSettingsPanel";
 import StudentLoginGate from "@/components/StudentLoginGate";
+import AccessLockoutScreen from "@/components/AccessLockoutScreen";
+import { useAccessDecision } from "@/hooks/useAccessDecision";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { cn } from "@/lib/utils";
 import { trackFeature } from "@/lib/analytics";
 
@@ -21,6 +24,8 @@ export default function KSYKMapsHome() {
   const { darkMode } = useDarkMode();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const decision = useAccessDecision();
+  const { settings: secSettings } = useSecuritySettings();
 
   // Debounced search feature-usage tracking. We fire only after the user
   // has paused typing for ~500 ms so we don't count every keystroke as a
@@ -43,6 +48,12 @@ export default function KSYKMapsHome() {
     window.addEventListener("ksyk:search-clear", onClear);
     return () => window.removeEventListener("ksyk:search-clear", onClear);
   }, []);
+
+  // Security gate — blocked users see the lockout screen.
+  // dryRun mode logs the decision without enforcing it.
+  if (decision.tier === "blocked" && !secSettings.dryRun) {
+    return <AccessLockoutScreen decision={decision} />;
+  }
 
   return (
     <div

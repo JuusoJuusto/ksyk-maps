@@ -411,7 +411,7 @@ function TypeChip({ pick, darkMode }: { pick: SearchPick; darkMode: boolean }) {
   const cfg = pickChip(pick);
   return (
     <span
-      className="h-8 w-8 rounded-full flex items-center justify-center text-[13px] shrink-0"
+      className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
       style={{
         background: darkMode ? `${cfg.bg}55` : cfg.bg,
         color: cfg.fg,
@@ -425,21 +425,25 @@ function TypeChip({ pick, darkMode }: { pick: SearchPick; darkMode: boolean }) {
 }
 
 function pickChip(pick: SearchPick): { bg: string; fg: string; glyph: string } {
-  if (pick.kind === "building") return { bg: "#dbeafe", fg: "#1e40af", glyph: "▣" };
+  if (pick.kind === "building") return { bg: "#dbeafe", fg: "#1e40af", glyph: "⬛" };
   const type = pick.room.type;
   switch (type) {
-    case "classroom": return { bg: "#e0f2fe", fg: "#0369a1", glyph: "🅒" };
-    case "lab":       return { bg: "#ede9fe", fg: "#6d28d9", glyph: "⚗" };
-    case "bathroom":  return { bg: "#fce7f3", fg: "#be185d", glyph: "⚑" };
-    case "cafeteria": return { bg: "#fef3c7", fg: "#b45309", glyph: "☕" };
-    case "gym":       return { bg: "#dcfce7", fg: "#15803d", glyph: "⚙" };
-    case "office":    return { bg: "#f3f4f6", fg: "#4b5563", glyph: "🅞" };
-    case "elevator":  return { bg: "#dbeafe", fg: "#1d4ed8", glyph: "⇵" };
-    case "stairs":    return { bg: "#fef3c7", fg: "#b45309", glyph: "⇅" };
-    case "entrance":  return { bg: "#dcfce7", fg: "#15803d", glyph: "➜" };
-    case "exit":      return { bg: "#fee2e2", fg: "#b91c1c", glyph: "⤴" };
-    case "library":   return { bg: "#fef3c7", fg: "#b45309", glyph: "📚" };
-    case "auditorium":return { bg: "#f5f3ff", fg: "#6d28d9", glyph: "🎤" };
-    default:          return { bg: "#e0f2fe", fg: "#0f766e", glyph: "•" };
+    case "classroom":    return { bg: "#e0f2fe", fg: "#0369a1", glyph: "📖" };
+    case "lab":          return { bg: "#ede9fe", fg: "#6d28d9", glyph: "⚗" };
+    case "bathroom":     return { bg: "#e0f2fe", fg: "#0f766e", glyph: "WC" };
+    case "locker_room":  return { bg: "#f3f4f6", fg: "#374151", glyph: "🔒" };
+    case "cafeteria":    return { bg: "#fef3c7", fg: "#b45309", glyph: "🍽" };
+    case "gym":          return { bg: "#dcfce7", fg: "#15803d", glyph: "💪" };
+    case "office":       return { bg: "#f3f4f6", fg: "#4b5563", glyph: "🗂" };
+    case "elevator":     return { bg: "#dbeafe", fg: "#1d4ed8", glyph: "⇕" };
+    case "stairs":       return { bg: "#fef3c7", fg: "#b45309", glyph: "⌇" };
+    case "entrance":     return { bg: "#dcfce7", fg: "#15803d", glyph: "⊙" };
+    case "exit":         return { bg: "#fee2e2", fg: "#b91c1c", glyph: "⊗" };
+    case "library":      return { bg: "#fef3c7", fg: "#b45309", glyph: "📚" };
+    case "auditorium":   return { bg: "#f5f3ff", fg: "#6d28d9", glyph: "🎭" };
+    case "storage":
+    case "mechanical":   return { bg: "#f3f4f6", fg: "#6b7280", glyph: "⬡" };
+    case "lobby":        return { bg: "#e0f2fe", fg: "#0369a1", glyph: "⬢" };
+    default:             return { bg: "#e0f2fe", fg: "#0f766e", glyph: "◦" };
   }
 }
