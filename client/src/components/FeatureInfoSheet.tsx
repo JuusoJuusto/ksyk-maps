@@ -10,7 +10,8 @@ import {
   X, MapPin, Compass, Users, User, Layers as LayersIcon, Info,
   Navigation2, Clock, Phone, Mail, ExternalLink, Building2, DoorOpen,
   BookOpen, Dumbbell, ShoppingCart, Trees, Warehouse, Coffee,
-  ChevronRight, Minus,
+  ChevronRight, Minus, Utensils, Lock, ArrowUpDown, Mic2, FlipVertical2,
+  LayoutDashboard, Wrench, Droplets,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Building, Room, Hallway } from "@ksyk/shared";
@@ -317,8 +318,9 @@ function featureColor(f: ClickedFeature): string {
     if (t === "hallway") return "#94a3b8";
     return "#059669";
   }
-  // Hallway
+  // Hallway / wall
   if (f.entity.surface === "wall") return "#374151";
+  if (f.entity.surface === "inner-wall") return "#6b7280";
   return "#d97706";
 }
 
@@ -355,20 +357,25 @@ function KindIcon({ feature, size = 16 }: { feature: ClickedFeature; size?: numb
   const style = { width: size, height: size };
   if (feature.kind === "building") return <Building2 className={cls} style={style} />;
   if (feature.kind === "hallway") {
-    if (feature.entity.surface === "wall") return <Minus className={cls} style={style} />;
+    if (feature.entity.surface === "wall" || feature.entity.surface === "inner-wall") return <Minus className={cls} style={style} />;
     return <Compass className={cls} style={style} />;
   }
   const t = (feature.entity as Room).type;
-  if (t === "classroom" || t === "lab") return <BookOpen className={cls} style={style} />;
+  if (t === "classroom") return <BookOpen className={cls} style={style} />;
+  if (t === "lab") return <FlipVertical2 className={cls} style={style} />;
   if (t === "gym") return <Dumbbell className={cls} style={style} />;
-  if (t === "cafeteria") return <Coffee className={cls} style={style} />;
+  if (t === "cafeteria") return <Utensils className={cls} style={style} />;
   if (t === "library") return <BookOpen className={cls} style={style} />;
-  if (t === "bathroom" || t === "locker_room") return <DoorOpen className={cls} style={style} />;
-  if (t === "storage" || t === "mechanical") return <Warehouse className={cls} style={style} />;
-  if (t === "entrance" || t === "exit") return <DoorOpen className={cls} style={style} />;
+  if (t === "bathroom") return <Droplets className={cls} style={style} />;
+  if (t === "locker_room") return <Lock className={cls} style={style} />;
+  if (t === "storage") return <Warehouse className={cls} style={style} />;
+  if (t === "mechanical") return <Wrench className={cls} style={style} />;
+  if (t === "entrance" || t === "lobby") return <LayoutDashboard className={cls} style={style} />;
+  if (t === "exit") return <DoorOpen className={cls} style={style} />;
   if (t === "outdoor") return <Trees className={cls} style={style} />;
-  if (t === "elevator" || t === "stairs") return <LayersIcon className={cls} style={style} />;
-  if (t === "auditorium") return <Users className={cls} style={style} />;
+  if (t === "elevator") return <ArrowUpDown className={cls} style={style} />;
+  if (t === "stairs") return <LayersIcon className={cls} style={style} />;
+  if (t === "auditorium") return <Mic2 className={cls} style={style} />;
   if (t === "office") return <User className={cls} style={style} />;
   return <Info className={cls} style={style} />;
 }
