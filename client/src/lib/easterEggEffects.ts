@@ -394,3 +394,404 @@ function escapeHtml(s: string): string {
   d.textContent = s;
   return d.innerHTML;
 }
+
+// ── Fireworks ─────────────────────────────────────────────────────
+
+export function fireworks(durationMs = 6000): void {
+  ensureKeyframes();
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes ksyk-fw-particle {
+      0%   { transform:translate(0,0) scale(1); opacity:1; }
+      100% { transform:translate(var(--dx),var(--dy)) scale(0); opacity:0; }
+    }
+    @keyframes ksyk-fw-trail {
+      0%   { opacity:1; transform:scaleY(1); }
+      100% { opacity:0; transform:scaleY(0); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
+  document.body.appendChild(host);
+
+  const COLORS = ["#ff6b6b","#ffd700","#4ecdc4","#45b7d1","#ff9f43","#a29bfe","#fd79a8","#00cec9","#6c5ce7","#ffeaa7"];
+
+  const burst = (xPct: number, yPct: number) => {
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const n = 20 + Math.floor(Math.random() * 14);
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement("div");
+      const angle = (i / n) * Math.PI * 2;
+      const dist = 55 + Math.random() * 90;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      const size = 4 + Math.random() * 7;
+      const dur = 550 + Math.random() * 500;
+      const shape = Math.random() > 0.4 ? "50%" : "2px";
+      p.style.cssText = `
+        position:absolute;left:${xPct}%;top:${yPct}%;
+        width:${size}px;height:${size * (Math.random() > 0.5 ? 1 : 0.35)}px;
+        background:${color};border-radius:${shape};
+        animation:ksyk-fw-particle ${dur}ms cubic-bezier(.2,.8,.4,1) forwards;
+        --dx:${dx}px;--dy:${dy}px;
+        box-shadow:0 0 ${size + 2}px ${color};
+      `;
+      host.appendChild(p);
+    }
+  };
+
+  let count = 0;
+  const maxBursts = Math.ceil(durationMs / 450);
+  const timer = setInterval(() => {
+    if (count >= maxBursts) return;
+    const x = 10 + Math.random() * 80;
+    const y = 8 + Math.random() * 65;
+    burst(x, y);
+    if (Math.random() > 0.55) setTimeout(() => burst(x + (Math.random()-0.5)*12, y + (Math.random()-0.5)*12), 120);
+    count++;
+  }, 420);
+
+  setTimeout(() => { clearInterval(timer); style.remove(); host.remove(); }, durationMs + 1200);
+}
+
+// ── Pizza rain ────────────────────────────────────────────────────
+
+export function pizzaRain(durationMs = 5000): void {
+  ensureKeyframes();
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
+  document.body.appendChild(host);
+  const PIZZAS = ["🍕","🍕","🍕","🧀","🍅","🌶️","🍕"];
+  for (let i = 0; i < 55; i++) {
+    const p = document.createElement("div");
+    const size = 22 + Math.random() * 34;
+    const x = Math.random() * 100;
+    const delay = Math.random() * 1200;
+    const dur = 2800 + Math.random() * 2200;
+    const drift = (Math.random() - 0.5) * 50;
+    p.textContent = PIZZAS[Math.floor(Math.random() * PIZZAS.length)];
+    p.style.cssText = `
+      position:absolute;top:-70px;left:${x}vw;
+      font-size:${size}px;line-height:1;opacity:0;
+      animation:ksyk-fall ${dur}ms ${delay}ms cubic-bezier(.2,.5,.4,1) forwards;
+      --drift:${drift}vw;
+    `;
+    host.appendChild(p);
+  }
+  setTimeout(() => host.remove(), durationMs + 2500);
+}
+
+// ── Emoji confetti (generic) ──────────────────────────────────────
+
+export function emojiRain(emojis: string[], count = 50, durationMs = 4000): void {
+  ensureKeyframes();
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
+  document.body.appendChild(host);
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    const size = 18 + Math.random() * 28;
+    const x = Math.random() * 100;
+    const delay = Math.random() * 1000;
+    const dur = 2600 + Math.random() * 2000;
+    const drift = (Math.random() - 0.5) * 40;
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    p.style.cssText = `
+      position:absolute;top:-60px;left:${x}vw;
+      font-size:${size}px;line-height:1;opacity:0;
+      animation:ksyk-fall ${dur}ms ${delay}ms cubic-bezier(.2,.5,.4,1) forwards;
+      --drift:${drift}vw;
+    `;
+    host.appendChild(p);
+  }
+  setTimeout(() => host.remove(), durationMs + 2200);
+}
+
+// ── Disco mode ────────────────────────────────────────────────────
+
+export function discoMode(durationMs = 8000): void {
+  ensureKeyframes();
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes ksyk-disco-sweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    @keyframes ksyk-disco-flash { 0%,100%{opacity:0} 40%,60%{opacity:0.65} }
+    @keyframes ksyk-disco-ball {
+      0%   { transform:translate(-50%,-50%) rotate(0deg); }
+      100% { transform:translate(-50%,-50%) rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483646;overflow:hidden;mix-blend-mode:screen;";
+  document.body.appendChild(host);
+
+  const BEAMS = [
+    "rgba(255,0,128,0.3)","rgba(0,255,200,0.3)","rgba(255,220,0,0.3)",
+    "rgba(0,128,255,0.3)","rgba(200,0,255,0.3)","rgba(255,100,0,0.3)",
+  ];
+  for (let i = 0; i < BEAMS.length; i++) {
+    const beam = document.createElement("div");
+    beam.style.cssText = `
+      position:absolute;top:30%;left:50%;
+      width:150%;height:5px;
+      background:linear-gradient(to right,transparent,${BEAMS[i]},transparent);
+      transform-origin:0 50%;
+      transform:rotate(${(i / BEAMS.length) * 360}deg);
+      animation:ksyk-disco-sweep ${1.2 + i * 0.25}s linear infinite;
+    `;
+    host.appendChild(beam);
+  }
+
+  const FLASH_COLORS = ["rgba(255,0,128,0.22)","rgba(0,255,200,0.22)","rgba(255,220,0,0.22)","rgba(128,0,255,0.22)"];
+  const flashTimer = setInterval(() => {
+    const f = document.createElement("div");
+    const c = FLASH_COLORS[Math.floor(Math.random() * FLASH_COLORS.length)];
+    f.style.cssText = `position:absolute;inset:0;background:${c};animation:ksyk-disco-flash 320ms ease both;`;
+    host.appendChild(f);
+    setTimeout(() => f.remove(), 400);
+  }, 280);
+
+  confetti({ count: 60, duration: durationMs });
+
+  setTimeout(() => { clearInterval(flashTimer); host.remove(); style.remove(); }, durationMs);
+}
+
+// ── Neon rainbow sweep ────────────────────────────────────────────
+
+export function neonSweep(durationMs = 4500): void {
+  ensureKeyframes();
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes ksyk-neon-sweep {
+      0%   { left:-60%; }
+      100% { left:160%; }
+    }
+    @keyframes ksyk-neon-fade { 0%,100%{opacity:0} 20%,80%{opacity:1} }
+  `;
+  document.head.appendChild(style);
+
+  const host = document.createElement("div");
+  host.style.cssText = `
+    position:fixed;inset:0;pointer-events:none;z-index:2147483646;
+    overflow:hidden;mix-blend-mode:screen;
+    animation:ksyk-neon-fade ${durationMs}ms ease forwards;
+  `;
+  document.body.appendChild(host);
+
+  for (let pass = 0; pass < 2; pass++) {
+    const beam = document.createElement("div");
+    beam.style.cssText = `
+      position:absolute;top:0;bottom:0;width:50%;
+      background:linear-gradient(to right,
+        transparent,
+        rgba(255,0,180,0.45) 20%,
+        rgba(255,140,0,0.45) 35%,
+        rgba(255,255,0,0.45) 50%,
+        rgba(0,255,128,0.45) 65%,
+        rgba(0,180,255,0.45) 80%,
+        transparent
+      );
+      animation:ksyk-neon-sweep ${durationMs * 0.65}ms ${pass * durationMs * 0.35}ms ease-in-out both;
+    `;
+    host.appendChild(beam);
+  }
+
+  setTimeout(() => { host.remove(); style.remove(); }, durationMs + 600);
+}
+
+// ── Screen flash ──────────────────────────────────────────────────
+
+export function screenFlash(color = "rgba(255,255,255,0.92)", durationMs = 180): void {
+  const el = document.createElement("div");
+  el.style.cssText = `
+    position:fixed;inset:0;pointer-events:none;z-index:2147483647;
+    background:${color};opacity:1;transition:opacity ${durationMs * 2}ms ease;
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), durationMs * 2 + 50);
+  }));
+}
+
+// ── Heat haze (sauna effect) ──────────────────────────────────────
+
+export function heatHaze(durationMs = 5000): void {
+  ensureKeyframes();
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes ksyk-heat-rise {
+      0%   { opacity:0; transform:translateY(0) scaleX(1); }
+      20%  { opacity:0.55; }
+      100% { opacity:0; transform:translateY(-80px) scaleX(1.15); }
+    }
+    @keyframes ksyk-heat-ember {
+      0%   { opacity:0; transform:translateY(0) scale(1); }
+      20%  { opacity:0.9; }
+      100% { opacity:0; transform:translateY(-120px) scale(0); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
+  document.body.appendChild(host);
+
+  const HEAT_COLORS = ["rgba(255,80,0,0.35)","rgba(255,140,0,0.3)","rgba(255,200,0,0.25)","rgba(255,60,0,0.3)"];
+  for (let i = 0; i < 45; i++) {
+    const p = document.createElement("div");
+    const x = Math.random() * 100;
+    const size = 8 + Math.random() * 20;
+    const delay = Math.random() * 2000;
+    const dur = 1400 + Math.random() * 1600;
+    const color = HEAT_COLORS[Math.floor(Math.random() * HEAT_COLORS.length)];
+    const isEmber = Math.random() > 0.6;
+    p.style.cssText = `
+      position:absolute;bottom:0;left:${x}vw;
+      width:${size}px;height:${size * (isEmber ? 1 : 2.5)}px;
+      background:${color};border-radius:${isEmber ? "50%" : "50% 50% 0 0"};
+      animation:${isEmber ? "ksyk-heat-ember" : "ksyk-heat-rise"} ${dur}ms ${delay}ms ease-out infinite;
+      filter:blur(${isEmber ? "1px" : "2px"});
+    `;
+    host.appendChild(p);
+  }
+
+  setTimeout(() => { host.remove(); style.remove(); }, durationMs + 2000);
+}
+
+// ── Fake BSOD (blue screen) ───────────────────────────────────────
+
+export function fakeBSOD(durationMs = 4000): void {
+  const el = document.createElement("div");
+  el.style.cssText = `
+    position:fixed;inset:0;z-index:2147483647;pointer-events:none;
+    background:#0050ef;color:white;font-family:'Courier New',monospace;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:40px;opacity:0;transition:opacity 80ms ease;
+  `;
+  el.innerHTML = `
+    <div style="max-width:620px;text-align:left">
+      <div style="font-size:72px;margin-bottom:24px">:(</div>
+      <div style="font-size:28px;font-weight:700;margin-bottom:16px">Your PC ran into a problem and needs to restart. We're just collecting some error info, and then we'll restart for you.</div>
+      <div style="font-size:14px;margin-top:24px;opacity:0.8">0% complete</div>
+      <div style="margin-top:32px;font-size:13px;opacity:0.6">
+        Stop code: EASTER_EGG_FOUND<br>
+        What failed: ksyk_maps_secret.sys
+      </div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = "1"; }));
+  setTimeout(() => {
+    el.style.transition = "opacity 300ms ease";
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 350);
+  }, durationMs);
+}
+
+// ── Achievement sound (Web Audio API) ────────────────────────────
+
+export function playDiscoverySound(rarity: "common" | "rare" | "epic" | "legendary"): void {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const notes: Record<typeof rarity, number[]> = {
+      common:    [523, 659],
+      rare:      [523, 659, 784],
+      epic:      [523, 659, 784, 1047],
+      legendary: [523, 659, 784, 1047, 1319],
+    };
+    const seq = notes[rarity];
+    seq.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      const t = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.18, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+    setTimeout(() => ctx.close(), seq.length * 130 + 500);
+  } catch { /* AudioContext blocked — silent */ }
+}
+
+// ── Glitch effect ─────────────────────────────────────────────────
+
+export function glitchEffect(durationMs = 3000): void {
+  ensureKeyframes();
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes ksyk-glitch-h {
+      0%,100% { clip-path:inset(0 0 100% 0); transform:translateX(0); }
+      20%      { clip-path:inset(30% 0 50% 0); transform:translateX(-6px); }
+      40%      { clip-path:inset(10% 0 70% 0); transform:translateX(6px); }
+      60%      { clip-path:inset(60% 0 20% 0); transform:translateX(-4px); }
+      80%      { clip-path:inset(80% 0 5% 0);  transform:translateX(4px); }
+    }
+    @keyframes ksyk-glitch-c { 0%,100%{opacity:0} 15%,25%{opacity:0.6} 50%,60%{opacity:0.4} }
+  `;
+  document.head.appendChild(style);
+
+  const root = document.getElementById("root") ?? document.body;
+  const clone1 = root.cloneNode(true) as HTMLElement;
+  const clone2 = root.cloneNode(true) as HTMLElement;
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;overflow:hidden;";
+
+  clone1.style.cssText = `
+    position:absolute;inset:0;
+    filter:hue-rotate(120deg);mix-blend-mode:screen;
+    animation:ksyk-glitch-h 180ms steps(1) infinite,ksyk-glitch-c ${durationMs}ms ease both;
+  `;
+  clone2.style.cssText = `
+    position:absolute;inset:0;
+    filter:hue-rotate(-120deg);mix-blend-mode:screen;
+    animation:ksyk-glitch-h 230ms steps(1) ${90}ms infinite,ksyk-glitch-c ${durationMs}ms ease both;
+  `;
+  host.append(clone1, clone2);
+  document.body.appendChild(host);
+  setTimeout(() => { host.remove(); style.remove(); }, durationMs + 100);
+}
+
+// ── Typewriter banner ─────────────────────────────────────────────
+
+export function typewriterBanner(text: string, opts: { color?: string; bg?: string; ms?: number } = {}): void {
+  const { color = "#22c55e", bg = "rgba(0,0,0,0.9)", ms = 5000 } = opts;
+  const el = document.createElement("div");
+  el.style.cssText = `
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    z-index:2147483647;pointer-events:none;
+    background:${bg};border:2px solid ${color};border-radius:8px;
+    padding:12px 24px;font-family:'Courier New',monospace;
+    font-size:16px;font-weight:700;color:${color};
+    white-space:nowrap;letter-spacing:2px;
+    box-shadow:0 0 20px ${color}60;
+    min-width:200px;
+  `;
+  document.body.appendChild(el);
+
+  let i = 0;
+  const cursor = "█";
+  const tick = setInterval(() => {
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i) + (i < text.length ? cursor : "");
+      i++;
+    } else {
+      clearInterval(tick);
+    }
+  }, 60);
+
+  setTimeout(() => {
+    el.style.transition = "opacity 400ms";
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 450);
+    clearInterval(tick);
+  }, ms);
+}

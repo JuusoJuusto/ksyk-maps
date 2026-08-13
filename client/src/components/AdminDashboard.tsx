@@ -13,7 +13,6 @@ import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
-import EnhancedWilmaUserManager from "@/components/EnhancedWilmaUserManager";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import BeaconSurveyor from "@/components/BeaconSurveyor";
 import AnalyticsExternalPanel from "@/components/AnalyticsExternalPanel";

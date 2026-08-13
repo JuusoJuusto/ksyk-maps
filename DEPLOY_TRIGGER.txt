@@ -1,7 +1,7 @@
 FORCE VERCEL REBUILD - 2026-08-13
 
-Bump reason: v3.83.0 — security audit fixes, 3D overhaul, share button, recently viewed
+Bump reason: v3.84.0 — Easter egg overhaul, Wilma system removal
 
-Timestamp: 1787134500
-Build: FORCE_REBUILD_v3.83.0_SECURITY_3D_SHARE
+Timestamp: 1787138100
+Build: FORCE_REBUILD_v3.84.0_EASTER_WILMA
 

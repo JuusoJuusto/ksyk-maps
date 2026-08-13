@@ -10,15 +10,41 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.83.0";
+export const APP_VERSION = "3.84.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.84.0",
+    date: "August 2026",
+    title: "Easter egg overhaul, Wilma system removal",
+    titleFi: "Easter egg -parannukset, Wilma-järjestelmä poistettu",
+    latest: true,
+    highlights: [
+      "Easter eggs: 14 new eggs added (juuso, pizza, perkele, sauna, disco, boom, neon, hauki, 42, lumiukko, glitch, rage-quit, midnight bonus, hamburger)",
+      "Easter eggs: 7 new visual effects (fireworks, pizza rain, heat haze, disco mode, neon sweep, fake BSOD, glitch, typewriter banner, emoji rain)",
+      "Easter eggs: achievement card sound effects via Web Audio API",
+      "Easter egg page: live collection grid showing all eggs with found/not-found state",
+      "Easter egg page: dynamic total egg count from registry (was hardcoded 3)",
+      "Removed: entire Wilma system (~1550 lines of routes, 29 component files, CSS, assets)",
+      "Removed: Wilma integration config panel from admin dashboard",
+      "Fix: changelog entry v3.66.0 missing required highlights field",
+    ],
+    highlightsFi: [
+      "Easter eggit: 14 uutta kananmunaa (juuso, pizza, perkele, sauna, disco, boom, neon, hauki, 42, lumiukko, glitch, rageQuit, yöpöllö, hampurilainen)",
+      "Easter eggit: 7 uutta visuaalista efektiä (ilotulitus, pizzasade, lämpöhöyry, disco, neonpyyhkäisy, BSOD, glitch, kirjoituskonebaneri, emoji-sade)",
+      "Easter eggit: saavutuskorttien äänitehoste Web Audio API:lla",
+      "Easter egg -sivu: kokoelmaruudukko näyttää kaikki munat löydetty/ei-löydetty-tilassa",
+      "Easter egg -sivu: kokonaismäärä rekisteristä dynaamisesti (oli kovakoodattu 3)",
+      "Poistettu: koko Wilma-järjestelmä (~1550 riviä reittejä, 29 komponenttitiedostoa, CSS, kuvat)",
+      "Poistettu: Wilma-integraatiopaneeli admin-paneelista",
+    ],
+  },
   {
     version: "3.83.0",
     date: "August 2026",
     title: "Security audit fixes, 3D overhaul, share button, recently viewed",
     titleFi: "Tietoturvakorjaukset, 3D-parannukset, jako-nappi, viimeksi katsotut",
-    latest: true,
+    latest: false,
     highlights: [
       "CRITICAL: removed unauthenticated /api/test-login and /api/force-login endpoints (password exposure)",
       "Security: GET /api/security-settings now requires admin auth; PUT requires admin role check",
@@ -253,6 +279,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     date: "August 2026",
     title: "Fix MapLibre getLayer crash + Firebase export script",
     latest: false,
+    highlights: ["Fix MapLibre getLayer crash on unmount", "Firebase export script improvements"],
   },
   {
     version: "3.64.0",

@@ -11,22 +11,35 @@
  * `easterEggRegistry` and a matching `whenX` inside this hook.
  *
  * Eggs handled here (all wired to the same registry):
- *   - ksyk-typed   → route to /secret-easter-egg (unchanged)
- *   - sisu-typed   → blue/white Finnish flag confetti + toast
- *   - party-typed  → rainbow confetti + toast
- *   - retro-crt    → 15s CRT overlay ("retro" or "1985")
- *   - barrel-roll  → 360° spin
- *   - konami       → CRT overlay + toast (unified with 8-bit tribute)
- *   - logo-clicks  → route to /dev-mode-secret (unchanged)
- *   - debug-combo  → console banner (unchanged)
- *   - zoom-lord    → detection lives in KSYKMapView; here we just
- *                    listen for a custom event dispatch.
+ *   - ksyk-typed       → route to /secret-easter-egg
+ *   - sisu-typed       → blue/white Finnish flag confetti + toast
+ *   - party-typed      → rainbow confetti + toast
+ *   - retro-crt        → 15s CRT overlay ("retro" or "1985")
+ *   - barrel-roll      → 360° spin
+ *   - konami           → CRT overlay + toast
+ *   - logo-clicks      → route to /dev-mode-secret
+ *   - debug-combo      → console banner
+ *   - zoom-lord        → detection lives in KSYKMapView
+ *   - juuso-typed      → legendary fireworks + personal tribute
+ *   - pizza-typed      → pizza rain
+ *   - perkele-typed    → Finnish confetti burst
+ *   - sauna-typed      → heat haze effect
+ *   - disco-typed      → disco mode (8 s)
+ *   - boom-typed       → screen flash + fireworks
+ *   - neon-typed       → rainbow neon sweep
+ *   - hauki-typed      → fish emoji rain
+ *   - 42-typed         → hitchhiker's achievement
+ *   - lumiukko-typed   → extended snowfall
+ *   - glitch-typed     → page glitch effect
+ *   - rage-quit        → Escape key 7× → fake BSOD
+ *   - midnight-bonus   → checked on mount (00:00–00:30)
+ *   - hamburger-typed  → burger emoji rain
  */
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { trackEasterEgg, trackFeature } from "@/lib/analytics";
 import { eggLocalKey, EASTER_EGGS, EGG_RESET_EPOCH, resetLocalEggFlags } from "@/lib/easterEggRegistry";
-import { achievementCard, barrelRoll, confetti, crtBurst, eggToast, matrixRain, snowfall } from "@/lib/easterEggEffects";
+import { achievementCard, barrelRoll, confetti, crtBurst, discoMode, emojiRain, eggToast, fakeBSOD, fireworks, glitchEffect, heatHaze, matrixRain, neonSweep, pizzaRain, playDiscoverySound, screenFlash, snowfall, typewriterBanner } from "@/lib/easterEggEffects";
 
 const FINNISH_COLORS = ["#003580", "#003580", "#ffffff", "#e5edff"];
 const RETRO_COLORS = ["#22c55e", "#84cc16", "#4ade80"];
@@ -162,6 +175,7 @@ export function useKsykEasterEggs() {
         onFound: () => {
           if (markAndReport("matrix-typed")) {
             matrixRain(8000);
+            playDiscoverySound("epic");
             achievementCard({
               emoji: "🟩",
               name: "Wake Up, Neo",
@@ -169,6 +183,166 @@ export function useKsykEasterEggs() {
               rarity: "epic",
               reward: "Matrix rain cascade for 8 seconds.",
             });
+          }
+        },
+      },
+      // ── New triggers (2026-08-13) ────────────────────────────────
+      {
+        word: "juuso",
+        onFound: () => {
+          if (markAndReport("juuso-typed")) {
+            playDiscoverySound("legendary");
+            fireworks(7000);
+            confetti({ count: 250, duration: 7000 });
+            achievementCard({
+              emoji: "👑",
+              name: "The Creator",
+              description: "You typed the name of the person who built all this.",
+              rarity: "legendary",
+              reward: "Legendary fireworks in your honour.",
+              ms: 8000,
+            });
+          }
+        },
+      },
+      {
+        word: "pizza",
+        onFound: () => {
+          if (markAndReport("pizza-typed")) {
+            pizzaRain(5000);
+            playDiscoverySound("common");
+            eggToast("It's raining pizza! 🍕", { emoji: "🍕" });
+          }
+        },
+      },
+      {
+        word: "perkele",
+        onFound: () => {
+          if (markAndReport("perkele-typed")) {
+            confetti({ colors: FINNISH_COLORS, count: 180, duration: 5000 });
+            playDiscoverySound("rare");
+            achievementCard({
+              emoji: "🇫🇮",
+              name: "Perkele!",
+              description: "The most Finnish thing you could possibly type.",
+              rarity: "rare",
+              reward: "National confetti blessing bestowed.",
+            });
+          }
+        },
+      },
+      {
+        word: "sauna",
+        onFound: () => {
+          if (markAndReport("sauna-typed")) {
+            heatHaze(5000);
+            playDiscoverySound("rare");
+            achievementCard({
+              emoji: "🧖",
+              name: "Löyly!",
+              description: "Sauna — Finland's most sacred institution.",
+              rarity: "rare",
+              reward: "Steam and heat rise from the screen.",
+            });
+          }
+        },
+      },
+      {
+        word: "disco",
+        onFound: () => {
+          if (markAndReport("disco-typed")) {
+            discoMode(8000);
+            playDiscoverySound("rare");
+            achievementCard({
+              emoji: "🕺",
+              name: "Disco Inferno",
+              description: "The campus map becomes a dance floor.",
+              rarity: "rare",
+              reward: "8 seconds of pure disco chaos.",
+            });
+          }
+        },
+      },
+      {
+        word: "boom",
+        onFound: () => {
+          if (markAndReport("boom-typed")) {
+            screenFlash("rgba(255,200,0,0.95)", 150);
+            setTimeout(() => { fireworks(5000); confetti({ count: 200, duration: 5000 }); }, 200);
+            playDiscoverySound("rare");
+            eggToast("BOOM! 💥", { emoji: "💥" });
+          }
+        },
+      },
+      {
+        word: "neon",
+        onFound: () => {
+          if (markAndReport("neon-typed")) {
+            neonSweep(5000);
+            playDiscoverySound("rare");
+            eggToast("Neon lights unlocked! 🌈", { emoji: "✨" });
+          }
+        },
+      },
+      {
+        word: "hauki",
+        onFound: () => {
+          if (markAndReport("hauki-typed")) {
+            emojiRain(["🐟","🐠","🐡","🦈","🎣"], 60, 5000);
+            playDiscoverySound("common");
+            eggToast("Hauki on kala! 🐟", { emoji: "🎣" });
+          }
+        },
+      },
+      {
+        word: "42",
+        onFound: () => {
+          if (markAndReport("42-typed")) {
+            playDiscoverySound("epic");
+            achievementCard({
+              emoji: "🌌",
+              name: "The Answer",
+              description: "42 — the answer to life, the universe, and everything.",
+              rarity: "epic",
+              reward: "You now know. Don't panic.",
+            });
+          }
+        },
+      },
+      {
+        word: "lumiukko",
+        onFound: () => {
+          if (markAndReport("lumiukko-typed")) {
+            snowfall(10000);
+            confetti({ colors: ["#e0f2fe","#bae6fd","#7dd3fc","#ffffff"], count: 80, duration: 6000 });
+            playDiscoverySound("rare");
+            eggToast("Lumiukko rakennettiin! ⛄", { emoji: "⛄" });
+          }
+        },
+      },
+      {
+        word: "glitch",
+        onFound: () => {
+          if (markAndReport("glitch-typed")) {
+            glitchEffect(3500);
+            playDiscoverySound("epic");
+            achievementCard({
+              emoji: "📺",
+              name: "Reality Glitch",
+              description: "You broke the fourth wall.",
+              rarity: "epic",
+              reward: "The page fragments for 3 seconds.",
+            });
+          }
+        },
+      },
+      {
+        word: "hamburger",
+        onFound: () => {
+          if (markAndReport("hamburger-typed")) {
+            emojiRain(["🍔","🍟","🌭","🌮","🍿"], 55, 5000);
+            playDiscoverySound("common");
+            eggToast("This is NOT a food delivery app.", { emoji: "🍔" });
           }
         },
       },
@@ -421,12 +595,67 @@ export function useKsykEasterEggs() {
     };
     window.addEventListener("ksyk:zoomin", onZoomIn as EventListener);
 
+    // ── Egg — Rage Quit (Escape × 7 within 3 s) ─────────────────────
+    let escStreak = 0;
+    let escTimer: number | null = null;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      escStreak += 1;
+      if (escTimer !== null) clearTimeout(escTimer);
+      escTimer = window.setTimeout(() => { escStreak = 0; }, 3000);
+      if (escStreak >= 7) {
+        escStreak = 0;
+        if (markAndReport("rage-quit")) {
+          playDiscoverySound("epic");
+          fakeBSOD(4500);
+          setTimeout(() => {
+            achievementCard({
+              emoji: "😤",
+              name: "Rage Quit",
+              description: "Pressed Escape 7 times in a row. Still can't quit.",
+              rarity: "epic",
+              reward: "A deeply relatable BSOD.",
+              ms: 4000,
+            });
+          }, 5000);
+        }
+      }
+    };
+    window.addEventListener("keydown", onEscape);
+
+    // ── Egg — Midnight Bonus (check on mount) ───────────────────────
+    // Only fires once per session; the window is 00:00–00:29.
+    (() => {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      if (h === 0 && m < 30) {
+        if (markAndReport("midnight-bonus")) {
+          playDiscoverySound("legendary");
+          const stars = ["#c7d2fe","#a5b4fc","#818cf8","#6366f1","#e0e7ff"];
+          confetti({ colors: stars, count: 180, duration: 6000 });
+          setTimeout(() => {
+            achievementCard({
+              emoji: "🌙",
+              name: "Night Owl",
+              description: `Using KSYK Maps at ${now.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" })} — respect.`,
+              rarity: "legendary",
+              reward: "Nocturnal badge of honour. Sleep is for the weak.",
+              ms: 8000,
+            });
+          }, 500);
+          typewriterBanner("NIGHT OWL MODE ACTIVATED", { color: "#818cf8", bg: "rgba(10,8,30,0.95)", ms: 6000 });
+        }
+      }
+    })();
+
     return () => {
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("input", onInput, true);
       window.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onDebugCombo);
       window.removeEventListener("keydown", onKonami);
+      window.removeEventListener("keydown", onEscape);
       window.removeEventListener("ksyk:zoomin", onZoomIn as EventListener);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("devicemotion", onMotion);
@@ -437,6 +666,7 @@ export function useKsykEasterEggs() {
       if (konamiTimer !== null) clearTimeout(konamiTimer);
       if (zoomTimer !== null) clearTimeout(zoomTimer);
       if (mobileTapTimer !== null) clearTimeout(mobileTapTimer);
+      if (escTimer !== null) clearTimeout(escTimer);
     };
   }, [setLocation]);
 }

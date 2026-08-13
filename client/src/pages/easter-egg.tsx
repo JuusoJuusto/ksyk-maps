@@ -4,24 +4,22 @@ import { Sparkles, Trophy, Star, Zap, Heart, Code, Rocket, Unlock, Users } from 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trackEasterEgg } from "@/lib/analytics";
+import { EASTER_EGGS, eggLocalKey } from "@/lib/easterEggRegistry";
 
 export default function EasterEgg() {
   const [, setLocation] = useLocation();
   const [confetti, setConfetti] = useState<Array<{ id: number; x: number; delay: number }>>([]);
   const [showUnlockPopup, setShowUnlockPopup] = useState(false);
 
-  // Fetch easter egg stats
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{ totalDiscoveries?: number }>({
     queryKey: ['/api/easter-eggs/stats'],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+    refetchInterval: 5000,
   });
 
-  // Calculate how many easter eggs the user has found
-  const easterEggsFound = [
-    localStorage.getItem("ksyk_easter_egg_found") === "true",
-    localStorage.getItem("ksyk_konami_found") === "true",
-    localStorage.getItem("ksyk_dev_mode_found") === "true",
-  ].filter(Boolean).length;
+  const totalEggs = EASTER_EGGS.length;
+  const easterEggsFound = EASTER_EGGS.filter(
+    (e) => localStorage.getItem(eggLocalKey(e.id)) === "true"
+  ).length;
 
   useEffect(() => {
     // Generate confetti
@@ -226,7 +224,7 @@ export default function EasterEgg() {
               }}
             >
               <Star className="w-8 h-8 text-yellow-400" />
-              {easterEggsFound}/3 Easter Eggs Found!
+              {easterEggsFound}/{totalEggs} Easter Eggs Found!
               <Star className="w-8 h-8 text-yellow-400" />
             </motion.p>
           </div>
@@ -344,6 +342,55 @@ export default function EasterEgg() {
               <Rocket className="w-10 h-10 text-blue-400" />
             </motion.div>
           </div>
+        </motion.div>
+
+        {/* Egg Collection Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-3xl p-6 mb-8 border-4 border-white/20"
+        >
+          <h3 className="text-xl font-bold text-white mb-4 text-center">
+            🥚 Your Collection ({easterEggsFound}/{totalEggs})
+          </h3>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+            {EASTER_EGGS.map((egg) => {
+              const found = localStorage.getItem(eggLocalKey(egg.id)) === "true";
+              return (
+                <motion.div
+                  key={egg.id}
+                  title={found ? `${egg.name}: ${egg.description}` : "???"}
+                  animate={found ? { scale: [1, 1.15, 1] } : {}}
+                  transition={{ duration: 2, repeat: Infinity, delay: Math.random() }}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${
+                    found
+                      ? "border-yellow-400/70 bg-yellow-400/15"
+                      : "border-white/10 bg-black/20 opacity-40"
+                  }`}
+                >
+                  <span className="text-2xl">{found ? "🥚" : "❓"}</span>
+                  <span className="text-[9px] text-center text-white/80 leading-tight line-clamp-2">
+                    {found ? egg.name : "???"}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+          {easterEggsFound < totalEggs && (
+            <p className="text-white/50 text-xs text-center mt-4">
+              {totalEggs - easterEggsFound} more to discover — keep exploring!
+            </p>
+          )}
+          {easterEggsFound === totalEggs && (
+            <motion.p
+              className="text-yellow-300 font-bold text-center mt-4"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              🏆 ALL COLLECTED! You are a legend.
+            </motion.p>
+          )}
         </motion.div>
 
         {/* Back Button */}
