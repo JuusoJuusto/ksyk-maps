@@ -1,7 +1,7 @@
-FORCE VERCEL REBUILD - 2026-08-12
+FORCE VERCEL REBUILD - 2026-08-13
 
-Bump reason: v3.82.0 — inner walls per-floor (builder+map), security enforcement live
+Bump reason: v3.83.0 — security audit fixes, 3D overhaul, share button, recently viewed
 
-Timestamp: 1787048100
-Build: FORCE_REBUILD_v3.82.0_INNER_WALL_FLOORS_SECURITY
+Timestamp: 1787134500
+Build: FORCE_REBUILD_v3.83.0_SECURITY_3D_SHARE
 

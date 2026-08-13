@@ -19,7 +19,7 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
-import { LocateFixed, Plus, Minus, Navigation2, Layers } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2, Layers, Share2 } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
@@ -464,6 +464,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           >
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
+          <ShareMapButton />
         </div>
 
         {/* Zoom in / out — attached pair, one rounded chip. */}
@@ -552,5 +553,31 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         />
       )}
     </div>
+  );
+}
+
+function ShareMapButton() {
+  const [copied, setCopied] = useState(false);
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ url, title: "KSYK Maps" }); return; } catch { /* cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* denied */ }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      title={copied ? "Copied!" : "Share this view"}
+      aria-label="Share current map view"
+      className="w-11 h-11 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
+    >
+      <Share2 className={cn("h-[17px] w-[17px]", copied && "text-emerald-600 dark:text-emerald-400")} strokeWidth={2.25} />
+    </button>
   );
 }

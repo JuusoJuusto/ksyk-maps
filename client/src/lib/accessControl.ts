@@ -194,9 +194,10 @@ function findNextOpen(settings: SecuritySettings, now: Date): string | undefined
     if (isHoliday(isoDate(d), settings.holidays)) continue;
     if (i === 0 && timeHM(now) >= win.close) continue;
     if (i === 0 && timeHM(now) >= win.open) continue;
-    const label = i === 0 ? `today at ${win.open}` :
-                  i === 1 ? `tomorrow at ${win.open}` :
-                  `${day.toUpperCase()} ${win.open}`;
+    const FI_DAYS: Record<string, string> = { mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe", sat: "La", sun: "Su" };
+    const label = i === 0 ? `tänään klo ${win.open}` :
+                  i === 1 ? `huomenna klo ${win.open}` :
+                  `${FI_DAYS[day] ?? day.toUpperCase()} ${win.open}`;
     return label;
   }
   return undefined;

@@ -5,7 +5,7 @@
  * Mobile: swipeable bottom sheet with three snap points.
  * Desktop (sm+): floating card anchored to bottom-center.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   X, MapPin, Compass, Users, User, Layers as LayersIcon, Info,
   Navigation2, Clock, Phone, Mail, ExternalLink, Building2, DoorOpen,
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
+import { recordPick } from "@/lib/recentSearches";
 
 export type ClickedFeature =
   | { kind: "building"; entity: Building }
@@ -41,6 +42,17 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const { settings: secSettings } = useSecuritySettings();
   const canUseSchedules = isFeatureAllowed("schedules", accessDecision, secSettings);
   const canUseRouting = isFeatureAllowed("routing", accessDecision, secSettings);
+
+  // Record this view in the recent-searches store so it appears in the
+  // search dropdown's "Recent" section the next time the user searches.
+  useEffect(() => {
+    if (feature.kind === "room") {
+      recordPick({ kind: "room", room: feature.entity as never, building: null });
+    } else if (feature.kind === "building") {
+      recordPick({ kind: "building", building: feature.entity as never });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feature.kind, (feature.entity as { id: string }).id]);
   const photoUrl = featurePhotoUrl(feature);
 
   const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
@@ -231,11 +243,38 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
                 {i18n.language === "fi" ? "Reittiohjeet" : "Get directions"}
               </button>
               )}
+              <ShareButton isFi={i18n.language === "fi"} />
             </div>
           ) : null
         ) : null}
       </div>
     </div>
+  );
+}
+
+// ── Share button ─────────────────────────────────────────────────
+function ShareButton({ isFi }: { isFi: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ url, title: document.title }); return; } catch { /* cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard denied */ }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      className="w-full h-[38px] rounded-2xl font-medium text-[13px] border border-black/10 dark:border-white/10 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-colors"
+    >
+      <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+      {copied ? (isFi ? "Linkki kopioitu!" : "Link copied!") : (isFi ? "Jaa sijainti" : "Share location")}
+    </button>
   );
 }
 

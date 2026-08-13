@@ -10,15 +10,49 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.82.0";
+export const APP_VERSION = "3.83.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.83.0",
+    date: "August 2026",
+    title: "Security audit fixes, 3D overhaul, share button, recently viewed",
+    titleFi: "Tietoturvakorjaukset, 3D-parannukset, jako-nappi, viimeksi katsotut",
+    latest: true,
+    highlights: [
+      "CRITICAL: removed unauthenticated /api/test-login and /api/force-login endpoints (password exposure)",
+      "Security: GET /api/security-settings now requires admin auth; PUT requires admin role check",
+      "Security: password updates in user edit now properly bcrypt-hashed; reset tokens use crypto.randomBytes()",
+      "Security: unauthenticated ticket email endpoints now require authentication",
+      "3D: fixed z-fighting glitch between building floor slabs and room slabs (0.15m clearance)",
+      "3D: all floors now visible in 3D — rooms above active floor shown at very low ghost opacity",
+      "3D POIs: lollipop pin design (thin stem + wider cap) with kind-specific heights (WC=1.6m, first-aid=2.4m, etc.)",
+      "Navigation: marching-ants animation throttled from 60fps to 10fps — reduces GPU/battery drain on mobile",
+      "New: Share button (bottom-right map controls) copies current view URL to clipboard",
+      "New: viewing a room/building now records it in the recent searches list",
+      "Fix: time-window check now uses minute-based arithmetic — no more silent failures for times without leading zeros",
+      "Fix: lockout screen 'opens at' hint now shows Finnish day names (Ma/Ti/Ke…)",
+    ],
+    highlightsFi: [
+      "KRIITTINEN: poistettu todentamattomat /api/test-login ja /api/force-login (salasanavuoto)",
+      "Tietoturva: GET /api/security-settings vaatii nyt admin-tunnistautumisen; PUT vaatii roolicheck",
+      "Tietoturva: salasanoja päivitettäessä käytetään nyt bcrypt-tiivistettä; resetointitokenit käyttävät crypto.randomBytes",
+      "3D: korjattu z-fighting-häiriö rakennuslaattojen ja huonelaattojen välillä (0.15m väli)",
+      "3D: kaikki kerrokset nyt näkyvissä 3D-tilassa — aktiivisen kerroksen yläpuolella haamunäkymä",
+      "3D POI: lollipop-pin-muotoilu (ohut varsi + leveämpi hattu) kerroskohtaisilla korkeuksilla",
+      "Navigointi: marssimuurahainen-animaatio rajoitettu 60fps→10fps — vähentää GPU-rasitusta mobiilissa",
+      "Uusi: jako-nappi (kartan oikeassa alakulmassa) kopioi nykyisen näkymän URL:n leikepöydälle",
+      "Uusi: huoneen/rakennuksen katsominen tallentuu viimeisimmät haut -listaan",
+      "Korjaus: aukioloaikavertailu käyttää nyt minuuttipohjaista laskentaa — ei enää hiljaisia virheitä",
+      "Korjaus: lukitusnäytön 'avautuu klo' -vihjeet näyttävät nyt suomalaiset päivännimet",
+    ],
+  },
   {
     version: "3.82.0",
     date: "August 2026",
     title: "Inner walls per-floor, security enforcement live",
     titleFi: "Sisäseinät kerroskohtaisesti, tietoturva toimii",
-    latest: true,
+    latest: false,
     highlights: [
       "Inner walls now only visible on the floor they are placed on (builder + public map)",
       "Floor 1 inner walls no longer appear on all floors (null floor treated as floor 1)",
