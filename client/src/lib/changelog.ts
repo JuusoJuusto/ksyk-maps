@@ -10,15 +10,57 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.84.0";
+export const APP_VERSION = "3.85.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.85.0",
+    date: "August 2026",
+    title: "Security fixes, map graphics overhaul, bug fixes",
+    titleFi: "Tietoturvakorjaukset, kartan grafiikkaparannukset, bugikorjaukset",
+    latest: true,
+    highlights: [
+      "Security: removed plaintext password from POST /api/users response (S1)",
+      "Security: 2FA verify endpoint now rate-limited (S7)",
+      "Security: password reset URL fixed (was /wilma/reset-password, now /reset-password) (S5)",
+      "Security: POST /api/tickets now rate-limited against spam (S2)",
+      "Security: GET /api/analytics/overview requires admin auth (S4)",
+      "Security: ticket email endpoints require admin/owner role (S6)",
+      "Security: admin cannot escalate users to owner role (S8)",
+      "Map: always-visible thin white inter-room separator lines (MazeMap-style)",
+      "Map: POI chips have subtle drop-shadow for 3D depth",
+      "Map: entrance label localized to 'Sisäänkäynti'",
+      "Map: 3D rooms visible from zoom 15 (was 16)",
+      "Map: POI icons in 3D visible from zoom 14 (was 16)",
+      "Map: door/entrance pin layers no longer flicker on floor change",
+      "Map: room labels sharper halo, slightly larger sizes",
+      "Easter eggs: glitchEffect rewritten — no more full DOM clone (was 5000+ nodes)",
+      "Easter eggs: confetti keyframes injected before DOM insertion (fixes animation flash)",
+    ],
+    highlightsFi: [
+      "Tietoturva: salasana poistettu POST /api/users -vastauksesta (S1)",
+      "Tietoturva: 2FA-tarkistus nyt rate-limited (S7)",
+      "Tietoturva: salasananpalautuslinkki korjattu /reset-password (S5)",
+      "Tietoturva: tikettilähetys rate-limited (S2)",
+      "Tietoturva: analytiikkayhteenveto vaatii admin-oikeuden (S4)",
+      "Tietoturva: tikettisähköpostit vaativat admin/owner-roolin (S6)",
+      "Tietoturva: admin ei voi enää korottaa käyttäjää owneriksi (S8)",
+      "Kartta: aina näkyvät ohuet huoneiden väliseinälinjat (MazeMap-tyyli)",
+      "Kartta: POI-napit saivat varjon 3D-syvyysvaikutelman luomiseksi",
+      "Kartta: sisäänkäynnin teksti suomeksi 'Sisäänkäynti'",
+      "Kartta: 3D-huoneet näkyvät zoomista 15 asti (aiemmin 16)",
+      "Kartta: POI-ikonit 3D:ssä zoomista 14 asti (aiemmin 16)",
+      "Kartta: ovi/sisäänkäynti-pinnat eivät enää välky kerroksia vaihdettaessa",
+      "Easter eggit: glitch-efekti uudelleenkirjoitettu ilman DOM-klonausta",
+      "Easter eggit: konfetti-animaatiot injektoidaan ennen DOM-lisäystä",
+    ],
+  },
   {
     version: "3.84.0",
     date: "August 2026",
     title: "Easter egg overhaul, Wilma system removal",
     titleFi: "Easter egg -parannukset, Wilma-järjestelmä poistettu",
-    latest: true,
+    latest: false,
     highlights: [
       "Easter eggs: 14 new eggs added (juuso, pizza, perkele, sauna, disco, boom, neon, hauki, 42, lumiukko, glitch, rage-quit, midnight bonus, hamburger)",
       "Easter eggs: 7 new visual effects (fireworks, pizza rain, heat haze, disco mode, neon sweep, fake BSOD, glitch, typewriter banner, emoji rain)",

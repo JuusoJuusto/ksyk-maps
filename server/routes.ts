@@ -422,7 +422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Verify 2FA code during login
-  app.post('/api/auth/2fa/verify', async (req, res) => {
+  app.post('/api/auth/2fa/verify', rateLimiters.auth, async (req, res) => {
     try {
       const { userId, code } = req.body;
 
@@ -646,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send reset email
-      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/wilma/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
       
       try {
         const emailService = await import('./emailService');
@@ -1376,7 +1376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`==========================================\n`);
       }
 
-      res.status(201).json({ ...newUser, password: finalPassword });
+      const { password: _pw, ...safeUser } = newUser as any;
+      res.status(201).json(safeUser);
     } catch (error) {
       await logError(error, 'POST /api/users', { email: req.body?.email });
       res.status(500).json({ message: "Failed to create user" });
@@ -1393,9 +1394,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { email, firstName, lastName, role, newPassword } = req.body;
 
-      // Don't allow editing owner account
+      // Don't allow editing owner account or escalating to owner
       if (id === 'owner-admin-user') {
         return res.status(403).json({ message: "Cannot edit owner account" });
+      }
+      if (role === 'owner') {
+        return res.status(403).json({ message: "Cannot assign owner role" });
       }
 
       const updateData: any = {
@@ -1889,7 +1893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/tickets', async (req, res) => {
+  app.post('/api/tickets', rateLimiters.general, async (req, res) => {
     try {
       const ticketData = req.body;
       
@@ -2159,6 +2163,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send ticket notification to owner
   app.post('/api/send-ticket-notification', isAuthenticated, async (req: any, res) => {
     try {
+      const callerUser = await storage.getUser(req.user.claims.sub);
+      if (!callerUser || (callerUser.role !== 'admin' && callerUser.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const { ownerEmail, ticketId, type, title, description, email, name, errorReferenceId } = req.body;
       
       console.log('📧 Sending ticket notification to owner:', ownerEmail);
@@ -2200,6 +2208,10 @@ KSYK Maps Support System
   // Send ticket confirmation email
   app.post('/api/send-ticket-confirmation', isAuthenticated, async (req: any, res) => {
     try {
+      const callerUser = await storage.getUser(req.user.claims.sub);
+      if (!callerUser || (callerUser.role !== 'admin' && callerUser.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const { email, ticketId, type, title } = req.body;
       
       console.log('📧 Sending ticket confirmation to:', email);
@@ -2235,6 +2247,10 @@ https://ksykmaps.vercel.app
   // Send ticket response email
   app.post('/api/send-ticket-response', isAuthenticated, async (req: any, res) => {
     try {
+      const callerUser = await storage.getUser(req.user.claims.sub);
+      if (!callerUser || (callerUser.role !== 'admin' && callerUser.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const { email, ticketId, title, response } = req.body;
       
       console.log('📧 Sending ticket response to:', email);
@@ -2633,7 +2649,11 @@ https://ksykmaps.vercel.app
 
   // GET /api/analytics/overview — small aggregation for the admin Overview
   // panel. Returns today's counters + top-N slices in one roundtrip.
-  app.get('/api/analytics/overview', async (req, res) => {
+  app.get('/api/analytics/overview', isAuthenticated, async (req: any, res) => {
+    const callerUser = await storage.getUser(req.user.claims.sub);
+    if (!callerUser || (callerUser.role !== 'admin' && callerUser.role !== 'owner')) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
     try {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);

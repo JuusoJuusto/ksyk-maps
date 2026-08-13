@@ -71,6 +71,7 @@ export function confetti(opts: {
   const count    = opts.count    ?? 90;
   const duration = opts.duration ?? 3000;
 
+  ensureKeyframes();
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
   document.body.appendChild(host);
@@ -93,7 +94,6 @@ export function confetti(opts: {
     host.appendChild(p);
   }
 
-  ensureKeyframes();
   setTimeout(() => host.remove(), duration + 900);
 }
 
@@ -725,7 +725,6 @@ export function playDiscoverySound(rarity: "common" | "rare" | "epic" | "legenda
 // ── Glitch effect ─────────────────────────────────────────────────
 
 export function glitchEffect(durationMs = 3000): void {
-  ensureKeyframes();
   const style = document.createElement("style");
   style.textContent = `
     @keyframes ksyk-glitch-h {
@@ -735,27 +734,29 @@ export function glitchEffect(durationMs = 3000): void {
       60%      { clip-path:inset(60% 0 20% 0); transform:translateX(-4px); }
       80%      { clip-path:inset(80% 0 5% 0);  transform:translateX(4px); }
     }
-    @keyframes ksyk-glitch-c { 0%,100%{opacity:0} 15%,25%{opacity:0.6} 50%,60%{opacity:0.4} }
+    @keyframes ksyk-glitch-c { 0%,100%{opacity:0} 15%,25%{opacity:0.55} 50%,60%{opacity:0.35} }
   `;
   document.head.appendChild(style);
 
-  const root = document.getElementById("root") ?? document.body;
-  const clone1 = root.cloneNode(true) as HTMLElement;
-  const clone2 = root.cloneNode(true) as HTMLElement;
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;overflow:hidden;";
 
-  clone1.style.cssText = `
+  // Use colored gradient overlays with screen blend — no DOM clone needed
+  const layer1 = document.createElement("div");
+  layer1.style.cssText = `
     position:absolute;inset:0;
-    filter:hue-rotate(120deg);mix-blend-mode:screen;
+    background:linear-gradient(90deg,rgba(255,0,100,0.7),rgba(0,255,200,0.7));
+    mix-blend-mode:screen;
     animation:ksyk-glitch-h 180ms steps(1) infinite,ksyk-glitch-c ${durationMs}ms ease both;
   `;
-  clone2.style.cssText = `
+  const layer2 = document.createElement("div");
+  layer2.style.cssText = `
     position:absolute;inset:0;
-    filter:hue-rotate(-120deg);mix-blend-mode:screen;
-    animation:ksyk-glitch-h 230ms steps(1) ${90}ms infinite,ksyk-glitch-c ${durationMs}ms ease both;
+    background:linear-gradient(270deg,rgba(0,100,255,0.7),rgba(255,200,0,0.7));
+    mix-blend-mode:screen;
+    animation:ksyk-glitch-h 230ms steps(1) 90ms infinite,ksyk-glitch-c ${durationMs}ms ease both;
   `;
-  host.append(clone1, clone2);
+  host.append(layer1, layer2);
   document.body.appendChild(host);
   setTimeout(() => { host.remove(); style.remove(); }, durationMs + 100);
 }

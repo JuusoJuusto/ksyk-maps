@@ -1798,7 +1798,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent forceMount value="campus-map" className={cn("mt-0 h-full overflow-hidden", activeTab !== "campus-map" && "hidden")}>
-          <KSYKMapView />
+          <KSYKMapView showGpsLocation={activeTab === "campus-map"} />
         </TabsContent>
 
         {/* Builder + Builder3D tabs removed — the Builder is now a

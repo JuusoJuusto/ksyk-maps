@@ -8,6 +8,7 @@
  *   - North reset (only shows when map is rotated off north)
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type maplibregl from "maplibre-gl";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
@@ -19,7 +20,7 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
-import { LocateFixed, Plus, Minus, Navigation2, Layers, Share2 } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2, Layers, Share2, Navigation } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
@@ -33,6 +34,8 @@ import { useCampusData } from "@/hooks/useCampusData";
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
   searchQuery?: string;
+  /** Admin-only: show live GPS dot on the map. Off by default. */
+  showGpsLocation?: boolean;
 }
 
 /** Local building shape — extends the shared one with just what the
@@ -43,7 +46,7 @@ interface Building extends Pick<SharedBuilding, "id" | "name" | "floors" | "poin
 }
 
 export default function KSYKMapView(props: KSYKMapViewProps = {}) {
-  const { searchQuery = "" } = props;
+  const { searchQuery = "", showGpsLocation = false } = props;
   const { settings, update } = useAppSettings();
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
@@ -120,6 +123,128 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
+
+  // ── GPS location (admin campus-map tab only) ─────────────────────
+  const [gpsPosition, setGpsPosition] = useState<{ lng: number; lat: number; accuracy: number } | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsFollowing, setGpsFollowing] = useState(false);
+  const gpsWatchRef = useRef<number | null>(null);
+  const gpsMarkerRef = useRef<HTMLDivElement | null>(null);
+  const gpsDotRef = useRef<maplibregl.Marker | null>(null);
+
+  useEffect(() => {
+    if (!showGpsLocation || !mapInstance) return;
+
+    if (!navigator.geolocation) {
+      setGpsError("Selain ei tue paikannusta");
+      return;
+    }
+
+    const onPos = (pos: GeolocationPosition) => {
+      const { longitude: lng, latitude: lat, accuracy } = pos.coords;
+      setGpsPosition({ lng, lat, accuracy });
+      setGpsError(null);
+
+      // Accuracy circle via GeoJSON fill-circle
+      const src = "ksyk-gps-accuracy";
+      const circlePoints = 64;
+      const R = 6371000;
+      const coords = Array.from({ length: circlePoints }, (_, i) => {
+        const angle = (i / circlePoints) * Math.PI * 2;
+        const dlat = (accuracy / R) * (180 / Math.PI) * Math.sin(angle);
+        const dlng = (accuracy / R) * (180 / Math.PI) * Math.cos(angle) / Math.cos(lat * Math.PI / 180);
+        return [lng + dlng, lat + dlat];
+      });
+      coords.push(coords[0]);
+      const geoJson = {
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [coords] },
+        properties: {},
+      };
+      try {
+        if (mapInstance.getSource(src)) {
+          (mapInstance.getSource(src) as maplibregl.GeoJSONSource).setData(geoJson);
+        } else {
+          mapInstance.addSource(src, { type: "geojson", data: geoJson });
+          mapInstance.addLayer({
+            id: "ksyk-gps-accuracy-fill",
+            type: "fill",
+            source: src,
+            paint: { "fill-color": "#3b82f6", "fill-opacity": 0.12 },
+          });
+          mapInstance.addLayer({
+            id: "ksyk-gps-accuracy-line",
+            type: "line",
+            source: src,
+            paint: { "line-color": "#3b82f6", "line-opacity": 0.35, "line-width": 1.5 },
+          });
+        }
+      } catch { /* layer ops can fail if map is mid-style-change */ }
+
+      // Pulsing blue dot via custom Marker
+      if (!gpsDotRef.current) {
+        const el = document.createElement("div");
+        el.className = "ksyk-gps-dot";
+        el.innerHTML = `
+          <style>
+            .ksyk-gps-dot{position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+            .ksyk-gps-dot__pulse{position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.35);animation:ksyk-gps-pulse 2s ease-out infinite;}
+            .ksyk-gps-dot__core{width:16px;height:16px;border-radius:50%;background:#3b82f6;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(59,130,246,0.6);position:relative;z-index:1;}
+            @keyframes ksyk-gps-pulse{0%{transform:scale(0.8);opacity:0.9}70%{transform:scale(2.2);opacity:0}100%{transform:scale(2.2);opacity:0}}
+          </style>
+          <div class="ksyk-gps-dot__pulse"></div>
+          <div class="ksyk-gps-dot__core"></div>
+        `;
+        el.style.cssText = "width:22px;height:22px;";
+        gpsMarkerRef.current = el;
+
+        // Dynamically import Marker from maplibre-gl
+        import("maplibre-gl").then(({ default: mgl }) => {
+          if (!mapInstance) return;
+          const marker = new mgl.Marker({ element: el, anchor: "center" })
+            .setLngLat([lng, lat])
+            .addTo(mapInstance);
+          gpsDotRef.current = marker;
+        });
+      } else {
+        gpsDotRef.current.setLngLat([lng, lat]);
+      }
+
+      if (gpsFollowing) {
+        mapInstance.easeTo({ center: [lng, lat], duration: 400, essential: true });
+      }
+    };
+
+    const onErr = (e: GeolocationPositionError) => {
+      setGpsError(
+        e.code === 1 ? "Paikannus estetty — salli sijaintilupa selaimessa" :
+        e.code === 2 ? "Sijaintia ei saatu" : "Paikannus aikakatkaistiin"
+      );
+    };
+
+    gpsWatchRef.current = navigator.geolocation.watchPosition(onPos, onErr, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 2000,
+    });
+
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+      if (gpsDotRef.current) {
+        gpsDotRef.current.remove();
+        gpsDotRef.current = null;
+      }
+      try {
+        if (mapInstance.getLayer("ksyk-gps-accuracy-fill")) mapInstance.removeLayer("ksyk-gps-accuracy-fill");
+        if (mapInstance.getLayer("ksyk-gps-accuracy-line")) mapInstance.removeLayer("ksyk-gps-accuracy-line");
+        if (mapInstance.getSource("ksyk-gps-accuracy")) mapInstance.removeSource("ksyk-gps-accuracy");
+      } catch { /* style may have changed */ }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGpsLocation, mapInstance]);
 
   // Full campus data — used to resolve a feature id from a click into
   // the full entity so the info sheet has everything to display.
@@ -377,6 +502,32 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         onSelect={onPickResult}
       />
 
+      {/* GPS status chip — admin campus-map tab only. Bottom-left. */}
+      {showGpsLocation && (
+        <div
+          className="absolute left-3 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-semibold backdrop-blur-md border shadow-sm"
+          style={{ bottom: "max(1.5rem, calc(1rem + env(safe-area-inset-bottom)))" }}
+        >
+          {gpsError ? (
+            <span className="text-red-500 border-red-200 bg-red-50/90 dark:bg-red-950/60 dark:border-red-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
+              {gpsError}
+            </span>
+          ) : gpsPosition ? (
+            <span className="text-blue-700 dark:text-blue-300 bg-white/90 dark:bg-gray-900/90 border-blue-200 dark:border-blue-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse" />
+              {gpsPosition.lat.toFixed(5)}°N&nbsp;{gpsPosition.lng.toFixed(5)}°E&nbsp;
+              <span className="text-blue-400 dark:text-blue-500">±{Math.round(gpsPosition.accuracy)}m</span>
+            </span>
+          ) : (
+            <span className="text-slate-500 bg-white/90 dark:bg-gray-900/90 border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block animate-pulse" />
+              GPS paikantaa…
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Floor selector — top-right. Hidden when there's only one floor
        *  in the whole campus. Renders the UNION of every building's
        *  floor range so a building spanning -1..3 and another at 4 both
@@ -465,6 +616,40 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
           <ShareMapButton />
+          {/* GPS button — admin campus-map tab only */}
+          {showGpsLocation && (
+            <button
+              type="button"
+              title={
+                gpsError ? gpsError :
+                gpsPosition ? `GPS: ${gpsPosition.lat.toFixed(5)}, ${gpsPosition.lng.toFixed(5)} (±${Math.round(gpsPosition.accuracy)}m)` :
+                "Paikannus käynnissä…"
+              }
+              onClick={() => {
+                if (gpsPosition && mapInstance) {
+                  mapInstance.flyTo({
+                    center: [gpsPosition.lng, gpsPosition.lat],
+                    zoom: Math.max(mapInstance.getZoom(), 19),
+                    duration: 900,
+                    essential: true,
+                  });
+                  setGpsFollowing((v) => !v);
+                }
+              }}
+              className={cn(
+                "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+                gpsError
+                  ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/30 dark:border-red-800"
+                  : gpsPosition
+                    ? gpsFollowing
+                      ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
+                      : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                    : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground animate-pulse",
+              )}
+            >
+              <Navigation className="h-[17px] w-[17px]" strokeWidth={2.25} />
+            </button>
+          )}
         </div>
 
         {/* Zoom in / out — attached pair, one rounded chip. */}
