@@ -447,32 +447,20 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   // not "flashing ad." Auto-stops when no route is active.
   useEffect(() => {
     if (!map || !route) return;
-    let frame = 0;
-    let raf: number | null = null;
-    const step = () => {
-      frame = (frame + 1) % 60;
+    // Throttled to ~10fps — setPaintProperty triggers a GPU re-render each
+    // call, so running at 60fps causes sustained battery drain on mobile.
+    const dashes = [
+      [0.5, 3.5], [1.0, 3.0], [1.5, 2.5],
+      [2.0, 2.0], [2.5, 1.5], [3.0, 1.0],
+    ];
+    let idx = 0;
+    const timer = window.setInterval(() => {
       if (map.getLayer(ROUTE_LAYER_ID)) {
-        // Cycle 6-step pattern: dash length grows, gap shrinks —
-        // eye reads it as forward motion.
-        const dashes = [
-          [0.5, 3.5],
-          [1.0, 3.0],
-          [1.5, 2.5],
-          [2.0, 2.0],
-          [2.5, 1.5],
-          [3.0, 1.0],
-        ];
-        const idx = Math.floor(frame / 10) % dashes.length;
-        try {
-          map.setPaintProperty(ROUTE_LAYER_ID, "line-dasharray", dashes[idx]);
-        } catch { /* layer might have been removed mid-frame */ }
+        try { map.setPaintProperty(ROUTE_LAYER_ID, "line-dasharray", dashes[idx % dashes.length]); } catch { /* ignore */ }
+        idx++;
       }
-      raf = window.requestAnimationFrame(step);
-    };
-    raf = window.requestAnimationFrame(step);
-    return () => {
-      if (raf !== null) window.cancelAnimationFrame(raf);
-    };
+    }, 100);
+    return () => window.clearInterval(timer);
   }, [map, route]);
 
   const swap = useCallback(() => {

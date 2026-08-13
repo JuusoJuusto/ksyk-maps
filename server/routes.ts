@@ -71,8 +71,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // Logs API endpoint - for frontend error logging
-  app.post('/api/logs', async (req, res) => {
+  // Logs API endpoint - for frontend error logging (rate-limited)
+  app.post('/api/logs', rateLimiters.general, async (req, res) => {
     try {
       const { 
         level, 
@@ -633,8 +633,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true, message: "If the email exists, a reset link has been sent" });
       }
       
-      // Generate reset token (valid for 1 hour)
-      const resetToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      // Generate cryptographically-secure reset token (valid for 1 hour)
+      const { randomBytes } = await import('crypto');
+      const resetToken = randomBytes(32).toString('hex');
       const resetExpiry = Date.now() + 3600000; // 1 hour
       
       // Store reset token in database
@@ -1405,9 +1406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role
       };
 
-      // Only update password if provided
       if (newPassword) {
-        updateData.password = newPassword;
+        updateData.password = await hashPassword(newPassword);
       }
 
       const updatedUser = await storage.upsertUser(updateData);
@@ -1790,8 +1790,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Käyttäjällä ei ole sähköpostiosoitetta" });
       }
 
-      // Generate reset token (simple random string for now)
-      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const { randomBytes: _rb } = await import('crypto');
+      const resetToken = _rb(32).toString('hex');
       const resetExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
       // Save reset token to user document
@@ -3093,93 +3093,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NUCLEAR OPTION - Login without session (for omelimeilit only)
-  app.post('/api/auth/force-login', async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      console.log('💥 FORCE LOGIN ATTEMPT:', email);
-      
-      if (email === 'omelimeilit@gmail.com') {
-        // Get or create user
-        let user = await storage.getUserByEmail(email);
-        if (!user) {
-          user = await storage.upsertUser({
-            email: 'omelimeilit@gmail.com',
-            firstName: 'Okko',
-            lastName: 'Kettunen',
-            role: 'admin',
-            password: 'test',
-            profileImageUrl: null
-          });
-        }
-        
-        console.log('💥 FORCE LOGIN SUCCESS - NO SESSION');
-        
-        // Return success WITHOUT creating session
-        // Frontend will store this in localStorage
-        return res.json({
-          success: true,
-          user: user,
-          requirePasswordChange: false,
-          forceLogin: true,
-          message: 'Logged in without session (emergency mode)'
-        });
-      }
-      
-      return res.status(401).json({ message: 'Force login only available for omelimeilit@gmail.com' });
-    } catch (error) {
-      console.error('Force login error:', error);
-      return res.status(500).json({ message: 'Force login failed' });
-    }
-  });
-
-  // Test login endpoint (NO AUTH REQUIRED - for debugging only)
-  app.post('/api/test-login', async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      console.log('\n🧪 ========== TEST LOGIN ENDPOINT ==========');
-      console.log('Testing login for:', email);
-      
-      // Check if user exists
-      const user = await storage.getUserByEmail(email);
-      console.log('User found:', user ? 'YES' : 'NO');
-      
-      if (user) {
-        console.log('User details:', {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          role: user.role,
-          hasPassword: !!user.password,
-          password: user.password
-        });
-      }
-      
-      console.log('==========================================\n');
-      
-      res.json({
-        success: true,
-        userExists: !!user,
-        user: user ? {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          hasPassword: !!user.password,
-          password: user.password
-        } : null
-      });
-    } catch (error: any) {
-      console.error('Test login error:', error);
-      res.status(500).json({ 
-        success: false,
-        message: error.message
-      });
-    }
-  });
+  // force-login and test-login removed — both were unauthenticated debug
+  // endpoints that exposed password hashes and created admin sessions without
+  // credentials. See security audit C-1 and C-2.
 
   // Test email endpoint (always available for debugging)
   app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
@@ -3545,7 +3461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Send ticket confirmation email
   // Send ticket notification to owner
-  app.post('/api/send-ticket-notification', async (req, res) => {
+  app.post('/api/send-ticket-notification', isAuthenticated, async (req: any, res) => {
     try {
       const { ownerEmail, ticketId, type, title, description, email, name, errorReferenceId } = req.body;
       
@@ -3586,7 +3502,7 @@ KSYK Maps Support System
   });
 
   // Send ticket confirmation email
-  app.post('/api/send-ticket-confirmation', async (req, res) => {
+  app.post('/api/send-ticket-confirmation', isAuthenticated, async (req: any, res) => {
     try {
       const { email, ticketId, type, title } = req.body;
       
@@ -3621,7 +3537,7 @@ https://ksykmaps.vercel.app
   });
 
   // Send ticket response email
-  app.post('/api/send-ticket-response', async (req, res) => {
+  app.post('/api/send-ticket-response', isAuthenticated, async (req: any, res) => {
     try {
       const { email, ticketId, title, response } = req.body;
       
@@ -3655,7 +3571,7 @@ https://ksykmaps.vercel.app
   });
 
   // Send ticket status update email
-  app.post('/api/send-ticket-status-update', async (req, res) => {
+  app.post('/api/send-ticket-status-update', isAuthenticated, async (req: any, res) => {
     try {
       const { email, ticketId, status, title, response } = req.body;
       
@@ -3813,8 +3729,12 @@ https://ksykmaps.vercel.app
   // ── Security & access control ──────────────────────────────────────────
   // All settings are stored in a single Firestore doc, ready for the future
   // Supabase migration (one JSON column on a `app_settings` table).
-  app.get('/api/security-settings', async (req, res) => {
+  app.get('/api/security-settings', isAuthenticated, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const doc = await db.collection('securitySettings').doc('default').get();
       if (!doc.exists) return res.json(null);
       res.json(doc.data());
@@ -3826,6 +3746,10 @@ https://ksykmaps.vercel.app
 
   app.put('/api/security-settings', isAuthenticated, async (req: any, res) => {
     try {
+      const caller = await storage.getUser(req.user.claims.sub);
+      if (!caller || (caller.role !== 'admin' && caller.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       // Whitelisted fields only — anything else in req.body is dropped.
       // Each field is validated by shape: arrays stay arrays, booleans
       // are coerced, strings are length-capped, numbers are range-clamped.

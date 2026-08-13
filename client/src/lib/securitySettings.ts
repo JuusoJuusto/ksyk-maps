@@ -181,9 +181,15 @@ export function dayKeyForDate(d: Date): DayKey {
   return (["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as DayKey[])[d.getDay()];
 }
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
 export function isWithinWindow(time: string, win: DayWindow): boolean {
   if (!win) return false;
-  return time >= win.open && time <= win.close;
+  const t = toMinutes(time);
+  return t >= toMinutes(win.open) && t <= toMinutes(win.close);
 }
 
 export function isHoliday(dateISO: string, holidays: Holiday[]): Holiday | null {

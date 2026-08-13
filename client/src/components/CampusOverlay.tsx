@@ -1214,10 +1214,38 @@ function poi3DColor(kind: string): string {
   }
 }
 
-/** Height (metres) each 3D POI pillar rises above the ground. Compact
- *  enough not to occlude the interior, tall enough to spot at a glance
- *  through the building shell. */
-const POI_PILLAR_HEIGHT = 2.2;
+/** Height (metres) per POI kind — different heights make each type
+ *  instantly distinguishable in 3D without reading the icon. */
+function poiPillarHeight(kind: string): number {
+  switch (kind) {
+    case "bathroom":
+    case "restroom":
+    case "restroom_m":
+    case "restroom_f":
+    case "restroom_a": return 1.6;
+    case "info":       return 2.0;
+    case "cafe":       return 2.2;
+    case "water":      return 1.4;
+    case "vending":    return 1.8;
+    case "first_aid":  return 2.4;
+    case "defibrillator": return 2.4;
+    case "printer":    return 1.6;
+    case "meeting_point": return 2.6;
+    case "bike":       return 1.5;
+    case "parking":    return 2.2;
+    default:           return 2.0;
+  }
+}
+/** Cap half-width — slightly wider than the stem so the pin reads
+ *  as a lollipop shape from a pitched 3D view. */
+function poiCapHalfWidth(kind: string): number {
+  switch (kind) {
+    case "first_aid":
+    case "defibrillator":
+    case "meeting_point": return 1.3;
+    default: return 1.1;
+  }
+}
 
 /** Install 3D pillars for every generic POI + door/entrance markers.
  *  Runs alongside installTowers (which handles stairs + elevators as
@@ -1229,28 +1257,36 @@ function installPoiPillars(
   activeFloor: number | null,
   hiddenKinds: Set<string>,
 ) {
-  // Small square around each POI position (~0.9 m half-width) — reads
-  // as a coloured pin from any pitch without swallowing map space.
-  const features = pois
+  const visiblePois = pois
     .filter((p) => typeof p.position?.lat === "number" && typeof p.position?.lng === "number")
     .filter((p) => !hiddenKinds.has(p.kind))
-    .filter((p) => activeFloor === null || p.floor === null || p.floor === undefined || p.floor === activeFloor)
-    .map((p) => {
-      const coords = squareAroundPointMeters(p.position!, 0.9);
-      return {
-        type: "Feature" as const,
-        geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
-        properties: {
-          id: p.id,
-          kind: p.kind,
-          color: poi3DColor(p.kind),
-          height: POI_PILLAR_HEIGHT,
-        },
-      };
-    });
+    .filter((p) => activeFloor === null || p.floor === null || p.floor === undefined || p.floor === activeFloor);
+
+  // Thin stem (0.55m half-width) running from ground to full height.
+  const stemFeatures = visiblePois.map((p) => {
+    const h = poiPillarHeight(p.kind);
+    const coords = squareAroundPointMeters(p.position!, 0.55);
+    return {
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+      properties: { id: `${p.id}-stem`, kind: p.kind, color: poi3DColor(p.kind), base: 0, height: h },
+    };
+  });
+  // Wider cap (lollipop head) at the top — makes it visually 3D/pin-like.
+  const capFeatures = visiblePois.map((p) => {
+    const h = poiPillarHeight(p.kind);
+    const capW = poiCapHalfWidth(p.kind);
+    const coords = squareAroundPointMeters(p.position!, capW);
+    return {
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+      properties: { id: `${p.id}-cap`, kind: p.kind, color: poi3DColor(p.kind), base: h - 0.5, height: h + 0.2 },
+    };
+  });
+
   upsertGeoJSONSource(map, "campus-pois-pillar-3d-src", {
     type: "FeatureCollection" as const,
-    features,
+    features: [...stemFeatures, ...capFeatures],
   });
 
   addLayerIfMissing(map, {
@@ -1261,8 +1297,8 @@ function installPoiPillars(
     paint: {
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
-      "fill-extrusion-base": 0,
-      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-base": ["get", "base"],
+      "fill-extrusion-opacity": 0.9,
       "fill-extrusion-vertical-gradient": true,
     },
     minzoom: 16,
@@ -1555,11 +1591,12 @@ function installTowers(
     type: "fill-extrusion",
     layout: { visibility: "none" },
     paint: {
-      // Warm amber, matches the stairs POI chip in 2D.
-      "fill-extrusion-color": "#b45309",
+      // Rich amber — matches stairs POI chip; strong vertical gradient
+      // makes it look like a real stairwell shaft.
+      "fill-extrusion-color": "#d97706",
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": 0,
-      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-opacity": 0.92,
       "fill-extrusion-vertical-gradient": true,
     },
     minzoom: 15,
@@ -1767,10 +1804,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     features: rooms
       .filter((r) => r.points && r.points.length >= 3)
       .filter((r) => r.type !== "hallway") // corridors rendered separately
-      .filter((r) => {
-        if (activeFloor === null) return true;
-        return (r.floor ?? 1) <= activeFloor;
-      })
+      // All floors included in 3D source. Active floor = full opacity,
+      // other floors = ghosted (above at very low, below at low).
       .map((r) => {
         const floor = r.floor ?? 1;
         const floorIdx = Math.max(0, floor - 1);
@@ -1782,9 +1817,13 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
         const slabHeight = typeof style.slabHeight === "number" && style.slabHeight > 0
           ? style.slabHeight
           : ROOM_SLAB_METERS;
-        const base = floorIdx * perFloor + 0.08;
+        // 0.15m clearance above the building floor-slab top (0.08m) to
+        // eliminate z-fighting at the shared surface.
+        const base = floorIdx * perFloor + 0.15;
         const floorShape3D = activeFloor != null ? meta3d?.floorShapes?.find((fs) => fs.floor === activeFloor) : undefined;
         const pts3D: [number, number][] = floorShape3D?.coordinates ?? r.points!.map((p) => [p.lng, p.lat]);
+        const isActive = activeFloor === null || floor === activeFloor;
+        const isAbove = activeFloor !== null && floor > activeFloor;
         return {
           type: "Feature" as const,
           geometry: {
@@ -1797,8 +1836,8 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
             floor,
             base,
             height: base + slabHeight,
-            // 1 = current floor (full colour), 0 = below (ghosted).
-            isActive: activeFloor === null || floor === activeFloor,
+            isActive,
+            isAbove,
           },
         };
       }),
@@ -1922,9 +1961,13 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base"],
-      // Very low opacity — just enough to hint the stack, not enough to
-      // fight with the active floor for attention.
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.18, 20, 0.28],
+      // Below floors: low opacity hint. Above floors: barely-visible outline.
+      "fill-extrusion-opacity": [
+        "interpolate", ["linear"], ["zoom"],
+        16, 0.0,
+        17, ["case", ["boolean", ["get", "isAbove"], false], 0.08, 0.18],
+        20, ["case", ["boolean", ["get", "isAbove"], false], 0.12, 0.28],
+      ],
       "fill-extrusion-vertical-gradient": false,
     },
     filter: ["!", ["boolean", ["get", "isActive"], true]],
