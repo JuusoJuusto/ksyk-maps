@@ -20,7 +20,7 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
-import { LocateFixed, Plus, Minus, Navigation2, Layers, Share2, Navigation } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2, Layers, Navigation } from "lucide-react";
 import NavigationPanel from "@/components/NavigationPanel";
 import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
@@ -120,6 +120,21 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       } catch { /* map might've unmounted */ }
     }, 280);
   }, [selectedFloor, is3D, mapInstance]);
+  // Floor-change toast — brief direction indicator when the user switches
+  // floors so the transition is legible in both 2D and 3D.
+  const [floorToast, setFloorToast] = useState<string | null>(null);
+  const prevFloorToastRef = useRef<number>(selectedFloor);
+  useEffect(() => {
+    if (prevFloorToastRef.current === selectedFloor) return;
+    const prev = prevFloorToastRef.current;
+    prevFloorToastRef.current = selectedFloor;
+    const dir = selectedFloor > prev ? "↑" : "↓";
+    const fi = typeof navigator !== "undefined" && navigator.language.startsWith("fi");
+    setFloorToast(`${dir} ${fi ? "Kerros" : "Floor"} ${selectedFloor}`);
+    const t = window.setTimeout(() => setFloorToast(null), 1400);
+    return () => window.clearTimeout(t);
+  }, [selectedFloor]);
+
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
@@ -309,12 +324,24 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       });
       if (typeof d.floor === "number") setSelectedFloor(d.floor);
     };
+    // "/" focuses the header search input; "Escape" closes the info sheet.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setClickedFeature(null); return; }
+      const active = document.activeElement;
+      const isEditing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+      if (e.key === "/" && !isEditing) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("ksyk:focus-search"));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("ksyk:cmd:toggle-3d", on3D);
     window.addEventListener("ksyk:cmd:recenter", onRecenter);
     window.addEventListener("ksyk:cmd:reset-bearing", onResetBearing);
     window.addEventListener("ksyk:cmd:open-directions", onOpenDirections);
     window.addEventListener("ksyk:cmd:fly-to", onFlyTo);
     return () => {
+      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("ksyk:cmd:toggle-3d", on3D);
       window.removeEventListener("ksyk:cmd:recenter", onRecenter);
       window.removeEventListener("ksyk:cmd:reset-bearing", onResetBearing);
@@ -339,6 +366,17 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     return [...set].sort((a, b) => b - a); // top-to-bottom: highest first
   }, [campus.buildings]);
 
+  // Room count per floor — shown as a tiny badge under each floor
+  // number so users can see at a glance which floors have many rooms.
+  const roomsPerFloor = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const r of campus.rooms) {
+      const f = (r as { floor?: number | null }).floor;
+      if (typeof f === "number") m.set(f, (m.get(f) ?? 0) + 1);
+    }
+    return m;
+  }, [campus.rooms]);
+
   const onMapReady = useCallback((h: CampusMapHandle) => {
     handleRef.current = h;
     setMapInstance(h.map);
@@ -352,7 +390,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       const b = campus.buildings.find((x) => x.id === id);
       if (b) {
         setClickedFeature({ kind: "building", entity: b });
-        if (b.points?.length) setHighlightPolygon(b.points);
+        if (b.points?.length) {
+          setHighlightPolygon(b.points);
+          // Zoom to fit the building's bounds so the whole footprint is visible.
+          const h = handleRef.current;
+          if (h && b.points.length >= 2) {
+            const lngs = b.points.map((p) => p.lng);
+            const lats = b.points.map((p) => p.lat);
+            const sw: [number, number] = [Math.min(...lngs), Math.min(...lats)];
+            const ne: [number, number] = [Math.max(...lngs), Math.max(...lats)];
+            h.map.fitBounds([sw, ne], { padding: 80, maxZoom: 20, duration: 700 });
+          }
+        }
       }
     } else if (kind === "room") {
       const r = campus.rooms.find((x) => x.id === id);
@@ -562,13 +611,21 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 aria-pressed={selectedFloor === floor}
                 onClick={() => setSelectedFloor(floor)}
                 className={cn(
-                  "min-w-[36px] h-9 px-1 rounded-xl text-[13px] font-bold transition-all leading-none tabular-nums flex items-center justify-center",
+                  "min-w-[36px] h-10 px-1 rounded-xl text-[13px] font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
                   selectedFloor === floor
                     ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
                     : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
                 )}
               >
-                {floor}
+                <span>{floor}</span>
+                {(roomsPerFloor.get(floor) ?? 0) > 0 && (
+                  <span className={cn(
+                    "text-[8px] font-semibold tabular-nums leading-none",
+                    selectedFloor === floor ? "text-blue-200" : "text-muted-foreground",
+                  )}>
+                    {roomsPerFloor.get(floor)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -582,7 +639,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  the between-group breathing room. */}
       <div
         className="absolute right-3 z-30 flex flex-col-reverse gap-3 items-end"
-        style={{ bottom: "max(1.5rem, calc(1rem + env(safe-area-inset-bottom)))" }}
+        style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom, 0.5rem))" }}
       >
         {/* 3D toggle + Center */}
         <div className="flex flex-col gap-2">
@@ -615,7 +672,6 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           >
             <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
           </button>
-          <ShareMapButton />
           {/* GPS button — admin campus-map tab only */}
           {showGpsLocation && (
             <button
@@ -718,6 +774,30 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         />
       )}
 
+      {/* Floor-change toast — brief indicator when switching floors. */}
+      {floorToast && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none select-none">
+          <div
+            className="px-7 py-3 rounded-2xl font-bold text-[22px] shadow-xl backdrop-blur-md"
+            style={{
+              background: "rgba(15,23,42,0.88)",
+              color: "#f1f5f9",
+              animation: "ksyk-floor-toast 1.4s ease forwards",
+            }}
+          >
+            {floorToast}
+          </div>
+          <style>{`
+            @keyframes ksyk-floor-toast {
+              0%   { opacity:0; transform:scale(0.85); }
+              15%  { opacity:1; transform:scale(1); }
+              70%  { opacity:1; transform:scale(1); }
+              100% { opacity:0; transform:scale(0.9) translateY(-8px); }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* Feature info sheet — click a room/building on the map to
        *  inspect it and get one-tap directions there. */}
       {clickedFeature && (
@@ -741,28 +821,3 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   );
 }
 
-function ShareMapButton() {
-  const [copied, setCopied] = useState(false);
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try { await navigator.share({ url, title: "KSYK Maps" }); return; } catch { /* cancelled */ }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* denied */ }
-  };
-  return (
-    <button
-      type="button"
-      onClick={handleShare}
-      title={copied ? "Copied!" : "Share this view"}
-      aria-label="Share current map view"
-      className="w-11 h-11 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
-    >
-      <Share2 className={cn("h-[17px] w-[17px]", copied && "text-emerald-600 dark:text-emerald-400")} strokeWidth={2.25} />
-    </button>
-  );
-}

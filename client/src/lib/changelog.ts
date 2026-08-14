@@ -10,15 +10,58 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.85.0";
+export const APP_VERSION = "3.86.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.86.0",
+    date: "August 2026",
+    title: "New features, UI improvements, security & bug fixes",
+    titleFi: "Uusia ominaisuuksia, UI-parannuksia, tietoturva- ja bugikorjauksia",
+    latest: true,
+    highlights: [
+      "Security: Microsoft OAuth dev fallback now blocked in production (S3 — full auth bypass)",
+      "New: room count badge on each floor in the floor selector",
+      "New: floor-change toast notification (↑/↓ Kerros X) on floor switch",
+      "New: '/' keyboard shortcut focuses the search input",
+      "New: Escape closes the feature info sheet",
+      "New: clicking a building zooms to fit its full footprint on screen",
+      "New: 'Copy room number' chip in the room info sheet",
+      "New: POI hover tooltips now show Finnish labels (Portaat/WC/Hissi/…)",
+      "Map: 3D POI pillars redesigned — narrow stem + wide cap + base plate (MazeMap-style lollipop pin)",
+      "Map: POI chips now have a coloured glow ring + stronger drop shadow for 3D depth",
+      "Map: corridor fill opacity is zoom-scaled (cleaner at low zoom)",
+      "Bug: 1985 easter egg now always triggers CRT effect even if 'retro' was found first (B5)",
+      "Bug: FeatureInfoSheet swipe handle now handles pointer cancel events (B6)",
+      "UI: Share Location button removed from map controls",
+      "UI: map controls moved closer to the screen edge",
+      "UI: 'Share location' renamed to 'Copy link' in feature info sheet",
+    ],
+    highlightsFi: [
+      "Tietoturva: Microsoft OAuth -kehityskaavake estetty tuotannossa (S3 — täydellinen autentikointiohitus)",
+      "Uusi: huoneiden lukumäärä näkyy kerrosvalitsimessa",
+      "Uusi: kerrosvaihtoilmoitus (↑/↓ Kerros X) kerrosta vaihdettaessa",
+      "Uusi: '/' -näppäin kohdistaa hakukentän",
+      "Uusi: Escape sulkee tietopaneelin",
+      "Uusi: rakennusta klikattaessa kartta zoomaa sen koko jalanjälkeen",
+      "Uusi: 'Kopioi huonenumero' -nappi huonetietopaneelissa",
+      "Uusi: POI-vierityspalkit näyttävät suomenkieliset nimet (Portaat/WC/Hissi/…)",
+      "Kartta: 3D POI -pylväät uudestisuunniteltu — kapea varsi + leveä korkki + alustalevy (MazeMap-tyyli)",
+      "Kartta: POI-napit saivat värijoukon + voimakkaamman varjon 3D-syvyysvaikutelmaa varten",
+      "Kartta: käytävien täyttöopasiteetti skaalautuu zoomin mukaan (siistimpi lähietäisyydeltä)",
+      "Bugi: 1985-easteregg käynnistää CRT-efektin aina, vaikka 'retro' on jo löydetty (B5)",
+      "Bugi: FeatureInfoSheet pyyhkäisykahva käsittelee nyt pointer cancel -tapahtumat (B6)",
+      "UI: Jaa sijainti -nappi poistettu karttakontrolleista",
+      "UI: karttakontrollit siirretty lähemmäs näytön reunaa",
+      "UI: 'Jaa sijainti' nimetty uudelleen 'Kopioi linkki' tietopaneelissa",
+    ],
+  },
   {
     version: "3.85.0",
     date: "August 2026",
     title: "Security fixes, map graphics overhaul, bug fixes",
     titleFi: "Tietoturvakorjaukset, kartan grafiikkaparannukset, bugikorjaukset",
-    latest: true,
+    latest: false,
     highlights: [
       "Security: removed plaintext password from POST /api/users response (S1)",
       "Security: 2FA verify endpoint now rate-limited (S7)",

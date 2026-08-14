@@ -155,10 +155,9 @@ export function useKsykEasterEggs() {
       {
         word: "1985",
         onFound: () => {
-          if (markAndReport("retro-crt")) {
-            crtBurst(15_000);
-            eggToast("1985 system online.", { emoji: "📼" });
-          }
+          markAndReport("retro-crt"); // track once; effect always fires as an alias
+          crtBurst(15_000);
+          eggToast("1985 system online.", { emoji: "📼" });
         },
       },
       {
