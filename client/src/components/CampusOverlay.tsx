@@ -249,11 +249,12 @@ export default function CampusOverlay({
       // as a real MazeMap-style raised platform inside the shell. The
       // ghost layer renders lower floors at low opacity so users see
       // the vertical stack even while the active floor is highlighted.
-      setVis(LAYERS.roomsFill,        rVis && !is3D);
-      setVis(LAYERS.rooms3D,          rVis && is3D);
-      setVis(`${LAYERS.rooms3D}-ghost`, rVis && is3D);
-      setVis(LAYERS.roomsOutline,     rVis);
-      setVis(LAYERS.roomsLabel,       rVis && lVis);
+      setVis(LAYERS.roomsFill,              rVis && !is3D);
+      setVis(LAYERS.rooms3D,               rVis && is3D);
+      setVis(`${LAYERS.rooms3D}-ghost`,    rVis && is3D);
+      setVis(LAYERS.roomsOutline,          rVis);
+      setVis("campus-rooms-separator",     rVis);
+      setVis(LAYERS.roomsLabel,            rVis && lVis);
       setVis(LAYERS.hallwaysLine,     hVis);
     };
     // Robust install trigger — style may already be loaded (fast path),
@@ -1372,7 +1373,7 @@ function installPoiPillars(
   // an unambiguous "door here" chip at every zoom above 16. Green =
   // entrance (way in), red = exit-only, grey = interior door.
   // ── Door pin: dark chip + ▼ tail + letter ─────────────────────────
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-doors-chip",
     source: "campus-doors-marker-src",
     type: "circle",
@@ -1386,7 +1387,7 @@ function installPoiPillars(
       "circle-stroke-width": 2.5,
     },
   });
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-doors-tail",
     source: "campus-doors-marker-src",
     type: "symbol",
@@ -1405,7 +1406,7 @@ function installPoiPillars(
       "text-halo-width": 1.5,
     },
   });
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-doors-letter",
     source: "campus-doors-marker-src",
     type: "symbol",
@@ -1425,7 +1426,7 @@ function installPoiPillars(
   });
 
   // ── Entrance pin: large green beacon ──────────────────────────────
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-entrances-chip",
     source: "campus-entrances-marker-src",
     type: "circle",
@@ -1439,7 +1440,7 @@ function installPoiPillars(
       "circle-stroke-width": 3,
     },
   });
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-entrances-tail",
     source: "campus-entrances-marker-src",
     type: "symbol",
@@ -1459,7 +1460,7 @@ function installPoiPillars(
     },
   });
   // ↑ arrow symbol inside the entrance chip
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: "campus-entrances-letter",
     source: "campus-entrances-marker-src",
     type: "symbol",
@@ -1477,14 +1478,14 @@ function installPoiPillars(
       "text-translate-anchor": "viewport",
     },
   });
-  // Text label "Entrance" at close zoom
-  replaceLayer(map, {
+  // Text label "Sisäänkäynti" at close zoom
+  addLayerIfMissing(map, {
     id: "campus-entrances-label",
     source: "campus-entrances-marker-src",
     type: "symbol",
     minzoom: 18,
     layout: {
-      "text-field": "Entrance",
+      "text-field": "Sisäänkäynti",
       "text-size": 11,
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
@@ -1871,6 +1872,21 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-antialias": true,
     },
   });
+  // Always-visible thin separator between rooms (MazeMap-style) —
+  // a soft white line that shows even when showOutline=false so adjacent
+  // rooms are visually separated without needing explicit outline toggles.
+  addLayerIfMissing(map, {
+    id: "campus-rooms-separator",
+    source: SOURCES.rooms,
+    type: "line",
+    layout: { "line-cap": "butt", "line-join": "miter" },
+    paint: {
+      "line-color": "rgba(255,255,255,0.55)",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.6, 18, 1.2, 22, 2.0],
+      "line-opacity": 1,
+    },
+    minzoom: 15,
+  });
   addLayerIfMissing(map, {
     id: LAYERS.roomsOutline,
     source: SOURCES.rooms,
@@ -1878,7 +1894,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
       "line-color": ["get", "color"],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.5, 22, 2.5],
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 18, 2.0, 22, 3.0],
       "line-opacity": ["case", ["boolean", ["get", "showOutline"], false], 0.9, 0],
     },
   });
@@ -1950,7 +1966,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-vertical-gradient": true,
     },
     filter: ["boolean", ["get", "isActive"], true],
-    minzoom: 16,
+    minzoom: 15,
   });
   addLayerIfMissing(map, {
     id: `${LAYERS.rooms3D}-ghost`,
@@ -1964,35 +1980,35 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       // Below floors: low opacity hint. Above floors: barely-visible outline.
       "fill-extrusion-opacity": [
         "interpolate", ["linear"], ["zoom"],
-        16, 0.0,
+        15, 0.0,
         17, ["case", ["boolean", ["get", "isAbove"], false], 0.08, 0.18],
         20, ["case", ["boolean", ["get", "isAbove"], false], 0.12, 0.28],
       ],
       "fill-extrusion-vertical-gradient": false,
     },
     filter: ["!", ["boolean", ["get", "isActive"], true]],
-    minzoom: 16,
+    minzoom: 15,
   });
-  replaceLayer(map, {
+  addLayerIfMissing(map, {
     id: LAYERS.roomsLabel,
     source: SOURCES.rooms,
     type: "symbol",
     layout: {
       "text-field": ["get", "label"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 16, 11, 17, 13, 19, 15, 21, 20],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10, 16, 12, 17, 14, 19, 16, 21, 22],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
       "text-optional": true,
       "text-anchor": "center",
       "text-max-width": 12,
-      "text-padding": 3,
-      "text-letter-spacing": 0.02,
+      "text-padding": 4,
+      "text-letter-spacing": 0.03,
     },
     paint: {
       "text-color": "#0b1220",
-      "text-halo-color": "rgba(255,255,255,0.95)",
-      "text-halo-width": 2,
-      "text-halo-blur": 0.3,
+      "text-halo-color": "rgba(255,255,255,0.97)",
+      "text-halo-width": 2.5,
+      "text-halo-blur": 0.2,
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
     minzoom: 15,
@@ -2142,6 +2158,22 @@ function installPOIs(
   const fc = { type: "FeatureCollection" as const, features };
   upsertGeoJSONSource(map, SOURCES.pois, fc);
 
+  // Soft shadow behind each POI chip — gives the lollipop pin a subtle
+  // 3D depth without needing images. Slightly larger, offset down-right,
+  // dark blur. Renders below the chip (added first = lower z).
+  addLayerIfMissing(map, {
+    id: `${LAYERS.poisChip}-shadow`,
+    source: SOURCES.pois,
+    type: "circle",
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 19, 21, 28],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [2, -24]], 19, ["literal", [3, -41]], 21, ["literal", [3, -57]]],
+      "circle-translate-anchor": "viewport",
+      "circle-color": "rgba(0,0,0,0.25)",
+      "circle-blur": 0.8,
+    },
+    minzoom: 14,
+  });
   // Tint chip background by kind — MazeMap uses semantic colors so a
   // toilet reads pink, elevator blue, stairs a warm ochre, entrance
   // green, exits red. Icon stays black for max contrast.
@@ -2206,7 +2238,7 @@ function installPOIs(
         "bike",          "#16a34a",
                          "#111827",
       ],
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 2.5,
       "circle-opacity": 1,
     },
     minzoom: 14,
@@ -2293,7 +2325,7 @@ function installPOIs(
     type: "symbol",
     layout: {
       "text-field": ["get", "icon"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 20, 21, 30],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 15, 11, 19, 20, 21, 30],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -2309,7 +2341,7 @@ function installPOIs(
       "text-halo-color": "#ffffff",
       "text-halo-width": 1.2,
     },
-    minzoom: 16,
+    minzoom: 14,
   });
 }
 
