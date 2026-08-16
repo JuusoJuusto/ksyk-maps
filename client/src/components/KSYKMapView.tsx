@@ -350,6 +350,53 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     };
   }, [is3D, update]);
 
+  const fi = typeof navigator !== "undefined" && navigator.language.startsWith("fi");
+
+  // ── Quick POI finder ─────────────────────────────────────────────────
+  // Finds the nearest POI of the given kind to the current map center on
+  // the active floor and flies there. Floor-aware: stairs/elevators serve
+  // all floors, generic POIs filter to the current floor when floor is set.
+  const findNearestPOI = useCallback((kind: string) => {
+    const h = handleRef.current;
+    if (!h) return;
+    const center = h.map.getCenter();
+    type Pt = { lat: number; lng: number };
+    const near = (c: Pt) => {
+      const dx = c.lng - center.lng; const dy = c.lat - center.lat;
+      return dx * dx + dy * dy;
+    };
+    let best: Pt | null = null;
+    let bestD = Infinity;
+    const check = (c: Pt) => { const d = near(c); if (d < bestD) { bestD = d; best = c; } };
+
+    if (kind === "stairs") {
+      campus.stairs.forEach(s => { if (s.position?.lat && s.position?.lng) check(s.position); });
+      // Also rooms typed as stairs
+      campus.rooms.filter(r => r.type === "stairs" && r.points?.length).forEach(r => {
+        const c = polygonCentroid(r.points!); if (c) check(c);
+      });
+    } else if (kind === "elevator") {
+      campus.elevators.forEach(e => { if (e.position?.lat && e.position?.lng) check(e.position); });
+      campus.rooms.filter(r => r.type === "elevator" && r.points?.length).forEach(r => {
+        const c = polygonCentroid(r.points!); if (c) check(c);
+      });
+    } else if (kind === "bathroom") {
+      campus.pois.filter(p => (p.kind === "bathroom" || p.kind === "restroom" || p.kind === "restroom_m" || p.kind === "restroom_f" || p.kind === "restroom_a") && (p.floor == null || p.floor === selectedFloor)).forEach(p => {
+        if (p.position?.lat && p.position?.lng) check(p.position);
+      });
+      campus.rooms.filter(r => r.type === "bathroom" && r.points?.length && (r.floor == null || r.floor === selectedFloor)).forEach(r => {
+        const c = polygonCentroid(r.points!); if (c) check(c);
+      });
+    } else {
+      campus.pois.filter(p => p.kind === kind && (p.floor == null || p.floor === selectedFloor)).forEach(p => {
+        if (p.position?.lat && p.position?.lng) check(p.position);
+      });
+    }
+
+    if (!best) return;
+    h.map.flyTo({ center: [(best as Pt).lng, (best as Pt).lat], zoom: Math.max(h.map.getZoom(), 18.5), duration: 700, essential: true });
+  }, [campus, selectedFloor]);
+
   // Floor list — union of every building's declared floor range.
   // Buildings can span -1..3 while a neighbour is 2..4, so the selector
   // needs every distinct floor number that exists in the campus.
@@ -795,6 +842,35 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               100% { opacity:0; transform:scale(0.9) translateY(-8px); }
             }
           `}</style>
+        </div>
+      )}
+
+      {/* Quick POI finder — MazeMap-style pill bar to jump to the nearest
+       *  WC / Stairs / Elevator / Info / Cafe. Hidden when the info sheet
+       *  is open (it would be covered) or nav panel is open. */}
+      {!clickedFeature && !showNav && campus.isReady && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white/92 dark:bg-gray-900/92 backdrop-blur-md border border-black/8 dark:border-white/10 shadow-lg shadow-black/10 select-none"
+          style={{ bottom: "max(1.25rem, calc(0.75rem + env(safe-area-inset-bottom)))" }}
+        >
+          {([
+            { kind: "bathroom",  glyph: "WC", label: "WC",                        fg: "text-pink-600 dark:text-pink-400" },
+            { kind: "stairs",    glyph: "≡",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
+            { kind: "elevator",  glyph: "↕",  label: fi ? "Hissi" : "Lift",        fg: "text-blue-600 dark:text-blue-400" },
+            { kind: "info",      glyph: "ⓘ",  label: "Info",                       fg: "text-sky-600 dark:text-sky-400" },
+            { kind: "cafe",      glyph: "☕",  label: fi ? "Kahvila" : "Cafe",      fg: "text-amber-700 dark:text-amber-500" },
+          ] as const).map(({ kind, glyph, label, fg }) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => findNearestPOI(kind)}
+              title={fi ? `Löydä lähin: ${label}` : `Find nearest: ${label}`}
+              className="flex flex-col items-center gap-0.5 px-2.5 py-1 rounded-xl hover:bg-black/6 dark:hover:bg-white/6 active:scale-[0.95] transition-all"
+            >
+              <span className={cn("text-[13px] font-bold leading-none", fg)}>{glyph}</span>
+              <span className="text-[8.5px] font-semibold text-muted-foreground leading-none tracking-tight">{label}</span>
+            </button>
+          ))}
         </div>
       )}
 

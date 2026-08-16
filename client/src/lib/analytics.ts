@@ -139,7 +139,7 @@ export const trackEasterEgg = async (eggType: string) => {
     events: [event],
     sessionInfo: { sessionId: event.sessionId, userId: event.userId },
   });
-  sendTelemetry('/api/easter-eggs/track', { eggId: eggType, eggName: eggType });
+  sendTelemetry('/api/t/egg', { eggId: eggType, eggName: eggType, userId: event.userId });
 };
 
 export const trackFeatureUse = async (feature: string, meta?: Record<string, unknown>) => {

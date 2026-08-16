@@ -12,7 +12,7 @@
  *   - analytics events (`easter_egg:<id>`)
  * Never rename an `id` — pick a new one and mark the old one legacy.
  */
-import { Award, Code, Disc3, Flame, Flag, Gamepad2, Globe, Ham, Monitor, Pizza, Radio, RotateCw, Snowflake, Sparkles, Star, Terminal, Trophy, Zap } from "lucide-react";
+import { Award, Code, Disc3, Flame, Flag, Gamepad2, Globe, Ham, Monitor, Pizza, Radio, RotateCw, Snowflake, Sparkles, Star, Terminal, Trophy, Zap, Utensils } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type EggRarity = "common" | "rare" | "epic" | "legendary";
@@ -311,6 +311,17 @@ export const EASTER_EGGS: EasterEgg[] = [
     color: "text-amber-700",
     bgColor: "bg-amber-100 dark:bg-amber-500/20",
     rarity: "common",
+  },
+  {
+    id: "taco-typed",
+    name: "It's Raining Tacos!",
+    description: "Summoned a taco storm with a secret word.",
+    hint: "Type t · a · c · o anywhere.",
+    reward: "Tacos rain from the sky + a jingle plays.",
+    icon: Utensils,
+    color: "text-orange-600",
+    bgColor: "bg-orange-100 dark:bg-orange-500/20",
+    rarity: "rare",
   },
   {
     id: "full-hunter",

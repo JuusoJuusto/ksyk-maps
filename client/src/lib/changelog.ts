@@ -10,15 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.87.0";
+export const APP_VERSION = "3.88.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.88.0",
+    date: "August 2026",
+    title: "3D rooms visible, taco egg, adblock-safe counter, Quick POI finder, permanent POI labels",
+    titleFi: "3D-huoneet näkyvissä, taco-muna, adblock-kestävä laskuri, pikaPOI, pysyvät POI-nimet",
+    latest: true,
+    highlights: [
+      "Map: 3D rooms/classes now properly visible — opacity fixed, slabs thicker",
+      "Map: Permanent POI name labels appear from zoom 17+ (MazeMap-style)",
+      "Map: Quick POI finder pill bar — tap WC/Stairs/Elevator/Info/Cafe to jump",
+      "Easter eggs: NEW 'taco' egg — taco rain + jingle plays",
+      "Easter eggs: counter now works even with adblock (adblock-safe /api/t/egg route)",
+      "Easter eggs: glitch is now purely visual — no popup, repeatable anytime",
+      "Easter eggs: barrel-roll, disco, sauna, neon are now repeatable (first discovery still counts)",
+      "Builder: wall measurements hidden by default — only show when editing a selected room/building",
+      "Security: rate limiting added to easter egg tracking + AI coding help endpoints",
+    ],
+    highlightsFi: [
+      "Kartta: 3D-huoneet/luokat näkyvät nyt oikein — opasiteetti korjattu, slaabit paksumpia",
+      "Kartta: POI-nimet pysyvät näkyvissä zoomista 17+ (MazeMap-tyyli)",
+      "Kartta: pikaPOI-pilleri — napauta WC/Portaat/Hissi/Info/Kahvi hypätäksesi kohteeseen",
+      "Munat: UUSI 'taco'-muna — taco-sade + jingle soi",
+      "Munat: laskuri toimii nyt adblockilla (adblock-kestävä /api/t/egg-reitti)",
+      "Munat: glitch on nyt puhtaasti visuaalinen — ei popupia, toistettavissa",
+      "Munat: barrel-roll, disco, sauna, neon ovat nyt toistettavissa",
+      "Builder: seinämitat piilotettu oletuksena — näkyvät vain valittua huonetta/rakennusta muokattaessa",
+      "Tietoturva: rate limiting lisätty muna-seurantaan ja AI-koodausapuun",
+    ],
+  },
   {
     version: "3.87.0",
     date: "August 2026",
     title: "Builder wall measurements, icon overhaul, close button fix, snap improvements",
     titleFi: "Builderin seinämitat, ikoniuudistus, sulkemisnapin korjaus, snapin parannukset",
-    latest: true,
+    latest: false,
     highlights: [
       "Builder: wall/hallway segment lengths shown on top of committed walls (CAD-style)",
       "Builder: snap radius increased (18px) and guide alignment zone widened (22px)",

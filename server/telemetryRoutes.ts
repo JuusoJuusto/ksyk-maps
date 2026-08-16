@@ -40,6 +40,8 @@ interface OptionalTelemetryStorage {
   createAnalyticsEvent?: (data: unknown) => Promise<unknown>;
   trackFeatureUsage?: (data: unknown) => Promise<unknown>;
   trackSearch?: (data: unknown) => Promise<unknown>;
+  trackEasterEggDiscovery?: (data: unknown) => Promise<unknown>;
+  createAppLog?: (data: unknown) => Promise<unknown>;
 }
 
 function opt(): OptionalTelemetryStorage {
@@ -162,6 +164,31 @@ export function registerTelemetryRoutes(app: Express) {
   };
   app.post("/api/telemetry/search", handleSearch);
   app.post("/api/analytics/search", handleSearch);
+
+  // ── POST /api/t/egg — adblock-safe easter egg discovery ─────────────
+  // /api/easter-eggs/* paths get blocked by some filter lists.  This
+  // short, neutral path delivers the same write to storage.
+  app.post("/api/t/egg", (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as { eggId?: string; eggName?: string; userId?: string };
+    const eggId = typeof body.eggId === "string" ? body.eggId.slice(0, 64) : "";
+    if (!eggId || !/^[a-z0-9-]{1,64}$/.test(eggId)) { res.status(204).end(); return; }
+    fireAndForget(async () => {
+      opt().trackEasterEggDiscovery?.({
+        eggId,
+        eggName: body.eggName ?? eggId,
+        userId: body.userId ?? "anonymous",
+        timestamp: new Date().toISOString(),
+      });
+      opt().createAppLog?.({
+        level: "success",
+        message: `🥚 Easter egg discovered: ${eggId}`,
+        action: "easter_egg",
+        userId: null,
+        userName: null,
+      });
+    });
+    res.status(204).end();
+  });
 
   // ── GET /api/t/p — pixel beacon fallback ─────────────────────────
   //
