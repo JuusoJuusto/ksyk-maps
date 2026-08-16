@@ -10,15 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.88.0";
+export const APP_VERSION = "3.89.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.89.0",
+    date: "August 2026",
+    title: "POI overhaul, stair icon, taco song, wall labels above walls, buildings non-clickable",
+    titleFi: "POI-uudistus, porrasikooni, taco-biisi, seinämitat yläpuolella, rakennukset ei-klikattavia",
+    latest: true,
+    highlights: [
+      "Map: POI chips now plain white (not tinted) with colored icons per type",
+      "Map: Stair icon updated to triangle profile (⊿) for clearer meaning",
+      "Map: Buildings no longer clickable — only rooms respond to clicks",
+      "Builder: Wall measurement labels now render above walls (large white halo, slight upward offset)",
+      "Easter eggs: Taco egg now plays the actual 'It's Raining Tacos' melody (G major, BPM 148)",
+      "Server: /api/t/egg registered directly in routes.ts (fixes 404 on production)",
+    ],
+    highlightsFi: [
+      "Kartta: POI-napit nyt yksinkertaisen valkoisia (ei värjätty) — ikonit värikoodattuja tyypeittäin",
+      "Kartta: Porrasikooni vaihdettu kolmiomuotoon (⊿)",
+      "Kartta: Rakennukset eivät enää ole klikattavia — vain huoneet reagoivat klikkauksiin",
+      "Rakentaja: Seinämitat näkyvät nyt seinien yläpuolella (iso valkoinen hehku, pieni ylöspäin-siirtymä)",
+      "Munat: Taco-muna soittaa nyt oikean 'It's Raining Tacos' -melodian (G-duuri, 148 BPM)",
+      "Palvelin: /api/t/egg rekisteröity suoraan routes.ts:ssä (korjaa 404 tuotannossa)",
+    ],
+  },
   {
     version: "3.88.0",
     date: "August 2026",
     title: "3D rooms visible, taco egg, adblock-safe counter, Quick POI finder, permanent POI labels",
     titleFi: "3D-huoneet näkyvissä, taco-muna, adblock-kestävä laskuri, pikaPOI, pysyvät POI-nimet",
-    latest: true,
     highlights: [
       "Map: 3D rooms/classes now properly visible — opacity fixed, slabs thicker",
       "Map: Permanent POI name labels appear from zoom 17+ (MazeMap-style)",
