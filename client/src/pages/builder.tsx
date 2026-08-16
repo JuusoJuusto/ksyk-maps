@@ -951,30 +951,42 @@ function BuilderWorkspace() {
     }
 
     // ── Wall measurement labels ───────────────────────────────────────────
-    // Show haversine length at the midpoint of every wall/hallway segment so
-    // the admin can see room dimensions while editing without a tape measure.
+    // Only show segment lengths when something is selected — avoids noise
+    // when just browsing the map. Filter to walls belonging to the selected
+    // entity so you only see the dimensions relevant to what you're editing.
     const MEAS_SRC = "builder-wall-measurements";
     const MEAS_LAYER = "builder-wall-measurements-label";
     const measFeatures: {
       type: "Feature"; geometry: { type: "Point"; coordinates: [number, number] };
       properties: { label: string };
     }[] = [];
-    const R_M = 6371000;
-    const toRadM = (d: number) => (d * Math.PI) / 180;
-    for (const hw of halls) {
-      const pts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
-      const segPts: number[][] = (Array.isArray(pts) && pts.length >= 2)
-        ? pts.map((p) => [p.lng, p.lat])
-        : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
-      for (let i = 0; i < segPts.length - 1; i++) {
-        const a = segPts[i]; const b = segPts[i + 1];
-        if (!a || !b) continue;
-        const midLng = (a[0] + b[0]) / 2; const midLat = (a[1] + b[1]) / 2;
-        const dLat = toRadM(b[1] - a[1]); const dLng = toRadM(b[0] - a[0]);
-        const s2 = Math.sin(dLat / 2) ** 2 + Math.cos(toRadM(a[1])) * Math.cos(toRadM(b[1])) * Math.sin(dLng / 2) ** 2;
-        const dist = 2 * R_M * Math.asin(Math.sqrt(Math.min(1, s2)));
-        const label = dist < 10 ? `${dist.toFixed(2)} m` : dist < 1000 ? `${dist.toFixed(1)} m` : `${(dist / 1000).toFixed(2)} km`;
-        measFeatures.push({ type: "Feature", geometry: { type: "Point", coordinates: [midLng, midLat] }, properties: { label } });
+    if (selection) {
+      let measHalls = halls;
+      if (selection.kind === "building") {
+        measHalls = halls.filter((hw) => (hw as any).buildingId === selection.id);
+      } else if (selection.kind === "room") {
+        const selRoom = (roomsQ.data ?? []).find((r) => r.id === selection.id);
+        if (selRoom) measHalls = halls.filter((hw) => (hw as any).buildingId === selRoom.buildingId);
+      } else if (selection.kind === "hallway") {
+        measHalls = halls.filter((hw) => hw.id === selection.id);
+      }
+      const R_M = 6371000;
+      const toRadM = (d: number) => (d * Math.PI) / 180;
+      for (const hw of measHalls) {
+        const pts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
+        const segPts: number[][] = (Array.isArray(pts) && pts.length >= 2)
+          ? pts.map((p) => [p.lng, p.lat])
+          : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
+        for (let i = 0; i < segPts.length - 1; i++) {
+          const a = segPts[i]; const b = segPts[i + 1];
+          if (!a || !b) continue;
+          const midLng = (a[0] + b[0]) / 2; const midLat = (a[1] + b[1]) / 2;
+          const dLat = toRadM(b[1] - a[1]); const dLng = toRadM(b[0] - a[0]);
+          const s2 = Math.sin(dLat / 2) ** 2 + Math.cos(toRadM(a[1])) * Math.cos(toRadM(b[1])) * Math.sin(dLng / 2) ** 2;
+          const dist = 2 * R_M * Math.asin(Math.sqrt(Math.min(1, s2)));
+          const label = dist < 10 ? `${dist.toFixed(2)} m` : dist < 1000 ? `${dist.toFixed(1)} m` : `${(dist / 1000).toFixed(2)} km`;
+          measFeatures.push({ type: "Feature", geometry: { type: "Point", coordinates: [midLng, midLat] }, properties: { label } });
+        }
       }
     }
     const measFC = { type: "FeatureCollection" as const, features: measFeatures };
@@ -988,18 +1000,18 @@ function BuilderWorkspace() {
         id: MEAS_LAYER, source: MEAS_SRC, type: "symbol",
         layout: {
           "text-field": ["get", "label"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 16, 10, 19, 13, 21, 15],
-          "text-font": ["Noto Sans Regular"],
-          "text-allow-overlap": false,
-          "text-optional": true,
+          "text-size": ["interpolate", ["linear"], ["zoom"], 16, 11, 19, 14, 21, 16],
+          "text-font": ["Noto Sans Bold"],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
           "text-anchor": "center",
         },
         paint: {
           "text-color": "#1e3a8a",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 2,
+          "text-halo-color": "rgba(255,255,255,0.97)",
+          "text-halo-width": 3,
         },
-        minzoom: 16,
+        minzoom: 15,
       });
       try { map.moveLayer(MEAS_LAYER); } catch { /* ignore */ }
     }

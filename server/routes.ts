@@ -562,9 +562,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Track Easter Egg Discovery
-  app.post('/api/easter-eggs/track', async (req, res) => {
+  app.post('/api/easter-eggs/track', rateLimiters.general, async (req, res) => {
     try {
       const { eggId, eggName } = req.body;
+      if (typeof eggId !== "string" || !/^[a-z0-9-]{1,64}$/.test(eggId)) {
+        return res.status(400).json({ message: "Invalid egg id" });
+      }
       const userId = req.user?.claims?.sub || 'anonymous';
       
       await storage.trackEasterEggDiscovery({
@@ -3615,7 +3618,7 @@ https://ksykmaps.vercel.app
   });
   
   // AI Coding Help endpoint
-  app.post('/api/ai/coding-help', async (req, res) => {
+  app.post('/api/ai/coding-help', rateLimiters.general, async (req, res) => {
     try {
       const { question, code, language, context } = req.body;
       

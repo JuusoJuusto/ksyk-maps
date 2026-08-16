@@ -761,6 +761,74 @@ export function glitchEffect(durationMs = 3000): void {
   setTimeout(() => { host.remove(); style.remove(); }, durationMs + 100);
 }
 
+// ── Taco rain ─────────────────────────────────────────────────────
+
+export function tacoRain(durationMs = 6000): void {
+  ensureKeyframes();
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:hidden;";
+  document.body.appendChild(host);
+
+  const TACOS = ["🌮","🌮","🌮","🌯","🫔","🌶️","🧅","🥑","🌮"];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement("div");
+    const size = 24 + Math.random() * 36;
+    const x = Math.random() * 100;
+    const delay = Math.random() * 1500;
+    const dur = 2600 + Math.random() * 2400;
+    const drift = (Math.random() - 0.5) * 60;
+    const spin = Math.random() > 0.5 ? "rotate(360deg)" : "rotate(-360deg)";
+    p.textContent = TACOS[Math.floor(Math.random() * TACOS.length)];
+    p.style.cssText = `
+      position:absolute;top:-80px;left:${x}vw;
+      font-size:${size}px;line-height:1;opacity:0;
+      animation:ksyk-fall ${dur}ms ${delay}ms cubic-bezier(.2,.5,.4,1) forwards;
+      --drift:${drift}vw;
+    `;
+    // Override the fall animation's end transform with spin
+    void spin;
+    host.appendChild(p);
+  }
+  setTimeout(() => host.remove(), durationMs + 2800);
+}
+
+export function playTacoSong(): void {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    // "It's Raining Tacos" inspired happy jingle using Web Audio
+    const notes = [
+      { f: 523.25, t: 0,    d: 0.18 },
+      { f: 659.25, t: 0.20, d: 0.18 },
+      { f: 783.99, t: 0.40, d: 0.18 },
+      { f: 1046.5, t: 0.60, d: 0.25 },
+      { f: 783.99, t: 0.88, d: 0.18 },
+      { f: 659.25, t: 1.08, d: 0.18 },
+      { f: 523.25, t: 1.28, d: 0.28 },
+      { f: 392.00, t: 1.60, d: 0.18 },
+      { f: 523.25, t: 1.80, d: 0.18 },
+      { f: 659.25, t: 2.00, d: 0.35 },
+      { f: 783.99, t: 2.40, d: 0.18 },
+      { f: 1046.5, t: 2.60, d: 0.18 },
+      { f: 1174.7, t: 2.80, d: 0.55 },
+    ];
+    for (const note of notes) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = note.f;
+      const t = ctx.currentTime + note.t;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.22, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + note.d + 0.05);
+      osc.start(t);
+      osc.stop(t + note.d + 0.1);
+    }
+    setTimeout(() => ctx.close(), 4000);
+  } catch { /* AudioContext blocked — silent */ }
+}
+
 // ── Typewriter banner ─────────────────────────────────────────────
 
 export function typewriterBanner(text: string, opts: { color?: string; bg?: string; ms?: number } = {}): void {

@@ -80,7 +80,7 @@ const WALL_HEIGHT_METERS = 2.4;
 // Room "slab" thickness — rooms extrude a tiny amount so they visually
 // SIT ON the floor. Just enough that MapLibre picks up the color at
 // pitch, without dominating over the walls.
-const ROOM_SLAB_METERS = 0.35;
+const ROOM_SLAB_METERS = 0.65;
 
 export interface CampusOverlayProps {
   /** MapLibre map, `null` until it's ready. */
@@ -187,6 +187,7 @@ export default function CampusOverlay({
       try { map.moveLayer(`${LAYERS.poisChip}-shadow`); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisChip); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisIcon); } catch { /* not yet added */ }
+      try { map.moveLayer(`${LAYERS.poisChip}-name`); } catch { /* not yet added */ }
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -244,8 +245,9 @@ export default function CampusOverlay({
       setVis("campus-walls-3d",       hVis && is3D);
       // POI icons: at ground level in 2D, floating in 3D. Toggle the
       // twin layer instead of running both.
-      setVis(LAYERS.poisIcon,         !is3D);
-      setVis(`${LAYERS.poisIcon}-3d`, is3D);
+      setVis(LAYERS.poisIcon,              !is3D);
+      setVis(`${LAYERS.poisIcon}-3d`,      is3D);
+      setVis(`${LAYERS.poisChip}-name`,    lVis);
       // Flat rooms show in 2D. In 3D we swap to extruded room slabs
       // stacked ON TOP of each building's floor plate so the room reads
       // as a real MazeMap-style raised platform inside the shell. The
@@ -1990,7 +1992,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base"],
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 16, 0.0, 17, 0.85, 20, 0.95],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.8, 17, 0.92, 20, 0.97],
       "fill-extrusion-vertical-gradient": true,
     },
     filter: ["boolean", ["get", "isActive"], true],
@@ -2005,12 +2007,11 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base"],
-      // Below floors: low opacity hint. Above floors: barely-visible outline.
       "fill-extrusion-opacity": [
         "interpolate", ["linear"], ["zoom"],
-        15, 0.0,
-        17, ["case", ["boolean", ["get", "isAbove"], false], 0.08, 0.18],
-        20, ["case", ["boolean", ["get", "isAbove"], false], 0.12, 0.28],
+        15, ["case", ["boolean", ["get", "isAbove"], false], 0.05, 0.15],
+        17, ["case", ["boolean", ["get", "isAbove"], false], 0.10, 0.30],
+        20, ["case", ["boolean", ["get", "isAbove"], false], 0.14, 0.42],
       ],
       "fill-extrusion-vertical-gradient": false,
     },
@@ -2376,6 +2377,36 @@ function installPOIs(
   // proper z-elevate for symbols. The offset scales with pitch so
   // flat 2D stays untouched.
   //
+  // MazeMap-style permanent name label below each pin — appears at
+  // close zoom so users can read "WC (N)", "Portaat A", "Info" etc.
+  // without hovering. Toggled by the Labels layer toggle.
+  addLayerIfMissing(map, {
+    id: `${LAYERS.poisChip}-name`,
+    source: SOURCES.pois,
+    type: "symbol",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 17, 9, 19, 11, 21, 13],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": false,
+      "text-optional": true,
+      "text-anchor": "top",
+      "text-max-width": 8,
+    },
+    paint: {
+      "text-color": "#0f172a",
+      "text-halo-color": "rgba(255,255,255,0.95)",
+      "text-halo-width": 1.5,
+      "text-translate": ["interpolate", ["linear"], ["zoom"],
+        17, ["literal", [0, 10]],
+        19, ["literal", [0, 16]],
+        21, ["literal", [0, 22]],
+      ],
+      "text-translate-anchor": "viewport",
+    },
+    minzoom: 17,
+  });
+
   // Note: the base `poisChip`/`poisIcon` layers already draw at
   // ground level. This extra layer sits ABOVE the extrusion layer
   // in the paint order so its text isn't clipped by wall geometry.

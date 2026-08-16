@@ -1,7 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-17
 
-Bump reason: v3.87.0 — builder wall measurements, icon overhaul, close button fix, snap improvements
+Bump reason: v3.88.0 — 3D rooms fix, taco egg, adblock-safe counter, Quick POI finder, wall measurement improvements
 
-Timestamp: 1787488200
-Build: FORCE_REBUILD_v3.87.0_BUILDER_ICONS_SNAP
-
+Timestamp: 1787488900
+Build: FORCE_REBUILD_v3.88.0_3D_TACO_ADBLOCK_POI

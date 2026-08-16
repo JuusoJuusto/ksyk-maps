@@ -39,7 +39,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { trackEasterEgg, trackFeature } from "@/lib/analytics";
 import { eggLocalKey, EASTER_EGGS, EGG_RESET_EPOCH, resetLocalEggFlags } from "@/lib/easterEggRegistry";
-import { achievementCard, barrelRoll, confetti, crtBurst, discoMode, emojiRain, eggToast, fakeBSOD, fireworks, glitchEffect, heatHaze, matrixRain, neonSweep, pizzaRain, playDiscoverySound, screenFlash, snowfall, typewriterBanner } from "@/lib/easterEggEffects";
+import { achievementCard, barrelRoll, confetti, crtBurst, discoMode, emojiRain, eggToast, fakeBSOD, fireworks, glitchEffect, heatHaze, matrixRain, neonSweep, pizzaRain, playDiscoverySound, playTacoSong, screenFlash, snowfall, tacoRain, typewriterBanner } from "@/lib/easterEggEffects";
 
 const FINNISH_COLORS = ["#003580", "#003580", "#ffffff", "#e5edff"];
 const RETRO_COLORS = ["#22c55e", "#84cc16", "#4ade80"];
@@ -51,15 +51,6 @@ function markAndReport(id: string): boolean {
   if (localStorage.getItem(key) === "true") return false;
   localStorage.setItem(key, "true");
   trackEasterEgg(id);
-  fetch("/api/easter-eggs/found", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      egg: id,
-      userId: localStorage.getItem("ksyk_user_id") || "anonymous",
-    }),
-  }).catch(() => { /* silent */ });
 
   // Meta-egg: once every other egg is found, unlock full-hunter.
   const allExceptFull = EASTER_EGGS.filter((e) => e.id !== "full-hunter");
@@ -67,12 +58,6 @@ function markAndReport(id: string): boolean {
   if (foundOthers && localStorage.getItem(eggLocalKey("full-hunter")) !== "true") {
     localStorage.setItem(eggLocalKey("full-hunter"), "true");
     trackEasterEgg("full-hunter");
-    fetch("/api/easter-eggs/found", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ egg: "full-hunter" }),
-    }).catch(() => {});
     confetti({ colors: ["#fbbf24","#f59e0b","#fcd34d","#fde68a","#fff"], count: 220, duration: 5000 });
     achievementCard({
       emoji: "🏆",
@@ -136,10 +121,9 @@ export function useKsykEasterEggs() {
       {
         word: "barrel",
         onFound: () => {
-          if (markAndReport("barrel-roll")) {
-            barrelRoll();
-            eggToast("Barrel roll!", { emoji: "🌀" });
-          }
+          markAndReport("barrel-roll"); // counts first discovery
+          barrelRoll(); // always runs
+          eggToast("Barrel roll!", { emoji: "🌀" });
         },
       },
       {
@@ -233,9 +217,10 @@ export function useKsykEasterEggs() {
       {
         word: "sauna",
         onFound: () => {
-          if (markAndReport("sauna-typed")) {
-            heatHaze(5000);
-            playDiscoverySound("rare");
+          const isNew = markAndReport("sauna-typed");
+          heatHaze(5000); // always runs
+          playDiscoverySound("rare");
+          if (isNew) {
             achievementCard({
               emoji: "🧖",
               name: "Löyly!",
@@ -249,9 +234,10 @@ export function useKsykEasterEggs() {
       {
         word: "disco",
         onFound: () => {
-          if (markAndReport("disco-typed")) {
-            discoMode(8000);
-            playDiscoverySound("rare");
+          const isNew = markAndReport("disco-typed");
+          discoMode(8000); // always runs
+          playDiscoverySound("rare");
+          if (isNew) {
             achievementCard({
               emoji: "🕺",
               name: "Disco Inferno",
@@ -276,11 +262,10 @@ export function useKsykEasterEggs() {
       {
         word: "neon",
         onFound: () => {
-          if (markAndReport("neon-typed")) {
-            neonSweep(5000);
-            playDiscoverySound("rare");
-            eggToast("Neon lights unlocked! 🌈", { emoji: "✨" });
-          }
+          markAndReport("neon-typed"); // count first discovery only
+          neonSweep(5000); // always runs
+          playDiscoverySound("rare");
+          eggToast("Neon lights! 🌈", { emoji: "✨" });
         },
       },
       {
@@ -322,16 +307,27 @@ export function useKsykEasterEggs() {
       {
         word: "glitch",
         onFound: () => {
-          if (markAndReport("glitch-typed")) {
-            glitchEffect(3500);
-            playDiscoverySound("epic");
-            achievementCard({
-              emoji: "📺",
-              name: "Reality Glitch",
-              description: "You broke the fourth wall.",
-              rarity: "epic",
-              reward: "The page fragments for 3 seconds.",
-            });
+          markAndReport("glitch-typed"); // track first discovery, no popup
+          glitchEffect(3500); // purely visual — always fires, no toast/card
+        },
+      },
+      {
+        word: "taco",
+        onFound: () => {
+          const isNew = markAndReport("taco-typed");
+          tacoRain(6000);
+          playTacoSong();
+          eggToast("It's raining tacos! 🌮", { emoji: "🌮", ms: 4000 });
+          if (isNew) {
+            setTimeout(() => {
+              achievementCard({
+                emoji: "🌮",
+                name: "It's Raining Tacos!",
+                description: "You summoned the taco storm.",
+                rarity: "rare",
+                reward: "Taco rain + a jingle. Worth it.",
+              });
+            }, 1500);
           }
         },
       },
