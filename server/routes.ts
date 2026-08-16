@@ -561,6 +561,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Adblock-safe alias for egg tracking — short neutral URL passes most filter lists.
+  // Registered here (early) so it is guaranteed before any catch-all middleware.
+  app.post('/api/t/egg', rateLimiters.general, async (req: any, res) => {
+    try {
+      const { eggId, eggName } = req.body ?? {};
+      if (typeof eggId !== "string" || !/^[a-z0-9-]{1,64}$/.test(eggId)) {
+        return res.status(204).end();
+      }
+      const userId = req.user?.claims?.sub || 'anonymous';
+      await storage.trackEasterEggDiscovery({ eggId, eggName: eggName ?? eggId, userId, timestamp: new Date().toISOString() });
+      await storage.createAppLog({ level: 'success', message: `🥚 Easter egg discovered: ${eggId}`, action: 'easter_egg', userId: userId !== 'anonymous' ? userId : null, userName: null }).catch(() => {});
+      res.status(204).end();
+    } catch { res.status(204).end(); }
+  });
+
   // Track Easter Egg Discovery
   app.post('/api/easter-eggs/track', rateLimiters.general, async (req, res) => {
     try {

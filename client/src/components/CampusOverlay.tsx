@@ -336,11 +336,10 @@ export default function CampusOverlay({
         clickHandlerRef.current?.("room", roomHit.properties!.id as string);
         return;
       }
-      const bldgHit = bldgLayers.length ? map.queryRenderedFeatures(bbox, { layers: bldgLayers })[0] : undefined;
-      if (bldgHit && typeof bldgHit.properties?.id === "string" && !layerRow("building")?.locked) {
-        clickHandlerRef.current?.("building", bldgHit.properties.id);
-        return;
-      }
+      // Buildings are intentionally non-clickable — clicking a building
+      // footprint with no room hit just does nothing (rooms are the
+      // unit of navigation; buildings are context-only).
+      void bldgLayers; void layerRow;
       const hallHit = hallLayers.length ? map.queryRenderedFeatures(bbox, { layers: hallLayers })[0] : undefined;
       if (hallHit && typeof hallHit.properties?.id === "string" && !layerRow("hallway")?.locked) {
         clickHandlerRef.current?.("hallway", hallHit.properties.id);
@@ -353,8 +352,8 @@ export default function CampusOverlay({
     // room/building under the cursor so the fill layer paint (which
     // reads ["feature-state","hover"]) can brighten the polygon.
     // Tracks the last-hovered id so we can clear its state on move-out.
-    const hoverableLayers = [LAYERS.buildingsFill, LAYERS.roomsFill, LAYERS.hallwaysLine, LAYERS.poisChip, LAYERS.poisIcon];
-    const roomsAndBuildingsLayers = [LAYERS.roomsFill, LAYERS.buildingsFill];
+    const hoverableLayers = [LAYERS.roomsFill, LAYERS.hallwaysLine, LAYERS.poisChip, LAYERS.poisIcon];
+    const roomsAndBuildingsLayers = [LAYERS.roomsFill];
     let lastHover: { source: string; id: string | number } | null = null;
     const clearHover = () => {
       if (!lastHover) return;
@@ -2054,7 +2053,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
 /** MazeMap-style POI glyphs. Uses widely-supported Unicode emoji so
  *  icons are immediately recognisable at any zoom level. */
 const POI_ICON: Record<string, string> = {
-  stairs:        "≡",   // three bars = staircase profile — Noto Sans
+  stairs:        "⊿",   // right triangle = staircase profile — Noto Sans U+22BF
   elevator:      "↕",   // up-down arrow — Noto Sans
   door:          "⊡",   // squared dot — door silhouette — Noto Sans
   entrance:      "⊙",   // bullseye entry point — Noto Sans
@@ -2246,34 +2245,10 @@ function installPOIs(
       // Pin chip sits well above the tail arrow so the two never collide.
       // Translate values computed so: chip_bottom = translate+radius,
       // tail_top ≈ -text-size. Gap at each zoom: ~7-10 px.
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 16, 21, 24],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 10, 19, 17, 21, 25],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -28]], 19, ["literal", [0, -46]], 21, ["literal", [0, -64]]],
       "circle-translate-anchor": "viewport",
-      "circle-color": [
-        "match", ["get", "kind"],
-        "elevator",      "#dbeafe",  // blue-100
-        "stairs",        "#fef3c7",  // amber-100
-        "bathroom",      "#fce7f3",  // pink-100
-        "restroom",      "#fce7f3",  // v3.29.0 unisex/generic
-        "restroom_m",    "#dbeafe",
-        "restroom_f",    "#fce7f3",
-        "restroom_a",    "#e9d5ff",
-        "entrance",      "#dcfce7",  // green-100
-        "exit",          "#fee2e2",  // red-100
-        "door",          "#f3f4f6",  // gray-100
-        "info",          "#e0f2fe",  // sky-100
-        "reception",     "#dbeafe",
-        "cafe",          "#fef3c7",
-        "vending",       "#ede9fe",
-        "water",         "#cffafe",
-        "first_aid",     "#fee2e2",
-        "defibrillator", "#ffe4e6",
-        "printer",       "#f3f4f6",
-        "meeting_point", "#dcfce7",
-        "parking",       "#e0f2fe",
-        "bike",          "#dcfce7",
-                         "#ffffff",  // fallback
-      ],
+      "circle-color": "#ffffff",
       "circle-stroke-color": [
         "match", ["get", "kind"],
         "elevator",      "#2563eb",
@@ -2299,7 +2274,7 @@ function installPOIs(
         "bike",          "#16a34a",
                          "#111827",
       ],
-      "circle-stroke-width": 2.5,
+      "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 19, 3, 21, 4],
       "circle-opacity": 1,
     },
     minzoom: 14,
@@ -2317,8 +2292,32 @@ function installPOIs(
       "text-anchor": "center",
     },
     paint: {
-      "text-color": "#111827",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
+      "text-color": [
+        "match", ["get", "kind"],
+        "elevator",      "#2563eb",
+        "stairs",        "#92400e",
+        "bathroom",      "#be185d",
+        "restroom",      "#be185d",
+        "restroom_m",    "#2563eb",
+        "restroom_f",    "#be185d",
+        "restroom_a",    "#7c3aed",
+        "entrance",      "#15803d",
+        "exit",          "#b91c1c",
+        "door",          "#374151",
+        "info",          "#0284c7",
+        "reception",     "#2563eb",
+        "cafe",          "#92400e",
+        "vending",       "#7c3aed",
+        "water",         "#0891b2",
+        "first_aid",     "#dc2626",
+        "defibrillator", "#e11d48",
+        "printer",       "#374151",
+        "meeting_point", "#059669",
+        "parking",       "#0369a1",
+        "bike",          "#16a34a",
+                         "#111827",
+      ],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -28]], 19, ["literal", [0, -46]], 21, ["literal", [0, -64]]],
       "text-translate-anchor": "viewport",
     },
     minzoom: 14,

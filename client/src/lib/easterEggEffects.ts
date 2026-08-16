@@ -794,38 +794,56 @@ export function tacoRain(durationMs = 6000): void {
 
 export function playTacoSong(): void {
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    // "It's Raining Tacos" inspired happy jingle using Web Audio
-    const notes = [
-      { f: 523.25, t: 0,    d: 0.18 },
-      { f: 659.25, t: 0.20, d: 0.18 },
-      { f: 783.99, t: 0.40, d: 0.18 },
-      { f: 1046.5, t: 0.60, d: 0.25 },
-      { f: 783.99, t: 0.88, d: 0.18 },
-      { f: 659.25, t: 1.08, d: 0.18 },
-      { f: 523.25, t: 1.28, d: 0.28 },
-      { f: 392.00, t: 1.60, d: 0.18 },
-      { f: 523.25, t: 1.80, d: 0.18 },
-      { f: 659.25, t: 2.00, d: 0.35 },
-      { f: 783.99, t: 2.40, d: 0.18 },
-      { f: 1046.5, t: 2.60, d: 0.18 },
-      { f: 1174.7, t: 2.80, d: 0.55 },
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.3;
+    master.connect(ctx.destination);
+
+    // "It's Raining Tacos" by Parry Gripp — melody approximation.
+    // Key of G major.  BPM ~148.
+    const BPM = 148;
+    const q = 60 / BPM; // quarter-note seconds
+    // Frequencies: G4=392, A4=440, B4=494, C5=523, D5=587, E5=659, G5=784
+    const G4=392, A4=440, B4=494, C5=523, D5=587, E5=659, G5=784;
+
+    const melody: [number, number, number][] = [ // [freq, startBeat, durBeats]
+      // "It's  rain-ing  ta  - cos"
+      [G4, 0,   0.4], [A4, 0.5, 0.4], [B4, 1,   0.4], [C5, 1.5, 0.8],
+      [B4, 2.5, 0.4], [A4, 3,   0.4], [G4, 3.5, 0.9],
+      // "from  out  of  the  sky"
+      [A4, 4.5, 0.4], [B4, 5,   0.4], [C5, 5.5, 0.4], [D5, 6,   0.8],
+      [C5, 7,   0.4], [B4, 7.5, 0.4], [A4, 8,   0.4], [G4, 8.5, 1.3],
+      // Chorus rise
+      [E5, 10,  0.45],[D5, 10.5,0.45],[C5, 11,  0.45],[B4, 11.5,0.45],
+      [A4, 12,  0.45],[G4, 12.5,0.45],[A4, 13,  0.45],[B4, 13.5,0.45],
+      [C5, 14,  0.45],[D5, 14.5,0.45],[E5, 15,  0.45],[D5, 15.5,0.45],
+      [C5, 16,  0.45],[B4, 16.5,0.45],[A4, 17,  0.45],[G5, 17.5,1.8],
     ];
-    for (const note of notes) {
+    // Bass (root notes, one octave below, sine wave)
+    const bass: [number, number, number][] = [
+      [G4/2,0,2],[A4/2,2,2],[G4/2,4,2],[D5/2,6,2],
+      [G4/2,8,2],[C5/2,10,2],[A4/2,12,2],[C5/2,14,2],[G4/2,16,2.5],[G4/2,18,2],
+    ];
+
+    const play = (f: number, beatStart: number, beatDur: number, type: OscillatorType, vol: number) => {
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = note.f;
-      const t = ctx.currentTime + note.t;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.22, t + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + note.d + 0.05);
-      osc.start(t);
-      osc.stop(t + note.d + 0.1);
-    }
-    setTimeout(() => ctx.close(), 4000);
+      const env = ctx.createGain();
+      osc.type = type; osc.frequency.value = f;
+      osc.connect(env); env.connect(master);
+      const t = ctx.currentTime + beatStart * q;
+      const d = beatDur * q;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(vol, t + 0.02);
+      env.gain.setValueAtTime(vol, t + d - 0.04);
+      env.gain.exponentialRampToValueAtTime(0.001, t + d);
+      osc.start(t); osc.stop(t + d + 0.05);
+    };
+
+    for (const [f, s, d] of melody) play(f, s, d, "triangle", 0.55);
+    for (const [f, s, d] of bass)   play(f, s, d, "sine",     0.3);
+
+    setTimeout(() => ctx.close(), (19 * q + 1) * 1000);
   } catch { /* AudioContext blocked — silent */ }
 }
 
