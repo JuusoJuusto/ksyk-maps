@@ -2023,7 +2023,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     type: "symbol",
     layout: {
       "text-field": ["get", "label"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10, 16, 12, 17, 14, 19, 16, 21, 22],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 8, 15, 10, 16, 12, 17, 14, 19, 17, 21, 22],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
       "text-optional": true,
@@ -2039,7 +2039,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "text-halo-blur": 0.2,
       "text-opacity": ["case", ["get", "showLabel"], 1, 0],
     },
-    minzoom: 15,
+    minzoom: 14,
   });
 }
 
@@ -2053,26 +2053,26 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
 /** MazeMap-style POI glyphs. Uses widely-supported Unicode emoji so
  *  icons are immediately recognisable at any zoom level. */
 const POI_ICON: Record<string, string> = {
-  stairs:        "🪜",   // staircase
-  elevator:      "🛗",   // elevator cab
-  door:          "🚪",   // door
-  entrance:      "⊙",   // bullseye entry point
-  exit:          "↪",   // exit arrow
-  bathroom:      "WC",   // restroom (unisex) — clean text renders everywhere
-  info:          "ⓘ",
-  reception:     "☎",
-  parking:       "Ⓟ",
-  bike:          "🚲",
-  restroom_m:    "♂",   // men
-  restroom_f:    "♀",   // women
-  restroom_a:    "♿",   // accessible
-  cafe:          "☕",
-  vending:       "🍫",
-  water:         "💧",
-  first_aid:     "✚",   // medical cross
-  defibrillator: "⚡",
-  printer:       "🖨",
-  meeting_point: "⚑",
+  stairs:        "≡",   // three bars = staircase profile — Noto Sans
+  elevator:      "↕",   // up-down arrow — Noto Sans
+  door:          "⊡",   // squared dot — door silhouette — Noto Sans
+  entrance:      "⊙",   // bullseye entry point — Noto Sans
+  exit:          "↪",   // exit arrow — Noto Sans
+  bathroom:      "WC",  // restroom (unisex) — plain text
+  info:          "ⓘ",  // circled i — Noto Sans
+  reception:     "☎",  // telephone — Noto Sans
+  parking:       "Ⓟ",  // circled P — Noto Sans
+  bike:          "⊕",   // circled plus (wheel) — Noto Sans
+  restroom_m:    "♂",  // male sign — Noto Sans
+  restroom_f:    "♀",  // female sign — Noto Sans
+  restroom_a:    "♿", // wheelchair — Noto Sans
+  cafe:          "☕",  // hot beverage — Noto Sans (U+2615, not emoji range)
+  vending:       "¤",   // generic currency — Noto Sans
+  water:         "≈",   // wavy lines = water — Noto Sans
+  first_aid:     "✚",  // medical cross — Noto Sans
+  defibrillator: "⚡",  // lightning — Noto Sans (U+26A1)
+  printer:       "⊟",   // squared minus — Noto Sans
+  meeting_point: "⚑",  // flag — Noto Sans
   restroom:      "WC",
 };
 
