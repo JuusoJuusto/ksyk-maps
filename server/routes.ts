@@ -2566,7 +2566,10 @@ https://ksykmaps.vercel.app
     const azureTenant = process.env.AZURE_TENANT_ID || 'common';
     const redirectUri = process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/microsoft/callback`;
     if (!azureClientId) {
-      // Dev fallback — render a tiny form so testing the flow doesn't require Azure.
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(503).json({ message: 'Microsoft sign-in is not configured' });
+      }
+      // Dev-only fallback — render a tiny form so testing the flow doesn't require Azure.
       return res.send(`
         <html><body style="font-family: system-ui; max-width: 420px; margin: 4rem auto; padding: 2rem; text-align: center;">
           <h2>Microsoft sign-in (dev)</h2>
@@ -2588,9 +2591,13 @@ https://ksykmaps.vercel.app
   });
 
   app.get('/api/auth/microsoft/callback', async (req: any, res) => {
-    // Real flow would exchange `code` for tokens here. For dev / when AZURE_CLIENT_ID
-    // is not set, accept ?email= and create a session directly so the rest of the
-    // access pipeline can be tested.
+    // Dev-only: accept ?email= to simulate OAuth. Blocked in production to prevent
+    // auth bypass (anyone could craft a request with ?email=admin@ksyk.fi).
+    const isDevBypass = process.env.NODE_ENV === 'development' && !process.env.AZURE_CLIENT_ID;
+    if (!isDevBypass) {
+      // Production path — real MSAL code exchange would go here.
+      return res.redirect('/?auth_error=oauth_not_configured');
+    }
     const email = (req.query.email as string) || '';
     if (!email) return res.redirect('/?auth_error=missing_email');
     const role = (process.env.OWNER_EMAILS || '').toLowerCase().split(',').includes(email.toLowerCase()) ? 'owner' : 'student';

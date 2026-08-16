@@ -183,6 +183,8 @@ export default function CampusOverlay({
       try { map.moveLayer("campus-entrances-tail"); } catch { /* not yet added */ }
       try { map.moveLayer("campus-entrances-letter"); } catch { /* not yet added */ }
       try { map.moveLayer("campus-entrances-label"); } catch { /* not yet added */ }
+      try { map.moveLayer(`${LAYERS.poisChip}-glow`); } catch { /* not yet added */ }
+      try { map.moveLayer(`${LAYERS.poisChip}-shadow`); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisChip); } catch { /* not yet added */ }
       try { map.moveLayer(LAYERS.poisIcon); } catch { /* not yet added */ }
       applyVisibility();
@@ -422,7 +424,9 @@ export default function CampusOverlay({
         parts.push(`<div class="text-[10px] uppercase tracking-wide text-gray-500 mt-0.5">${escapeHtml(poiKindLabel(kind))}</div>`);
       }
       if (floor !== null && floor !== undefined && floor !== "") {
-        parts.push(`<div class="text-[10px] text-blue-600 mt-0.5">Floor ${escapeHtml(String(floor))}</div>`);
+        const floorLbl = typeof navigator !== "undefined" && navigator.language.startsWith("fi")
+          ? `Kerros ${floor}` : `Floor ${floor}`;
+        parts.push(`<div class="text-[10px] text-blue-600 mt-0.5">${escapeHtml(floorLbl)}</div>`);
       }
       poiPopup
         .setLngLat(e.lngLat)
@@ -1215,36 +1219,43 @@ function poi3DColor(kind: string): string {
   }
 }
 
-/** Height (metres) per POI kind — different heights make each type
- *  instantly distinguishable in 3D without reading the icon. */
+/** Height (metres) per POI kind — distinct heights make each type
+ *  immediately distinguishable in 3D without reading the icon.
+ *  Increased significantly from v3.85 so pins pierce the building
+ *  shell and are visible from low zoom. */
 function poiPillarHeight(kind: string): number {
   switch (kind) {
     case "bathroom":
     case "restroom":
     case "restroom_m":
     case "restroom_f":
-    case "restroom_a": return 1.6;
-    case "info":       return 2.0;
-    case "cafe":       return 2.2;
-    case "water":      return 1.4;
-    case "vending":    return 1.8;
-    case "first_aid":  return 2.4;
-    case "defibrillator": return 2.4;
-    case "printer":    return 1.6;
-    case "meeting_point": return 2.6;
-    case "bike":       return 1.5;
-    case "parking":    return 2.2;
-    default:           return 2.0;
+    case "restroom_a": return 2.8;
+    case "info":       return 3.2;
+    case "cafe":       return 3.4;
+    case "water":      return 2.4;
+    case "vending":    return 3.0;
+    case "first_aid":  return 4.0;
+    case "defibrillator": return 4.0;
+    case "printer":    return 2.8;
+    case "meeting_point": return 4.4;
+    case "bike":       return 2.6;
+    case "parking":    return 3.4;
+    default:           return 3.2;
   }
 }
-/** Cap half-width — slightly wider than the stem so the pin reads
- *  as a lollipop shape from a pitched 3D view. */
+/** Cap half-width — noticeably wider than the stem so the pin reads
+ *  as a lollipop / teardrop from a pitched 3D view. */
 function poiCapHalfWidth(kind: string): number {
   switch (kind) {
     case "first_aid":
     case "defibrillator":
-    case "meeting_point": return 1.3;
-    default: return 1.1;
+    case "meeting_point": return 2.0;
+    case "bathroom":
+    case "restroom":
+    case "restroom_m":
+    case "restroom_f":
+    case "restroom_a": return 1.8;
+    default: return 1.6;
   }
 }
 
@@ -1263,17 +1274,30 @@ function installPoiPillars(
     .filter((p) => !hiddenKinds.has(p.kind))
     .filter((p) => activeFloor === null || p.floor === null || p.floor === undefined || p.floor === activeFloor);
 
-  // Thin stem (0.55m half-width) running from ground to full height.
-  const stemFeatures = visiblePois.map((p) => {
-    const h = poiPillarHeight(p.kind);
-    const coords = squareAroundPointMeters(p.position!, 0.55);
+  // Ground base plate — a wide flat disc at ground level so the pin
+  // looks anchored to the floor instead of floating. Makes WC/stairs
+  // easy to spot from a pitched view at any zoom.
+  const basePlateFeatures = visiblePois.map((p) => {
+    const coords = squareAroundPointMeters(p.position!, 1.9);
     return {
       type: "Feature" as const,
       geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
-      properties: { id: `${p.id}-stem`, kind: p.kind, color: poi3DColor(p.kind), base: 0, height: h },
+      properties: { id: `${p.id}-base`, kind: p.kind, color: poi3DColor(p.kind), base: 0, height: 0.12 },
     };
   });
-  // Wider cap (lollipop head) at the top — makes it visually 3D/pin-like.
+  // Thin stem (0.3m half-width) — narrower than v3.85 so the lollipop
+  // shape reads clearly: wide base → thin stem → wide cap.
+  const stemFeatures = visiblePois.map((p) => {
+    const h = poiPillarHeight(p.kind);
+    const coords = squareAroundPointMeters(p.position!, 0.3);
+    return {
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
+      properties: { id: `${p.id}-stem`, kind: p.kind, color: poi3DColor(p.kind), base: 0.12, height: h },
+    };
+  });
+  // Wide cap (lollipop head) at the top. Noticeably larger than the stem
+  // so users can identify the POI type by its silhouette in 3D.
   const capFeatures = visiblePois.map((p) => {
     const h = poiPillarHeight(p.kind);
     const capW = poiCapHalfWidth(p.kind);
@@ -1281,13 +1305,13 @@ function installPoiPillars(
     return {
       type: "Feature" as const,
       geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
-      properties: { id: `${p.id}-cap`, kind: p.kind, color: poi3DColor(p.kind), base: h - 0.5, height: h + 0.2 },
+      properties: { id: `${p.id}-cap`, kind: p.kind, color: poi3DColor(p.kind), base: h - 0.6, height: h + 0.35 },
     };
   });
 
   upsertGeoJSONSource(map, "campus-pois-pillar-3d-src", {
     type: "FeatureCollection" as const,
-    features: [...stemFeatures, ...capFeatures],
+    features: [...basePlateFeatures, ...stemFeatures, ...capFeatures],
   });
 
   addLayerIfMissing(map, {
@@ -1710,7 +1734,11 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
-      "fill-opacity": 0.45,
+      // MazeMap-style: corridors slightly more opaque than rooms so they
+      // read as circulation paths rather than rooms; zoom-scaled so the
+      // campus stays clean from a distance.
+      "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.35, 17, 0.5, 20, 0.6],
+      "fill-antialias": true,
     },
   });
   addLayerIfMissing(map, {
@@ -1720,8 +1748,8 @@ function installCorridors(map: MaplibreMap, rooms: Room[], activeFloor: number |
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
       "line-color": ["get", "color"],
-      "line-width": 1.5,
-      "line-opacity": 0.85,
+      "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 2.0, 21, 3.0],
+      "line-opacity": 0.7,
     },
   });
 }
@@ -2158,19 +2186,51 @@ function installPOIs(
   const fc = { type: "FeatureCollection" as const, features };
   upsertGeoJSONSource(map, SOURCES.pois, fc);
 
-  // Soft shadow behind each POI chip — gives the lollipop pin a subtle
-  // 3D depth without needing images. Slightly larger, offset down-right,
-  // dark blur. Renders below the chip (added first = lower z).
+  // Outer glow ring — the stroke-colored ring one step outside the chip,
+  // giving each pin a coloured halo that reads as a beveled edge in 2D.
+  // Renders below the chip shadow for correct z ordering.
+  addLayerIfMissing(map, {
+    id: `${LAYERS.poisChip}-glow`,
+    source: SOURCES.pois,
+    type: "circle",
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 13, 19, 22, 21, 32],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
+      "circle-translate-anchor": "viewport",
+      "circle-color": [
+        "match", ["get", "kind"],
+        "elevator",      "#2563eb",
+        "stairs",        "#b45309",
+        "bathroom",      "#be185d",
+        "restroom",      "#be185d",
+        "restroom_m",    "#2563eb",
+        "restroom_f",    "#be185d",
+        "restroom_a",    "#7c3aed",
+        "entrance",      "#15803d",
+        "exit",          "#b91c1c",
+        "info",          "#0ea5e9",
+        "cafe",          "#a16207",
+        "first_aid",     "#dc2626",
+        "defibrillator", "#e11d48",
+        "meeting_point", "#059669",
+                         "#3b82f6",
+      ],
+      "circle-blur": 0.45,
+      "circle-opacity": 0.22,
+    },
+    minzoom: 15,
+  });
+  // Drop shadow behind each POI chip — darker + larger blur than v3.85.
   addLayerIfMissing(map, {
     id: `${LAYERS.poisChip}-shadow`,
     source: SOURCES.pois,
     type: "circle",
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 11, 19, 19, 21, 28],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [2, -24]], 19, ["literal", [3, -41]], 21, ["literal", [3, -57]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 21, 21, 30],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [2, -22]], 19, ["literal", [3, -38]], 21, ["literal", [4, -54]]],
       "circle-translate-anchor": "viewport",
-      "circle-color": "rgba(0,0,0,0.25)",
-      "circle-blur": 0.8,
+      "circle-color": "rgba(0,0,0,0.30)",
+      "circle-blur": 1.1,
     },
     minzoom: 14,
   });
@@ -2380,32 +2440,33 @@ function addLayerIfMissing(map: MaplibreMap, layer: import("maplibre-gl").AddLay
   }
 }
 
-/** Friendly label for a POI kind — mirrors the sidebar's naming so the
- *  hover tooltip on the map uses the same words the admin sees while
- *  editing. Falls back to a titlecased kind for unknown values so new
- *  POI kinds render sanely without a code change. */
+/** Friendly bilingual label for a POI kind. Used in hover tooltips.
+ *  Returns a Finnish/English pair so the tooltip can show both. */
 function poiKindLabel(kind: string): string {
+  const ui = typeof navigator !== "undefined" ? navigator.language : "fi";
+  const fi = ui.startsWith("fi");
   switch (kind) {
-    case "stairs":        return "Stairs";
-    case "elevator":      return "Elevator";
-    case "door":          return "Door";
-    case "entrance":      return "Entrance";
-    case "exit":          return "Emergency exit";
-    case "bathroom":      return "Bathroom";
-    case "info":          return "Information";
-    case "reception":     return "Reception";
-    case "parking":       return "Parking";
-    case "bike":          return "Bike parking";
-    case "restroom_m":    return "Restroom · M";
-    case "restroom_f":    return "Restroom · F";
-    case "restroom_a":    return "Accessible restroom";
-    case "cafe":          return "Café";
-    case "vending":       return "Vending machine";
-    case "water":         return "Water fountain";
-    case "first_aid":     return "First aid";
-    case "defibrillator": return "Defibrillator (AED)";
-    case "printer":       return "Printer";
-    case "meeting_point": return "Meeting point";
+    case "stairs":        return fi ? "Portaat" : "Stairs";
+    case "elevator":      return fi ? "Hissi" : "Elevator";
+    case "door":          return fi ? "Ovi" : "Door";
+    case "entrance":      return fi ? "Sisäänkäynti" : "Entrance";
+    case "exit":          return fi ? "Hätäuloskäynti" : "Emergency exit";
+    case "bathroom":      return "WC";
+    case "restroom":      return "WC";
+    case "info":          return fi ? "Info" : "Information";
+    case "reception":     return fi ? "Vastaanotto" : "Reception";
+    case "parking":       return fi ? "Pysäköinti" : "Parking";
+    case "bike":          return fi ? "Pyöräparkki" : "Bike parking";
+    case "restroom_m":    return fi ? "WC (M)" : "Restroom · M";
+    case "restroom_f":    return fi ? "WC (N)" : "Restroom · F";
+    case "restroom_a":    return fi ? "Esteetön WC" : "Accessible WC";
+    case "cafe":          return fi ? "Kahvila" : "Café";
+    case "vending":       return fi ? "Automaatti" : "Vending machine";
+    case "water":         return fi ? "Vesipiste" : "Water fountain";
+    case "first_aid":     return fi ? "Ensiapu" : "First aid";
+    case "defibrillator": return fi ? "Defibrillaattori (AED)" : "Defibrillator (AED)";
+    case "printer":       return fi ? "Tulostin" : "Printer";
+    case "meeting_point": return fi ? "Kokoontumispaikka" : "Meeting point";
     default: return kind ? (kind.charAt(0).toUpperCase() + kind.slice(1).replace(/_/g, " ")) : "POI";
   }
 }

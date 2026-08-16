@@ -75,6 +75,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
     dragStartYRef.current = null;
   };
   const onHandlePointerUp = () => { dragStartYRef.current = null; };
+  const onHandlePointerCancel = () => { dragStartYRef.current = null; };
   const cycleSnap = () =>
     setMobileSnap((s) => s === "peek" ? "half" : s === "half" ? "full" : "peek");
 
@@ -113,6 +114,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
+            onPointerCancel={onHandlePointerCancel}
             onClick={cycleSnap}
             role="button"
             aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
@@ -165,6 +167,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
+            onPointerCancel={onHandlePointerCancel}
             onClick={cycleSnap}
             role="button"
             aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
@@ -252,7 +255,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   );
 }
 
-// ── Share button ─────────────────────────────────────────────────
+// ── Share / copy link button ──────────────────────────────────────
 function ShareButton({ isFi }: { isFi: boolean }) {
   const [copied, setCopied] = useState(false);
   const handleShare = async () => {
@@ -263,7 +266,7 @@ function ShareButton({ isFi }: { isFi: boolean }) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2500);
     } catch { /* clipboard denied */ }
   };
   return (
@@ -273,7 +276,7 @@ function ShareButton({ isFi }: { isFi: boolean }) {
       className="w-full h-[38px] rounded-2xl font-medium text-[13px] border border-black/10 dark:border-white/10 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-colors"
     >
       <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-      {copied ? (isFi ? "Linkki kopioitu!" : "Link copied!") : (isFi ? "Jaa sijainti" : "Share location")}
+      {copied ? (isFi ? "Linkki kopioitu!" : "Link copied!") : (isFi ? "Kopioi linkki" : "Copy link")}
     </button>
   );
 }
@@ -455,6 +458,7 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     return (
       <>
         {r.description && <InfoRow label={fi ? "Tietoja" : "About"}>{r.description}</InfoRow>}
+        {r.roomNumber && <CopyRow label={fi ? "Huonenumero" : "Room number"} value={r.roomNumber} />}
         {r.teacher && <InfoRow label={fi ? "Opettaja" : "Teacher"} icon={User}>{r.teacher}</InfoRow>}
         {typeof r.capacity === "number" && r.capacity > 0 && (
           <InfoRow label={fi ? "Kapasiteetti" : "Capacity"} icon={Users}>
@@ -504,6 +508,35 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
         </InfoRow>
       )}
     </>
+  );
+}
+
+// Tappable row that copies its value to the clipboard on press.
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* denied */ }
+  };
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-black/5 dark:border-white/6 last:border-0">
+      <span className="w-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">{label}</p>
+        <p className="text-[13px] text-foreground leading-snug font-mono">{value}</p>
+      </div>
+      <button
+        type="button"
+        onClick={copy}
+        title={copied ? "Copied!" : "Copy"}
+        className="shrink-0 h-7 px-2.5 rounded-lg text-[11px] font-semibold border border-black/10 dark:border-white/10 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+      >
+        {copied ? "✓" : "Copy"}
+      </button>
+    </div>
   );
 }
 

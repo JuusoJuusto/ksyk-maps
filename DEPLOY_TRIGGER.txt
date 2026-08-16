@@ -1,7 +1,7 @@
-FORCE VERCEL REBUILD - 2026-08-13
+FORCE VERCEL REBUILD - 2026-08-14
 
-Bump reason: v3.85.0 — security fixes, map graphics overhaul, bug fixes
+Bump reason: v3.86.0 — new features, UI improvements, security & bug fixes
 
-Timestamp: 1787141700
-Build: FORCE_REBUILD_v3.85.0_SECURITY_MAP_FIXES
+Timestamp: 1787228100
+Build: FORCE_REBUILD_v3.86.0_NEW_FEATURES_UI
 
