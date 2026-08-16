@@ -10,15 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.86.0";
+export const APP_VERSION = "3.87.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.87.0",
+    date: "August 2026",
+    title: "Builder wall measurements, icon overhaul, close button fix, snap improvements",
+    titleFi: "Builderin seinämitat, ikoniuudistus, sulkemisnapin korjaus, snapin parannukset",
+    latest: true,
+    highlights: [
+      "Builder: wall/hallway segment lengths shown on top of committed walls (CAD-style)",
+      "Builder: snap radius increased (18px) and guide alignment zone widened (22px)",
+      "Builder: multi-point inner wall vertices now snap candidates (was broken)",
+      "Map: POI icons overhauled — emoji replaced with Noto Sans glyphs (renders correctly everywhere)",
+      "Map: stairs icon is now ≡ (staircase profile), door is ⊡, elevator is ↕",
+      "Map: room/class names visible from zoom 14 (was 15) — farther-out labels",
+      "UI: close button on feature info sheet now works correctly on mobile (drag handle narrowed)",
+      "UI: resize sheet drag area is now pill-only — tap outside pill no longer resizes",
+      "UI: removed 'Copy room number' button, room number shown as plain text",
+    ],
+    highlightsFi: [
+      "Builder: seinä-/käytäväsegmenttien pituudet näkyvät commitoiduissa seinissä (CAD-tyyli)",
+      "Builder: snap-säde kasvatettu (18px) ja suuntaohjauksen vyöhyke laajennettu (22px)",
+      "Builder: monipisteisten väliseinien verteksit nyt snap-ehdokkaita (oli rikki)",
+      "Kartta: POI-ikonit uudistettu — emoji korvattu Noto Sans -glyfeillä (toimii kaikkialla)",
+      "Kartta: portaiden ikoni on nyt ≡, oven ⊡, hissin ↕",
+      "Kartta: luokkien nimet näkyvissä zoomista 14 (oli 15)",
+      "UI: sulkemisnappi toimii nyt oikein mobiilissa (vetokahva kavennettu)",
+      "UI: arkin koon muuttaminen toimii vain pilleri-alueella — muu alue ei enää muuta kokoa",
+      "UI: 'Kopioi huonenumero' -nappi poistettu, huonenumero näytetään pelkkänä tekstinä",
+    ],
+  },
   {
     version: "3.86.0",
     date: "August 2026",
     title: "New features, UI improvements, security & bug fixes",
     titleFi: "Uusia ominaisuuksia, UI-parannuksia, tietoturva- ja bugikorjauksia",
-    latest: true,
+    latest: false,
     highlights: [
       "Security: Microsoft OAuth dev fallback now blocked in production (S3 — full auth bypass)",
       "New: room count badge on each floor in the floor selector",

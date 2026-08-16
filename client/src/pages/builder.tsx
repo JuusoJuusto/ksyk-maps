@@ -949,6 +949,60 @@ function BuilderWorkspace() {
       // Move wall layer to the very top so it always renders above rooms/corridors.
       try { map.moveLayer(hallLineId); } catch { /* ignore */ }
     }
+
+    // ── Wall measurement labels ───────────────────────────────────────────
+    // Show haversine length at the midpoint of every wall/hallway segment so
+    // the admin can see room dimensions while editing without a tape measure.
+    const MEAS_SRC = "builder-wall-measurements";
+    const MEAS_LAYER = "builder-wall-measurements-label";
+    const measFeatures: {
+      type: "Feature"; geometry: { type: "Point"; coordinates: [number, number] };
+      properties: { label: string };
+    }[] = [];
+    const R_M = 6371000;
+    const toRadM = (d: number) => (d * Math.PI) / 180;
+    for (const hw of halls) {
+      const pts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
+      const segPts: number[][] = (Array.isArray(pts) && pts.length >= 2)
+        ? pts.map((p) => [p.lng, p.lat])
+        : [[hw.startX, hw.startY], [hw.endX, hw.endY]];
+      for (let i = 0; i < segPts.length - 1; i++) {
+        const a = segPts[i]; const b = segPts[i + 1];
+        if (!a || !b) continue;
+        const midLng = (a[0] + b[0]) / 2; const midLat = (a[1] + b[1]) / 2;
+        const dLat = toRadM(b[1] - a[1]); const dLng = toRadM(b[0] - a[0]);
+        const s2 = Math.sin(dLat / 2) ** 2 + Math.cos(toRadM(a[1])) * Math.cos(toRadM(b[1])) * Math.sin(dLng / 2) ** 2;
+        const dist = 2 * R_M * Math.asin(Math.sqrt(Math.min(1, s2)));
+        const label = dist < 10 ? `${dist.toFixed(2)} m` : dist < 1000 ? `${dist.toFixed(1)} m` : `${(dist / 1000).toFixed(2)} km`;
+        measFeatures.push({ type: "Feature", geometry: { type: "Point", coordinates: [midLng, midLat] }, properties: { label } });
+      }
+    }
+    const measFC = { type: "FeatureCollection" as const, features: measFeatures };
+    const measSrc = map.getSource(MEAS_SRC) as maplibregl.GeoJSONSource | undefined;
+    if (measSrc) {
+      measSrc.setData(measFC as any);
+      try { map.moveLayer(MEAS_LAYER); } catch { /* ignore */ }
+    } else {
+      map.addSource(MEAS_SRC, { type: "geojson", data: measFC as any });
+      map.addLayer({
+        id: MEAS_LAYER, source: MEAS_SRC, type: "symbol",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 16, 10, 19, 13, 21, 15],
+          "text-font": ["Noto Sans Regular"],
+          "text-allow-overlap": false,
+          "text-optional": true,
+          "text-anchor": "center",
+        },
+        paint: {
+          "text-color": "#1e3a8a",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 2,
+        },
+        minzoom: 16,
+      });
+      try { map.moveLayer(MEAS_LAYER); } catch { /* ignore */ }
+    }
   }, [mapReady, roomsQ.data, hallwaysQ.data, selection, selectedRoomIds, cameraState.activeFloor, darkMode]);
 
   // ── Dark-mode wall color ────────────────────────────────────────
@@ -2043,7 +2097,7 @@ function BuilderWorkspace() {
     const SRC = "builder-snap-indicator";
     const LAYER = "builder-snap-indicator-circle";
     const RING = "builder-snap-indicator-ring";
-    const SNAP_PX = 12;
+    const SNAP_PX = 18;
 
     const isDrawTool =
       activeTool === "building" || activeTool === "room" ||
@@ -2066,13 +2120,26 @@ function BuilderWorkspace() {
       for (const p of r.points) candidates.push({ lat: p.lat, lng: p.lng, kind: "vertex" });
     }
     for (const hw of hallwaysQ.data ?? []) {
-      candidates.push({ lat: hw.startY, lng: hw.startX, kind: "endpoint" });
-      candidates.push({ lat: hw.endY,   lng: hw.endX,   kind: "endpoint" });
-      candidates.push({
-        lat: (hw.startY + hw.endY) / 2,
-        lng: (hw.startX + hw.endX) / 2,
-        kind: "midpoint",
-      });
+      const hwPts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
+      if (Array.isArray(hwPts) && hwPts.length >= 2) {
+        // Multi-point hallway: all vertices + segment midpoints.
+        for (const p of hwPts) candidates.push({ lat: p.lat, lng: p.lng, kind: "endpoint" });
+        for (let i = 0; i < hwPts.length - 1; i++) {
+          candidates.push({
+            lat: (hwPts[i].lat + hwPts[i + 1].lat) / 2,
+            lng: (hwPts[i].lng + hwPts[i + 1].lng) / 2,
+            kind: "midpoint",
+          });
+        }
+      } else {
+        candidates.push({ lat: hw.startY, lng: hw.startX, kind: "endpoint" });
+        candidates.push({ lat: hw.endY,   lng: hw.endX,   kind: "endpoint" });
+        candidates.push({
+          lat: (hw.startY + hw.endY) / 2,
+          lng: (hw.startX + hw.endX) / 2,
+          kind: "midpoint",
+        });
+      }
     }
 
     const clearIndicator = () => {
@@ -2207,7 +2274,7 @@ function BuilderWorkspace() {
       return;
     }
 
-    const GUIDE_PX = 14;
+    const GUIDE_PX = 22;
 
     // ── Wall-direction guide edges ─────────────────────────────────────
     // Collect all building/room polygon edges + hallway segments as

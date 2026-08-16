@@ -110,7 +110,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <div className="relative shrink-0 h-44 overflow-hidden rounded-t-3xl sm:rounded-t-3xl bg-slate-100 dark:bg-slate-800">
           {/* Mobile drag handle */}
           <div
-            className="sm:hidden absolute top-0 left-0 right-0 z-20 flex justify-center pt-3 pb-6 cursor-grab active:cursor-grabbing touch-none select-none"
+            className="sm:hidden absolute top-0 left-1/2 -translate-x-1/2 z-10 flex justify-center pt-3 pb-6 cursor-grab active:cursor-grabbing touch-none select-none w-28"
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
@@ -135,7 +135,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full flex items-center justify-center text-white bg-black/40 hover:bg-black/60 backdrop-blur-md transition-all shadow"
+            className="absolute top-3 right-3 z-20 h-8 w-8 rounded-full flex items-center justify-center text-white bg-black/40 hover:bg-black/60 backdrop-blur-md transition-all shadow"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -161,18 +161,20 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
             paddingBottom: "2.5rem",
           }}
         >
-          {/* Mobile drag handle */}
-          <div
-            className="sm:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none select-none"
-            onPointerDown={onHandlePointerDown}
-            onPointerMove={onHandlePointerMove}
-            onPointerUp={onHandlePointerUp}
-            onPointerCancel={onHandlePointerCancel}
-            onClick={cycleSnap}
-            role="button"
-            aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
-          >
-            <span className="h-[5px] w-10 rounded-full bg-white/35 shadow-sm" />
+          {/* Mobile drag handle — pill area only so it doesn't block the close button */}
+          <div className="sm:hidden flex justify-center pt-3 pb-1">
+            <div
+              className="px-8 py-1.5 cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={onHandlePointerDown}
+              onPointerMove={onHandlePointerMove}
+              onPointerUp={onHandlePointerUp}
+              onPointerCancel={onHandlePointerCancel}
+              onClick={cycleSnap}
+              role="button"
+              aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
+            >
+              <span className="block h-[5px] w-10 rounded-full bg-white/35 shadow-sm" />
+            </div>
           </div>
 
           {/* Close button */}
@@ -246,7 +248,6 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
                 {i18n.language === "fi" ? "Reittiohjeet" : "Get directions"}
               </button>
               )}
-              <ShareButton isFi={i18n.language === "fi"} />
             </div>
           ) : null
         ) : null}
@@ -255,31 +256,6 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   );
 }
 
-// ── Share / copy link button ──────────────────────────────────────
-function ShareButton({ isFi }: { isFi: boolean }) {
-  const [copied, setCopied] = useState(false);
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try { await navigator.share({ url, title: document.title }); return; } catch { /* cancelled */ }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch { /* clipboard denied */ }
-  };
-  return (
-    <button
-      type="button"
-      onClick={handleShare}
-      className="w-full h-[38px] rounded-2xl font-medium text-[13px] border border-black/10 dark:border-white/10 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-colors"
-    >
-      <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-      {copied ? (isFi ? "Linkki kopioitu!" : "Link copied!") : (isFi ? "Kopioi linkki" : "Copy link")}
-    </button>
-  );
-}
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -458,7 +434,7 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     return (
       <>
         {r.description && <InfoRow label={fi ? "Tietoja" : "About"}>{r.description}</InfoRow>}
-        {r.roomNumber && <CopyRow label={fi ? "Huonenumero" : "Room number"} value={r.roomNumber} />}
+        {r.roomNumber && <InfoRow label={fi ? "Huonenumero" : "Room number"}>{r.roomNumber}</InfoRow>}
         {r.teacher && <InfoRow label={fi ? "Opettaja" : "Teacher"} icon={User}>{r.teacher}</InfoRow>}
         {typeof r.capacity === "number" && r.capacity > 0 && (
           <InfoRow label={fi ? "Kapasiteetti" : "Capacity"} icon={Users}>
@@ -511,34 +487,6 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
   );
 }
 
-// Tappable row that copies its value to the clipboard on press.
-function CopyRow({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* denied */ }
-  };
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-black/5 dark:border-white/6 last:border-0">
-      <span className="w-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">{label}</p>
-        <p className="text-[13px] text-foreground leading-snug font-mono">{value}</p>
-      </div>
-      <button
-        type="button"
-        onClick={copy}
-        title={copied ? "Copied!" : "Copy"}
-        className="shrink-0 h-7 px-2.5 rounded-lg text-[11px] font-semibold border border-black/10 dark:border-white/10 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-      >
-        {copied ? "✓" : "Copy"}
-      </button>
-    </div>
-  );
-}
 
 function InfoRow({
   label,
