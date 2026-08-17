@@ -797,53 +797,97 @@ export function playTacoSong(): void {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AudioCtx();
     const master = ctx.createGain();
-    master.gain.value = 0.3;
+    master.gain.value = 0.22;
     master.connect(ctx.destination);
 
-    // "It's Raining Tacos" by Parry Gripp — melody approximation.
-    // Key of G major.  BPM ~148.
+    // "It's Raining Tacos" — G major, BPM 148, sawtooth+lowpass synth + drums.
     const BPM = 148;
-    const q = 60 / BPM; // quarter-note seconds
-    // Frequencies: G4=392, A4=440, B4=494, C5=523, D5=587, E5=659, G5=784
-    const G4=392, A4=440, B4=494, C5=523, D5=587, E5=659, G5=784;
+    const q = 60 / BPM;
 
-    const melody: [number, number, number][] = [ // [freq, startBeat, durBeats]
-      // "It's  rain-ing  ta  - cos"
-      [G4, 0,   0.4], [A4, 0.5, 0.4], [B4, 1,   0.4], [C5, 1.5, 0.8],
-      [B4, 2.5, 0.4], [A4, 3,   0.4], [G4, 3.5, 0.9],
-      // "from  out  of  the  sky"
-      [A4, 4.5, 0.4], [B4, 5,   0.4], [C5, 5.5, 0.4], [D5, 6,   0.8],
-      [C5, 7,   0.4], [B4, 7.5, 0.4], [A4, 8,   0.4], [G4, 8.5, 1.3],
-      // Chorus rise
-      [E5, 10,  0.45],[D5, 10.5,0.45],[C5, 11,  0.45],[B4, 11.5,0.45],
-      [A4, 12,  0.45],[G4, 12.5,0.45],[A4, 13,  0.45],[B4, 13.5,0.45],
-      [C5, 14,  0.45],[D5, 14.5,0.45],[E5, 15,  0.45],[D5, 15.5,0.45],
-      [C5, 16,  0.45],[B4, 16.5,0.45],[A4, 17,  0.45],[G5, 17.5,1.8],
-    ];
-    // Bass (root notes, one octave below, sine wave)
-    const bass: [number, number, number][] = [
-      [G4/2,0,2],[A4/2,2,2],[G4/2,4,2],[D5/2,6,2],
-      [G4/2,8,2],[C5/2,10,2],[A4/2,12,2],[C5/2,14,2],[G4/2,16,2.5],[G4/2,18,2],
-    ];
-
-    const play = (f: number, beatStart: number, beatDur: number, type: OscillatorType, vol: number) => {
+    const melNote = (f: number, beat: number, dur: number, vol: number) => {
       const osc = ctx.createOscillator();
+      const flt = ctx.createBiquadFilter();
       const env = ctx.createGain();
-      osc.type = type; osc.frequency.value = f;
-      osc.connect(env); env.connect(master);
-      const t = ctx.currentTime + beatStart * q;
-      const d = beatDur * q;
+      osc.type = "sawtooth"; osc.frequency.value = f;
+      flt.type = "lowpass"; flt.frequency.value = 1800; flt.Q.value = 1.8;
+      osc.connect(flt); flt.connect(env); env.connect(master);
+      const t = ctx.currentTime + beat * q, d = dur * q;
       env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(vol, t + 0.02);
-      env.gain.setValueAtTime(vol, t + d - 0.04);
+      env.gain.linearRampToValueAtTime(vol, t + 0.018);
+      env.gain.setValueAtTime(vol, t + d * 0.65);
       env.gain.exponentialRampToValueAtTime(0.001, t + d);
-      osc.start(t); osc.stop(t + d + 0.05);
+      osc.start(t); osc.stop(t + d + 0.02);
     };
 
-    for (const [f, s, d] of melody) play(f, s, d, "triangle", 0.55);
-    for (const [f, s, d] of bass)   play(f, s, d, "sine",     0.3);
+    const bassNote = (f: number, beat: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = "triangle"; osc.frequency.value = f / 2;
+      osc.connect(env); env.connect(master);
+      const t = ctx.currentTime + beat * q, d = dur * q;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(0.3, t + 0.02);
+      env.gain.setValueAtTime(0.3, t + d * 0.75);
+      env.gain.exponentialRampToValueAtTime(0.001, t + d);
+      osc.start(t); osc.stop(t + d + 0.02);
+    };
 
-    setTimeout(() => ctx.close(), (19 * q + 1) * 1000);
+    const kick = (beat: number) => {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = "sine";
+      const t = ctx.currentTime + beat * q;
+      osc.frequency.setValueAtTime(130, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.18);
+      env.gain.setValueAtTime(0.85, t);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      osc.connect(env); env.connect(master);
+      osc.start(t); osc.stop(t + 0.3);
+    };
+
+    const hihat = (beat: number, accent: boolean) => {
+      const t = ctx.currentTime + beat * q;
+      const n = Math.floor(ctx.sampleRate * 0.045);
+      const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 8500;
+      const env = ctx.createGain();
+      const v = accent ? 0.16 : 0.07;
+      env.gain.setValueAtTime(v, t);
+      env.gain.exponentialRampToValueAtTime(0.001, t + (accent ? 0.04 : 0.022));
+      src.connect(hp); hp.connect(env); env.connect(master);
+      src.start(t); src.stop(t + 0.05);
+    };
+
+    // Drum pattern — 5 bars of 4/4 (20 beats).
+    for (let b = 0; b < 20; b += 0.5) hihat(b, b % 2 === 0);
+    for (let b = 0; b < 20; b += 2)  kick(b);
+
+    const G4=392, A4=440, B4=494, C5=523, D5=587, E5=659, G5=784;
+
+    const melody: [number, number, number][] = [
+      [G4, 0,   0.32], [A4, 0.5, 0.32], [B4, 1,   0.32], [C5, 1.5, 0.62],
+      [B4, 2.5, 0.32], [A4, 3,   0.32], [G4, 3.5, 0.82],
+      [A4, 4.5, 0.32], [B4, 5,   0.32], [C5, 5.5, 0.32], [D5, 6,   0.62],
+      [C5, 7,   0.32], [B4, 7.5, 0.32], [A4, 8,   0.32], [G4, 8.5, 1.1],
+      [E5, 10,  0.38], [D5, 10.5,0.38], [C5, 11,  0.38], [B4, 11.5,0.38],
+      [A4, 12,  0.38], [G4, 12.5,0.38], [A4, 13,  0.38], [B4, 13.5,0.38],
+      [C5, 14,  0.38], [D5, 14.5,0.38], [E5, 15,  0.38], [D5, 15.5,0.38],
+      [C5, 16,  0.38], [B4, 16.5,0.38], [A4, 17,  0.38], [G5, 17.5, 1.8],
+    ];
+
+    const bassLine: [number, number, number][] = [
+      [G4, 0, 1.9], [A4, 2, 1.9], [G4, 4, 1.9], [D5, 6, 1.9],
+      [G4, 8, 1.9], [C5, 10, 1.9], [A4, 12, 1.9], [C5, 14, 1.9],
+      [G4, 16, 1.9], [G4, 18, 1.9],
+    ];
+
+    for (const [f, b, d] of melody)   melNote(f, b, d, 0.48);
+    for (const [f, b, d] of bassLine) bassNote(f, b, d);
+
+    setTimeout(() => ctx.close(), (20 * q + 2) * 1000);
   } catch { /* AudioContext blocked — silent */ }
 }
 

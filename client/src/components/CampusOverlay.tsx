@@ -1457,10 +1457,10 @@ function installPoiPillars(
     type: "circle",
     minzoom: 14,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 10, 16, 14, 18, 18, 20, 23],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -12]], 16, ["literal", [0, -17]], 18, ["literal", [0, -22]], 20, ["literal", [0, -29]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 13, 16, 17, 18, 22, 20, 28],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
       "circle-translate-anchor": "viewport",
-      "circle-color": "#22c55e",
+      "circle-color": "#16a34a",
       "circle-stroke-color": "#ffffff",
       "circle-stroke-width": 3,
     },
@@ -1472,7 +1472,7 @@ function installPoiPillars(
     minzoom: 14,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 13, 16, 16, 18, 20, 20, 26],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 15, 16, 18, 18, 23, 20, 29],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1491,15 +1491,15 @@ function installPoiPillars(
     type: "symbol",
     minzoom: 14,
     layout: {
-      "text-field": "↑",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 16, 16, 18, 19, 20, 24],
+      "text-field": "⇑",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 14, 16, 18, 18, 22, 20, 28],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -12]], 16, ["literal", [0, -17]], 18, ["literal", [0, -22]], 20, ["literal", [0, -29]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
       "text-translate-anchor": "viewport",
     },
   });
@@ -2056,7 +2056,7 @@ const POI_ICON: Record<string, string> = {
   stairs:        "⊿",   // right triangle = staircase profile — Noto Sans U+22BF
   elevator:      "↕",   // up-down arrow — Noto Sans
   door:          "⊡",   // squared dot — door silhouette — Noto Sans
-  entrance:      "⊙",   // bullseye entry point — Noto Sans
+  entrance:      "⇑",   // double upward arrow — entry direction — Noto Sans
   exit:          "↪",   // exit arrow — Noto Sans
   bathroom:      "WC",  // restroom (unisex) — plain text
   info:          "ⓘ",  // circled i — Noto Sans

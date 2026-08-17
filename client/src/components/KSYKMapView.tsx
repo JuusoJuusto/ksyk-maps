@@ -658,7 +658,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 aria-pressed={selectedFloor === floor}
                 onClick={() => setSelectedFloor(floor)}
                 className={cn(
-                  "min-w-[36px] h-10 px-1 rounded-xl text-[13px] font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
+                  "min-w-[28px] h-7 px-1 rounded-xl text-[11px] font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
                   selectedFloor === floor
                     ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
                     : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
@@ -685,11 +685,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  distinct via the border between them; flex-col gap-3 handles
        *  the between-group breathing room. */}
       <div
-        className="absolute right-3 z-30 flex flex-col-reverse gap-3 items-end"
+        className="absolute right-3 z-30 flex flex-col-reverse gap-2 items-end max-h-[calc(100%-3rem)] overflow-hidden"
         style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom, 0.5rem))" }}
       >
         {/* 3D toggle + Center */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {canUse3D && (
           <button
             type="button"
@@ -698,7 +698,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             onClick={toggle3D}
             title={is3D ? "2D flat" : "3D view"}
             className={cn(
-              "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+              "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
               is3D
                 ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
                 : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
@@ -715,9 +715,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             aria-label="Reset view to campus defaults"
             onClick={recenter}
             title="Reset view — recenter, zoom, rotate to defaults"
-            className="w-11 h-11 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+            className="w-9 h-9 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
           >
-            <LocateFixed className="h-[19px] w-[19px]" strokeWidth={2.25} />
+            <LocateFixed className="h-4 w-4" strokeWidth={2.25} />
           </button>
           {/* GPS button — admin campus-map tab only */}
           {showGpsLocation && (
@@ -740,7 +740,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 }
               }}
               className={cn(
-                "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+                "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
                 gpsError
                   ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/30 dark:border-red-800"
                   : gpsPosition
@@ -750,7 +750,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                     : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground animate-pulse",
               )}
             >
-              <Navigation className="h-[17px] w-[17px]" strokeWidth={2.25} />
+              <Navigation className="h-4 w-4" strokeWidth={2.25} />
             </button>
           )}
         </div>
@@ -768,18 +768,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             }}
             aria-label="Zoom in"
             title="Zoom in"
-            className="w-11 h-11 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-9 h-9 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
           >
-            <Plus className="h-[19px] w-[19px]" strokeWidth={2.25} />
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => handleRef.current?.zoomOut()}
             aria-label="Zoom out"
             title="Zoom out"
-            className="w-11 h-11 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-9 h-9 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
           >
-            <Minus className="h-[19px] w-[19px]" strokeWidth={2.25} />
+            <Minus className="h-4 w-4" strokeWidth={2.25} />
           </button>
         </div>
 
@@ -794,13 +794,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           aria-pressed={showNav}
           title="Directions"
           className={cn(
-            "w-11 h-11 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+            "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
             showNav
               ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
               : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
           )}
         >
-          <Navigation2 className="h-[19px] w-[19px]" strokeWidth={2.25} />
+          <Navigation2 className="h-4 w-4" strokeWidth={2.25} />
         </button>
         )}
 
@@ -850,12 +850,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  is open (it would be covered) or nav panel is open. */}
       {!clickedFeature && !showNav && campus.isReady && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white/92 dark:bg-gray-900/92 backdrop-blur-md border border-black/8 dark:border-white/10 shadow-lg shadow-black/10 select-none"
+          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg shadow-black/10 select-none"
           style={{ bottom: "max(1.25rem, calc(0.75rem + env(safe-area-inset-bottom)))" }}
         >
           {([
             { kind: "bathroom",  glyph: "WC", label: "WC",                        fg: "text-pink-600 dark:text-pink-400" },
-            { kind: "stairs",    glyph: "≡",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
+            { kind: "stairs",    glyph: "⊿",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
             { kind: "elevator",  glyph: "↕",  label: fi ? "Hissi" : "Lift",        fg: "text-blue-600 dark:text-blue-400" },
             { kind: "info",      glyph: "ⓘ",  label: "Info",                       fg: "text-sky-600 dark:text-sky-400" },
             { kind: "cafe",      glyph: "☕",  label: fi ? "Kahvila" : "Cafe",      fg: "text-amber-700 dark:text-amber-500" },

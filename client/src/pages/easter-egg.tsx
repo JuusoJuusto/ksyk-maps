@@ -41,11 +41,6 @@ export default function EasterEgg() {
     // Track discovery if first time — both client telemetry AND server counter.
     if (!wasFound) {
       trackEasterEgg('secret-easter-egg');
-      fetch("/api/easter-eggs/found", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ egg: "secretEasterEgg" }),
-      }).catch(() => { /* silent */ });
     }
     
     // Show unlock popup if it wasn't already unlocked
