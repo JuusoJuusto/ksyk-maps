@@ -10,15 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.89.0";
+export const APP_VERSION = "3.90.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.90.0",
+    date: "August 2026",
+    title: "Taco drums, solid POI bar, entrance icon, wall labels above walls, egg 404 fixed",
+    titleFi: "Taco-rummut, kiinteä POI-palkki, sisäänkäynti-ikoni, seinämitat yläpuolella, muna-404 korjattu",
+    latest: true,
+    highlights: [
+      "Easter eggs: Taco song now has full drum kit (kick + hi-hat) and warm sawtooth synth — sounds like music",
+      "Easter eggs: Removed redundant /api/easter-eggs/found calls from 3 pages (caused 404 on every egg)",
+      "Map: Quick POI bar is now solid white — no backdrop blur / glass effect",
+      "Map: Stair icon in POI bar matches the map icon (⊿)",
+      "Map: Entrance marker larger, uses ⇑ double arrow (MazeMap style pin)",
+      "Builder: Wall measurement labels use bottom-anchor — text floats above wall instead of through it",
+    ],
+    highlightsFi: [
+      "Munat: Taco-biisi nyt täydellä rumpukomppilla (bassorumpu + hi-hat) ja lämmin saha-aaltosyntetisaattori",
+      "Munat: Poistettu turhat /api/easter-eggs/found-kutsut 3 sivulta (aiheutti 404 joka munalla)",
+      "Kartta: Pikä POI-palkki nyt kiinteän valkoinen — ei enää lasisumuefektiä",
+      "Kartta: Porrasikooni POI-palkissa vastaa nyt kartan ikonia (⊿)",
+      "Kartta: Sisäänkäyntimerkki isompi, käyttää ⇑ kaksoisnuolta (MazeMap-tyyli)",
+      "Rakentaja: Seinämitat käyttävät bottom-anchor — teksti kelluu seinän yläpuolella",
+    ],
+  },
   {
     version: "3.89.0",
     date: "August 2026",
     title: "POI overhaul, stair icon, taco song, wall labels above walls, buildings non-clickable",
     titleFi: "POI-uudistus, porrasikooni, taco-biisi, seinämitat yläpuolella, rakennukset ei-klikattavia",
-    latest: true,
     highlights: [
       "Map: POI chips now plain white (not tinted) with colored icons per type",
       "Map: Stair icon updated to triangle profile (⊿) for clearer meaning",

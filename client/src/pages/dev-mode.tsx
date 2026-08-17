@@ -24,11 +24,6 @@ export default function DevModeEasterEgg() {
     
     if (!wasFound) {
       trackEasterEgg('dev-mode');
-      fetch("/api/easter-eggs/found", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ egg: "devMode" }),
-      }).catch(() => { /* silent */ });
     }
   }, []);
 

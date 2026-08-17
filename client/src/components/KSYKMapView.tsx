@@ -850,12 +850,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  is open (it would be covered) or nav panel is open. */}
       {!clickedFeature && !showNav && campus.isReady && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white/92 dark:bg-gray-900/92 backdrop-blur-md border border-black/8 dark:border-white/10 shadow-lg shadow-black/10 select-none"
+          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg shadow-black/10 select-none"
           style={{ bottom: "max(1.25rem, calc(0.75rem + env(safe-area-inset-bottom)))" }}
         >
           {([
             { kind: "bathroom",  glyph: "WC", label: "WC",                        fg: "text-pink-600 dark:text-pink-400" },
-            { kind: "stairs",    glyph: "≡",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
+            { kind: "stairs",    glyph: "⊿",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
             { kind: "elevator",  glyph: "↕",  label: fi ? "Hissi" : "Lift",        fg: "text-blue-600 dark:text-blue-400" },
             { kind: "info",      glyph: "ⓘ",  label: "Info",                       fg: "text-sky-600 dark:text-sky-400" },
             { kind: "cafe",      glyph: "☕",  label: fi ? "Kahvila" : "Cafe",      fg: "text-amber-700 dark:text-amber-500" },

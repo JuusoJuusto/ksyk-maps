@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-17
 
-Bump reason: v3.89.0 — POI white chips, stair icon, taco song full melody, wall labels above walls, buildings non-clickable, /api/t/egg 404 fix
+Bump reason: v3.90.0 — taco drums, solid POI bar, entrance icon MazeMap style, wall labels above walls, egg 404 fixed
 
-Timestamp: 1787532000
-Build: FORCE_REBUILD_v3.89.0_POI_TACO_SONG_WALL_LABELS_FIX
+Timestamp: 1787538000
+Build: FORCE_REBUILD_v3.90.0_TACO_DRUMS_POI_BAR_ENTRANCE_WALLS

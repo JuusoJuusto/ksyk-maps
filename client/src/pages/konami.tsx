@@ -21,11 +21,6 @@ export default function KonamiEasterEgg() {
     
     if (!wasFound) {
       trackEasterEgg('konami-code');
-      fetch("/api/easter-eggs/found", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ egg: "konamiCode" }),
-      }).catch(() => { /* silent */ });
     }
     
     return () => window.removeEventListener('resize', handleResize);

@@ -1000,17 +1000,17 @@ function BuilderWorkspace() {
         id: MEAS_LAYER, source: MEAS_SRC, type: "symbol",
         layout: {
           "text-field": ["get", "label"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 16, 12, 19, 15, 21, 18],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 16, 13, 19, 17, 21, 20],
           "text-font": ["Noto Sans Bold"],
           "text-allow-overlap": true,
           "text-ignore-placement": true,
-          "text-anchor": "center",
-          "text-offset": [0, -0.8],
+          "text-anchor": "bottom",
+          "text-offset": [0, -0.15],
         },
         paint: {
           "text-color": "#1e40af",
           "text-halo-color": "#ffffff",
-          "text-halo-width": 8,
+          "text-halo-width": 4,
         },
         minzoom: 15,
       });
