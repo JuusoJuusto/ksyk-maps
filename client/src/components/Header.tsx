@@ -162,7 +162,7 @@ export default function Header({
           {/* v3.27.5 — taller header on desktop. 14→16→20 across
            *  mobile/sm/lg so the nav reads as a proper top bar on
            *  desktop, not a squished chip. */}
-          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+          <div className="flex items-center gap-2 h-12 sm:h-14">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
               <KSYKLogo
@@ -178,15 +178,62 @@ export default function Header({
 
             {/* Desktop centre label */}
             {isInAdminPanel && (
-              <nav className="hidden lg:flex">
+              <nav className="hidden md:flex">
                 <span className="px-3 py-2 text-sm font-semibold text-blue-600">
                   Admin Management Portal
                 </span>
               </nav>
             )}
 
+            {/* Inline search — md+ screens */}
+            {onSearchChange && !isInAdminPanel && (
+              <div className="hidden md:flex flex-1 min-w-0 max-w-xs lg:max-w-md relative mx-2">
+                <Search className={cn(
+                  "absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] pointer-events-none z-10 transition-colors",
+                  (searchQuery && searchQuery.trim()) ? "text-blue-600 dark:text-blue-400" : (darkMode ? "text-gray-500" : "text-gray-400"),
+                )} />
+                <Input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery ?? ""}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
+                  className={cn(
+                    "h-9 w-full pl-9 pr-14 text-sm rounded-xl border shadow-sm transition-all",
+                    "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/60 focus-visible:shadow-md focus-visible:shadow-blue-500/10",
+                    darkMode ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500" : "bg-white border-gray-200"
+                  )}
+                  role="combobox"
+                  aria-controls="search-results-listbox"
+                  aria-expanded={!!(searchQuery && searchQuery.trim())}
+                  aria-autocomplete="list"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => onSearchChange("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5 text-gray-400" />
+                  </button>
+                ) : (
+                  <kbd className={cn(
+                    "absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border pointer-events-none select-none",
+                    darkMode ? "border-gray-700 bg-gray-800 text-gray-500" : "border-gray-200 bg-white text-gray-400",
+                  )}>
+                    {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
+                  </kbd>
+                )}
+              </div>
+            )}
+
             {/* Desktop controls */}
-            <div className={homeMinimal ? "hidden" : "hidden lg:flex items-center space-x-2 lg:space-x-3"}>
+            <div className={homeMinimal ? "hidden" : "hidden md:flex items-center space-x-1.5"}>
               {/* Theme toggle */}
               <button
                 onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
@@ -222,7 +269,7 @@ export default function Header({
                 <>
                   <Link href="/lunch">
                     <Button variant="outline" size="sm" className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100 font-semibold shadow-sm" data-testid="button-lunch">
-                      🍽️ {currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}
+                      🍽️<span className="hidden xl:inline ml-1">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
                     </Button>
                   </Link>
                   <Link href="/hsl">
@@ -249,7 +296,7 @@ export default function Header({
             </div>
 
             {/* Mobile hamburger */}
-            <div className={homeMinimal ? "hidden" : "lg:hidden"}>
+            <div className={homeMinimal ? "hidden" : "md:hidden"}>
               <button
                 onClick={() => setShowMobileMenu(true)}
                 className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -267,7 +314,7 @@ export default function Header({
          *  keyboard hint pill, and a slightly bigger footprint so it
          *  reads as the primary way to explore the campus. */}
         {onSearchChange && (
-          <div className={cn("border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
+          <div className={cn("md:hidden border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
               <Search className={cn(
                 "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
@@ -276,7 +323,6 @@ export default function Header({
                   : (darkMode ? "text-gray-500" : "text-gray-400"),
               )} />
               <Input
-                ref={searchInputRef}
                 type="search"
                 value={searchQuery ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -338,7 +384,7 @@ export default function Header({
       <div
         aria-hidden="true"
         onClick={() => setShowMobileMenu(false)}
-        className="fixed inset-0 z-[60] lg:hidden bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] md:hidden bg-black/40 backdrop-blur-sm"
         style={{
           opacity: showMobileMenu ? 1 : 0,
           pointerEvents: showMobileMenu ? "auto" : "none",
@@ -351,7 +397,7 @@ export default function Header({
        *  sheet looks like a floating card, not an edge-to-edge modal. */}
       <div
         className={cn(
-          "fixed z-[70] lg:hidden left-0 right-0 top-[4.5rem] sm:top-[5rem]",
+          "fixed z-[70] md:hidden left-0 right-0 top-[3.5rem] sm:top-[4rem]",
           "px-2 sm:px-3 md:px-4",
         )}
         style={{

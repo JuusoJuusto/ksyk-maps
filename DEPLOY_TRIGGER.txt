@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-17
 
-Bump reason: v3.90.0 — taco drums, solid POI bar, entrance icon MazeMap style, wall labels above walls, egg 404 fixed
+Bump reason: v3.91.0 — responsive layout, MazeMap-style inline search, compact controls, 150% zoom fix
 
-Timestamp: 1787538000
-Build: FORCE_REBUILD_v3.90.0_TACO_DRUMS_POI_BAR_ENTRANCE_WALLS
+Timestamp: 1787541600
+Build: FORCE_REBUILD_v3.91.0_RESPONSIVE_LAYOUT_MAZEMAP_INLINE_SEARCH
