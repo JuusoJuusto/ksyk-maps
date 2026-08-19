@@ -187,7 +187,7 @@ export default function Header({
 
             {/* Inline search — md+ screens */}
             {onSearchChange && !isInAdminPanel && (
-              <div className="hidden md:flex flex-1 min-w-0 max-w-xs lg:max-w-md relative mx-2">
+              <div className="hidden md:flex flex-1 min-w-0 relative mx-2">
                 <Search className={cn(
                   "absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] pointer-events-none z-10 transition-colors",
                   (searchQuery && searchQuery.trim()) ? "text-blue-600 dark:text-blue-400" : (darkMode ? "text-gray-500" : "text-gray-400"),
@@ -233,7 +233,7 @@ export default function Header({
             )}
 
             {/* Desktop controls */}
-            <div className={homeMinimal ? "hidden" : "hidden md:flex items-center space-x-1.5"}>
+            <div className={homeMinimal ? "hidden" : "hidden md:flex flex-shrink-0 items-center space-x-1.5"}>
               {/* Theme toggle */}
               <button
                 onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}

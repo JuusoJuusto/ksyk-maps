@@ -425,8 +425,9 @@ export default function CampusOverlay({
         parts.push(`<div class="text-[10px] uppercase tracking-wide text-gray-500 mt-0.5">${escapeHtml(poiKindLabel(kind))}</div>`);
       }
       if (floor !== null && floor !== undefined && floor !== "") {
-        const floorLbl = typeof navigator !== "undefined" && navigator.language.startsWith("fi")
-          ? `Kerros ${floor}` : `Floor ${floor}`;
+        const _sl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+        const _fi = _sl ? _sl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
+        const floorLbl = _fi ? `Kerros ${floor}` : `Floor ${floor}`;
         parts.push(`<div class="text-[10px] text-blue-600 mt-0.5">${escapeHtml(floorLbl)}</div>`);
       }
       poiPopup
@@ -1479,9 +1480,7 @@ function installPoiPillars(
       "text-anchor": "bottom",
     },
     paint: {
-      "text-color": "#22c55e",
-      "text-halo-color": "#ffffff",
-      "text-halo-width": 2,
+      "text-color": "#16a34a",
     },
   });
   // ↑ arrow symbol inside the entrance chip
@@ -1503,14 +1502,16 @@ function installPoiPillars(
       "text-translate-anchor": "viewport",
     },
   });
-  // Text label "Sisäänkäynti" at close zoom
+  // Text label — language-aware entrance label at close zoom
+  const _enSl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+  const _enFi = _enSl ? _enSl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
   addLayerIfMissing(map, {
     id: "campus-entrances-label",
     source: "campus-entrances-marker-src",
     type: "symbol",
     minzoom: 18,
     layout: {
-      "text-field": "Sisäänkäynti",
+      "text-field": _enFi ? "Sisäänkäynti" : "Entrance",
       "text-size": 11,
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": false,
@@ -2473,8 +2474,8 @@ function addLayerIfMissing(map: MaplibreMap, layer: import("maplibre-gl").AddLay
 /** Friendly bilingual label for a POI kind. Used in hover tooltips.
  *  Returns a Finnish/English pair so the tooltip can show both. */
 function poiKindLabel(kind: string): string {
-  const ui = typeof navigator !== "undefined" ? navigator.language : "fi";
-  const fi = ui.startsWith("fi");
+  const _sl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+  const fi = _sl ? _sl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
   switch (kind) {
     case "stairs":        return fi ? "Portaat" : "Stairs";
     case "elevator":      return fi ? "Hissi" : "Elevator";
