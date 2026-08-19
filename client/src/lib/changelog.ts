@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.93.0";
+export const APP_VERSION = "3.94.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.94.0",
+    date: "August 2026",
+    title: "Entrance/door pin dedup, room label language fix, entrance glow 3D-only",
+    titleFi: "Sisäänkäynti/ovipinnin dedup, huonenimikorjaus, vihreä hehku vain 3D:ssä",
+    latest: true,
+    highlights: [
+      "Map: entrance and door pins no longer double-render — removed duplicate from generic POI chip system",
+      "Map: entrance green glow patch now only shows in 3D mode (no more giant green square in 2D)",
+      "Map: room labels now use active language only (not bilingual 'EN / FI') — less collision, less flickering",
+    ],
+    highlightsFi: [
+      "Kartta: sisäänkäynti- ja ovipinnit eivät enää kaksoisrenderöidy",
+      "Kartta: sisäänkäynnin vihreä hehku näkyy vain 3D-tilassa",
+      "Kartta: huonenimet näytetään vain aktiivisella kielellä — vähemmän vilkkumista",
+    ],
+  },
   {
     version: "3.93.0",
     date: "August 2026",
     title: "Two-row header for all screens, bigger balanced map controls",
     titleFi: "Kaksirivisetsi otsikko kaikille näytöille, isommat karttatoiminnot",
-    latest: true,
     highlights: [
       "Header: reverted to two-row layout (logo/controls row + search row) for all screen sizes",
       "Header: search bar always visible below the nav row — no inline search on desktop",
