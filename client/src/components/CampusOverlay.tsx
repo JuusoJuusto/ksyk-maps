@@ -237,7 +237,7 @@ export default function CampusOverlay({
       setVis(LAYERS.poi3D,            is3D);
       setVis(LAYERS.doorMarker,       true);
       setVis(LAYERS.entranceMarker,   true);
-      setVis(LAYERS.entranceGlow,     true);
+      setVis(LAYERS.entranceGlow,     is3D);
       setVis("campus-entrances-label", true);
       // Interior walls in 3D — walls are drawn as 2D lines
       // (campus-walls-line) at all times, plus an extruded thin
@@ -1794,10 +1794,9 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
           // per user feedback ("delete the normal name").
           properties: (() => {
             const rr = r as unknown as { nameEn?: string | null; nameFi?: string | null };
-            const bilingual = [rr.nameEn, rr.nameFi].filter((s): s is string => !!s && s.trim().length > 0);
-            const displayName = bilingual.length > 0
-              ? bilingual.join(" / ")
-              : (r.name ?? "");
+            const _lblSl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+            const _lblFi = _lblSl ? _lblSl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
+            const displayName = (_lblFi ? (rr.nameFi || rr.nameEn) : (rr.nameEn || rr.nameFi)) || r.name || "";
             return {
               id: r.id,
               name: displayName,
@@ -2159,12 +2158,6 @@ function installPOIs(
   for (const e of data.elevators) {
     if (typeof e.position?.lat === "number" && typeof e.position?.lng === "number") {
       push(e.id, "elevator", e.floors?.[0] ?? null, e.position.lat, e.position.lng, e.name ?? null);
-    }
-  }
-  for (const d of data.doors) {
-    if (typeof d.position?.lat === "number" && typeof d.position?.lng === "number") {
-      const kind = d.emergencyExit ? "exit" : "door";
-      push(d.id, kind, d.floor ?? null, d.position.lat, d.position.lng);
     }
   }
   // Generic POIs (info, reception, restroom_*, parking, bike) —

@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-19
 
-Bump reason: v3.93.0 — two-row header all screens, bigger balanced map controls
+Bump reason: v3.94.0 — entrance/door pin dedup, room label language fix, entrance glow 3D-only
 
-Timestamp: 1787800800
-Build: FORCE_REBUILD_v3.93.0_TWOROW_HEADER_BIGGER_CONTROLS
+Timestamp: 1787804400
+Build: FORCE_REBUILD_v3.94.0_PIN_DEDUP_LABEL_LANG_GLOW_3D
