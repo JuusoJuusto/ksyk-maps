@@ -185,55 +185,11 @@ export default function Header({
               </nav>
             )}
 
-            {/* Inline search — md+ screens */}
-            {onSearchChange && !isInAdminPanel && (
-              <div className="hidden md:flex flex-1 min-w-0 max-w-xs lg:max-w-md relative mx-2">
-                <Search className={cn(
-                  "absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] pointer-events-none z-10 transition-colors",
-                  (searchQuery && searchQuery.trim()) ? "text-blue-600 dark:text-blue-400" : (darkMode ? "text-gray-500" : "text-gray-400"),
-                )} />
-                <Input
-                  ref={searchInputRef}
-                  type="search"
-                  value={searchQuery ?? ""}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
-                  className={cn(
-                    "h-9 w-full pl-9 pr-14 text-sm rounded-xl border shadow-sm transition-all",
-                    "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/60 focus-visible:shadow-md focus-visible:shadow-blue-500/10",
-                    darkMode ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500" : "bg-white border-gray-200"
-                  )}
-                  role="combobox"
-                  aria-controls="search-results-listbox"
-                  aria-expanded={!!(searchQuery && searchQuery.trim())}
-                  aria-autocomplete="list"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-                {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => onSearchChange("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3.5 w-3.5 text-gray-400" />
-                  </button>
-                ) : (
-                  <kbd className={cn(
-                    "absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border pointer-events-none select-none",
-                    darkMode ? "border-gray-700 bg-gray-800 text-gray-500" : "border-gray-200 bg-white text-gray-400",
-                  )}>
-                    {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
-                  </kbd>
-                )}
-              </div>
-            )}
+            {/* Spacer — pins desktop controls to the right edge */}
+            <div className="flex-1" />
 
             {/* Desktop controls */}
-            <div className={homeMinimal ? "hidden" : "hidden md:flex items-center space-x-1.5"}>
+            <div className={homeMinimal ? "hidden" : "hidden md:flex flex-shrink-0 items-center space-x-1.5"}>
               {/* Theme toggle */}
               <button
                 onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
@@ -314,7 +270,7 @@ export default function Header({
          *  keyboard hint pill, and a slightly bigger footprint so it
          *  reads as the primary way to explore the campus. */}
         {onSearchChange && (
-          <div className={cn("md:hidden border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
+          <div className={cn("border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
               <Search className={cn(
                 "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
@@ -323,6 +279,7 @@ export default function Header({
                   : (darkMode ? "text-gray-500" : "text-gray-400"),
               )} />
               <Input
+                ref={searchInputRef}
                 type="search"
                 value={searchQuery ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}

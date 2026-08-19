@@ -10,15 +10,56 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.91.0";
+export const APP_VERSION = "3.93.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.93.0",
+    date: "August 2026",
+    title: "Two-row header for all screens, bigger balanced map controls",
+    titleFi: "Kaksirivisetsi otsikko kaikille näytöille, isommat karttatoiminnot",
+    latest: true,
+    highlights: [
+      "Header: reverted to two-row layout (logo/controls row + search row) for all screen sizes",
+      "Header: search bar always visible below the nav row — no inline search on desktop",
+      "Header: logo pinned left, buttons pinned right on all screen widths",
+      "Map controls: buttons bumped to w-12 h-12 for better touch targets",
+      "Map controls: floor selector buttons slightly larger and more readable",
+    ],
+    highlightsFi: [
+      "Otsikko: palautettu kaksiriviseen asetteluun kaikille näyttökoille",
+      "Otsikko: hakupalkki aina näkyvissä navigointirivin alla",
+      "Karttatoiminnot: painikkeet suurennettu (w-12 h-12) parempaa kosketusta varten",
+      "Karttatoiminnot: kerrosvalintapainikkeet hieman suuremmat",
+    ],
+  },
+  {
+    version: "3.92.0",
+    date: "August 2026",
+    title: "Entrance pin fix, multilanguage map labels, header search stretches, bigger map buttons",
+    titleFi: "Sisäänkäyntimerkki, monikielisyyskorjaus, hakupalkki venyttää, isommat karttatoiminnot",
+    highlights: [
+      "Map: entrance pin tail now matches chip color — seamless green balloon-pin shape",
+      "Map: entrance label is now language-aware ('Entrance' / 'Sisäänkäynti')",
+      "Map: all language detection now respects the app's saved language (not just browser language)",
+      "Map: floor toasts, POI tooltips, and labels all use the saved language preference",
+      "Header: search bar now stretches to fill full space between logo and buttons",
+      "Header: buttons pinned to the right, logo pinned to the left",
+      "Map controls: buttons restored to full size (w-11 h-11)",
+    ],
+    highlightsFi: [
+      "Kartta: sisäänkäyntipinnin häntä vastaa nyt chippien väriä",
+      "Kartta: sisäänkäyntitunniste on nyt kielitietoinen ('Entrance' / 'Sisäänkäynti')",
+      "Kartta: kaikki kielen tunnistukset kunnioittavat sovelluksen tallennettua kieltä",
+      "Otsikko: hakupalkki venyy täyttämään tilan logon ja painikkeiden välillä",
+      "Karttatoiminnot: painikkeet palautettu täyteen kokoon (w-11 h-11)",
+    ],
+  },
   {
     version: "3.91.0",
     date: "August 2026",
     title: "Responsive layout: MazeMap-style inline search, compact controls, 150% zoom fix",
     titleFi: "Responsiivinen ulkoasu: MazeMap-tyylinen hakupalkki otsikkoon, kompaktit ohjaimet",
-    latest: true,
     highlights: [
       "Header: search bar is now inline in the header (no second row) — saves vertical space",
       "Header: desktop controls show at md breakpoint (768px) — fixes 150% browser zoom on laptops",

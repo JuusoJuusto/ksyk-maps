@@ -129,7 +129,8 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     const prev = prevFloorToastRef.current;
     prevFloorToastRef.current = selectedFloor;
     const dir = selectedFloor > prev ? "↑" : "↓";
-    const fi = typeof navigator !== "undefined" && navigator.language.startsWith("fi");
+    const _sl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+    const fi = _sl ? _sl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
     setFloorToast(`${dir} ${fi ? "Kerros" : "Floor"} ${selectedFloor}`);
     const t = window.setTimeout(() => setFloorToast(null), 1400);
     return () => window.clearTimeout(t);
@@ -350,7 +351,8 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     };
   }, [is3D, update]);
 
-  const fi = typeof navigator !== "undefined" && navigator.language.startsWith("fi");
+  const _savedLang = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
+  const fi = _savedLang ? _savedLang === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
 
   // ── Quick POI finder ─────────────────────────────────────────────────
   // Finds the nearest POI of the given kind to the current map center on
@@ -658,7 +660,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 aria-pressed={selectedFloor === floor}
                 onClick={() => setSelectedFloor(floor)}
                 className={cn(
-                  "min-w-[28px] h-7 px-1 rounded-xl text-[11px] font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
+                  "min-w-[32px] h-8 px-1.5 rounded-xl text-xs font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
                   selectedFloor === floor
                     ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
                     : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
@@ -698,7 +700,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             onClick={toggle3D}
             title={is3D ? "2D flat" : "3D view"}
             className={cn(
-              "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+              "w-12 h-12 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
               is3D
                 ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
                 : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
@@ -715,9 +717,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             aria-label="Reset view to campus defaults"
             onClick={recenter}
             title="Reset view — recenter, zoom, rotate to defaults"
-            className="w-9 h-9 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+            className="w-12 h-12 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
           >
-            <LocateFixed className="h-4 w-4" strokeWidth={2.25} />
+            <LocateFixed className="h-5 w-5" strokeWidth={2.25} />
           </button>
           {/* GPS button — admin campus-map tab only */}
           {showGpsLocation && (
@@ -740,7 +742,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 }
               }}
               className={cn(
-                "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+                "w-12 h-12 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
                 gpsError
                   ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/30 dark:border-red-800"
                   : gpsPosition
@@ -750,7 +752,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                     : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground animate-pulse",
               )}
             >
-              <Navigation className="h-4 w-4" strokeWidth={2.25} />
+              <Navigation className="h-5 w-5" strokeWidth={2.25} />
             </button>
           )}
         </div>
@@ -768,18 +770,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             }}
             aria-label="Zoom in"
             title="Zoom in"
-            className="w-9 h-9 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-12 h-12 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
           >
-            <Plus className="h-4 w-4" strokeWidth={2.25} />
+            <Plus className="h-5 w-5" strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => handleRef.current?.zoomOut()}
             aria-label="Zoom out"
             title="Zoom out"
-            className="w-9 h-9 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-12 h-12 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
           >
-            <Minus className="h-4 w-4" strokeWidth={2.25} />
+            <Minus className="h-5 w-5" strokeWidth={2.25} />
           </button>
         </div>
 
@@ -794,13 +796,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           aria-pressed={showNav}
           title="Directions"
           className={cn(
-            "w-9 h-9 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+            "w-12 h-12 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
             showNav
               ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
               : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
           )}
         >
-          <Navigation2 className="h-4 w-4" strokeWidth={2.25} />
+          <Navigation2 className="h-5 w-5" strokeWidth={2.25} />
         </button>
         )}
 
