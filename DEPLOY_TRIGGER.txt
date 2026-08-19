@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-19
 
-Bump reason: v3.92.0 — entrance pin fix, multilanguage map labels, search stretches, bigger map buttons
+Bump reason: v3.93.0 — two-row header all screens, bigger balanced map controls
 
-Timestamp: 1787714400
-Build: FORCE_REBUILD_v3.92.0_ENTRANCE_MULTILANG_SEARCH_STRETCH_BIG_BUTTONS
+Timestamp: 1787800800
+Build: FORCE_REBUILD_v3.93.0_TWOROW_HEADER_BIGGER_CONTROLS

@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.92.0";
+export const APP_VERSION = "3.93.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.93.0",
+    date: "August 2026",
+    title: "Two-row header for all screens, bigger balanced map controls",
+    titleFi: "Kaksirivisetsi otsikko kaikille näytöille, isommat karttatoiminnot",
+    latest: true,
+    highlights: [
+      "Header: reverted to two-row layout (logo/controls row + search row) for all screen sizes",
+      "Header: search bar always visible below the nav row — no inline search on desktop",
+      "Header: logo pinned left, buttons pinned right on all screen widths",
+      "Map controls: buttons bumped to w-12 h-12 for better touch targets",
+      "Map controls: floor selector buttons slightly larger and more readable",
+    ],
+    highlightsFi: [
+      "Otsikko: palautettu kaksiriviseen asetteluun kaikille näyttökoille",
+      "Otsikko: hakupalkki aina näkyvissä navigointirivin alla",
+      "Karttatoiminnot: painikkeet suurennettu (w-12 h-12) parempaa kosketusta varten",
+      "Karttatoiminnot: kerrosvalintapainikkeet hieman suuremmat",
+    ],
+  },
   {
     version: "3.92.0",
     date: "August 2026",
     title: "Entrance pin fix, multilanguage map labels, header search stretches, bigger map buttons",
     titleFi: "Sisäänkäyntimerkki, monikielisyyskorjaus, hakupalkki venyttää, isommat karttatoiminnot",
-    latest: true,
     highlights: [
       "Map: entrance pin tail now matches chip color — seamless green balloon-pin shape",
       "Map: entrance label is now language-aware ('Entrance' / 'Sisäänkäynti')",
