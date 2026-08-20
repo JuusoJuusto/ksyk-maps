@@ -10,15 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.99.0";
+export const APP_VERSION = "4.0.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.0.0",
+    date: "August 2026",
+    title: "Cleanup: Wilma, STEM, coding platform removed; lunch menu English day names; security fixes",
+    titleFi: "Siivous: Wilma, STEM, koodausalusta poistettu; lounasvalikko englanniksi; tietoturvakorjauksia",
+    latest: true,
+    highlights: [
+      "Removed: Wilma integration panel and schedules tab from admin dashboard",
+      "Removed: STEM-tutorointi directory",
+      "Removed: coding platform routes and components (CourseManager, CoursesPage)",
+      "Lunch menu: day names now show in English (Mon/Tue/Wed/Thu/Fri) when language is set to English",
+      "Security: duplicate debug /api/test-email endpoint removed (was leaking temp passwords in response)",
+      "Security: password minimum length raised from 6 to 8 characters",
+      "Security: APP_URL fallback changed from http://localhost to https://ksykmaps.vercel.app",
+      "Security: self-referential ticket fetch no longer uses spoofable req.get('host')",
+      "Security: Wilma-branded password reset email text updated",
+    ],
+    highlightsFi: [
+      "Poistettu: Wilma-integraatio ja aikatauluvälilehti admin-paneelista",
+      "Poistettu: STEM-tutorointi-hakemisto",
+      "Poistettu: koodausalustan reitit ja komponentit",
+      "Lounaslista: päivänimet näytetään englanniksi kun kieli on englanti",
+      "Tietoturva: debug-testauspääte poistettu, salasanaminimi 8 merkkiä",
+    ],
+  },
   {
     version: "3.99.0",
     date: "August 2026",
     title: "Full Firebase removal — all data now in Supabase",
     titleFi: "Firebase poistettu kokonaan — kaikki data Supabasessa",
-    latest: true,
+    latest: false,
     highlights: [
       "Migration: Firebase/Firestore completely removed from codebase",
       "Migration: campus POIs (stairs, elevators, doors, generic) moved to Supabase campus_pois table",

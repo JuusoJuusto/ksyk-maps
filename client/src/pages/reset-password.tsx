@@ -32,8 +32,8 @@ export default function ResetPassword() {
     e.preventDefault();
     setError('');
 
-    if (newPassword.length < 6) {
-      setError('Salasanan on oltava vähintään 6 merkkiä');
+    if (newPassword.length < 8) {
+      setError('Salasanan on oltava vähintään 8 merkkiä');
       return;
     }
 
@@ -56,7 +56,7 @@ export default function ResetPassword() {
       if (response.ok) {
         setSuccess(true);
         setTimeout(() => {
-          setLocation('/wilma');
+          setLocation('/');
         }, 3000);
       } else {
         setError(data.message || 'Salasanan palautus epäonnistui');
@@ -127,7 +127,7 @@ export default function ResetPassword() {
                     type={showPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Vähintään 6 merkkiä"
+                    placeholder="Vähintään 8 merkkiä"
                     required
                     disabled={isLoading}
                     className="w-full h-12 text-base border-2 border-gray-300 focus:border-blue-500 pr-12"
@@ -192,7 +192,7 @@ export default function ResetPassword() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setLocation('/wilma')}
+                  onClick={() => setLocation('/')}
                   className="text-sm text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                 >
                   ← Takaisin kirjautumiseen
@@ -205,7 +205,7 @@ export default function ResetPassword() {
 
       {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-        <p className="opacity-80">© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
+        <p className="opacity-80">© 2026 Nordbyte Studio • Kaikki oikeudet pidätetään</p>
       </div>
     </div>
   );

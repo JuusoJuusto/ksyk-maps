@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.99.0 — full Firebase removal, all data migrated to Supabase
+Bump reason: v4.0.0 — Wilma/STEM/coding removed, English lunch days, security fixes
 
-Timestamp: 1787988000
-Build: FORCE_REBUILD_v3.99.0_FIREBASE_REMOVAL_SUPABASE_FULL
+Timestamp: 1787992000
+Build: FORCE_REBUILD_v4.0.0_CLEANUP_SECURITY

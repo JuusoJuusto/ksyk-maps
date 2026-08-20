@@ -70,17 +70,17 @@ export default function ForgotPassword() {
               Tarkista sähköpostisi ja seuraa ohjeita. Linkki on voimassa 1 tunnin ajan.
             </p>
             <Button
-              onClick={() => setLocation('/wilma')}
+              onClick={() => setLocation('/')}
               className="w-full bg-gradient-to-r from-[#003d82] to-[#0052a3] hover:from-[#0052a3] hover:to-[#0066cc]"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Takaisin kirjautumiseen
+              Takaisin etusivulle
             </Button>
           </CardContent>
         </Card>
 
         <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-          <p className="opacity-80">© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
+          <p className="opacity-80">© 2026 Nordbyte Studio • Kaikki oikeudet pidätetään</p>
         </div>
       </div>
     );
@@ -152,7 +152,7 @@ export default function ForgotPassword() {
             <div className="text-center pt-4">
               <button
                 type="button"
-                onClick={() => setLocation('/wilma')}
+                onClick={() => setLocation('/')}
                 className="text-sm text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-2 mx-auto"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -172,7 +172,7 @@ export default function ForgotPassword() {
       </Card>
 
       <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-        <p className="opacity-80">© 2026 Wilma by Nordbyte Studio • Kaikki oikeudet pidätetään</p>
+        <p className="opacity-80">© 2026 Nordbyte Studio • Kaikki oikeudet pidätetään</p>
       </div>
     </div>
   );
