@@ -10,15 +10,49 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.95.0";
+export const APP_VERSION = "3.97.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.97.0",
+    date: "August 2026",
+    title: "Entrance balloon-pin sizing, door pin geometry, k6 load test",
+    titleFi: "Sisäänkäyntipallon koko, ovipin-geometria, k6-kuormitustesti",
+    latest: true,
+    highlights: [
+      "Map: entrance and door pins redesigned as proper balloon pins — circle head + visible ▼ tail below, minzoom 15",
+      "Map: translate formula aligned so circle bottom meets tail top (no more overlap hiding the tail)",
+      "Dev: k6 load test added (load-test/ksykmaps-loadtest.js) — ramps 100→2000 VUs with realistic user journey",
+    ],
+    highlightsFi: [
+      "Kartta: sisäänkäynti- ja ovipinnit suunniteltu uudelleen pallopinniksi — ympyrä + näkyvä ▼-häntä alla, minzoom 15",
+      "Kartta: translate-kaava korjattu niin että ympyrän alaosa kohtaa hännän yläreunan",
+      "Kehitys: k6-kuormitustesti lisätty — ajaa 100→2000 VU:ta realistisella käyttäjäpolulla",
+    ],
+  },
+  {
+    version: "3.96.0",
+    date: "August 2026",
+    title: "Single entrance pin, language-aware label, smaller controls, bigger floor chips",
+    titleFi: "Yksi sisäänkäyntipinni, kielitietoinen teksti, pienemmät kontrollit, isommat kerrosnapit",
+    highlights: [
+      "Map: entrance and door pins now use Point geometry sources — fixes 4-dot rendering (one circle per vertex was the root cause)",
+      "Map: entrance label ('Entrance'/'Sisäänkäynti') now correctly follows the app language and updates on toggle",
+      "UI: map control buttons reduced (48px → 40px) so the app fits 150% zoom displays without overflow",
+      "UI: floor selector chips enlarged for easier tapping",
+    ],
+    highlightsFi: [
+      "Kartta: sisäänkäynti- ja ovipinnit käyttävät nyt Point-geometriaa — korjaa 4 pisteen ongelma",
+      "Kartta: sisäänkäynnin teksti seuraa nyt sovelluksen kieltä ja päivittyy vaihdettaessa",
+      "UI: karttakontrollit pienennetty (48px → 40px) jotta sovellus mahtuu 150% zoomille",
+      "UI: kerrosvalitsimen napit suurennettu helpompaa koskettamista varten",
+    ],
+  },
   {
     version: "3.95.0",
     date: "August 2026",
     title: "Entrance rectangle fix, POI dedup from DB, cleaner chips, mobile stability",
     titleFi: "Sisäänkäynnin suorakulmiokorjaus, POI-dedup, siistimmät chipit, mobiilistabiilisuus",
-    latest: true,
     highlights: [
       "Map: entrance/door fill-extrusion pads now hidden in 2D — no more green rectangle below the pin",
       "Map: old entrance/door/exit records in campus_pois no longer create ghost chips",

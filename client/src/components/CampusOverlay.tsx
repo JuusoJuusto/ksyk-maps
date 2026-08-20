@@ -1330,31 +1330,49 @@ function installPoiPillars(
     minzoom: 16,
   });
 
-  // Door + entrance markers — flat coloured tiles at ground so users
-  // see where they can walk into buildings from the 3D view.
-  const doorFeatures: unknown[] = [];
-  const entranceFeatures: unknown[] = [];
+  // Door + entrance markers.
+  // TWO source types per kind:
+  //   *-marker-src  → Polygon (squareAroundPointMeters) — only for fill-extrusion 3D pads
+  //   *-pin-src     → Point — for circle + symbol balloon pin layers
+  // Applying a circle layer to a Polygon source renders a circle at EVERY
+  // VERTEX (4 dots per entrance). Point sources fix this to exactly 1 pin.
+  const doorPolyFeatures: unknown[] = [];
+  const entrancePolyFeatures: unknown[] = [];
+  const doorPinFeatures: unknown[] = [];
+  const entrancePinFeatures: unknown[] = [];
+
   for (const d of doors) {
     if (typeof d.position?.lat !== "number" || typeof d.position?.lng !== "number") continue;
     if (activeFloor !== null && d.floor !== null && d.floor !== undefined && d.floor !== activeFloor) continue;
+    const isEntrance = !!(d as unknown as { isEntrance?: boolean }).isEntrance;
+    const kind = d.emergencyExit ? "exit" : isEntrance ? "entrance" : "door";
+    const props = { id: d.id, floor: d.floor ?? null, kind };
+
     const coords = squareAroundPointMeters(d.position, 0.7);
-    const feat = {
+    const polyFeat = {
       type: "Feature" as const,
       geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
-      properties: { id: d.id, floor: d.floor ?? null },
+      properties: props,
     };
-    if (d.emergencyExit) doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "exit" } });
-    else if ((d as unknown as { isEntrance?: boolean }).isEntrance) entranceFeatures.push({ ...feat, properties: { ...feat.properties, kind: "entrance" } });
-    else doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "door" } });
+    const pinFeat = {
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [d.position.lng, d.position.lat] },
+      properties: props,
+    };
+
+    if (isEntrance) {
+      entrancePolyFeatures.push(polyFeat);
+      entrancePinFeatures.push(pinFeat);
+    } else {
+      doorPolyFeatures.push(polyFeat);
+      doorPinFeatures.push(pinFeat);
+    }
   }
-  upsertGeoJSONSource(map, "campus-doors-marker-src", {
-    type: "FeatureCollection" as const,
-    features: doorFeatures,
-  });
-  upsertGeoJSONSource(map, "campus-entrances-marker-src", {
-    type: "FeatureCollection" as const,
-    features: entranceFeatures,
-  });
+
+  upsertGeoJSONSource(map, "campus-doors-marker-src", { type: "FeatureCollection" as const, features: doorPolyFeatures });
+  upsertGeoJSONSource(map, "campus-entrances-marker-src", { type: "FeatureCollection" as const, features: entrancePolyFeatures });
+  upsertGeoJSONSource(map, "campus-doors-pin-src", { type: "FeatureCollection" as const, features: doorPinFeatures });
+  upsertGeoJSONSource(map, "campus-entrances-pin-src", { type: "FeatureCollection" as const, features: entrancePinFeatures });
 
   // Entrance glow — larger green disc under each entrance pad so the
   // "way in" reads from a distance in 3D. Simulates flood-light
@@ -1398,28 +1416,30 @@ function installPoiPillars(
   // an unambiguous "door here" chip at every zoom above 16. Green =
   // entrance (way in), red = exit-only, grey = interior door.
   // ── Door pin: dark chip + ▼ tail + letter ─────────────────────────
-  addLayerIfMissing(map, {
+  // Point source so MapLibre renders one circle per door, not one per vertex.
+  // Door pin: translate = -(tail_size + radius) keeps tail visible below chip.
+  replaceLayer(map, {
     id: "campus-doors-chip",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "circle",
     minzoom: 16,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 12, 20, 16],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 7, 18, 9, 20, 11],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -15]], 18, ["literal", [0, -19]], 20, ["literal", [0, -23]]],
       "circle-translate-anchor": "viewport",
       "circle-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2.5,
+      "circle-stroke-width": 2,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-doors-tail",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "symbol",
     minzoom: 16,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 10, 18, 14, 20, 18],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 10, 20, 12],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1428,51 +1448,54 @@ function installPoiPillars(
     paint: {
       "text-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.5,
+      "text-halo-width": 1,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-doors-letter",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "symbol",
     minzoom: 16,
     layout: {
       "text-field": ["match", ["get", "kind"], "exit", "!", "D"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 9, 18, 13, 20, 17],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 7, 18, 9, 20, 11],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -15]], 18, ["literal", [0, -19]], 20, ["literal", [0, -23]]],
       "text-translate-anchor": "viewport",
     },
   });
 
-  // ── Entrance pin: large green beacon ──────────────────────────────
-  addLayerIfMissing(map, {
+  // ── Entrance pin: MazeMap-style balloon — circle head + ▼ tail ────
+  // Sizing rule: translate = -(tail_size + radius) so the circle's
+  // bottom edge lands exactly at the tail's top edge.
+  // Point source so one circle per entrance.
+  replaceLayer(map, {
     id: "campus-entrances-chip",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "circle",
-    minzoom: 14,
+    minzoom: 15,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 13, 16, 17, 18, 22, 20, 28],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 16, 9, 18, 12, 20, 15],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -15]], 16, ["literal", [0, -19]], 18, ["literal", [0, -25]], 20, ["literal", [0, -31]]],
       "circle-translate-anchor": "viewport",
       "circle-color": "#16a34a",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 3,
+      "circle-stroke-width": 2.5,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-entrances-tail",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
-    minzoom: 14,
+    minzoom: 15,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 15, 16, 18, 18, 23, 20, 29],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 8, 16, 10, 18, 13, 20, 16],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1480,33 +1503,35 @@ function installPoiPillars(
     },
     paint: {
       "text-color": "#16a34a",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1,
     },
   });
-  // ↑ arrow symbol inside the entrance chip
-  addLayerIfMissing(map, {
+  // ↑ arrow symbol inside the entrance chip, translate matches chip
+  replaceLayer(map, {
     id: "campus-entrances-letter",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
-    minzoom: 14,
+    minzoom: 15,
     layout: {
       "text-field": "⇑",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 14, 16, 18, 18, 22, 20, 28],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 7, 16, 9, 18, 12, 20, 15],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -15]], 16, ["literal", [0, -19]], 18, ["literal", [0, -25]], 20, ["literal", [0, -31]]],
       "text-translate-anchor": "viewport",
     },
   });
-  // Text label — language-aware entrance label at close zoom
+  // Text label — language-aware, always re-created via replaceLayer so language changes take effect
   const _enSl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
   const _enFi = _enSl ? _enSl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-entrances-label",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
     minzoom: 18,
     layout: {
