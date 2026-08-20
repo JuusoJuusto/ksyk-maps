@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.94.0";
+export const APP_VERSION = "3.95.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.95.0",
+    date: "August 2026",
+    title: "Entrance rectangle fix, POI dedup from DB, cleaner chips, mobile stability",
+    titleFi: "Sisäänkäynnin suorakulmiokorjaus, POI-dedup, siistimmät chipit, mobiilistabiilisuus",
+    latest: true,
+    highlights: [
+      "Map: entrance/door fill-extrusion pads now hidden in 2D — no more green rectangle below the pin",
+      "Map: old entrance/door/exit records in campus_pois no longer create ghost chips",
+      "Map: removed POI chip glow and shadow layers — caused jitter during mobile pan/zoom",
+      "Map: entrance and door markers now render only via their dedicated clean balloon-pin layers",
+    ],
+    highlightsFi: [
+      "Kartta: sisäänkäynnin suorakulmainen alusta piilotettu 2D-tilassa",
+      "Kartta: vanhat tietokantaan jääneet door/entrance-POIt eivät enää luo haamuchiappejä",
+      "Kartta: POI-chipin hehku- ja varjokerrokset poistettu — aiheuttivat värinää mobiililla",
+    ],
+  },
   {
     version: "3.94.0",
     date: "August 2026",
     title: "Entrance/door pin dedup, room label language fix, entrance glow 3D-only",
     titleFi: "Sisäänkäynti/ovipinnin dedup, huonenimikorjaus, vihreä hehku vain 3D:ssä",
-    latest: true,
     highlights: [
       "Map: entrance and door pins no longer double-render — removed duplicate from generic POI chip system",
       "Map: entrance green glow patch now only shows in 3D mode (no more giant green square in 2D)",

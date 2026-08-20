@@ -1,233 +1,130 @@
-# 🏫 KSYK Maps - Kulosaaren Yhteiskoulu Navigation System
+# KSYK Maps
 
 <div align="center">
-  <img src="client/public/KSYK-logo-desktop.png" alt="KSYK Logo" width="200"/>
-  
-  <h3>Modern School Navigation & Management Platform</h3>
-  <p>Built by <strong>Nordbyte Studio</strong></p>
-  
-  [![Version](https://img.shields.io/badge/version-3.1.2-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
+  <img src="client/public/KSYK-logo-desktop.png" alt="KSYK Logo" width="160"/>
+
+  **Campus navigation for Kulosaaren Yhteiskoulu**
+
+  [![Version](https://img.shields.io/badge/version-3.95.0-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
   [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
+  [![MapLibre GL](https://img.shields.io/badge/MapLibre_GL-5.x-green)](https://maplibre.org/)
 </div>
 
 ---
 
-## ⚠️ PROPRIETARY SOFTWARE
+## Overview
 
-**This software is proprietary and confidential. All rights reserved by Nordbyte Studio.**
+KSYK Maps is an interactive campus navigation app for Kulosaaren Yhteiskoulu (KSYK). It renders a live floor plan of the school's buildings, lets students search for rooms and POIs, and shows lunch menus and public transport times — all in a MazeMap-style interface.
 
-- ❌ **NO COPYING** - You may not copy, reproduce, or distribute this software
-- ❌ **NO MODIFICATION** - You may not modify or create derivative works
-- ❌ **NO COMMERCIAL USE** - You may not use this software for commercial purposes
-- ❌ **NO REVERSE ENGINEERING** - You may not decompile or reverse engineer
-
-See [LICENSE](LICENSE) for full legal terms.
+**Live:** [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
 
 ---
 
-## 🌟 Features
+## Features
 
-### 🗺️ Interactive Campus Maps
-- Real-time navigation with 3D building views
-- Room search and wayfinding with A* pathfinding
-- Accessibility-friendly routes
-- Multi-floor navigation
-- Google Maps-style interface
+### Campus map
+- MapLibre GL vector map with OSM basemap
+- Building footprints, room polygons, corridor lines, and wall outlines
+- Multi-floor selector — switch floors, rooms filter per floor
+- 3D mode — extruded hollow building shells, room slabs, stair/elevator towers
+- MazeMap-style entrance balloon pins (green) and door pins (dark)
+- POI chips: WC, stairs, elevator, info, café, first aid, bike parking, etc.
+- Room search with live dropdown — supports Finnish and English names
+- Click a room to see its name, number, and floor
+- Directions panel (A* routing between rooms)
+- Compass chip — auto-shows when map is rotated, click to reset north
+- GPS location dot (admin only — campus map tab in admin panel)
 
-### 📚 Wilma Integration
-- Complete student management system
-- **44 Desktop Applications** (Zoom, Teams, Slack, Notion, Coursera, etc.)
-- Kurre-style schedule system with 16 color-coded subjects
-- Grade tracking and attendance management
-- Parent-teacher communication
-- Assignment and homework tracking
+### Header & navigation
+- Two-row header: logo/controls row + full-width search bar below
+- Hamburger menu on mobile with theme and language controls
+- Language toggle (Finnish / English) — saved to localStorage, map labels update
+- Dark mode, light mode, system mode
 
-### 🤖 AI-Powered Features
-- **Tuki-Pöllö** - Smart Finnish-speaking AI assistant
-- Study buddy with expertise in all Finnish school subjects
-- Campus navigation help
-- Homework assistance with image analysis
-- Understands Finnish slang and colloquial speech
+### Lunch menu
+- Fetches and displays the school's weekly lunch menu
 
-### 🖥️ Windows-Style Desktop
-- Virtual desktop environment with 4 virtual desktops
-- Window snapping and management (left/right/maximize)
-- 44 integrated educational and productivity apps
-- Modern Windows 11-inspired UI
-- Taskbar with system tray
+### HSL transport
+- Nearby bus/metro departures from the HSL API
 
-### 📊 Analytics & Insights
-- Real-time usage statistics
-- Performance monitoring
-- User behavior analytics
-- Custom reporting
-- Live analytics dashboard
-
-### 🎫 Ticket System
-- Submit bug reports, feature requests, and support tickets
-- Automatic Discord integration
-- Unique ticket ID for tracking
-- Email notifications for responses
-- 24-hour response time
+### Admin & Builder
+- Builder canvas to draw rooms, walls, corridors, POIs, doors, stairs, elevators
+- Publish campus snapshot — live map reflects published data within 60 s
+- Admin panel: user management, analytics, security settings, layer visibility
 
 ---
 
-## 🚀 Live Demo
+## Tech stack
 
-Visit: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
-
-**Note:** This is a production application for Kulosaaren Yhteiskoulu. Unauthorized access or use is prohibited.
-
----
-
-## 🏗️ Tech Stack
-
-- **Frontend**: React 18, TypeScript, TailwindCSS, Vite
-- **Backend**: Express.js, Node.js
-- **Database**: PostgreSQL + Firebase Firestore
-- **Maps**: Leaflet, OpenStreetMap
-- **AI**: Google Gemini 2.0 Flash
-- **Deployment**: Vercel
-- **Authentication**: Firebase Auth with 2FA
+| Layer | Tech |
+|-------|------|
+| Frontend | React 18, TypeScript, Vite, TailwindCSS |
+| Maps | MapLibre GL 5.x, OSM basemap (demotiles) |
+| Backend | Express.js, Node.js |
+| Database | Firebase Firestore + PostgreSQL (Drizzle ORM) |
+| Auth | Firebase Auth |
+| AI | Google Gemini |
+| Deployment | Vercel (serverless) |
+| i18n | react-i18next (fi / en) |
 
 ---
 
-## 📂 Project Structure
+## Project structure
 
 ```
 ksyk-maps/
-├── client/              # React frontend
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   │   └── desktop-apps/  # 44 desktop applications
-│   │   ├── pages/       # Page components
-│   │   ├── lib/         # Utilities & AI
-│   │   └── contexts/    # React contexts
-│   └── public/          # Static assets
-├── server/              # Express backend
-│   ├── routes.ts        # API routes
-│   ├── storage.ts       # Database interface
-│   └── firebaseStorage.ts
-├── shared/              # Shared types
-└── api/                 # Vercel serverless functions
+├── client/
+│   └── src/
+│       ├── components/
+│       │   ├── CampusOverlay.tsx   # MapLibre layer installer (rooms, POIs, walls)
+│       │   ├── CampusMap.tsx       # MapLibre map wrapper
+│       │   ├── KSYKMapView.tsx     # Map chrome (floor selector, zoom, 3D, search)
+│       │   ├── Header.tsx          # Top nav + search row
+│       │   └── ...
+│       ├── pages/                  # Route pages (map, lunch, hsl, admin, builder)
+│       ├── hooks/                  # useCampusData, useAppSettings, useAuth …
+│       └── lib/
+│           ├── changelog.ts        # APP_VERSION + in-app changelog entries
+│           └── analytics.ts        # Feature-use telemetry
+├── server/
+│   ├── routes.ts                   # REST API
+│   └── firebaseStorage.ts          # Firestore helpers
+├── shared/                         # Types shared between client and server
+├── api/                            # Vercel serverless function entry points
+└── DEPLOY_TRIGGER.txt              # Bumped on every release to force Vercel rebuild
 ```
 
 ---
 
-## 🎨 Key Features
+## POI system
 
-### Desktop Applications (44 Total!)
+Doors and entrances are rendered through dedicated layers (`campus-doors-*` / `campus-entrances-*`) — balloon pin style matching MazeMap. Generic POIs (WC, info, café, etc.) go through `campus-pois-chip` + `campus-pois-icon` + tail.
 
-**Educational Apps:**
-- Coursera, Udemy, Khan Academy, Quizlet
-- Duolingo, WilmaApp
-
-**Productivity Apps:**
-- Notion, Trello, OneDrive, Google Drive, Dropbox
-- Microsoft Teams, Slack, Discord, Messenger
-- Zoom, Google Meet
-
-**Development Tools:**
-- GitHub, VS Code, Terminal
-
-**Design Tools:**
-- Figma, Canva, Paint
-
-**Office Suite:**
-- Word, Excel, PowerPoint, Outlook
-
-**Entertainment:**
-- Spotify, YouTube, Calculator, Clock, Calendar
-
-### Lukujärjestys (Schedule System)
-- Kurre-inspired modern design
-- 16 subject-specific color schemes:
-  - Matematiikka (blue), Äidinkieli (purple), Englanti (green)
-  - Ruotsi (yellow), Fysiikka (red), Kemia (orange)
-  - Biologia (emerald), Maantieto (teal), Historia (amber)
-  - And 7 more subjects!
-- Grid and list view modes
-- Export to JSON
-- Copy to clipboard
-- Preview mode
-
-### Tuki-Pöllö AI Assistant
-- Fluent Finnish language support (primary language)
-- Deep knowledge of Finnish education system
-- Understands ylioppilaskirjoitukset and Finnish grading (4-10)
-- Subject-specific tutoring for all Finnish school subjects
-- Campus navigation assistance
-- Homework help with image analysis
-- Understands slang and abbreviations
+The two systems are **intentionally separate**: adding a door as a generic POI in `campus_pois` will be ignored by the renderer to avoid duplicate pins.
 
 ---
 
-## 📖 Documentation
+## Releasing
 
-- [Finnish README](README-FI.md)
-- [System Guide](SYSTEM-GUIDE.md)
-- [Build Fix Documentation](BUILD-FIX-2026-05-04.md)
-
----
-
-## 📄 License
-
-**PROPRIETARY LICENSE - ALL RIGHTS RESERVED**
-
-This software is the exclusive property of Nordbyte Studio. No license is granted for use, copying, modification, or distribution. See [LICENSE](LICENSE) for full legal terms.
-
-Copyright © 2024-2026 Nordbyte Studio. All rights reserved.
+1. Bump `APP_VERSION` in `client/src/lib/changelog.ts` and add a changelog entry
+2. Update `DEPLOY_TRIGGER.txt` with the new version and a new timestamp
+3. Commit on `dev`, merge to `main`, push — Vercel autodeploys
 
 ---
 
-## 👥 Team
+## License
 
-**Built by Nordbyte Studio**
+Proprietary — all rights reserved by Nordbyte Studio / Juuso Kaikula.
+No copying, modification, or redistribution without explicit written permission.
 
-- Lead Developer: Juuso Kaikula
-- Organization: Kulosaaren Yhteiskoulu
+Copyright © 2024–2026 Nordbyte Studio.
+
+---
+
+## Contact
+
+- Lead developer: Juuso Kaikula
 - Email: juusojuusto112@gmail.com
 - Discord: https://discord.gg/5ERZp9gUpr
-
----
-
-## 📞 Support
-
-- 📧 Email: juusojuusto112@gmail.com
-- 💬 Discord: https://discord.gg/5ERZp9gUpr
-- 🎫 Ticket System: Use the blue button in the app
-- ⏱️ Response time: Usually within 24 hours
-
-**Ticket Types:**
-- 🐛 Bug Report - Report issues or errors
-- ✨ Feature Request - Suggest new features
-- 💬 Support - Get help or ask questions
-
----
-
-## 🙏 Acknowledgments
-
-- Kulosaaren Yhteiskoulu for project support
-- OpenStreetMap contributors
-- Google Gemini AI team
-- React and TypeScript communities
-
----
-
-## 📊 Stats
-
-- **44** Desktop Applications
-- **16** Color-coded subjects in schedule
-- **1000+** Active users
-- **99.9%** Uptime
-- **24h** Average support response time
-
----
-
-<div align="center">
-  <p>Made with ❤️ by <strong>Nordbyte Studio</strong></p>
-  <p>© 2024-2026 KSYK Maps by Nordbyte Studio. All rights reserved.</p>
-  <p><strong>PROPRIETARY SOFTWARE - NO UNAUTHORIZED USE</strong></p>
-</div>
