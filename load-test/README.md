@@ -32,7 +32,42 @@ sudo apt-get update && sudo apt-get install k6
 | `k6 run ksykmaps-loadtest.js` | Full ramp: 100 → 2 000 VUs, ~30 min |
 | `k6 run --vus 50 --duration 1m ksykmaps-loadtest.js` | Quick 1-minute smoke test |
 | `k6 run --vus 5 --duration 30s ksykmaps-loadtest.js` | Sanity check (no ramp) |
-| `BASE_URL=http://localhost:5000 k6 run ...` | Test local dev server |
+| `BASE_URL=http://localhost:5000 k6 run ...` | Test local dev server (no WAF) |
+
+---
+
+## Vercel WAF / bot detection
+
+Vercel's edge firewall blocks requests that look like bots. The test sends full
+Chrome-style headers (`User-Agent`, `Accept`, `sec-ch-ua`, `sec-fetch-*`, `Origin`,
+`Referer`, `DNT`) to pass basic WAF checks.
+
+**If you still get 403s:** Vercel's "Attack Challenge Mode" is on and requires a
+JavaScript challenge token. To bypass it:
+
+1. Open [ksykmaps.fi](https://www.ksykmaps.fi) in Chrome
+2. DevTools → Application → Cookies → find `_vercel_jwt`
+3. Copy the value and pass it to k6:
+
+```
+VERCEL_JWT=<paste_value_here> k6 run ksykmaps-loadtest.js
+```
+
+The script automatically adds it as a `Cookie` header when `VERCEL_JWT` is set.
+
+**Best approach: test against localhost** — point k6 at your local dev server and
+skip Vercel WAF entirely:
+
+```
+# terminal 1
+npm run dev
+
+# terminal 2
+BASE_URL=http://localhost:5000 k6 run ksykmaps-loadtest.js
+```
+
+This tests your actual Express server + Firebase + DB under load, which is what
+matters. Vercel's CDN/edge is Vercel's infrastructure to stress-test, not yours.
 
 ---
 
