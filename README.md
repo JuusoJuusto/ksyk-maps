@@ -18,7 +18,7 @@
 
 KSYK Maps is an interactive campus navigation app for Kulosaaren Yhteiskoulu (KSYK). It renders a live floor plan of the school's buildings, lets students search for rooms and POIs, and shows lunch menus and public transport times — all in a MazeMap-style interface.
 
-**Live:** [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
+**Live:** [ksykmaps.fi](https://ksykmaps.fi)
 
 ---
 

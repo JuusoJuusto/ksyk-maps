@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v4.0.0 — Wilma/STEM/coding removed, English lunch days, security fixes
+Bump reason: v4.1.0 — analytics fixed (egg tracking, feature telemetry), /api/t/egg Vercel handler added, APP_URL updated to ksykmaps.fi
 
-Timestamp: 1787992000
-Build: FORCE_REBUILD_v4.0.0_CLEANUP_SECURITY
+Timestamp: 1787995200
+Build: FORCE_REBUILD_v4.1.0_ANALYTICS_FIX

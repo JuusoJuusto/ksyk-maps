@@ -573,8 +573,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Easter Egg Stats
   app.get('/api/easter-eggs/stats', isAuthenticated, async (req, res) => {
     try {
-      const stats = await storage.getEasterEggStats();
-      res.json(stats);
+      const { kvGet } = await import('./kvStorage.js');
+      const data = ((await kvGet('easterEggCounters')) as Record<string, number>) || {};
+      const total = Object.values(data).reduce((s: number, n) => s + (n as number), 0);
+      res.json({ ...data, total });
     } catch (error) {
       console.error('Error fetching easter egg stats:', error);
       res.status(500).json({ message: 'Failed to fetch stats' });
@@ -585,41 +587,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Registered here (early) so it is guaranteed before any catch-all middleware.
   app.post('/api/t/egg', rateLimiters.general, async (req: any, res) => {
     try {
-      const { eggId, eggName } = req.body ?? {};
+      const { eggId } = req.body ?? {};
       if (typeof eggId !== "string" || !/^[a-z0-9-]{1,64}$/.test(eggId)) {
         return res.status(204).end();
       }
-      const userId = req.user?.claims?.sub || 'anonymous';
-      await storage.trackEasterEggDiscovery({ eggId, eggName: eggName ?? eggId, userId, timestamp: new Date().toISOString() });
-      await storage.createAppLog({ level: 'success', message: `🥚 Easter egg discovered: ${eggId}`, action: 'easter_egg', userId: userId !== 'anonymous' ? userId : null, userName: null }).catch(() => {});
+      const userId = (req.user?.claims?.sub || 'anonymous').toString().slice(0, 60);
+      await incrementEggCounter(eggId);
+      await appendEggRecent({ egg: eggId, userId, at: new Date().toISOString() });
       res.status(204).end();
     } catch { res.status(204).end(); }
   });
 
   // Track Easter Egg Discovery
-  app.post('/api/easter-eggs/track', rateLimiters.general, async (req, res) => {
+  app.post('/api/easter-eggs/track', rateLimiters.general, async (req: any, res) => {
     try {
-      const { eggId, eggName } = req.body;
+      const { eggId } = req.body;
       if (typeof eggId !== "string" || !/^[a-z0-9-]{1,64}$/.test(eggId)) {
         return res.status(400).json({ message: "Invalid egg id" });
       }
-      const userId = req.user?.claims?.sub || 'anonymous';
-      
-      await storage.trackEasterEggDiscovery({
-        eggId,
-        eggName,
-        userId,
-        timestamp: new Date().toISOString(),
-      });
-
-      await storage.createAppLog({
-        level: 'success',
-        message: `🥚 Easter egg discovered: ${eggName}`,
-        action: 'easter_egg',
-        userId: userId !== 'anonymous' ? userId : null,
-        userName: null,
-      }).catch(() => {});
-
+      const userId = (req.user?.claims?.sub || 'anonymous').toString().slice(0, 60);
+      await incrementEggCounter(eggId);
+      await appendEggRecent({ egg: eggId, userId, at: new Date().toISOString() });
       res.json({ success: true });
     } catch (error) {
       console.error('Error tracking easter egg:', error);
@@ -684,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send reset email
-      const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}/reset-password?token=${resetToken}`;
       
       try {
         const emailService = await import('./emailService');
@@ -2051,7 +2039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email notification if status changed
       if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
         try {
-          await fetch(`${process.env.APP_URL || 'https://ksykmaps.vercel.app'}/api/send-ticket-status-update`, {
+          await fetch(`${process.env.APP_URL || 'https://ksykmaps.fi'}/api/send-ticket-status-update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2139,7 +2127,7 @@ Submitted by: ${name || 'Anonymous'}
 Email: ${email || 'Not provided'}
 
 View and manage this ticket in the admin panel:
-https://ksykmaps.vercel.app/admin-ksyk-management-portal
+https://ksykmaps.fi/admin-ksyk-management-portal
 
 ---
 KSYK Maps Support System
@@ -2181,7 +2169,7 @@ For reference, please save your ticket ID: ${ticketId}
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.vercel.app
+https://ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket Received: ${ticketId}`, emailBody);
@@ -2219,7 +2207,7 @@ If you have any further questions, please reply to this email or create a new ti
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.vercel.app
+https://ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket Update: ${ticketId}`, emailBody);
@@ -2271,7 +2259,7 @@ ${status === 'resolved' || status === 'closed' ? '\nIf you need further assistan
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.vercel.app
+https://ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket ${status.toUpperCase().replace('_', ' ')}: ${ticketId}`, emailBody);
@@ -2308,7 +2296,7 @@ Test Details:
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.vercel.app
+https://ksykmaps.fi
       `.trim();
 
       await sendPasswordSetupEmail(email, 'KSYK Maps - Test Email', emailBody);

@@ -431,15 +431,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/easter-eggs/stats' && req.method === 'GET') {
       try {
         const { kvGet } = await import('../server/kvStorage.js');
-        const data = (await kvGet('easterEggCounters') as any) || {};
-        return res.status(200).json({
-          secretEasterEgg: data.secretEasterEgg ?? 0,
-          konamiCode:      data.konamiCode      ?? 0,
-          devMode:         data.devMode         ?? 0,
-          total: (data.secretEasterEgg ?? 0) + (data.konamiCode ?? 0) + (data.devMode ?? 0),
-        });
+        const data = ((await kvGet('easterEggCounters')) as Record<string, number>) || {};
+        const total = Object.values(data).reduce((s: number, n) => s + (n as number), 0);
+        return res.status(200).json({ ...data, total });
       } catch {
-        return res.status(200).json({ secretEasterEgg: 0, konamiCode: 0, devMode: 0, total: 0 });
+        return res.status(200).json({ total: 0 });
       }
     }
 
@@ -447,10 +443,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/easter-eggs/found' && req.method === 'POST') {
       try {
         const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
-        const egg = (req.body?.egg || '').toString();
+        const egg = (req.body?.egg || '').toString().slice(0, 64);
         const who = (req.body?.userId || '').toString().slice(0, 60) || 'anonymous';
-        const allowed = ['secretEasterEgg', 'konamiCode', 'devMode', 'ksykTyped', 'logoClicks', 'debugCombo'];
-        if (!allowed.includes(egg)) return res.status(400).json({ message: 'Invalid egg id' });
+        if (!/^[a-z0-9-]{1,64}$/.test(egg)) return res.status(400).json({ message: 'Invalid egg id' });
         await incrementEggCounter(egg);
         await appendEggRecent({ egg, userId: who, at: new Date().toISOString() }).catch(() => {});
         return res.status(200).json({ success: true });
@@ -458,6 +453,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('easter-eggs POST error:', err);
         return res.status(500).json({ message: 'Failed' });
       }
+    }
+
+    // POST /api/t/egg — adblock-safe egg discovery beacon.
+    if (apiPath === '/t/egg' && req.method === 'POST') {
+      try {
+        const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const eggId = (req.body?.eggId || '').toString().slice(0, 64);
+        if (/^[a-z0-9-]{1,64}$/.test(eggId)) {
+          const who = (req.body?.userId || 'anonymous').toString().slice(0, 60);
+          await incrementEggCounter(eggId);
+          await appendEggRecent({ egg: eggId, userId: who, at: new Date().toISOString() }).catch(() => {});
+          await pgDb.insert(appLogs).values({ level: 'success', message: `🥚 Easter egg discovered: ${eggId}` }).catch(() => {});
+        }
+      } catch { /* non-critical */ }
+      return res.status(204).end();
     }
 
     // GET /api/easter-eggs/recent — recent discoveries, capped to 50.
@@ -2196,22 +2208,44 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     }
     if (apiPath === '/telemetry/track' && req.method === 'POST') {
       try {
+        const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
         const { db: pgDb } = await import('../server/db.js');
         const { appLogs } = await import('../shared/schema.js');
         const { events } = req.body || {};
         if (Array.isArray(events)) {
           for (const ev of events.slice(0, 50)) {
-            await pgDb.insert(appLogs).values({
-              level: 'info',
-              message: `telemetry:${(ev?.type || 'event').toString().slice(0, 60)}`,
-            }).catch(() => {});
+            if (ev?.type === 'easter_egg' && typeof ev.eggType === 'string') {
+              const eggId = ev.eggType.slice(0, 64);
+              if (/^[a-z0-9-]{1,64}$/.test(eggId)) {
+                await incrementEggCounter(eggId).catch(() => {});
+                await appendEggRecent({ egg: eggId, userId: ev.userId ?? 'anonymous', at: new Date().toISOString() }).catch(() => {});
+              }
+            } else if (ev?.type === 'feature' && typeof ev.name === 'string') {
+              await pgDb.insert(appLogs).values({ level: 'info', message: `feature:${ev.name.slice(0, 60)}` }).catch(() => {});
+            }
           }
         }
       } catch { /* non-critical */ }
       return res.status(204).end();
     }
-    // Accept but discard feature/search sub-events — aggregated via /track.
-    if ((apiPath === '/telemetry/feature' || apiPath === '/telemetry/search') && req.method === 'POST') {
+    // POST /api/telemetry/feature — named feature-use event.
+    if (apiPath === '/telemetry/feature' && req.method === 'POST') {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const name = (req.body?.name || '').toString().slice(0, 60);
+        if (name) await pgDb.insert(appLogs).values({ level: 'info', message: `feature:${name}` }).catch(() => {});
+      } catch { /* non-critical */ }
+      return res.status(204).end();
+    }
+    // POST /api/telemetry/search — log search queries.
+    if (apiPath === '/telemetry/search' && req.method === 'POST') {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { searchAnalytics } = await import('../shared/schema.js');
+        const q = (req.body?.query || '').toString().slice(0, 200).trim();
+        if (q) await pgDb.insert(searchAnalytics).values({ query: q, sessionId: (req.body?.sessionId || 'anon').toString().slice(0, 60) } as any).catch(() => {});
+      } catch { /* non-critical */ }
       return res.status(204).end();
     }
     // Pixel beacon fallback — tiny 1×1 GIF response.

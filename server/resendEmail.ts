@@ -52,11 +52,11 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
               <ul>
                 <li><strong>Email:</strong> ${email}</li>
                 <li><strong>Password:</strong> ${tempPassword}</li>
-                <li><strong>Login URL:</strong> <a href="https://ksykmaps.vercel.app/admin-login">https://ksykmaps.vercel.app/admin-login</a></li>
+                <li><strong>Login URL:</strong> <a href="https://ksykmaps.fi/admin-login">https://ksykmaps.fi/admin-login</a></li>
               </ul>
               
               <div style="text-align: center;">
-                <a href="https://ksykmaps.vercel.app/admin-login" class="button">Login to KSYK Map</a>
+                <a href="https://ksykmaps.fi/admin-login" class="button">Login to KSYK Map</a>
               </div>
             </div>
           </div>

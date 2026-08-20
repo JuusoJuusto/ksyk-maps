@@ -34,7 +34,7 @@ Interaktiivinen kampusnavigointijärjestelmä Kulosaaren Yhteiskoululle (KSYK).
 
 ## 📱 Sovellus
 
-Vieraile: [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
+Vieraile: [ksykmaps.fi](https://ksykmaps.fi)
 
 ## 📞 Tuki
 

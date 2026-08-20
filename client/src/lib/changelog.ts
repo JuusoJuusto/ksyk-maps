@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.0.0";
+export const APP_VERSION = "4.1.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.1.0",
+    date: "August 2026",
+    title: "Analytics: Easter egg tracking fixed, feature telemetry wired up, APP URL updated to ksykmaps.fi",
+    titleFi: "Analytiikka: Pääsiäismunan seuranta korjattu, ominaisuustelemetria toimii, URL päivitetty ksykmaps.fi",
+    latest: true,
+    highlights: [
+      "Fix: Easter egg discoveries now correctly persist in the database (all 26+ egg types)",
+      "Fix: /api/t/egg handler added to Vercel serverless — eggs were silently 404'd in production",
+      "Fix: Feature usage telemetry now writes to DB instead of being discarded",
+      "Fix: Egg stats endpoint returns all discovered eggs dynamically (was hardcoded to 3 IDs)",
+      "Fix: Removed /owlapps, /features, /debug-buildings routes",
+      "Update: APP_URL changed from ksykmaps.vercel.app to ksykmaps.fi across all server files",
+    ],
+    highlightsFi: [
+      "Korjaus: Pääsiäismunan löydöt tallentuvat nyt tietokantaan oikein",
+      "Korjaus: Ominaisuuksien käyttötiedot kirjataan tietokantaan",
+      "Korjaus: /owlapps, /features, /debug-buildings -reitit poistettu",
+      "Päivitys: Sovelluksen URL päivitetty ksykmaps.fi:ksi",
+    ],
+  },
   {
     version: "4.0.0",
     date: "August 2026",
     title: "Cleanup: Wilma, STEM, coding platform removed; lunch menu English day names; security fixes",
     titleFi: "Siivous: Wilma, STEM, koodausalusta poistettu; lounasvalikko englanniksi; tietoturvakorjauksia",
-    latest: true,
+    latest: false,
     highlights: [
       "Removed: Wilma integration panel and schedules tab from admin dashboard",
       "Removed: STEM-tutorointi directory",

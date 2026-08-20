@@ -1,9 +1,9 @@
 Contact: mailto:juuso.kaikula@gmail.com
 Expires: 2027-01-01T00:00:00.000Z
 Preferred-Languages: en, fi
-Canonical: https://ksykmaps.vercel.app/.well-known/security.txt
-Policy: https://ksykmaps.vercel.app/security
-Acknowledgments: https://ksykmaps.vercel.app/security#acknowledgments
+Canonical: https://ksykmaps.fi/.well-known/security.txt
+Policy: https://ksykmaps.fi/security
+Acknowledgments: https://ksykmaps.fi/security#acknowledgments
 
 # KSYK Maps responsible disclosure
 #

@@ -152,7 +152,7 @@ export function validateCSRFToken(token: string, storedToken: string): boolean {
  */
 export function isAllowedOrigin(origin: string | undefined): boolean {
   const allowedOrigins = [
-    'https://ksykmaps.vercel.app',
+    'https://ksykmaps.fi',
     'http://localhost:5000',
     'http://localhost:3000'
   ];

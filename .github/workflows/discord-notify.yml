@@ -64,7 +64,7 @@ jobs:
                      },
                      {
                        \"name\": \"🔗 Links\",
-                       \"value\": \"[View Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\\n[Live Site](https://ksykmaps.vercel.app)\"
+                       \"value\": \"[View Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\\n[View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\\n[Live Site](https://ksykmaps.fi)\"
                      },
                      {
                        \"name\": \"📧 Support\",
