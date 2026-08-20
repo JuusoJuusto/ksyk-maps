@@ -4,6 +4,10 @@ import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
+  /** Custom fallback UI instead of the full-screen error card. */
+  fallback?: ReactNode;
+  /** Name shown in console.error for easier debugging. */
+  name?: string;
 }
 
 interface State {
@@ -122,6 +126,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return <>{this.props.fallback}</>;
       return (
         <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-50 dark:from-red-950/40 dark:via-orange-950/30 dark:to-red-950/40 flex items-center justify-center p-4">
           <div className="max-w-lg w-full">

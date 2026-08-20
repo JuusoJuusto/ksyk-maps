@@ -39,6 +39,21 @@ async function hashPassword(plain: string): Promise<string> {
 
 const db = getFirestore();
 
+// Owner identity — read from env so the email never appears in source.
+// Set OWNER_EMAIL in Vercel environment variables.
+const OWNER_EMAIL = (process.env.OWNER_EMAIL ?? '').toLowerCase().trim();
+
+// Simple email format guard (rejects obvious garbage before DB round-trip).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Validate geographic coordinates before persisting to Firestore.
+function validLatLng(lat: unknown, lng: unknown): boolean {
+  return (
+    typeof lat === "number" && isFinite(lat) && lat >= -90 && lat <= 90 &&
+    typeof lng === "number" && isFinite(lng) && lng >= -180 && lng <= 180
+  );
+}
+
 // Session timeout - COMPLETELY DISABLED
 // No session timeout checks at all
 function sessionTimeoutMiddleware(req: any, res: any, next: any) {
@@ -164,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // SECURE OWNER CHECK - Database lookup only
-      if (normalizedEmail === 'juusojuusto112@gmail.com') {
+      if (OWNER_EMAIL && normalizedEmail === OWNER_EMAIL) {
         console.log('🔍 Checking owner credentials in database...');
         
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
@@ -798,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/buildings', isAuthenticated, async (req: any, res) => {
+  app.post('/api/buildings', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -814,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/buildings/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -833,7 +848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PATCH mirrors PUT — the Builder's PropertyPanel sends partial
   // updates via PATCH which is the semantically correct method for a
   // partial edit. Kept alongside PUT so nothing else breaks.
-  app.patch('/api/buildings/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -848,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/buildings/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -888,7 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/floors', isAuthenticated, async (req: any, res) => {
+  app.post('/api/floors', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -904,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/floors/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/floors/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -920,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/floors/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/floors/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -976,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/rooms', isAuthenticated, async (req: any, res) => {
+  app.post('/api/rooms', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -992,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -1009,7 +1024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH mirror — same reason as buildings.
-  app.patch('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -1024,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -1139,7 +1154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/hallways', isAuthenticated, async (req: any, res) => {
+  app.post('/api/hallways', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -1155,7 +1170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/hallways/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
@@ -1171,7 +1186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH mirror for the PropertyPanel.
-  app.patch('/api/hallways/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/hallways/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || !['admin', 'owner', 'editor'].includes(user.role)) return res.status(403).json({ message: "Admin, owner, or editor access required" });
@@ -1203,15 +1218,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    app.post(`/api/${kind}`, isAuthenticated, async (req: any, res) => {
+    app.post(`/api/${kind}`, isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
       try {
         const user = await storage.getUser(req.user.claims.sub);
         if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
         const body = req.body ?? {};
-        // Normalise position — the builder sends mapPositionX/Y (lng/lat)
-        // for compatibility with the old renderer, but the public map
-        // reads `position.{lat,lng}`. Store both so either consumer
-        // works.
         const lat = typeof body.position?.lat === "number" ? body.position.lat
                   : typeof body.mapPositionY === "number" ? body.mapPositionY
                   : null;
@@ -1219,6 +1230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : typeof body.mapPositionX === "number" ? body.mapPositionX
                   : null;
         if (lat === null || lng === null) return res.status(400).json({ message: "Missing position" });
+        if (!validLatLng(lat, lng)) return res.status(400).json({ message: "Invalid coordinates" });
         const docRef = db.collection(poiCollection(kind)).doc();
         const record = {
           id: docRef.id,
@@ -1238,7 +1250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    app.delete(`/api/${kind}/:id`, isAuthenticated, async (req: any, res) => {
+    app.delete(`/api/${kind}/:id`, isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
       try {
         const user = await storage.getUser(req.user.claims.sub);
         if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
@@ -1268,7 +1280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/pois', isAuthenticated, async (req: any, res) => {
+  app.post('/api/pois', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
@@ -1281,6 +1293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 : typeof body.mapPositionX === 'number' ? body.mapPositionX
                 : null;
       if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+      if (!validLatLng(lat, lng)) return res.status(400).json({ message: 'Invalid coordinates' });
       const docRef = db.collection('campus_pois').doc();
       const record = {
         id: docRef.id,
@@ -1300,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/pois/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/pois/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
@@ -1320,16 +1333,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Get all users from Firebase
       const allUsers = await storage.getAllUsers();
-      res.json(allUsers);
+      const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
+      const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
+      res.json(allUsers.slice(offset, offset + limit));
     } catch (error) {
       await logError(error, 'GET /api/users', { isAuthenticated: req.isAuthenticated() });
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
-  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+  app.post('/api/users', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -1338,9 +1352,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { email, firstName, lastName, role, password, passwordOption } = req.body;
 
-      // Validate required fields
       if (!email || !firstName || !lastName) {
         return res.status(400).json({ message: "Email, first name, and last name are required" });
+      }
+      if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      if (role === 'owner') {
+        return res.status(403).json({ message: "Cannot assign owner role" });
       }
 
       // Check if user already exists
@@ -1402,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/users/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -1412,12 +1431,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { email, firstName, lastName, role, newPassword } = req.body;
 
-      // Don't allow editing owner account or escalating to owner
       if (id === 'owner-admin-user') {
         return res.status(403).json({ message: "Cannot edit owner account" });
       }
       if (role === 'owner') {
         return res.status(403).json({ message: "Cannot assign owner role" });
+      }
+      // Prevent editing accounts with the owner role (regardless of DB id)
+      const targetUser = await storage.getUser(id);
+      if (targetUser?.role === 'owner') {
+        return res.status(403).json({ message: "Cannot edit owner account" });
+      }
+      if (OWNER_EMAIL && targetUser?.email?.toLowerCase() === OWNER_EMAIL) {
+        return res.status(403).json({ message: "Cannot edit owner account" });
+      }
+      if (email && !EMAIL_RE.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
       }
 
       const updateData: any = {
@@ -1440,7 +1469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/users/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') {
@@ -1456,7 +1485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Don't allow deleting by owner email
       const userToDelete = await storage.getUser(id);
-      if (userToDelete && userToDelete.email === 'JuusoJuusto112@gmail.com' && userToDelete.firstName === 'Juuso' && userToDelete.lastName === 'Kaikula') {
+      if (userToDelete && OWNER_EMAIL && userToDelete.email?.toLowerCase() === OWNER_EMAIL) {
         return res.status(403).json({ message: "Cannot delete owner account" });
       }
 
@@ -1489,7 +1518,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/staff', async (req, res) => {
     try {
       const staff = await storage.getStaff();
-      res.json(staff);
+      const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
+      const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
+      res.json(staff.slice(offset, offset + limit));
     } catch (error) {
       await logError(error, 'GET /api/staff');
       res.status(500).json({ message: "Failed to fetch staff" });

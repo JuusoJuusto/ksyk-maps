@@ -10,15 +10,41 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.97.0";
+export const APP_VERSION = "3.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.98.0",
+    date: "August 2026",
+    title: "Security hardening, error boundary, debounced search, input validation",
+    titleFi: "Tietoturvaparannukset, virhekäsittely, haun debounce, syötteen validointi",
+    latest: true,
+    highlights: [
+      "Security: mutation rate limiter (30 req/min/IP) applied to all POST/PUT/PATCH/DELETE routes",
+      "Security: owner email moved from hardcoded source to OWNER_EMAIL env variable",
+      "Security: lat/lng coordinate range validation on all POI create routes",
+      "Security: email format validation + privilege escalation prevention on user routes",
+      "Security: Vercel function timeout 10s→60s; X-Frame-Options, HSTS, nosniff headers added",
+      "Security: /api/users and /api/staff support limit/offset pagination",
+      "UI: search input debounced 200ms — fewer API calls while typing",
+      "UI: CampusOverlay wrapped in ErrorBoundary — overlay crash no longer kills the map",
+      "UI: GPS following stale closure fixed via ref",
+      "Dev: ErrorBoundary accepts fallback prop; z-index constants added to lib/zIndex.ts",
+    ],
+    highlightsFi: [
+      "Tietoturva: mutaatiorajaustin (30 pyyntöä/min/IP) kaikille kirjoitusreiteille",
+      "Tietoturva: omistajan sähköposti siirretty koodista OWNER_EMAIL-ympäristömuuttujaan",
+      "Tietoturva: koordinaattien aluevalidointi POI-luontiruteille",
+      "Tietoturva: Vercel-funktioiden aikakatkaisu 10s→60s; turvaotsakeet lisätty",
+      "UI: hakukenttä debouncattu 200ms",
+      "UI: CampusOverlay ErrorBoundaryn sisällä — virhe ei kaada koko karttanäkymää",
+    ],
+  },
   {
     version: "3.97.0",
     date: "August 2026",
     title: "Entrance balloon-pin sizing, door pin geometry, k6 load test",
     titleFi: "Sisäänkäyntipallon koko, ovipin-geometria, k6-kuormitustesti",
-    latest: true,
     highlights: [
       "Map: entrance and door pins redesigned as proper balloon pins — circle head + visible ▼ tail below, minzoom 15",
       "Map: translate formula aligned so circle bottom meets tail top (no more overlap hiding the tail)",
