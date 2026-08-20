@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.95.0 — entrance rectangle fix, POI DB dedup, cleaner chips, mobile stability, README update
+Bump reason: v3.96.0 — single entrance pin (Point src fix), language label, smaller controls, bigger floor chips
 
-Timestamp: 1787890800
-Build: FORCE_REBUILD_v3.95.0_ENTRANCE_RECT_POI_DEDUP_CHIP_CLEAN_README
+Timestamp: 1787977200
+Build: FORCE_REBUILD_v3.96.0_ENTRANCE_POINT_SRC_LANG_LABEL_CONTROL_SIZE

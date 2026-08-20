@@ -1330,31 +1330,49 @@ function installPoiPillars(
     minzoom: 16,
   });
 
-  // Door + entrance markers — flat coloured tiles at ground so users
-  // see where they can walk into buildings from the 3D view.
-  const doorFeatures: unknown[] = [];
-  const entranceFeatures: unknown[] = [];
+  // Door + entrance markers.
+  // TWO source types per kind:
+  //   *-marker-src  → Polygon (squareAroundPointMeters) — only for fill-extrusion 3D pads
+  //   *-pin-src     → Point — for circle + symbol balloon pin layers
+  // Applying a circle layer to a Polygon source renders a circle at EVERY
+  // VERTEX (4 dots per entrance). Point sources fix this to exactly 1 pin.
+  const doorPolyFeatures: unknown[] = [];
+  const entrancePolyFeatures: unknown[] = [];
+  const doorPinFeatures: unknown[] = [];
+  const entrancePinFeatures: unknown[] = [];
+
   for (const d of doors) {
     if (typeof d.position?.lat !== "number" || typeof d.position?.lng !== "number") continue;
     if (activeFloor !== null && d.floor !== null && d.floor !== undefined && d.floor !== activeFloor) continue;
+    const isEntrance = !!(d as unknown as { isEntrance?: boolean }).isEntrance;
+    const kind = d.emergencyExit ? "exit" : isEntrance ? "entrance" : "door";
+    const props = { id: d.id, floor: d.floor ?? null, kind };
+
     const coords = squareAroundPointMeters(d.position, 0.7);
-    const feat = {
+    const polyFeat = {
       type: "Feature" as const,
       geometry: { type: "Polygon" as const, coordinates: [coords.map(([lng, lat]) => [lng, lat])] },
-      properties: { id: d.id, floor: d.floor ?? null },
+      properties: props,
     };
-    if (d.emergencyExit) doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "exit" } });
-    else if ((d as unknown as { isEntrance?: boolean }).isEntrance) entranceFeatures.push({ ...feat, properties: { ...feat.properties, kind: "entrance" } });
-    else doorFeatures.push({ ...feat, properties: { ...feat.properties, kind: "door" } });
+    const pinFeat = {
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [d.position.lng, d.position.lat] },
+      properties: props,
+    };
+
+    if (isEntrance) {
+      entrancePolyFeatures.push(polyFeat);
+      entrancePinFeatures.push(pinFeat);
+    } else {
+      doorPolyFeatures.push(polyFeat);
+      doorPinFeatures.push(pinFeat);
+    }
   }
-  upsertGeoJSONSource(map, "campus-doors-marker-src", {
-    type: "FeatureCollection" as const,
-    features: doorFeatures,
-  });
-  upsertGeoJSONSource(map, "campus-entrances-marker-src", {
-    type: "FeatureCollection" as const,
-    features: entranceFeatures,
-  });
+
+  upsertGeoJSONSource(map, "campus-doors-marker-src", { type: "FeatureCollection" as const, features: doorPolyFeatures });
+  upsertGeoJSONSource(map, "campus-entrances-marker-src", { type: "FeatureCollection" as const, features: entrancePolyFeatures });
+  upsertGeoJSONSource(map, "campus-doors-pin-src", { type: "FeatureCollection" as const, features: doorPinFeatures });
+  upsertGeoJSONSource(map, "campus-entrances-pin-src", { type: "FeatureCollection" as const, features: entrancePinFeatures });
 
   // Entrance glow — larger green disc under each entrance pad so the
   // "way in" reads from a distance in 3D. Simulates flood-light
@@ -1398,9 +1416,10 @@ function installPoiPillars(
   // an unambiguous "door here" chip at every zoom above 16. Green =
   // entrance (way in), red = exit-only, grey = interior door.
   // ── Door pin: dark chip + ▼ tail + letter ─────────────────────────
-  addLayerIfMissing(map, {
+  // Point source so MapLibre renders one circle per door, not one per vertex.
+  replaceLayer(map, {
     id: "campus-doors-chip",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "circle",
     minzoom: 16,
     paint: {
@@ -1412,9 +1431,9 @@ function installPoiPillars(
       "circle-stroke-width": 2.5,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-doors-tail",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "symbol",
     minzoom: 16,
     layout: {
@@ -1431,9 +1450,9 @@ function installPoiPillars(
       "text-halo-width": 1.5,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-doors-letter",
-    source: "campus-doors-marker-src",
+    source: "campus-doors-pin-src",
     type: "symbol",
     minzoom: 16,
     layout: {
@@ -1451,9 +1470,10 @@ function installPoiPillars(
   });
 
   // ── Entrance pin: large green beacon ──────────────────────────────
-  addLayerIfMissing(map, {
+  // Point source so MapLibre renders one circle per entrance, not one per vertex.
+  replaceLayer(map, {
     id: "campus-entrances-chip",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "circle",
     minzoom: 14,
     paint: {
@@ -1465,9 +1485,9 @@ function installPoiPillars(
       "circle-stroke-width": 3,
     },
   });
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-entrances-tail",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
     minzoom: 14,
     layout: {
@@ -1483,9 +1503,9 @@ function installPoiPillars(
     },
   });
   // ↑ arrow symbol inside the entrance chip
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-entrances-letter",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
     minzoom: 14,
     layout: {
@@ -1501,12 +1521,12 @@ function installPoiPillars(
       "text-translate-anchor": "viewport",
     },
   });
-  // Text label — language-aware entrance label at close zoom
+  // Text label — language-aware, always re-created via replaceLayer so language changes take effect
   const _enSl = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
   const _enFi = _enSl ? _enSl === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
-  addLayerIfMissing(map, {
+  replaceLayer(map, {
     id: "campus-entrances-label",
-    source: "campus-entrances-marker-src",
+    source: "campus-entrances-pin-src",
     type: "symbol",
     minzoom: 18,
     layout: {
