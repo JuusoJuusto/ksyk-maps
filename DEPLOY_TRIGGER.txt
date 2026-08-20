@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-19
+FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.94.0 — entrance/door pin dedup, room label language fix, entrance glow 3D-only
+Bump reason: v3.95.0 — entrance rectangle fix, POI DB dedup, cleaner chips, mobile stability, README update
 
-Timestamp: 1787804400
-Build: FORCE_REBUILD_v3.94.0_PIN_DEDUP_LABEL_LANG_GLOW_3D
+Timestamp: 1787890800
+Build: FORCE_REBUILD_v3.95.0_ENTRANCE_RECT_POI_DEDUP_CHIP_CLEAN_README

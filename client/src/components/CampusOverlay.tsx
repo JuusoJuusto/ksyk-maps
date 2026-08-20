@@ -230,13 +230,12 @@ export default function CampusOverlay({
       setVis(LAYERS.sky,              is3D);
       // Generic POI pillars (info / cafe / vending / etc.) are 3D-only
       // — they don't make sense as ground-plane sprites. But door and
-      // entrance markers are important wayfinding cues that need to
-      // read in BOTH 2D and 3D. In 2D they still surface as coloured
-      // pads so users can see where a building can actually be entered
-      // without having to tilt the map first.
+      // fill-extrusion pads only make sense in 3D (pitched view). In
+      // 2D top-down they render as flat colored rectangles on the ground
+      // which is visual noise — the balloon pin chips handle 2D wayfinding.
       setVis(LAYERS.poi3D,            is3D);
-      setVis(LAYERS.doorMarker,       true);
-      setVis(LAYERS.entranceMarker,   true);
+      setVis(LAYERS.doorMarker,       is3D);
+      setVis(LAYERS.entranceMarker,   is3D);
       setVis(LAYERS.entranceGlow,     is3D);
       setVis("campus-entrances-label", true);
       // Interior walls in 3D — walls are drawn as 2D lines
@@ -2162,8 +2161,13 @@ function installPOIs(
   }
   // Generic POIs (info, reception, restroom_*, parking, bike) —
   // placed via the builder POI toolbar, stored in campus_pois.
+  // Skip door/entrance/exit — those are rendered by installPoiPillars
+  // via campus-doors-* / campus-entrances-* dedicated layers. Old DB
+  // records with these kinds would create ghost duplicate chips here.
+  const DOOR_KINDS = new Set(['door', 'entrance', 'exit']);
   for (const p of data.generic) {
     if (typeof p.position?.lat !== "number" || typeof p.position?.lng !== "number") continue;
+    if (DOOR_KINDS.has(p.kind)) continue;
     push(p.id, p.kind, p.floor ?? null, p.position.lat, p.position.lng, p.label ?? null);
   }
   // Auto-derive POI markers from typed rooms (bathroom, elevator, stairs).
@@ -2180,54 +2184,11 @@ function installPOIs(
   const fc = { type: "FeatureCollection" as const, features };
   upsertGeoJSONSource(map, SOURCES.pois, fc);
 
-  // Outer glow ring — the stroke-colored ring one step outside the chip,
-  // giving each pin a coloured halo that reads as a beveled edge in 2D.
-  // Renders below the chip shadow for correct z ordering.
-  addLayerIfMissing(map, {
-    id: `${LAYERS.poisChip}-glow`,
-    source: SOURCES.pois,
-    type: "circle",
-    paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 13, 19, 22, 21, 32],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -26]], 19, ["literal", [0, -44]], 21, ["literal", [0, -60]]],
-      "circle-translate-anchor": "viewport",
-      "circle-color": [
-        "match", ["get", "kind"],
-        "elevator",      "#2563eb",
-        "stairs",        "#b45309",
-        "bathroom",      "#be185d",
-        "restroom",      "#be185d",
-        "restroom_m",    "#2563eb",
-        "restroom_f",    "#be185d",
-        "restroom_a",    "#7c3aed",
-        "entrance",      "#15803d",
-        "exit",          "#b91c1c",
-        "info",          "#0ea5e9",
-        "cafe",          "#a16207",
-        "first_aid",     "#dc2626",
-        "defibrillator", "#e11d48",
-        "meeting_point", "#059669",
-                         "#3b82f6",
-      ],
-      "circle-blur": 0.45,
-      "circle-opacity": 0.22,
-    },
-    minzoom: 15,
-  });
-  // Drop shadow behind each POI chip — darker + larger blur than v3.85.
-  addLayerIfMissing(map, {
-    id: `${LAYERS.poisChip}-shadow`,
-    source: SOURCES.pois,
-    type: "circle",
-    paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 12, 19, 21, 21, 30],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [2, -22]], 19, ["literal", [3, -38]], 21, ["literal", [4, -54]]],
-      "circle-translate-anchor": "viewport",
-      "circle-color": "rgba(0,0,0,0.30)",
-      "circle-blur": 1.1,
-    },
-    minzoom: 14,
-  });
+  // Remove old glow/shadow layers — they had offset values that differed
+  // from the chip translate, creating staggered jitter during mobile pan/zoom.
+  // MazeMap-style: clean chip with stroke only, no extra ring layers.
+  try { map.removeLayer(`${LAYERS.poisChip}-glow`); } catch { /* not present */ }
+  try { map.removeLayer(`${LAYERS.poisChip}-shadow`); } catch { /* not present */ }
   // Tint chip background by kind — MazeMap uses semantic colors so a
   // toilet reads pink, elevator blue, stairs a warm ochre, entrance
   // green, exits red. Icon stays black for max contrast.
