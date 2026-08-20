@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.96.0 — single entrance pin (Point src fix), language label, smaller controls, bigger floor chips
+Bump reason: v3.97.0 — entrance balloon-pin sizing, door pin geometry, k6 load test
 
-Timestamp: 1787977200
-Build: FORCE_REBUILD_v3.96.0_ENTRANCE_POINT_SRC_LANG_LABEL_CONTROL_SIZE
+Timestamp: 1787980800
+Build: FORCE_REBUILD_v3.97.0_ENTRANCE_BALLOON_PIN_K6_LOADTEST

@@ -1417,18 +1417,19 @@ function installPoiPillars(
   // entrance (way in), red = exit-only, grey = interior door.
   // ── Door pin: dark chip + ▼ tail + letter ─────────────────────────
   // Point source so MapLibre renders one circle per door, not one per vertex.
+  // Door pin: translate = -(tail_size + radius) keeps tail visible below chip.
   replaceLayer(map, {
     id: "campus-doors-chip",
     source: "campus-doors-pin-src",
     type: "circle",
     minzoom: 16,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 12, 20, 16],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 16, 7, 18, 9, 20, 11],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -15]], 18, ["literal", [0, -19]], 20, ["literal", [0, -23]]],
       "circle-translate-anchor": "viewport",
       "circle-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2.5,
+      "circle-stroke-width": 2,
     },
   });
   replaceLayer(map, {
@@ -1438,7 +1439,7 @@ function installPoiPillars(
     minzoom: 16,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 10, 18, 14, 20, 18],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 10, 20, 12],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1447,7 +1448,7 @@ function installPoiPillars(
     paint: {
       "text-color": ["match", ["get", "kind"], "exit", "#dc2626", "#1e293b"],
       "text-halo-color": "#ffffff",
-      "text-halo-width": 1.5,
+      "text-halo-width": 1,
     },
   });
   replaceLayer(map, {
@@ -1457,42 +1458,44 @@ function installPoiPillars(
     minzoom: 16,
     layout: {
       "text-field": ["match", ["get", "kind"], "exit", "!", "D"],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 9, 18, 13, 20, 17],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 16, 7, 18, 9, 20, 11],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -10]], 18, ["literal", [0, -15]], 20, ["literal", [0, -20]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 16, ["literal", [0, -15]], 18, ["literal", [0, -19]], 20, ["literal", [0, -23]]],
       "text-translate-anchor": "viewport",
     },
   });
 
-  // ── Entrance pin: large green beacon ──────────────────────────────
-  // Point source so MapLibre renders one circle per entrance, not one per vertex.
+  // ── Entrance pin: MazeMap-style balloon — circle head + ▼ tail ────
+  // Sizing rule: translate = -(tail_size + radius) so the circle's
+  // bottom edge lands exactly at the tail's top edge.
+  // Point source so one circle per entrance.
   replaceLayer(map, {
     id: "campus-entrances-chip",
     source: "campus-entrances-pin-src",
     type: "circle",
-    minzoom: 14,
+    minzoom: 15,
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 13, 16, 17, 18, 22, 20, 28],
-      "circle-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 7, 16, 9, 18, 12, 20, 15],
+      "circle-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -15]], 16, ["literal", [0, -19]], 18, ["literal", [0, -25]], 20, ["literal", [0, -31]]],
       "circle-translate-anchor": "viewport",
       "circle-color": "#16a34a",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 3,
+      "circle-stroke-width": 2.5,
     },
   });
   replaceLayer(map, {
     id: "campus-entrances-tail",
     source: "campus-entrances-pin-src",
     type: "symbol",
-    minzoom: 14,
+    minzoom: 15,
     layout: {
       "text-field": "▼",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 15, 16, 18, 18, 23, 20, 29],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 8, 16, 10, 18, 13, 20, 16],
       "text-font": ["Noto Sans Regular"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -1500,24 +1503,26 @@ function installPoiPillars(
     },
     paint: {
       "text-color": "#16a34a",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1,
     },
   });
-  // ↑ arrow symbol inside the entrance chip
+  // ↑ arrow symbol inside the entrance chip, translate matches chip
   replaceLayer(map, {
     id: "campus-entrances-letter",
     source: "campus-entrances-pin-src",
     type: "symbol",
-    minzoom: 14,
+    minzoom: 15,
     layout: {
       "text-field": "⇑",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 14, 14, 16, 18, 18, 22, 20, 28],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 7, 16, 9, 18, 12, 20, 15],
       "text-font": ["Noto Sans Bold"],
       "text-allow-overlap": true,
       "text-ignore-placement": true,
     },
     paint: {
       "text-color": "#ffffff",
-      "text-translate": ["interpolate", ["linear"], ["zoom"], 14, ["literal", [0, -15]], 16, ["literal", [0, -20]], 18, ["literal", [0, -26]], 20, ["literal", [0, -34]]],
+      "text-translate": ["interpolate", ["linear"], ["zoom"], 15, ["literal", [0, -15]], 16, ["literal", [0, -19]], 18, ["literal", [0, -25]], 20, ["literal", [0, -31]]],
       "text-translate-anchor": "viewport",
     },
   });
