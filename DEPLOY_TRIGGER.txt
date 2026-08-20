@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.98.0 — security hardening, error boundary, debounced search, input validation
+Bump reason: v3.99.0 — full Firebase removal, all data migrated to Supabase
 
-Timestamp: 1787984400
-Build: FORCE_REBUILD_v3.98.0_SECURITY_HARDENING_ERRORBOUNDARY_DEBOUNCE
+Timestamp: 1787988000
+Build: FORCE_REBUILD_v3.99.0_FIREBASE_REMOVAL_SUPABASE_FULL

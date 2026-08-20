@@ -10,15 +10,41 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "3.98.0";
+export const APP_VERSION = "3.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "3.99.0",
+    date: "August 2026",
+    title: "Full Firebase removal — all data now in Supabase",
+    titleFi: "Firebase poistettu kokonaan — kaikki data Supabasessa",
+    latest: true,
+    highlights: [
+      "Migration: Firebase/Firestore completely removed from codebase",
+      "Migration: campus POIs (stairs, elevators, doors, generic) moved to Supabase campus_pois table",
+      "Migration: schedule, appearance, map defaults, security settings moved to Supabase kv_settings table",
+      "Migration: map layers moved to kv_settings table",
+      "Migration: map versions/packages publish now uses Supabase mapVersions/mapPackages tables",
+      "Migration: analytics pageviews and feature events moved to Supabase pageViews/appLogs tables",
+      "Migration: easter egg counters and recent feed moved to kv_settings table",
+      "Migration: WiFi beacon surveys moved to Supabase beacon_surveys table",
+      "Removed: firebase and firebase-admin npm packages",
+      "Removed: client/src/lib/firebase.ts (dead code)",
+    ],
+    highlightsFi: [
+      "Firebase/Firestore poistettu kokonaan koodikannasta",
+      "Kampuksen POI:t siirretty Supabase campus_pois -tauluun",
+      "Asetukset siirretty Supabase kv_settings -tauluun",
+      "Analytiikka siirretty Supabase-tauluihin",
+      "firebase ja firebase-admin npm-paketit poistettu",
+    ],
+  },
   {
     version: "3.98.0",
     date: "August 2026",
     title: "Security hardening, error boundary, debounced search, input validation",
     titleFi: "Tietoturvaparannukset, virhekäsittely, haun debounce, syötteen validointi",
-    latest: true,
+    latest: false,
     highlights: [
       "Security: mutation rate limiter (30 req/min/IP) applied to all POST/PUT/PATCH/DELETE routes",
       "Security: owner email moved from hardcoded source to OWNER_EMAIL env variable",

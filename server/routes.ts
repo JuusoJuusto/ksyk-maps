@@ -5,7 +5,14 @@ import { setupAuth, isAuthenticated, signChallenge, verifyChallenge } from "./si
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "../shared/schema.js";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
 import { rateLimiters } from "./rateLimiter";
-import { getFirestore } from 'firebase-admin/firestore';
+import {
+  kvGet, kvSet, kvMerge,
+  createPoi, getPoisByKind, getAllPois, deletePoi,
+  incrementEggCounter, appendEggRecent,
+} from "./kvStorage";
+import { db as pgDb } from "./db";
+import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
+import { and, eq, gte, count as pgCount } from "drizzle-orm";
 
 import { registerCampusRoutes } from "./campusRoutes";
 import { registerMapRoutes } from "./mapRoutes";
@@ -37,8 +44,6 @@ async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
-const db = getFirestore();
-
 // Owner identity — read from env so the email never appears in source.
 // Set OWNER_EMAIL in Vercel environment variables.
 const OWNER_EMAIL = (process.env.OWNER_EMAIL ?? '').toLowerCase().trim();
@@ -46,7 +51,7 @@ const OWNER_EMAIL = (process.env.OWNER_EMAIL ?? '').toLowerCase().trim();
 // Simple email format guard (rejects obvious garbage before DB round-trip).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Validate geographic coordinates before persisting to Firestore.
+// Validate geographic coordinates before persisting.
 function validLatLng(lat: unknown, lng: unknown): boolean {
   return (
     typeof lat === "number" && isFinite(lat) && lat >= -90 && lat <= 90 &&
@@ -1200,17 +1205,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── POI routes: stairs, elevators, doors ─────────────────────────
-  // Free-form Firestore-backed collections so the builder can persist
-  // click-to-place POIs without a schema migration. Reads soft-fail to
-  // [] so a Firestore rules glitch doesn't blank the whole map.
-  const poiCollection = (kind: "stairs" | "elevators" | "doors") => `campus_${kind}`;
-
+  // ── POI routes: stairs, elevators, doors + generic POIs ──────────
+  // All backed by the campus_pois Supabase table. `kind` is the
+  // discriminator (stairs | elevators | doors | wc | info | …).
   const registerPoiRoutes = (kind: "stairs" | "elevators" | "doors") => {
     app.get(`/api/${kind}`, async (_req, res) => {
       try {
-        const snap = await db.collection(poiCollection(kind)).get();
-        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const items = await getPoisByKind(kind);
         res.json(items);
       } catch (error) {
         console.error(`GET /api/${kind} soft-failed:`, error);
@@ -1231,18 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : null;
         if (lat === null || lng === null) return res.status(400).json({ message: "Missing position" });
         if (!validLatLng(lat, lng)) return res.status(400).json({ message: "Invalid coordinates" });
-        const docRef = db.collection(poiCollection(kind)).doc();
-        const record = {
-          id: docRef.id,
-          ...body,
-          position: { lat, lng },
-          mapPositionX: lng,
-          mapPositionY: lat,
-          floor: typeof body.floor === "number" ? body.floor : 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        await docRef.set(record);
+        const record = await createPoi({ ...body, kind, position: { lat, lng } });
         res.status(201).json(record);
       } catch (error) {
         console.error(`POST /api/${kind} failed:`, error);
@@ -1254,7 +1244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const user = await storage.getUser(req.user.claims.sub);
         if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
-        await db.collection(poiCollection(kind)).doc(req.params.id).delete();
+        await deletePoi(req.params.id);
         res.status(204).send();
       } catch (error) {
         console.error(`DELETE /api/${kind} failed:`, error);
@@ -1266,13 +1256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPoiRoutes("elevators");
   registerPoiRoutes("doors");
 
-  // Generic POIs — free-form `kind` string, one collection, one
-  // endpoint. Covers info, reception, parking, restroom_m/f/a, bike
-  // etc. without needing a table-per-kind.
+  // Generic POIs — free-form `kind` string (wc, info, bike, café…)
   app.get('/api/pois', async (_req, res) => {
     try {
-      const snap = await db.collection('campus_pois').get();
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const items = await getAllPois();
       res.json(items);
     } catch (error) {
       console.error('GET /api/pois soft-failed:', error);
@@ -1294,18 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 : null;
       if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
       if (!validLatLng(lat, lng)) return res.status(400).json({ message: 'Invalid coordinates' });
-      const docRef = db.collection('campus_pois').doc();
-      const record = {
-        id: docRef.id,
-        kind: body.kind,
-        position: { lat, lng },
-        floor: typeof body.floor === 'number' ? body.floor : 1,
-        label: typeof body.label === 'string' ? body.label : null,
-        metadata: body.metadata ?? null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      await docRef.set(record);
+      const record = await createPoi({ ...body, position: { lat, lng } });
       res.status(201).json(record);
     } catch (error) {
       console.error('POST /api/pois failed:', error);
@@ -1317,7 +1293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
-      await db.collection('campus_pois').doc(req.params.id).delete();
+      await deletePoi(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error('DELETE /api/pois failed:', error);
@@ -1626,19 +1602,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule Settings routes
-  app.get('/api/schedule-settings', async (req, res) => {
+  app.get('/api/schedule-settings', async (_req, res) => {
     try {
-      const doc = await db.collection('scheduleSettings').doc('default').get();
-      if (!doc.exists) {
-        // Return default settings
-        return res.json({
-          periods: [],
-          terms: [],
-          breaks: [],
-          specialSchedules: []
-        });
-      }
-      res.json(doc.data());
+      const data = await kvGet('scheduleSettings');
+      res.json(data ?? { periods: [], terms: [], breaks: [], specialSchedules: [] });
     } catch (error) {
       await logError(error, 'GET /api/schedule-settings');
       res.status(500).json({ message: "Failed to fetch schedule settings" });
@@ -1651,7 +1618,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
-
       const { periods, terms, breaks, holidays, specialSchedules } = req.body;
       const settings = {
         periods: periods || [],
@@ -1660,10 +1626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         holidays: holidays || [],
         specialSchedules: specialSchedules || [],
         updatedAt: new Date().toISOString(),
-        updatedBy: user.id
+        updatedBy: user.id,
       };
-
-      await db.collection('scheduleSettings').doc('default').set(settings);
+      await kvSet('scheduleSettings', settings);
       res.json(settings);
     } catch (error) {
       await logError(error, 'POST /api/schedule-settings');
@@ -1672,18 +1637,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Appearance Settings routes
-  app.get('/api/appearance-settings', async (req, res) => {
+  app.get('/api/appearance-settings', async (_req, res) => {
     try {
-      const doc = await db.collection('appearanceSettings').doc('default').get();
-      if (!doc.exists) {
-        // Return default settings
-        return res.json({
-          timeFormat: '24h',
-          language: 'fi',
-          dateFormat: 'DD.MM.YYYY'
-        });
-      }
-      res.json(doc.data());
+      const data = await kvGet('appearanceSettings');
+      res.json(data ?? { timeFormat: '24h', language: 'fi', dateFormat: 'DD.MM.YYYY' });
     } catch (error) {
       await logError(error, 'GET /api/appearance-settings');
       res.status(500).json({ message: "Failed to fetch appearance settings" });
@@ -1696,17 +1653,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
-
       const { timeFormat, language, dateFormat } = req.body;
       const settings = {
         timeFormat: timeFormat || '24h',
         language: language || 'fi',
         dateFormat: dateFormat || 'DD.MM.YYYY',
         updatedAt: new Date().toISOString(),
-        updatedBy: user.id
+        updatedBy: user.id,
       };
-
-      await db.collection('appearanceSettings').doc('default').set(settings);
+      await kvSet('appearanceSettings', settings);
       res.json(settings);
     } catch (error) {
       await logError(error, 'POST /api/appearance-settings');
@@ -2447,14 +2402,10 @@ https://ksykmaps.vercel.app
     }
   });
 
-  // Map defaults — admin-set map center/zoom/rotation saved to DB so all users see the same home view
-  app.get('/api/map-defaults', async (req, res) => {
+  // Map defaults — admin-set map center/zoom/rotation
+  app.get('/api/map-defaults', async (_req, res) => {
     try {
-      const doc = await db.collection('mapDefaults').doc('default').get();
-      if (!doc.exists) {
-        return res.json(null);
-      }
-      res.json(doc.data());
+      res.json(await kvGet('mapDefaults'));
     } catch (error) {
       console.error("Error fetching map defaults:", error);
       res.status(500).json({ message: "Failed to fetch map defaults" });
@@ -2468,7 +2419,6 @@ https://ksykmaps.vercel.app
         'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
         'osmCampusSpanMeters', 'osmMaxBoundsEnabled', 'osmMaxBoundsNorth',
         'osmMaxBoundsEast', 'osmMaxBoundsSouth', 'osmMaxBoundsWest',
-        // Platform-specific overrides — nullable, added 3.6.x.
         'mobileCenterLat', 'mobileCenterLng', 'mobileDefaultZoom', 'mobileMinZoom',
         'mobileMaxZoom', 'mobileRotationDeg', 'mobilePitchDeg',
         'desktopCenterLat', 'desktopCenterLng', 'desktopDefaultZoom', 'desktopMinZoom',
@@ -2478,8 +2428,8 @@ https://ksykmaps.vercel.app
       for (const key of allowed) {
         if (req.body[key] !== undefined) data[key] = req.body[key];
       }
-      data.updatedAt = new Date();
-      await db.collection('mapDefaults').doc('default').set(data, { merge: true });
+      data.updatedAt = new Date().toISOString();
+      await kvMerge('mapDefaults', data);
       res.json({ ...data, success: true });
     } catch (error) {
       console.error("Error saving map defaults:", error);
@@ -2488,17 +2438,13 @@ https://ksykmaps.vercel.app
   });
 
   // ── Security & access control ──────────────────────────────────────────
-  // All settings are stored in a single Firestore doc, ready for the future
-  // Supabase migration (one JSON column on a `app_settings` table).
   app.get('/api/security-settings', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const doc = await db.collection('securitySettings').doc('default').get();
-      if (!doc.exists) return res.json(null);
-      res.json(doc.data());
+      res.json(await kvGet('securitySettings'));
     } catch (error) {
       console.error("Error fetching security settings:", error);
       res.status(500).json({ message: "Failed to fetch security settings" });
@@ -2564,7 +2510,7 @@ https://ksykmaps.vercel.app
         updatedAt: new Date(),
         updatedBy: req.user?.claims?.email || req.user?.email || "unknown",
       };
-      await db.collection('securitySettings').doc('default').set(payload, { merge: false });
+      await kvSet('securitySettings', payload);
       res.json({ success: true });
     } catch (error) {
       console.error("Error saving security settings:", error);
@@ -2580,16 +2526,14 @@ https://ksykmaps.vercel.app
     res.json({ ip, time: new Date().toISOString() });
   });
 
-  // Guest access request — written to securitySettings.accessRequests
+  // Guest access request — appended into securitySettings.accessRequests
   app.post('/api/security-settings/request-access', async (req, res) => {
     try {
       const { email, reason } = req.body || {};
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ message: "Email is required" });
       }
-      const ref = db.collection('securitySettings').doc('default');
-      const snap = await ref.get();
-      const current = (snap.data() as any) || {};
+      const current = (await kvGet('securitySettings')) as any || {};
       const requests = Array.isArray(current.accessRequests) ? current.accessRequests : [];
       const request = {
         id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -2598,7 +2542,7 @@ https://ksykmaps.vercel.app
         createdAt: new Date().toISOString(),
         status: 'pending' as const,
       };
-      await ref.set({ ...current, accessRequests: [request, ...requests].slice(0, 200) }, { merge: true });
+      await kvSet('securitySettings', { ...current, accessRequests: [request, ...requests].slice(0, 200) });
       res.json({ success: true, id: request.id });
     } catch (error) {
       console.error("Error saving access request:", error);
@@ -2679,32 +2623,25 @@ https://ksykmaps.vercel.app
     }
   });
 
-  // POST /api/analytics/feature — named-counter sink. Client helper
-  // trackFeature() hits this on every feature use (settings opened, floor
-  // change, 3D toggle, etc). We keep it in a dedicated collection so the
-  // Overview panel can top-N without scanning the raw events blob.
+  // POST /api/analytics/feature — named-counter sink written to appLogs.
   app.post('/api/analytics/feature', async (req, res) => {
     try {
-      const { name, meta, sessionId, userId } = req.body || {};
+      const { name, sessionId, userId } = req.body || {};
       if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: 'name is required' });
       }
-      await db.collection('analytics_features').add({
-        name: name.slice(0, 80),
-        meta: meta && typeof meta === 'object' ? meta : null,
-        sessionId: (sessionId || '').toString().slice(0, 60),
-        userId: (userId || '').toString().slice(0, 60),
-        createdAt: new Date(),
-      });
+      await storage.createAppLog({
+        level: 'info',
+        message: `feature:${name.slice(0, 80)}`,
+        userId: (userId || '').toString().slice(0, 60) || null,
+      }).catch(() => {});
       res.json({ success: true });
-    } catch (error) {
-      console.error('feature POST error:', error);
+    } catch {
       res.json({ success: false });
     }
   });
 
-  // GET /api/analytics/overview — small aggregation for the admin Overview
-  // panel. Returns today's counters + top-N slices in one roundtrip.
+  // GET /api/analytics/overview — today's counters for the admin Overview panel.
   app.get('/api/analytics/overview', isAuthenticated, async (req: any, res) => {
     const callerUser = await storage.getUser(req.user.claims.sub);
     if (!callerUser || (callerUser.role !== 'admin' && callerUser.role !== 'owner')) {
@@ -2713,52 +2650,57 @@ https://ksykmaps.vercel.app
     try {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
-      const [pvSnap, featSnap, searchSnap, eggSnap] = await Promise.all([
-        db.collection('analytics_pageviews').where('createdAt', '>=', startOfToday).limit(2000).get()
-          .catch(() => ({ docs: [] as any[] })),
-        db.collection('analytics_features').where('createdAt', '>=', startOfToday).limit(2000).get()
-          .catch(() => ({ docs: [] as any[] })),
-        db.collection('searchAnalytics').where('createdAt', '>=', startOfToday).limit(2000).get()
-          .catch(() => ({ docs: [] as any[] })),
-        db.collection('easterEggs').doc('counters').get()
-          .catch(() => ({ exists: false, data: () => ({}) } as any)),
+
+      const [pvRows, featRows, searchRows, eggData] = await Promise.all([
+        pgDb.select({ count: pgCount() }).from(pageViews).where(gte(pageViews.createdAt, startOfToday)).catch(() => [{ count: 0 }]),
+        pgDb.select({ message: appLogs.message }).from(appLogs)
+          .where(and(gte(appLogs.createdAt, startOfToday), eq(appLogs.level, 'info')))
+          .limit(2000).catch(() => [] as { message: string }[]),
+        pgDb.select({ query: searchAnalytics.query }).from(searchAnalytics)
+          .where(gte(searchAnalytics.createdAt, startOfToday))
+          .limit(2000).catch(() => [] as { query: string }[]),
+        kvGet('easterEggCounters').catch(() => null),
       ]);
+
       const featureCounts: Record<string, number> = {};
-      featSnap.docs.forEach((d: any) => {
-        const n = (d.data() as any)?.name || 'unknown';
-        featureCounts[n] = (featureCounts[n] || 0) + 1;
-      });
+      for (const { message } of featRows as { message: string }[]) {
+        if (message?.startsWith('feature:')) {
+          const n = message.slice(8) || 'unknown';
+          featureCounts[n] = (featureCounts[n] || 0) + 1;
+        }
+      }
       const topFeatures = Object.entries(featureCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count).slice(0, 5);
+
       const searchCounts: Record<string, number> = {};
-      searchSnap.docs.forEach((d: any) => {
-        const q = ((d.data() as any)?.query || '').toString().trim().toLowerCase();
-        if (!q) return;
-        searchCounts[q] = (searchCounts[q] || 0) + 1;
-      });
+      for (const { query } of searchRows as { query: string }[]) {
+        const q = (query || '').trim().toLowerCase();
+        if (q) searchCounts[q] = (searchCounts[q] || 0) + 1;
+      }
       const topSearches = Object.entries(searchCounts)
         .map(([query, count]) => ({ query, count }))
         .sort((a, b) => b.count - a.count).slice(0, 10);
-      const eggData = (eggSnap.exists ? eggSnap.data() : {}) as any;
+
+      const egg = (eggData as any) || {};
       const eggCounts = {
-        secretEasterEgg: eggData.secretEasterEgg || 0,
-        konamiCode: eggData.konamiCode || 0,
-        devMode: eggData.devMode || 0,
-        ksykTyped: eggData.ksykTyped || 0,
-        logoClicks: eggData.logoClicks || 0,
-        debugCombo: eggData.debugCombo || 0,
+        secretEasterEgg: egg.secretEasterEgg || 0,
+        konamiCode:      egg.konamiCode      || 0,
+        devMode:         egg.devMode         || 0,
+        ksykTyped:       egg.ksykTyped       || 0,
+        logoClicks:      egg.logoClicks      || 0,
+        debugCombo:      egg.debugCombo      || 0,
       };
-      const totalEggs = Object.values(eggCounts).reduce((s: number, n: number) => s + n, 0);
+
       res.json({
         today: {
-          pageviews: pvSnap.docs.length,
-          featureUses: featSnap.docs.length,
-          searches: searchSnap.docs.length,
+          pageviews:   Number((pvRows[0] as any)?.count ?? 0),
+          featureUses: (featRows as any[]).filter((r: any) => r.message?.startsWith('feature:')).length,
+          searches:    searchRows.length,
         },
         topFeatures,
         topSearches,
-        easterEggs: { ...eggCounts, total: totalEggs },
+        easterEggs: { ...eggCounts, total: Object.values(eggCounts).reduce((s, n) => s + n, 0) },
         fetchedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -2774,11 +2716,10 @@ https://ksykmaps.vercel.app
   });
 
   // GET /api/easter-eggs/recent — recent discoveries feed for Overview.
-  app.get('/api/easter-eggs/recent', async (req, res) => {
+  app.get('/api/easter-eggs/recent', async (_req, res) => {
     try {
-      const doc = await db.collection('easterEggs').doc('recent').get();
-      const entries = (doc.exists ? (doc.data() as any)?.entries : []) || [];
-      res.json(entries.slice(-50).reverse());
+      const data = await kvGet('easterEggRecent') as { entries?: unknown[] } | null;
+      res.json(Array.isArray(data?.entries) ? data.entries.slice(0, 50) : []);
     } catch {
       res.json([]);
     }
@@ -2794,10 +2735,6 @@ https://ksykmaps.vercel.app
       // beats having nothing.
       const path = (url || page || '/').toString();
 
-      // Fire-and-forget dual-write: legacy storage.createPageView (used by
-      // AppLogsManager's rich charts) + analytics_pageviews (used by the
-      // Overview counter). Each is wrapped so one failure doesn't kill the
-      // other.
       storage.createPageView({
         sessionId,
         userId,
@@ -2816,18 +2753,7 @@ https://ksykmaps.vercel.app
         timeZone,
         duration,
         isBounce
-      }).catch(() => { /* legacy sink may be off in some envs — ignore */ });
-
-      try {
-        await db.collection('analytics_pageviews').add({
-          page: path.slice(0, 200),
-          sessionId: (sessionId || '').toString().slice(0, 60),
-          userId: (userId || '').toString().slice(0, 60),
-          referrer: (referrer || '').toString().slice(0, 200),
-          userAgent: (userAgent || req.get('user-agent') || '').toString().slice(0, 300),
-          createdAt: new Date(),
-        });
-      } catch { /* firestore transient — client will retry on next nav */ }
+      }).catch(() => {});
 
       // Also log to app logs for debugging
       await storage.createAppLog({
@@ -3317,83 +3243,43 @@ https://ksykmaps.vercel.app
   });
 
   // ==================== SIMPLE ANALYTICS ENDPOINTS ====================
-  // Track page view (simple, no auth required for tracking)
-  app.post('/api/analytics/pageview', async (req, res) => {
-    try {
-      const { page, timestamp } = req.body;
-      
-      await db.collection('analytics_pageviews').add({
-        page: page || '/',
-        timestamp: timestamp || new Date().toISOString(),
-        userAgent: req.get('user-agent') || 'unknown',
-        ip: req.ip || 'unknown',
-        createdAt: new Date().toISOString()
-      });
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Analytics pageview error:', error);
-      res.status(500).json({ message: "Failed to track page view" });
-    }
-  });
-
-  // Track event (simple, no auth required for tracking)
+  // Track page view — delegates to the richer handler above (storage.createPageView)
+  // This handler exists for backward-compat with older client callers.
   app.post('/api/analytics/event', async (req, res) => {
     try {
-      const { event, data, timestamp } = req.body;
-      
-      await db.collection('analytics_events').add({
-        event: event || 'unknown',
-        data: data || {},
-        timestamp: timestamp || new Date().toISOString(),
-        userAgent: req.get('user-agent') || 'unknown',
-        ip: req.ip || 'unknown',
-        createdAt: new Date().toISOString()
-      });
-      
+      const { event, data } = req.body;
+      await storage.createAppLog({
+        level: 'info',
+        message: `event:${(event || 'unknown').toString().slice(0, 80)}`,
+        errorInfo: data ?? null,
+      }).catch(() => {});
       res.json({ success: true });
-    } catch (error) {
-      console.error('Analytics event error:', error);
-      res.status(500).json({ message: "Failed to track event" });
+    } catch {
+      res.json({ success: true }); // analytics is best-effort
     }
   });
 
-  // Get analytics summary (admin only, uses existing isAuthenticated)
+  // Get analytics summary (admin only)
   app.get('/api/analytics/summary', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'owner' && user?.role !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });
       }
-      
       const timeRange = req.query.range || 'month';
       const now = new Date();
-      let startDate = new Date();
-      
-      if (timeRange === 'week') {
-        startDate.setDate(now.getDate() - 7);
-      } else if (timeRange === 'month') {
-        startDate.setMonth(now.getMonth() - 1);
-      } else if (timeRange === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1);
-      }
-      
-      const pageviewsSnapshot = await db.collection('analytics_pageviews')
-        .where('timestamp', '>=', startDate.toISOString())
-        .get();
-      
-      const eventsSnapshot = await db.collection('analytics_events')
-        .where('timestamp', '>=', startDate.toISOString())
-        .get();
-      
-      const pageviews = pageviewsSnapshot.docs.map(doc => doc.data());
-      const events = eventsSnapshot.docs.map(doc => doc.data());
-      
+      const startDate = new Date();
+      if (timeRange === 'week')       startDate.setDate(now.getDate() - 7);
+      else if (timeRange === 'month') startDate.setMonth(now.getMonth() - 1);
+      else if (timeRange === 'year')  startDate.setFullYear(now.getFullYear() - 1);
+
+      const [pvCount, searchCount] = await Promise.all([
+        pgDb.select({ count: pgCount() }).from(pageViews).where(gte(pageViews.createdAt, startDate)),
+        pgDb.select({ count: pgCount() }).from(searchAnalytics).where(gte(searchAnalytics.createdAt, startDate)),
+      ]);
       res.json({
-        totalPageviews: pageviews.length,
-        totalEvents: events.length,
-        pageviews,
-        events
+        totalPageviews: Number((pvCount[0] as any)?.count ?? 0),
+        totalEvents: Number((searchCount[0] as any)?.count ?? 0),
       });
     } catch (error) {
       console.error('Analytics summary error:', error);

@@ -89,42 +89,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message: "KSYK Maps API is running",
         version: "1.0.0",
         timestamp: new Date().toISOString(),
-        env: {
-          USE_FIREBASE: process.env.USE_FIREBASE,
-          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-          FIREBASE_SERVICE_ACCOUNT_LENGTH: process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0,
-          NODE_ENV: process.env.NODE_ENV
-        }
+        env: { HAS_POSTGRES_URL: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL, NODE_ENV: process.env.NODE_ENV }
       });
     }
-    
-    // One-time Firebase → Postgres migration endpoint — admin only.
-    // Reads every collection from Firestore and upserts into Supabase.
-    // Safe to call multiple times (ON CONFLICT DO NOTHING).
-    if (apiPath === '/admin/migrate-from-firebase' && req.method === 'POST') {
-      if (!requireAdminAuth(req, res)) return;
-      try {
-        const { runMigration } = await import('../server/migrateFirebaseToPostgres.js');
-        const result = await runMigration();
-        return res.status(200).json({ success: true, ...result });
-      } catch (err: any) {
-        console.error('Migration error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-      }
-    }
 
-    // Debug endpoint â€” admin only
+    // Debug endpoint — admin only
     if (apiPath === '/debug') {
       if (!requireAdminAuth(req, res)) return;
-      const { storage } = await import('../server/storage.js');
       const buildings = await storage.getBuildings();
       return res.status(200).json({
         storageType: storage.constructor.name,
         buildingCount: buildings.length,
-        env: {
-          HAS_FIREBASE_SERVICE_ACCOUNT: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-          HAS_POSTGRES_URL: !!process.env.POSTGRES_URL,
-        }
+        env: { HAS_POSTGRES_URL: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL },
       });
     }
     
@@ -142,26 +118,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ip, time: new Date().toISOString() });
     }
 
-    // GET /api/security-settings â€” public read for the gate engine.
-    // Hits Firestore directly so the response is authoritative even when
-    // the IStorage interface doesn't expose the doc.
+    // GET /api/security-settings — public read for the access-control gate engine.
     if (apiPath === '/security-settings' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const doc = await db.collection('securitySettings').doc('default').get();
-        return res.status(200).json(doc.exists ? doc.data() : null);
+        const { kvGet } = await import('../server/kvStorage.js');
+        return res.status(200).json(await kvGet('securitySettings'));
       } catch (err) {
         console.error('security-settings GET error:', err);
         return res.status(200).json(null);
       }
     }
 
-    // PUT /api/security-settings â€” admin write. Whitelist + validate so
-    // a malformed body can't poison the doc.
+    // PUT /api/security-settings — admin write with field whitelist.
     if (apiPath === '/security-settings' && req.method === 'PUT') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { kvSet } = await import('../server/kvStorage.js');
         const src = req.body || {};
         const safeBool = (v: any, fb = false) => typeof v === 'boolean' ? v : fb;
         const safeStr = (v: any, max = 500) => typeof v === 'string' ? v.slice(0, max) : '';
@@ -185,9 +157,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           accessRequests: safeArr(src.accessRequests),
           lockoutMessage: safeStr(src.lockoutMessage, 1000),
           dryRun: safeBool(src.dryRun),
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         };
-        await db.collection('securitySettings').doc('default').set(payload, { merge: false });
+        await kvSet('securitySettings', payload);
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('security-settings PUT error:', err);
@@ -195,18 +167,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/security-settings/request-access â€” queues a guest request
-    // into the same Firestore doc the admin panel inbox reads.
+    // POST /api/security-settings/request-access — queues a guest access request.
     if (apiPath === '/security-settings/request-access' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { kvGet, kvSet } = await import('../server/kvStorage.js');
         const { email, reason } = req.body || {};
         if (!email || typeof email !== 'string') {
           return res.status(400).json({ message: 'Email is required' });
         }
-        const ref = db.collection('securitySettings').doc('default');
-        const snap = await ref.get();
-        const current = (snap.data() as any) || {};
+        const current = (await kvGet('securitySettings') as any) || {};
         const requests = Array.isArray(current.accessRequests) ? current.accessRequests : [];
         const request = {
           id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -215,7 +184,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           createdAt: new Date().toISOString(),
           status: 'pending' as const,
         };
-        await ref.set({ ...current, accessRequests: [request, ...requests].slice(0, 200) }, { merge: true });
+        await kvSet('securitySettings', { ...current, accessRequests: [request, ...requests].slice(0, 200) });
         return res.status(200).json({ success: true, id: request.id });
       } catch (err) {
         console.error('access-request POST error:', err);
@@ -223,23 +192,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-
-    // GET /api/map-defaults â€” admin-set map home/zoom.
+    // GET /api/map-defaults — admin-set map home/zoom.
     if (apiPath === '/map-defaults' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const doc = await db.collection('mapDefaults').doc('default').get();
-        return res.status(200).json(doc.exists ? doc.data() : null);
+        const { kvGet } = await import('../server/kvStorage.js');
+        return res.status(200).json(await kvGet('mapDefaults'));
       } catch {
         return res.status(200).json(null);
       }
     }
 
-    // PUT /api/map-defaults â€” admin write.
+    // PUT /api/map-defaults — admin write.
     if (apiPath === '/map-defaults' && req.method === 'PUT') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { kvMerge } = await import('../server/kvStorage.js');
         const allowed = [
           'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
           'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
@@ -251,8 +218,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         for (const key of allowed) {
           if (req.body[key] !== undefined) data[key] = req.body[key];
         }
-        data.updatedAt = new Date();
-        await db.collection('mapDefaults').doc('default').set(data, { merge: true });
+        data.updatedAt = new Date().toISOString();
+        await kvMerge('mapDefaults', data);
         return res.status(200).json({ ...data, success: true });
       } catch (err) {
         console.error('map-defaults PUT error:', err);
@@ -323,11 +290,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (beaconListMatch && req.method === 'GET') {
         const roomId = beaconListMatch[1];
         try {
-          const { db } = await import('../server/firebaseStorage.js');
-          const snap = await db.collection('beaconSurveys').doc(roomId).collection('positions')
-            .orderBy('capturedAt', 'desc').get();
-          const positions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          return res.status(200).json(positions);
+          const { getBeaconPositions } = await import('../server/kvStorage.js');
+          return res.status(200).json(await getBeaconPositions(roomId));
         } catch {
           return res.status(200).json([]);
         }
@@ -336,7 +300,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (beaconListMatch && req.method === 'POST') {
         const roomId = beaconListMatch[1];
         try {
-          const { db } = await import('../server/firebaseStorage.js');
+          const { addBeaconPosition } = await import('../server/kvStorage.js');
           const { positionLabel, capturedAt, readings, lat, lng, accuracyM } = req.body || {};
           if (!positionLabel || !Array.isArray(readings)) {
             return res.status(400).json({ message: 'positionLabel and readings[] required' });
@@ -346,18 +310,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             rssi: Number(r.rssi) || 0,
             ssid: r.ssid ? String(r.ssid).slice(0, 64) : undefined,
           })).filter((r: any) => r.bssid);
-          const record: Record<string, any> = {
+          const record = await addBeaconPosition(roomId, {
             positionLabel: String(positionLabel).slice(0, 60),
-            capturedAt: capturedAt || new Date().toISOString(),
+            capturedAt,
             readings: safeReadings,
-            createdAt: new Date(),
-          };
-          if (typeof lat === 'number' && lat !== 0) record.lat = lat;
-          if (typeof lng === 'number' && lng !== 0) record.lng = lng;
-          if (typeof accuracyM === 'number') record.accuracyM = accuracyM;
-          const doc = await db.collection('beaconSurveys').doc(roomId)
-            .collection('positions').add(record);
-          return res.status(201).json({ id: doc.id, success: true });
+            lat: typeof lat === 'number' && lat !== 0 ? lat : undefined,
+            lng: typeof lng === 'number' && lng !== 0 ? lng : undefined,
+            accuracyM: typeof accuracyM === 'number' ? accuracyM : undefined,
+          });
+          return res.status(201).json({ id: record.id, success: true });
         } catch (err) {
           console.error('beacons POST error:', err);
           return res.status(500).json({ message: 'Failed to save position' });
@@ -365,10 +326,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (beaconOneMatch && req.method === 'DELETE') {
-        const [, roomId, positionId] = beaconOneMatch;
+        const [, , positionId] = beaconOneMatch;
         try {
-          const { db } = await import('../server/firebaseStorage.js');
-          await db.collection('beaconSurveys').doc(roomId).collection('positions').doc(positionId).delete();
+          const { deleteBeaconPosition } = await import('../server/kvStorage.js');
+          await deleteBeaconPosition(positionId);
           return res.status(204).send('');
         } catch (err) {
           console.error('beacons DELETE error:', err);
@@ -442,90 +403,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // â”€â”€ Firestore telemetry summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // This source is always on â€” we aggregate the events lib/telemetry
-      // posts to /api/analytics/track.
+      // Supabase pageViews telemetry summary
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { db: pgDb } = await import('../server/db.js');
+        const { pageViews } = await import('../shared/schema.js');
+        const { gte, count: pgCount } = await import('drizzle-orm');
         const sinceDate = new Date(Date.now() - (range === '7d' ? 7 : range === '30d' ? 30 : 1) * 86_400_000);
-        const snap = await db.collection('analyticsEvents').where('createdAt', '>=', sinceDate).limit(5000).get();
-        const events = snap.docs.map((d) => d.data() as any);
-        const sessions = new Set(events.map((e) => e.sessionId).filter(Boolean));
-        const pageviews = events.filter((e) => e.type === 'page_view').length;
-        const pageCounts: Record<string, number> = {};
-        for (const e of events.filter((e) => e.type === 'page_view')) {
-          const path = e.url || e.payload?.path || '/';
-          pageCounts[path] = (pageCounts[path] || 0) + 1;
-        }
-        const topPages = Object.entries(pageCounts)
-          .map(([path, views]) => ({ path, views }))
-          .sort((a, b) => b.views - a.views)
-          .slice(0, 8);
-        out.firestore = {
+        const pvRows = await pgDb.select({ count: pgCount() }).from(pageViews).where(gte(pageViews.createdAt, sinceDate));
+        const pvCount = Number((pvRows[0] as any)?.count ?? 0);
+        out.supabase = {
           configured: true,
-          source: 'KSYK Firestore telemetry',
-          visitors24h: range === '24h' ? sessions.size : undefined,
-          pageviews24h: range === '24h' ? pageviews : undefined,
-          visitors7d: range === '7d' ? sessions.size : undefined,
-          pageviews7d: range === '7d' ? pageviews : undefined,
-          topPages,
+          source: 'KSYK Supabase telemetry',
+          visitors24h: range === '24h' ? pvCount : undefined,
+          pageviews24h: range === '24h' ? pvCount : undefined,
+          visitors7d: range === '7d' ? pvCount : undefined,
+          pageviews7d: range === '7d' ? pvCount : undefined,
           fetchedAt: now,
         };
       } catch (err) {
-        out.firestore = { configured: true, source: 'firestore', error: (err as Error).message, fetchedAt: now };
+        out.supabase = { configured: true, source: 'supabase', error: (err as Error).message, fetchedAt: now };
       }
 
       return res.status(200).json(out);
     }
 
-    // GET /api/easter-eggs/stats â€” count of each discovered egg, persisted
-    // in Firestore (one counter doc, atomic increments). The shape matches
-    // what EasterEggStats.tsx expects: { secretEasterEgg, konamiCode, devMode }.
+    // GET /api/easter-eggs/stats — count of each discovered egg.
     if (apiPath === '/easter-eggs/stats' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const doc = await db.collection('easterEggs').doc('counters').get();
-        const data = doc.exists ? doc.data() : {};
+        const { kvGet } = await import('../server/kvStorage.js');
+        const data = (await kvGet('easterEggCounters') as any) || {};
         return res.status(200).json({
-          secretEasterEgg: data?.secretEasterEgg ?? 0,
-          konamiCode: data?.konamiCode ?? 0,
-          devMode: data?.devMode ?? 0,
-          total: (data?.secretEasterEgg ?? 0) + (data?.konamiCode ?? 0) + (data?.devMode ?? 0),
+          secretEasterEgg: data.secretEasterEgg ?? 0,
+          konamiCode:      data.konamiCode      ?? 0,
+          devMode:         data.devMode         ?? 0,
+          total: (data.secretEasterEgg ?? 0) + (data.konamiCode ?? 0) + (data.devMode ?? 0),
         });
       } catch {
         return res.status(200).json({ secretEasterEgg: 0, konamiCode: 0, devMode: 0, total: 0 });
       }
     }
 
-    // POST /api/easter-eggs/found â€” record an egg discovery. Body: { egg: "secretEasterEgg" | ... }
-    // The whitelist mirrors the client-side egg IDs; adding new eggs here
-    // is the only place a discovery starts being counted.
+    // POST /api/easter-eggs/found — record an egg discovery.
     if (apiPath === '/easter-eggs/found' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const { FieldValue } = await import('firebase-admin/firestore');
+        const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
         const egg = (req.body?.egg || '').toString();
         const who = (req.body?.userId || '').toString().slice(0, 60) || 'anonymous';
-        const allowed = [
-          'secretEasterEgg', 'konamiCode', 'devMode',
-          'ksykTyped', 'logoClicks', 'debugCombo',
-        ];
+        const allowed = ['secretEasterEgg', 'konamiCode', 'devMode', 'ksykTyped', 'logoClicks', 'debugCombo'];
         if (!allowed.includes(egg)) return res.status(400).json({ message: 'Invalid egg id' });
-        await db.collection('easterEggs').doc('counters').set({
-          [egg]: FieldValue.increment(1),
-          [`${egg}LastAt`]: new Date(),
-        }, { merge: true });
-        // Add to recent discoveries feed (bounded to last 50, oldest wins
-        // trimmed on next write) so the Overview panel can render "who".
-        try {
-          await db.collection('easterEggs').doc('recent').set({
-            entries: FieldValue.arrayUnion({
-              egg,
-              userId: who,
-              at: new Date().toISOString(),
-            }),
-          }, { merge: true });
-        } catch { /* non-fatal â€” counters are the source of truth */ }
+        await incrementEggCounter(egg);
+        await appendEggRecent({ egg, userId: who, at: new Date().toISOString() }).catch(() => {});
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('easter-eggs POST error:', err);
@@ -533,132 +460,114 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // GET /api/easter-eggs/recent â€” recent discoveries, capped to 50. Used
-    // by the admin Overview panel to render the "who found what" strip.
+    // GET /api/easter-eggs/recent — recent discoveries, capped to 50.
     if (apiPath === '/easter-eggs/recent' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const doc = await db.collection('easterEggs').doc('recent').get();
-        const entries = (doc.exists ? (doc.data() as any)?.entries : []) || [];
-        // Return newest first
-        return res.status(200).json(entries.slice(-50).reverse());
+        const { kvGet } = await import('../server/kvStorage.js');
+        const data = (await kvGet('easterEggRecent') as any) || {};
+        const entries = Array.isArray(data.entries) ? data.entries : [];
+        return res.status(200).json(entries.slice(0, 50));
       } catch {
         return res.status(200).json([]);
       }
     }
 
-    // POST /api/analytics/pageview â€” visitor-facing pageview beacon. Writes
-    // to analytics_pageviews so the Overview panel can count today's traffic.
+    // POST /api/analytics/pageview — visitor-facing pageview beacon.
     if (apiPath === '/analytics/pageview' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { db: pgDb } = await import('../server/db.js');
+        const { pageViews } = await import('../shared/schema.js');
         const { page, sessionId, userId, referrer } = req.body || {};
-        await db.collection('analytics_pageviews').add({
-          page: (page || '/').toString().slice(0, 200),
-          sessionId: (sessionId || '').toString().slice(0, 60),
-          userId: (userId || '').toString().slice(0, 60),
+        await pgDb.insert(pageViews).values({
+          url: (page || '/').toString().slice(0, 200),
+          sessionId: (sessionId || 'anon').toString().slice(0, 60),
+          userId: (userId || null) as any,
           referrer: (referrer || '').toString().slice(0, 200),
           userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
-          createdAt: new Date(),
-        });
+        }).catch(() => {});
         return res.status(200).json({ success: true });
-      } catch (err) {
-        console.error('pageview POST error:', err);
+      } catch {
         return res.status(200).json({ success: false });
       }
     }
 
-    // POST /api/analytics/feature â€” named-counter feature usage. Kept in a
-    // separate collection from raw events so the top-N aggregation is a
-    // simple limit+groupBy instead of a scan of the events blob.
+    // POST /api/analytics/feature — named-counter feature usage.
     if (apiPath === '/analytics/feature' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const { name, meta, sessionId, userId } = req.body || {};
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const { name, userId } = req.body || {};
         if (!name || typeof name !== 'string') {
           return res.status(400).json({ message: 'name is required' });
         }
-        await db.collection('analytics_features').add({
-          name: name.slice(0, 80),
-          meta: meta && typeof meta === 'object' ? meta : null,
-          sessionId: (sessionId || '').toString().slice(0, 60),
-          userId: (userId || '').toString().slice(0, 60),
-          createdAt: new Date(),
-        });
+        await pgDb.insert(appLogs).values({
+          level: 'info',
+          message: `feature:${name.slice(0, 80)}`,
+          userId: (userId || null) as any,
+        }).catch(() => {});
         return res.status(200).json({ success: true });
-      } catch (err) {
-        console.error('feature POST error:', err);
+      } catch {
         return res.status(200).json({ success: false });
       }
     }
 
-    // GET /api/analytics/overview â€” small aggregation for the admin Overview
-    // panel. Returns today's counters and top-N slices in a single roundtrip.
+    // GET /api/analytics/overview — admin Overview panel counters.
     if (apiPath === '/analytics/overview' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
+        const { db: pgDb } = await import('../server/db.js');
+        const { pageViews, searchAnalytics, appLogs } = await import('../shared/schema.js');
+        const { kvGet } = await import('../server/kvStorage.js');
+        const { gte, and, eq, count: pgCount } = await import('drizzle-orm');
+        const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
 
-        // Pull each slice in parallel â€” all bounded to today, capped so
-        // even a spammy day can't OOM the serverless function.
-        const [pvSnap, featSnap, searchSnap, eggSnap] = await Promise.all([
-          db.collection('analytics_pageviews')
-            .where('createdAt', '>=', startOfToday).limit(2000).get()
-            .catch(() => ({ docs: [] as any[] })),
-          db.collection('analytics_features')
-            .where('createdAt', '>=', startOfToday).limit(2000).get()
-            .catch(() => ({ docs: [] as any[] })),
-          db.collection('searchAnalytics')
-            .where('createdAt', '>=', startOfToday).limit(2000).get()
-            .catch(() => ({ docs: [] as any[] })),
-          db.collection('easterEggs').doc('counters').get()
-            .catch(() => ({ exists: false, data: () => ({}) } as any)),
+        const [pvRows, featRows, searchRows, eggData] = await Promise.all([
+          pgDb.select({ count: pgCount() }).from(pageViews).where(gte(pageViews.createdAt, startOfToday)).catch(() => [{ count: 0 }]),
+          pgDb.select({ message: appLogs.message }).from(appLogs)
+            .where(and(gte(appLogs.createdAt, startOfToday), eq(appLogs.level, 'info')))
+            .limit(2000).catch(() => [] as any[]),
+          pgDb.select({ query: searchAnalytics.query }).from(searchAnalytics)
+            .where(gte(searchAnalytics.createdAt, startOfToday)).limit(2000).catch(() => [] as any[]),
+          kvGet('easterEggCounters').catch(() => null),
         ]);
 
-        const pageviewsCount = pvSnap.docs.length;
         const featureCounts: Record<string, number> = {};
-        featSnap.docs.forEach((d: any) => {
-          const n = (d.data() as any)?.name || 'unknown';
-          featureCounts[n] = (featureCounts[n] || 0) + 1;
-        });
+        for (const { message } of featRows as { message: string }[]) {
+          if (message?.startsWith('feature:')) {
+            const n = message.slice(8) || 'unknown';
+            featureCounts[n] = (featureCounts[n] || 0) + 1;
+          }
+        }
         const topFeatures = Object.entries(featureCounts)
           .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
+          .sort((a, b) => b.count - a.count).slice(0, 5);
 
         const searchCounts: Record<string, number> = {};
-        searchSnap.docs.forEach((d: any) => {
-          const q = ((d.data() as any)?.query || '').toString().trim().toLowerCase();
-          if (!q) return;
-          searchCounts[q] = (searchCounts[q] || 0) + 1;
-        });
+        for (const { query } of searchRows as { query: string }[]) {
+          const q = (query || '').trim().toLowerCase();
+          if (q) searchCounts[q] = (searchCounts[q] || 0) + 1;
+        }
         const topSearches = Object.entries(searchCounts)
           .map(([query, count]) => ({ query, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 10);
+          .sort((a, b) => b.count - a.count).slice(0, 10);
 
-        const eggData = (eggSnap.exists ? eggSnap.data() : {}) as any;
+        const egg = (eggData as any) || {};
         const eggCounts = {
-          secretEasterEgg: eggData.secretEasterEgg || 0,
-          konamiCode: eggData.konamiCode || 0,
-          devMode: eggData.devMode || 0,
-          ksykTyped: eggData.ksykTyped || 0,
-          logoClicks: eggData.logoClicks || 0,
-          debugCombo: eggData.debugCombo || 0,
+          secretEasterEgg: egg.secretEasterEgg || 0,
+          konamiCode:      egg.konamiCode      || 0,
+          devMode:         egg.devMode         || 0,
+          ksykTyped:       egg.ksykTyped       || 0,
+          logoClicks:      egg.logoClicks      || 0,
+          debugCombo:      egg.debugCombo      || 0,
         };
-        const totalEggs =
-          Object.values(eggCounts).reduce((sum: number, n: number) => sum + n, 0);
-
         return res.status(200).json({
           today: {
-            pageviews: pageviewsCount,
-            featureUses: featSnap.docs.length,
-            searches: searchSnap.docs.length,
+            pageviews: Number((pvRows[0] as any)?.count ?? 0),
+            featureUses: (featRows as any[]).filter((r: any) => r.message?.startsWith('feature:')).length,
+            searches: searchRows.length,
           },
           topFeatures,
           topSearches,
-          easterEggs: { ...eggCounts, total: totalEggs },
+          easterEggs: { ...eggCounts, total: Object.values(eggCounts).reduce((s, n) => s + n, 0) },
           fetchedAt: new Date().toISOString(),
         });
       } catch (err) {
@@ -1971,84 +1880,54 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // map-package + route (added in v3.5).
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-    // POI collections â€” Firestore-backed. Reads soft-fail to []
-    // so an outage doesn't blank the whole map.
+    // POI collections — campus_pois Supabase table. Reads soft-fail to [].
     if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const kind = apiPath.slice(1); // "doors" | "stairs" | "elevators"
-        const snap = await db.collection(`campus_${kind}`).get();
-        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        return res.status(200).json(items);
+        const { getPoisByKind } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getPoisByKind(apiPath.slice(1)));
       } catch {
         return res.status(200).json([]);
       }
     }
-    // POI creates â€” click-to-place from the Builder. Same normalisation
-    // as the Express variant: store both `position.{lat,lng}` and the
-    // legacy mapPositionX/Y so either consumer keeps working.
     if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { createPoi } = await import('../server/kvStorage.js');
         const kind = apiPath.slice(1);
         const body = (req.body ?? {}) as Record<string, unknown>;
-        const posLat = (body.position as any)?.lat;
-        const posLng = (body.position as any)?.lng;
-        const lat = typeof posLat === 'number' ? posLat
-                  : typeof body.mapPositionY === 'number' ? body.mapPositionY
-                  : null;
-        const lng = typeof posLng === 'number' ? posLng
-                  : typeof body.mapPositionX === 'number' ? body.mapPositionX
-                  : null;
+        const lat = typeof (body.position as any)?.lat === 'number' ? (body.position as any).lat
+                  : typeof body.mapPositionY === 'number' ? body.mapPositionY : null;
+        const lng = typeof (body.position as any)?.lng === 'number' ? (body.position as any).lng
+                  : typeof body.mapPositionX === 'number' ? body.mapPositionX : null;
         if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
-        const docRef = db.collection(`campus_${kind}`).doc();
-        const record = {
-          id: docRef.id,
-          ...body,
-          position: { lat, lng },
-          mapPositionX: lng,
-          mapPositionY: lat,
-          floor: typeof body.floor === 'number' ? body.floor : 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        await docRef.set(record);
+        const record = await createPoi({ ...body, kind, position: { lat, lng } });
         return res.status(201).json(record);
       } catch (err) {
-        console.error(`POST ${apiPath} failed:`, err);
         return res.status(500).json({ message: `Failed to create ${apiPath.slice(1)}` });
       }
     }
-    // POI deletes â€” /api/{kind}/{id}
     if (['/doors', '/stairs', '/elevators'].some((k) => apiPath.startsWith(k + '/')) && req.method === 'DELETE') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const [_, kind, id] = apiPath.split('/');
-        if (!kind || !id) return res.status(400).json({ message: 'Missing id' });
-        await db.collection(`campus_${kind}`).doc(id).delete();
+        const { deletePoi } = await import('../server/kvStorage.js');
+        const id = apiPath.split('/')[2];
+        if (!id) return res.status(400).json({ message: 'Missing id' });
+        await deletePoi(id);
         return res.status(204).end();
-      } catch (err) {
-        console.error(`DELETE ${apiPath} failed:`, err);
+      } catch {
         return res.status(500).json({ message: 'Delete failed' });
       }
     }
-    // Windows + outdoor stay as empty-list stubs â€” no CRUD yet.
     if (['/windows', '/outdoor'].includes(apiPath) && req.method === 'GET') {
       return res.status(200).json([]);
     }
 
-    // Generic POIs â€” free-form `kind` string (info, reception,
-    // parking, restroom_m/f/a, bike, etc.). Firestore-backed.
+    // Generic POIs — free-form kind string.
     if (apiPath === '/pois' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const snap = await db.collection('campus_pois').get();
-        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        return res.status(200).json(items);
-      } catch (err) {
-        console.error('GET /api/pois failed:', err);
+        const { getAllPois } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getAllPois());
+      } catch {
         res.setHeader('X-Read-Soft-Fail', '1');
         return res.status(200).json([]);
       }
@@ -2056,90 +1935,70 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     if (apiPath === '/pois' && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { createPoi } = await import('../server/kvStorage.js');
         const body = (req.body ?? {}) as Record<string, unknown>;
         if (typeof body.kind !== 'string' || !body.kind) return res.status(400).json({ message: 'Missing kind' });
-        const posLat = (body.position as any)?.lat;
-        const posLng = (body.position as any)?.lng;
-        const lat = typeof posLat === 'number' ? posLat
-                  : typeof body.mapPositionY === 'number' ? body.mapPositionY
-                  : null;
-        const lng = typeof posLng === 'number' ? posLng
-                  : typeof body.mapPositionX === 'number' ? body.mapPositionX
-                  : null;
+        const lat = typeof (body.position as any)?.lat === 'number' ? (body.position as any).lat
+                  : typeof body.mapPositionY === 'number' ? body.mapPositionY : null;
+        const lng = typeof (body.position as any)?.lng === 'number' ? (body.position as any).lng
+                  : typeof body.mapPositionX === 'number' ? body.mapPositionX : null;
         if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
-        const docRef = db.collection('campus_pois').doc();
-        const record = {
-          id: docRef.id,
-          kind: body.kind,
-          position: { lat, lng },
-          floor: typeof body.floor === 'number' ? body.floor : 1,
-          label: typeof body.label === 'string' ? body.label : null,
-          metadata: body.metadata ?? null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        await docRef.set(record);
+        const record = await createPoi({ ...body, position: { lat, lng } });
         return res.status(201).json(record);
-      } catch (err) {
-        console.error('POST /api/pois failed:', err);
+      } catch {
         return res.status(500).json({ message: 'Failed to create POI' });
       }
     }
     if (apiPath.startsWith('/pois/') && req.method === 'DELETE') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { deletePoi } = await import('../server/kvStorage.js');
         const id = apiPath.slice('/pois/'.length);
         if (!id) return res.status(400).json({ message: 'Missing id' });
-        await db.collection('campus_pois').doc(id).delete();
+        await deletePoi(id);
         return res.status(204).end();
-      } catch (err) {
-        console.error('DELETE /api/pois failed:', err);
+      } catch {
         return res.status(500).json({ message: 'Delete failed' });
       }
     }
 
-    // /api/layers â€” CRUD backed by Firestore. Default seeded so admins
-    // see something even before the first PUT.
+    // /api/layers — backed by kv_settings with key 'mapLayers'.
+    const DEFAULT_LAYERS = [
+      { id: 'buildings', name: 'Buildings', visible: true, locked: false, opacity: 1, z: 10 },
+      { id: 'rooms',     name: 'Rooms',     visible: true, locked: false, opacity: 1, z: 20 },
+      { id: 'hallways',  name: 'Hallways',  visible: true, locked: false, opacity: 1, z: 30 },
+      { id: 'labels',    name: 'Labels',    visible: true, locked: false, opacity: 1, z: 40 },
+    ];
     if (apiPath === '/layers' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const snap = await db.collection('mapLayers').get();
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        if (rows.length === 0) {
-          const seeded = [
-            { id: 'buildings', name: 'Buildings', visible: true, locked: false, opacity: 1, z: 10 },
-            { id: 'rooms',     name: 'Rooms',     visible: true, locked: false, opacity: 1, z: 20 },
-            { id: 'hallways',  name: 'Hallways',  visible: true, locked: false, opacity: 1, z: 30 },
-            { id: 'labels',    name: 'Labels',    visible: true, locked: false, opacity: 1, z: 40 },
-          ];
-          return res.status(200).json(seeded);
-        }
-        return res.status(200).json(rows.sort((a: any, b: any) => (a.z ?? 0) - (b.z ?? 0)));
+        const { kvGet } = await import('../server/kvStorage.js');
+        const rows = (await kvGet('mapLayers') as any[]) || [];
+        return res.status(200).json(rows.length > 0 ? rows.sort((a: any, b: any) => (a.z ?? 0) - (b.z ?? 0)) : DEFAULT_LAYERS);
       } catch {
-        return res.status(200).json([]);
+        return res.status(200).json(DEFAULT_LAYERS);
       }
     }
 
     const layerIdMatch = apiPath.match(/^\/layers\/([^\/]+)$/);
     if (layerIdMatch && req.method === 'PUT') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { kvGet, kvSet } = await import('../server/kvStorage.js');
         const id = layerIdMatch[1];
         if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return res.status(400).json({ message: 'invalid id' });
         const b = req.body || {};
         const row = {
+          id,
           name: (b.name || id).toString().slice(0, 80),
-          visible: typeof b.visible === 'boolean' ? b.visible : true,
-          locked:  typeof b.locked  === 'boolean' ? b.locked  : false,
-          opacity: typeof b.opacity === 'number'  ? b.opacity : 1,
-          z:       typeof b.z       === 'number'  ? b.z       : 0,
+          visible:   typeof b.visible   === 'boolean' ? b.visible   : true,
+          locked:    typeof b.locked    === 'boolean' ? b.locked    : false,
+          opacity:   typeof b.opacity   === 'number'  ? b.opacity   : 1,
+          z:         typeof b.z         === 'number'  ? b.z         : 0,
           blendMode: b.blendMode ?? null,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         };
-        await db.collection('mapLayers').doc(id).set(row, { merge: true });
-        return res.status(200).json({ id, ...row });
+        const current = ((await kvGet('mapLayers') as any[]) || []).filter((r: any) => r.id !== id);
+        await kvSet('mapLayers', [...current, row]);
+        return res.status(200).json(row);
       } catch (err) {
         console.error('layers PUT error:', err);
         return res.status(500).json({ message: 'failed' });
@@ -2147,8 +2006,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     }
     if (layerIdMatch && req.method === 'DELETE') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        await db.collection('mapLayers').doc(layerIdMatch[1]).delete();
+        const { kvGet, kvSet } = await import('../server/kvStorage.js');
+        const id = layerIdMatch[1];
+        const current = ((await kvGet('mapLayers') as any[]) || []).filter((r: any) => r.id !== id);
+        await kvSet('mapLayers', current);
         return res.status(204).send('');
       } catch {
         return res.status(204).send('');
@@ -2197,43 +2058,41 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       });
     }
 
-    // Real publish — snapshot live state into an immutable mapVersions
-    // doc and swap the mapPackages/published pointer atomically.
+    // Real publish — snapshot into Supabase mapVersions/mapPackages tables.
     if (apiPath === '/map-package/publish' && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const [buildings, rooms, hallways, floors, stairsSnap, elevatorsSnap, doorsSnap] = await Promise.all([
+        const { db: pgDb } = await import('../server/db.js');
+        const { mapVersions, mapPackages } = await import('../shared/schema.js');
+        const { getPoisByKind } = await import('../server/kvStorage.js');
+        const { eq, desc } = await import('drizzle-orm');
+        const [buildings, rooms, hallways, floors, stairs, elevators, doors] = await Promise.all([
           storage.getBuildings().catch(() => []),
           storage.getRooms().catch(() => []),
           storage.getHallways().catch(() => []),
           storage.getFloors().catch(() => []),
-          db.collection('campus_stairs').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
-          db.collection('campus_elevators').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
-          db.collection('campus_doors').get().then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+          getPoisByKind('stairs').catch(() => []),
+          getPoisByKind('elevators').catch(() => []),
+          getPoisByKind('doors').catch(() => []),
         ]);
         const publishedAt = new Date().toISOString();
         const message = (req.body as { message?: string } | null)?.message ?? null;
-        const versionsSnap = await db.collection('mapVersions').get().catch(() => ({ size: 0 } as any));
-        const versionNumber = (versionsSnap.size ?? 0) + 1;
+        const latestVer = await pgDb.select({ version: mapVersions.version }).from(mapVersions)
+          .orderBy(desc(mapVersions.version)).limit(1).catch(() => [{ version: 0 }]);
+        const versionNumber = ((latestVer[0] as any)?.version ?? 0) + 1;
         const versionId = `v${versionNumber}-${Date.now()}`;
         const pkg = {
           manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt, description: message },
           mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
-          buildings, floors, rooms, hallways, doors: doorsSnap, stairs: stairsSnap, elevators: elevatorsSnap,
+          buildings, floors, rooms, hallways, doors, stairs, elevators,
         };
-        try {
-          await db.collection('mapVersions').doc(versionId).set({
-            id: versionId, packageId: 'current', version: versionNumber,
-            savedAt: publishedAt, savedBy: null, published: true,
-            message, payloadKey: versionId, payload: pkg,
-          });
-          await db.collection('mapPackages').doc('published').set({
-            pointer: versionId, publishedAt, publishedBy: null,
-          });
-        } catch (fbErr) {
-          console.warn('publish: Firebase write skipped (non-fatal):', fbErr);
-        }
+        await pgDb.insert(mapVersions).values({
+          id: versionId, packageId: 'current', version: versionNumber,
+          savedAt: new Date(), savedBy: null, published: true,
+          message, payloadKey: versionId, payload: pkg,
+        });
+        await pgDb.insert(mapPackages).values({ id: 'published', pointer: versionId, publishedAt: new Date(), publishedBy: null })
+          .onConflictDoUpdate({ target: mapPackages.id, set: { pointer: versionId, publishedAt: new Date() } });
         return res.status(200).json({ ...pkg, versionId, version: versionNumber });
       } catch (err) {
         console.error('publish failed:', err);
@@ -2241,19 +2100,17 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
 
-    // Read the last-published snapshot. Returns null when nothing has
-    // been published â€” the client falls back to /api/map-package.
+    // Read the last-published snapshot.
     if (apiPath === '/map-package/published' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const ptr = await db.collection('mapPackages').doc('published').get();
-        if (!ptr.exists) return res.status(200).json(null);
-        const pointer = (ptr.data() as { pointer?: string } | undefined)?.pointer;
-        if (!pointer) return res.status(200).json(null);
-        const version = await db.collection('mapVersions').doc(pointer).get();
-        if (!version.exists) return res.status(200).json(null);
-        const data = version.data() as { payload?: unknown } | undefined;
-        return res.status(200).json(data?.payload ?? null);
+        const { db: pgDb } = await import('../server/db.js');
+        const { mapVersions, mapPackages } = await import('../shared/schema.js');
+        const { eq } = await import('drizzle-orm');
+        const ptr = await pgDb.select().from(mapPackages).where(eq(mapPackages.id, 'published')).limit(1);
+        if (!ptr[0]?.pointer) return res.status(200).json(null);
+        const ver = await pgDb.select({ payload: mapVersions.payload }).from(mapVersions)
+          .where(eq(mapVersions.id, ptr[0].pointer)).limit(1);
+        return res.status(200).json(ver[0]?.payload ?? null);
       } catch (err) {
         console.error('published read failed:', err);
         res.setHeader('X-Read-Soft-Fail', '1');
@@ -2261,27 +2118,19 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
 
-    // Version list â€” metadata only, payload stripped.
+    // Version list — metadata only, payload stripped.
     if (apiPath === '/map-package/versions' && req.method === 'GET') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const snap = await db.collection('mapVersions').orderBy('version', 'desc').limit(50).get();
-        const items = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          return {
-            id: data.id ?? d.id,
-            packageId: data.packageId ?? 'current',
-            version: data.version ?? 0,
-            savedAt: data.savedAt ?? null,
-            savedBy: data.savedBy ?? null,
-            published: data.published ?? false,
-            message: data.message ?? null,
-            payloadKey: data.payloadKey ?? d.id,
-          };
-        });
-        return res.status(200).json(items);
-      } catch (err) {
-        console.error('versions list failed:', err);
+        const { db: pgDb } = await import('../server/db.js');
+        const { mapVersions } = await import('../shared/schema.js');
+        const { desc } = await import('drizzle-orm');
+        const rows = await pgDb.select({
+          id: mapVersions.id, packageId: mapVersions.packageId, version: mapVersions.version,
+          savedAt: mapVersions.savedAt, savedBy: mapVersions.savedBy, published: mapVersions.published,
+          message: mapVersions.message, payloadKey: mapVersions.payloadKey,
+        }).from(mapVersions).orderBy(desc(mapVersions.version)).limit(50);
+        return res.status(200).json(rows);
+      } catch {
         res.setHeader('X-Read-Soft-Fail', '1');
         return res.status(200).json([]);
       }
@@ -2291,14 +2140,15 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     if (apiPath.startsWith('/map-package/versions/') && apiPath.endsWith('/restore') && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { db: pgDb } = await import('../server/db.js');
+        const { mapVersions, mapPackages } = await import('../shared/schema.js');
+        const { eq } = await import('drizzle-orm');
         const id = apiPath.slice('/map-package/versions/'.length, -'/restore'.length);
         if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return res.status(400).json({ message: 'invalid version id' });
-        const versionDoc = await db.collection('mapVersions').doc(id).get();
-        if (!versionDoc.exists) return res.status(404).json({ message: 'version not found' });
-        await db.collection('mapPackages').doc('published').set({
-          pointer: id, publishedAt: new Date().toISOString(), publishedBy: null,
-        });
+        const ver = await pgDb.select({ id: mapVersions.id }).from(mapVersions).where(eq(mapVersions.id, id)).limit(1);
+        if (!ver[0]) return res.status(404).json({ message: 'version not found' });
+        await pgDb.insert(mapPackages).values({ id: 'published', pointer: id, publishedAt: new Date(), publishedBy: null })
+          .onConflictDoUpdate({ target: mapPackages.id, set: { pointer: id, publishedAt: new Date() } });
         return res.status(200).json({ ok: true, pointer: id });
       } catch (err) {
         console.error('restore failed:', err);
@@ -2331,31 +2181,30 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // pattern matching. Mirror each to the canonical analytics handler.
     if (apiPath === '/telemetry/pageview' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
+        const { db: pgDb } = await import('../server/db.js');
+        const { pageViews } = await import('../shared/schema.js');
         const { page, sessionId, userId, referrer } = req.body || {};
-        await db.collection('analytics_pageviews').add({
-          page: (page || '/').toString().slice(0, 200),
-          sessionId: (sessionId || '').toString().slice(0, 60),
-          userId: (userId || '').toString().slice(0, 60),
+        await pgDb.insert(pageViews).values({
+          url: (page || '/').toString().slice(0, 200),
+          sessionId: (sessionId || 'anon').toString().slice(0, 60),
+          userId: (userId || null) as any,
           referrer: (referrer || '').toString().slice(0, 200),
           userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
-          createdAt: new Date(),
-        });
+        }).catch(() => {});
       } catch { /* non-critical */ }
       return res.status(204).end();
     }
     if (apiPath === '/telemetry/track' && req.method === 'POST') {
       try {
-        const { db } = await import('../server/firebaseStorage.js');
-        const { events, sessionInfo } = req.body || {};
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const { events } = req.body || {};
         if (Array.isArray(events)) {
           for (const ev of events.slice(0, 50)) {
-            await db.collection('analyticsEvents').add({
-              ...ev,
-              sessionId: sessionInfo?.sessionId,
-              userId: sessionInfo?.userId,
-              createdAt: new Date(),
-            });
+            await pgDb.insert(appLogs).values({
+              level: 'info',
+              message: `telemetry:${(ev?.type || 'event').toString().slice(0, 60)}`,
+            }).catch(() => {});
           }
         }
       } catch { /* non-critical */ }
