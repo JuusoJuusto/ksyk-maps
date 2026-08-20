@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,18 @@ export default function Header({
   // MazeMap-style ⌘K / Ctrl+K quick-focus for the search input. Only
   // active when a search field is actually mounted for this page.
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Local draft keeps the input responsive while the 200ms debounce
+  // prevents firing an API search on every keystroke.
+  const [draftSearch, setDraftSearch] = useState(searchQuery ?? "");
+  // Sync when parent clears the search (e.g. after a result is picked).
+  useEffect(() => { setDraftSearch(searchQuery ?? ""); }, [searchQuery]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setDraftSearch(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => { onSearchChange?.(value); }, 200);
+  }, [onSearchChange]);
   useEffect(() => {
     if (!onSearchChange) return;
     const onKey = (e: KeyboardEvent) => {
@@ -281,8 +293,8 @@ export default function Header({
               <Input
                 ref={searchInputRef}
                 type="search"
-                value={searchQuery ?? ""}
-                onChange={(e) => onSearchChange(e.target.value)}
+                value={draftSearch}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
                   "h-11 w-full pl-10 pr-16 text-sm rounded-2xl border shadow-sm transition-all",
@@ -295,7 +307,7 @@ export default function Header({
                 // announce results as the user types.
                 role="combobox"
                 aria-controls="search-results-listbox"
-                aria-expanded={!!(searchQuery && searchQuery.trim())}
+                aria-expanded={!!(draftSearch && draftSearch.trim())}
                 aria-autocomplete="list"
                 autoComplete="off"
                 autoCapitalize="none"
@@ -305,10 +317,10 @@ export default function Header({
               {/* Right-side controls — clear button if searching, else a
                *  subtle keyboard hint pill so users know how to focus
                *  the field. MazeMap-style. */}
-              {searchQuery ? (
+              {draftSearch ? (
                 <button
                   type="button"
-                  onClick={() => onSearchChange("")}
+                  onClick={() => { setDraftSearch(""); onSearchChange?.(""); }}
                   className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   aria-label="Clear search"
                 >

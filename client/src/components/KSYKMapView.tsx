@@ -13,6 +13,7 @@ import { usePersistedState } from "@/hooks/usePersistedState";
 import { useQuery } from "@tanstack/react-query";
 import CampusMap, { type CampusMapHandle } from "@/components/CampusMap";
 import CampusOverlay from "@/components/CampusOverlay";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import SearchResultsDropdown, { type SearchPick } from "@/components/SearchResultsDropdown";
 // LayersToggle temporarily removed from public map — toggle lives only in builder.
 import { useAppSettings, loadMapDefaultsFromServer, pickPlatformMapDefaults } from "@/hooks/useAppSettings";
@@ -147,6 +148,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const gpsWatchRef = useRef<number | null>(null);
   const gpsMarkerRef = useRef<HTMLDivElement | null>(null);
   const gpsDotRef = useRef<maplibregl.Marker | null>(null);
+  const gpsFollowingRef = useRef(gpsFollowing);
 
   useEffect(() => {
     if (!showGpsLocation || !mapInstance) return;
@@ -226,7 +228,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         gpsDotRef.current.setLngLat([lng, lat]);
       }
 
-      if (gpsFollowing) {
+      if (gpsFollowingRef.current) {
         mapInstance.easeTo({ center: [lng, lat], duration: 400, essential: true });
       }
     };
@@ -587,12 +589,21 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  Builder publishes show up on the public map without a reload.
        *  `map` is state (not ref) so a fresh mount that hasn't triggered
        *  a re-render yet still installs its layers. */}
-      <CampusOverlay
-        map={mapInstance}
-        activeFloor={selectedFloor}
-        onFeatureClick={onFeatureClick}
-        is3D={is3D}
-      />
+      <ErrorBoundary
+        name="CampusOverlay"
+        fallback={
+          <div className="absolute bottom-4 left-4 z-50 px-3 py-2 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 shadow">
+            Map overlay error — reload to recover
+          </div>
+        }
+      >
+        <CampusOverlay
+          map={mapInstance}
+          activeFloor={selectedFloor}
+          onFeatureClick={onFeatureClick}
+          is3D={is3D}
+        />
+      </ErrorBoundary>
 
       {/* Search results overlay — anchored under the header search bar. */}
       <SearchResultsDropdown
@@ -738,7 +749,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                     duration: 900,
                     essential: true,
                   });
-                  setGpsFollowing((v) => !v);
+                  setGpsFollowing((v) => { gpsFollowingRef.current = !v; return !v; });
                 }
               }}
               className={cn(

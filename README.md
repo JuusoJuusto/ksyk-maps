@@ -5,7 +5,7 @@
 
   **Campus navigation for Kulosaaren Yhteiskoulu**
 
-  [![Version](https://img.shields.io/badge/version-3.97.0-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
+  [![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
   [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
@@ -18,7 +18,7 @@
 
 KSYK Maps is an interactive campus navigation app for Kulosaaren Yhteiskoulu (KSYK). It renders a live floor plan of the school's buildings, lets students search for rooms and POIs, and shows lunch menus and public transport times — all in a MazeMap-style interface.
 
-**Live:** [ksykmaps.vercel.app](https://ksykmaps.vercel.app)
+**Live:** [ksykmaps.fi](https://ksykmaps.fi)
 
 ---
 

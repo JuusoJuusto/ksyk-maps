@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-20
 
-Bump reason: v3.97.0 — entrance balloon-pin sizing, door pin geometry, k6 load test
+Bump reason: v4.1.0 — analytics fixed (egg tracking, feature telemetry), /api/t/egg Vercel handler added, APP_URL updated to ksykmaps.fi
 
-Timestamp: 1787980800
-Build: FORCE_REBUILD_v3.97.0_ENTRANCE_BALLOON_PIN_K6_LOADTEST
+Timestamp: 1787995200
+Build: FORCE_REBUILD_v4.1.0_ANALYTICS_FIX

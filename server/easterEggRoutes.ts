@@ -1,27 +1,16 @@
 /**
- * server/easterEggRoutes — thin wrappers around the existing storage
- * easter egg APIs so the client hook can talk to a single, obvious
- * endpoint pathway.
- *
- * Adds:
- *   - POST /api/easter-eggs/found — the client hook writes here.
- *     Accepts { egg, userId } and forwards to storage.trackEasterEggDiscovery.
- *   - POST /api/easter-eggs/reset — admin-only. Nukes every discovery
- *     doc + resets the recent-feed cache.
- *
- * The existing /api/easter-eggs/track + /api/easter-eggs/stats + /recent
- * endpoints in routes.ts stay as-is. `/found` is an alias so both work
- * during the transition.
+ * Easter egg endpoints — all Supabase-backed via kvStorage and appLogs.
  */
 import type { Express, Request, Response } from "express";
-import { getFirestore } from "firebase-admin/firestore";
+import { kvGet, kvSet, incrementEggCounter, appendEggRecent } from "./kvStorage";
 import { storage } from "./storage";
 import { isAuthenticated } from "./simpleAuth";
+import { db } from "./db.js";
+import { appLogs } from "../shared/schema.js";
+import { eq, like } from "drizzle-orm";
 
 export function registerEasterEggRoutes(app: Express) {
-  // ── POST /found — alias of /track ────────────────────────────────
-  // Body:  { egg: string, userId?: string }  (userId is optional so
-  //        anonymous clients count too)
+  // POST /found — record an egg discovery
   app.post("/api/easter-eggs/found", async (req: Request, res: Response) => {
     try {
       const { egg, userId } = (req.body ?? {}) as { egg?: string; userId?: string };
@@ -35,23 +24,18 @@ export function registerEasterEggRoutes(app: Express) {
         userId: userId || "anonymous",
         timestamp: new Date().toISOString(),
       });
-      // Also write an app-log entry so the Admin Logs page counts + shows
-      // egg discoveries in the unified feed. Same shape used by other
-      // routes (level/message/action/userId/userName).
       await storage.createAppLog({
         level: "success",
         message: `🥚 Easter egg discovered: ${egg}`,
-        action: "easter_egg",
         userId: (userId && userId !== "anonymous") ? userId : null,
-        userName: null,
-      }).catch(() => { /* logging is best-effort */ });
+      }).catch(() => {});
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
     }
   });
 
-  // ── POST /reset — admin-only. Wipes every discovery doc. ─────────
+  // POST /reset — admin-only, wipes all egg discovery logs
   app.post("/api/easter-eggs/reset", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = (req as unknown as { user?: { role?: string; claims?: { role?: string } } }).user;
@@ -60,24 +44,12 @@ export function registerEasterEggRoutes(app: Express) {
         res.status(403).json({ message: "admin only" });
         return;
       }
-
-      const db = getFirestore();
-      // Delete the discovery collection in batched writes so we don't
-      // exceed Firestore's 500-op batch limit on large campuses.
-      const snap = await db.collection("easterEggDiscoveries").get();
-      let deleted = 0;
-      const chunkSize = 400;
-      for (let i = 0; i < snap.docs.length; i += chunkSize) {
-        const chunk = snap.docs.slice(i, i + chunkSize);
-        const batch = db.batch();
-        for (const doc of chunk) batch.delete(doc.ref);
-        await batch.commit();
-        deleted += chunk.length;
-      }
-      // Also clear the recent-feed doc if present.
-      await db.collection("easterEggs").doc("recent").set({ entries: [] }, { merge: false }).catch(() => {});
-
-      res.json({ ok: true, deleted });
+      // Delete egg discovery logs from appLogs
+      await db.delete(appLogs).where(like(appLogs.message, '🥚 Easter egg discovered:%'));
+      // Reset counters and recent feed in kv_settings
+      await kvSet("easterEggCounters", {});
+      await kvSet("easterEggRecent", { entries: [] });
+      res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ message: err instanceof Error ? err.message : String(err) });
     }

@@ -2,7 +2,6 @@ import nodemailer from 'nodemailer';
 
 const APP_URL = 'https://ksykmaps.fi';
 const ADMIN_URL = `${APP_URL}/admin`;
-const WILMA_URL = `${APP_URL}/wilma`;
 const SUPPORT_EMAIL = 'juusojuusto112@gmail.com';
 
 /* ── Transporter ────────────────────────────────────────────────────── */
@@ -344,7 +343,7 @@ export async function sendWilmaStudentWelcomeEmail(
     title: 'Tervetuloa Wilmaan',
     preheader: `Käyttäjätunnus ${username} · väliaikainen salasana mukana`,
     body: studentBody,
-    cta: { label: 'Kirjaudu Wilmaan', href: WILMA_URL },
+    cta: { label: 'Kirjaudu sisään', href: APP_URL },
     language: 'fi',
   });
 
@@ -392,7 +391,7 @@ export async function sendWilmaStudentWelcomeEmail(
             title: 'Huoltajan Wilma-tili',
             preheader: `${studentName} on saanut Wilma-tilin · sinun tunnuksesi liitteenä`,
             body: parentBody(parentName),
-            cta: { label: 'Kirjaudu Wilmaan', href: WILMA_URL },
+            cta: { label: 'Kirjaudu sisään', href: APP_URL },
             language: 'fi',
           }),
         });

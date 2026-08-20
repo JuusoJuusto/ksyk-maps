@@ -568,57 +568,14 @@ class MemStorage implements IStorage {
 
 // Create storage factory function
 async function createStorage(): Promise<IStorage> {
-  // Debug env vars
-  console.log('ðŸ”§ Storage initialization - Environment check:');
-  console.log('  USE_FIREBASE:', process.env.USE_FIREBASE);
-  console.log('  Has FIREBASE_SERVICE_ACCOUNT:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
-  console.log('  FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
-  console.log('  Has DATABASE_URL:', !!process.env.DATABASE_URL);
-  
-  // Check if we should use Firebase
-  if (process.env.USE_FIREBASE === 'true') {
-    console.log('ðŸ”¥ USE_FIREBASE is true, attempting to load Firebase...');
-    try {
-      const { firebaseStorage } = await import('./firebaseStorage.js');
-      console.log('âœ… Firebase storage module loaded');
-      
-      // Test Firebase connection by trying to get buildings
-      try {
-        const testBuildings = await firebaseStorage.getBuildings();
-        console.log(`âœ… Firebase connection verified - found ${testBuildings.length} buildings`);
-        return firebaseStorage;
-      } catch (testError) {
-        console.error('âŒ Firebase connection test failed:', testError);
-        throw testError;
-      }
-    } catch (error) {
-      console.error('âŒ Firebase not available, falling back to mock storage:', error);
-      console.error('Error details:', {
-        message: (error as Error).message,
-        stack: (error as Error).stack
-      });
-    }
-  } else {
-    console.log('â„¹ï¸ USE_FIREBASE not set to true, using mock storage');
-  }
-  
-  // Check if we should use PostgreSQL (any of the Vercel/Supabase connection env vars)
   if (process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL) {
     try {
       const { DatabaseStorage } = await import('./postgresStorage.js');
-      console.log('âœ… Using PostgreSQL storage');
-      // DatabaseStorage is a partial IStorage â€” only ~60% of methods are
-      // implemented (Wilma journals, easter-egg tracking etc are stubs).
-      // Cast to IStorage; the underlying app rarely hits Postgres paths
-      // and the missing methods return sensible defaults.
       return new DatabaseStorage() as unknown as IStorage;
     } catch (error) {
-      console.warn('âš ï¸ PostgreSQL not available, falling back to mock storage:', error);
+      console.warn('PostgreSQL unavailable, falling back to in-memory storage:', error);
     }
   }
-  
-  console.log('ðŸ“¦ Using mock storage for development');
   return new MemStorage();
 }
-
 export const storage = await createStorage();

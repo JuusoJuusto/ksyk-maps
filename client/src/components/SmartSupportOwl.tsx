@@ -530,7 +530,7 @@ export default function SmartSupportOwl() {
         'android', 'iphone', 'ios', 'app', 'sovellus', 'applikaatio',
         'lataa', 'download', 'asennus', 'install'
       ],
-      response: 'Mobiilisovellus! 🦉\n\nKSYK Maps toimii myös mobiililaitteilla:\n\n• Avaa selaimella: ksykmaps.vercel.app\n• Lisää kotinäytölle (PWA)\n• Toimii Androidilla ja iOS:llä\n• Ei erillistä sovellusta tarvita\n\nMobiiliversio on optimoitu pienille näytöille!',
+      response: 'Mobiilisovellus! 🦉\n\nKSYK Maps toimii myös mobiililaitteilla:\n\n• Avaa selaimella: ksykmaps.fi\n• Lisää kotinäytölle (PWA)\n• Toimii Androidilla ja iOS:llä\n• Ei erillistä sovellusta tarvita\n\nMobiiliversio on optimoitu pienille näytöille!',
       quickActions: [
         { label: 'Ohjeet PWA:han', action: 'pwa-guide', icon: <HelpCircle className="w-4 h-4" /> },
       ]

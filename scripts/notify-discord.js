@@ -114,7 +114,7 @@ if (sections.changed.length > 0) {
 // Add links field
 fields.push({
   name: '🔗 Links',
-  value: '[🌐 Live Site](https://ksykmaps.vercel.app) • [📦 GitHub](https://github.com/JuusoJuusto/ksyk-maps) • [📋 Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)',
+  value: '[🌐 Live Site](https://ksykmaps.fi) • [📦 GitHub](https://github.com/JuusoJuusto/ksyk-maps) • [📋 Changelog](https://github.com/JuusoJuusto/ksyk-maps/blob/main/CHANGELOG.md)',
   inline: false
 });
 

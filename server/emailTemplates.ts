@@ -68,7 +68,7 @@ export function getWilmaInvitationEmail(data: {
   role: string;
   appUrl?: string;
 }): string {
-  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  const appUrl = data.appUrl || 'https://ksykmaps.fi';
   
   return `
     <!DOCTYPE html>
@@ -126,7 +126,7 @@ export function getWilmaInvitationEmail(data: {
 
           <!-- Action Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${appUrl}/wilma" style="${buttonStyles}">
+            <a href="${appUrl}" style="${buttonStyles}">
               🚀 Kirjaudu Wilmaan • Login to Wilma
             </a>
           </div>
@@ -215,7 +215,7 @@ export function getTicketResponseEmail(data: {
 
           <!-- Action Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://ksykmaps.vercel.app/support" style="${buttonStyles}">
+            <a href="https://ksykmaps.fi/support" style="${buttonStyles}">
               📋 View Ticket
             </a>
           </div>
@@ -251,7 +251,7 @@ export function getUserInvitationEmail(data: {
   role: string;
   appUrl?: string;
 }): string {
-  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  const appUrl = data.appUrl || 'https://ksykmaps.fi';
   
   return `
     <!DOCTYPE html>
@@ -417,7 +417,7 @@ export function getWilmaPasswordResetEmail(data: {
   tempPassword: string;
   appUrl?: string;
 }): string {
-  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  const appUrl = data.appUrl || 'https://ksykmaps.fi';
   
   return `
     <!DOCTYPE html>
@@ -469,7 +469,7 @@ export function getWilmaPasswordResetEmail(data: {
 
           <!-- Action Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${appUrl}/wilma" style="${buttonStyles}">
+            <a href="${appUrl}" style="${buttonStyles}">
               🚀 Kirjaudu Wilmaan • Login to Wilma
             </a>
           </div>
@@ -519,7 +519,7 @@ export function getWilmaParentInvitationEmail(data: {
   studentClass: string;
   appUrl?: string;
 }): string {
-  const appUrl = data.appUrl || 'https://ksykmaps.vercel.app';
+  const appUrl = data.appUrl || 'https://ksykmaps.fi';
   
   return `
     <!DOCTYPE html>
@@ -608,7 +608,7 @@ export function getWilmaParentInvitationEmail(data: {
 
           <!-- Action Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${appUrl}/wilma" style="${buttonStyles}">
+            <a href="${appUrl}" style="${buttonStyles}">
               🚀 Kirjaudu Wilmaan • Login to Wilma
             </a>
           </div>

@@ -38,12 +38,9 @@ import AdminForgotPassword from "@/pages/admin-forgot-password";
 import AdminResetPassword from "@/pages/admin-reset-password";
 import HSL from "@/pages/hsl";
 import Lunch from "@/pages/lunch";
-import Features from "@/pages/features";
 import EasterEgg from "@/pages/easter-egg";
 import KonamiEasterEgg from "@/pages/konami";
 import DevModeEasterEgg from "@/pages/dev-mode";
-import DebugBuildings from "@/pages/debug-buildings";
-import NordbyteStudio from "@/pages/owlapps";
 import NotFound from "@/pages/not-found";
 import BuilderPage from "@/pages/builder";
 import "./lib/i18n";
@@ -119,16 +116,11 @@ function Router() {
       {/* Public info pages */}
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
-      <Route path="/features" component={Features} />
-      <Route path="/owlapps" component={NordbyteStudio} />
 
       {/* Easter eggs */}
       <Route path="/secret-easter-egg" component={EasterEgg} />
       <Route path="/konami-code-activated" component={KonamiEasterEgg} />
       <Route path="/dev-mode-secret" component={DevModeEasterEgg} />
-
-      {/* Debug (dev only) */}
-      <Route path="/debug-buildings" component={DebugBuildings} />
 
       <Route component={NotFound} />
     </Switch>

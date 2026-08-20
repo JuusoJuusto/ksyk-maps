@@ -83,7 +83,9 @@ export default function Lunch() {
         const title = item.querySelector("title")?.textContent || "";
         const description = item.querySelector("description")?.textContent || "";
         const dateMatch = title.match(/(\d{2})-(\d{2})-(\d{4})/);
-        const dayName = title.split(",")[0] || "";
+        const rawDay = title.split(",")[0] || "";
+        const FI_TO_EN: Record<string, string> = { ma: "Mon", ti: "Tue", ke: "Wed", to: "Thu", pe: "Fri" };
+        const dayName = i18n.language === "en" && rawDay in FI_TO_EN ? FI_TO_EN[rawDay] : rawDay;
         if (dateMatch) {
           const itemDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
           if (itemDate.toDateString() === today.toDateString()) {

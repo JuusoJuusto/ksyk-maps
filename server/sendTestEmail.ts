@@ -30,7 +30,7 @@ The ticket system email notifications are now fully functional and will send:
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.vercel.app
+https://ksykmaps.fi
     `.trim();
     
     await sendPasswordSetupEmail(testEmail, 'KSYK Maps - Test Email ✅', emailBody);

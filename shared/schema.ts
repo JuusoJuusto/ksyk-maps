@@ -404,6 +404,44 @@ export const mapPackages = pgTable("map_packages", {
   publishedBy: varchar("published_by"),
 });
 
+// Campus POIs — replaces Firestore campus_stairs / campus_elevators /
+// campus_doors / campus_pois collections. `kind` is free-form so the
+// builder can place new POI types without schema migrations.
+export const campusPois = pgTable("campus_pois", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  kind: varchar("kind").notNull(),  // stairs | elevators | doors | wc | info | …
+  floor: integer("floor").default(1),
+  mapPositionX: real("map_position_x"),  // lng
+  mapPositionY: real("map_position_y"),  // lat
+  position: jsonb("position"),           // { lat, lng }
+  label: varchar("label"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Key-value settings — replaces Firestore single-doc collections:
+// scheduleSettings, appearanceSettings, mapDefaults, securitySettings,
+// mapLayers, easterEggCounters, easterEggRecent.
+export const kvSettings = pgTable("kv_settings", {
+  key: varchar("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// WiFi beacon survey positions (indoor positioning research data).
+export const beaconSurveys = pgTable("beacon_surveys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").notNull(),
+  positionLabel: varchar("position_label").notNull(),
+  capturedAt: timestamp("captured_at"),
+  readings: jsonb("readings"),  // [{ bssid, rssi, ssid? }]
+  lat: real("lat"),
+  lng: real("lng"),
+  accuracyM: real("accuracy_m"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({
   rooms: many(rooms),

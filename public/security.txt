@@ -1,8 +1,8 @@
 Contact: mailto:juuso.kaikula@gmail.com
 Expires: 2027-01-01T00:00:00.000Z
 Preferred-Languages: en, fi
-Canonical: https://ksykmaps.vercel.app/.well-known/security.txt
-Policy: https://ksykmaps.vercel.app/security
+Canonical: https://ksykmaps.fi/.well-known/security.txt
+Policy: https://ksykmaps.fi/security
 
 # This file is a fallback; the canonical RFC 9116 location is at
 # /.well-known/security.txt. Both serve the same content.

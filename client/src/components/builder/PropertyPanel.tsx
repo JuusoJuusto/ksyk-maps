@@ -591,8 +591,7 @@ function RoomProps({ room, onHistoryRecord }: { room: Room; onHistoryRecord?: Hi
   const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
   const [hours, setHours] = useState(initialHoursVal);
   const [description, setDescription] = useState(room.description ?? "");
-  // v3.31.1 — Wilma/external schedule link. scheduleLabel is the
-  // button text (e.g. "Open in Wilma"); scheduleUrl is the target.
+  // External schedule link. scheduleLabel is the button text; scheduleUrl is the target.
   const initialScheduleUrl = ((room as unknown as { scheduleUrl?: string | null }).scheduleUrl)
     ?? (initialMeta.scheduleUrl as string | undefined) ?? "";
   const initialScheduleLabel = ((room as unknown as { scheduleLabel?: string | null }).scheduleLabel)
@@ -705,19 +704,19 @@ function RoomProps({ room, onHistoryRecord }: { room: Room; onHistoryRecord?: Hi
           />
           <div className="grid grid-cols-1 gap-2 pt-2 mt-2 border-t border-border">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Schedule link (Wilma / external)
+              Schedule link (external)
             </p>
             <TextField
               label="Button label"
               value={scheduleLabel}
               onChange={setScheduleLabel}
-              placeholder="e.g. Open in Wilma"
+              placeholder="e.g. Open schedule"
             />
             <TextField
               label="URL"
               value={scheduleUrl}
               onChange={setScheduleUrl}
-              placeholder="https://wilma.school.fi/…"
+              placeholder="https://…"
             />
             <p className="text-[10px] text-muted-foreground">
               Shown as a blue button in the room's info drawer. If label
