@@ -172,7 +172,7 @@ export default function SvgImportDialog({ open, onClose, map, onImport }: SvgImp
       const swLat = b.getSouth() + (b.getNorth() - b.getSouth()) * 0.2;
       const neLng = b.getEast() - (b.getEast() - b.getWest()) * 0.2;
       const neLat = b.getNorth() - (b.getNorth() - b.getSouth()) * 0.2;
-      setSw(new (map as unknown as { LngLat: typeof LngLat }).LngLat ? new (map as unknown as { LngLat: typeof LngLat }).LngLat(swLng, swLat) : { lng: swLng, lat: swLat } as LngLat);
+      setSw({ lng: swLng, lat: swLat } as LngLat);
       setNe({ lng: neLng, lat: neLat } as LngLat);
     }
   }, [open, map]);

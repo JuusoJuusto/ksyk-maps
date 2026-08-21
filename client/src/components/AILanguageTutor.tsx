@@ -110,11 +110,11 @@ Provide detailed feedback in JSON format with:
         },
       };
 
-      const result = await generateStructuredOutput(prompt, schema);
+      const result = await generateStructuredOutput(prompt, schema) as any;
       setFeedback(result);
       toast({
         title: "Analysis Complete!",
-        description: `Score: ${result.score}/100`,
+        description: `Score: ${result?.score}/100`,
       });
     } catch (error) {
       console.error("Error:", error);

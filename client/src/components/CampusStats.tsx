@@ -157,7 +157,7 @@ export default function CampusStats() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {[...new Set(rooms.map((room: any) => room.type))].map((type: string) => {
+            {[...new Set<string>(rooms.map((room: any) => room.type))].map((type: string) => {
               const count = rooms.filter((room: any) => room.type === type).length;
               const percentage = rooms.length > 0 ? Math.round((count / rooms.length) * 100) : 0;
               

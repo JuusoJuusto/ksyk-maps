@@ -182,11 +182,11 @@ export default function EnhancedSubstituteSystem() {
                           </p>
                         </div>
                         <Badge 
-                          variant={request.priority === 'urgent' ? 'destructive' : 'default'}
-                          className={request.priority === 'high' ? 'bg-orange-500' : ''}
+                          variant={(request.priority as string) === 'urgent' ? 'destructive' : 'default'}
+                          className={(request.priority as string) === 'high' ? 'bg-orange-500' : ''}
                         >
-                          {request.priority === 'urgent' ? 'Kiireellinen' : 
-                           request.priority === 'high' ? 'Tärkeä' : 'Normaali'}
+                          {(request.priority as string) === 'urgent' ? 'Kiireellinen' :
+                           (request.priority as string) === 'high' ? 'Tärkeä' : 'Normaali'}
                         </Badge>
                       </div>
 

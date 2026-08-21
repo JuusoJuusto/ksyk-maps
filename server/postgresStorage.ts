@@ -76,6 +76,10 @@ export class DatabaseStorage implements Partial<IStorage> {
     await db.delete(users).where(eq(users.id, id));
   }
 
+  async updateUser(id: string, updates: Partial<Record<string, unknown>>): Promise<void> {
+    await db.update(users).set({ ...updates, updatedAt: new Date() } as any).where(eq(users.id, id));
+  }
+
   // Building operations
   async getBuildings(): Promise<Building[]> {
     return await db.select().from(buildings).where(eq(buildings.isActive, true));
@@ -87,14 +91,16 @@ export class DatabaseStorage implements Partial<IStorage> {
   }
 
   async createBuilding(building: InsertBuilding): Promise<Building> {
-    const [newBuilding] = await db.insert(buildings).values(building).returning();
+    const data = { ...building, rotationDeg: building.rotationDeg != null ? String(building.rotationDeg) : null } as any;
+    const [newBuilding] = await db.insert(buildings).values(data).returning();
     return newBuilding;
   }
 
   async updateBuilding(id: string, building: Partial<InsertBuilding>): Promise<Building> {
+    const data = { ...building, rotationDeg: building.rotationDeg != null ? String(building.rotationDeg) : undefined } as any;
     const [updatedBuilding] = await db
       .update(buildings)
-      .set({ ...building, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(buildings.id, id))
       .returning();
     return updatedBuilding;
@@ -186,14 +192,16 @@ export class DatabaseStorage implements Partial<IStorage> {
   }
 
   async createRoom(room: InsertRoom): Promise<Room> {
-    const [newRoom] = await db.insert(rooms).values(room).returning();
+    const data = { ...room, rotationDeg: room.rotationDeg != null ? String(room.rotationDeg) : null } as any;
+    const [newRoom] = await db.insert(rooms).values(data).returning();
     return newRoom;
   }
 
   async updateRoom(id: string, room: Partial<InsertRoom>): Promise<Room> {
+    const data = { ...room, rotationDeg: room.rotationDeg != null ? String(room.rotationDeg) : undefined } as any;
     const [updatedRoom] = await db
       .update(rooms)
-      .set({ ...room, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(rooms.id, id))
       .returning();
     return updatedRoom;

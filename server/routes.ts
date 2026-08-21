@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'User ID and code required' });
       }
 
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user || !user.twoFactorSecret) {
         return res.status(400).json({ message: '2FA not enabled for this user' });
       }
@@ -482,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId || !code) {
         return res.status(400).json({ message: 'User ID and code required' });
       }
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
@@ -510,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (err) return res.status(500).json({ message: 'Login failed' });
         await storage.createAdminLoginLog({
           userId: user.id,
-          email: user.email,
+          email: user.email ?? '',
           userName: `${user.firstName} ${user.lastName}`,
           ipAddress: req.ip || req.connection?.remoteAddress || null,
           userAgent: req.headers['user-agent'] || null,
@@ -733,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Find user by reset token
-      const users = await storage.getUsers();
+      const users = await storage.getAllUsers();
       const user = users.find((u: any) => u.passwordResetToken === token);
       
       if (!user) {
@@ -986,8 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/rooms', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      const user = await storage.getUser(req.user.claims.sub ?? '');
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
@@ -1003,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
@@ -1020,7 +1020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
       const validatedData = insertRoomSchema.partial().parse(req.body);
@@ -1035,7 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/rooms/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
@@ -1150,7 +1150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/hallways', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
@@ -1166,7 +1166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/hallways/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) {
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) {
         return res.status(403).json({ message: "Admin, owner, or editor access required" });
       }
 
@@ -1182,7 +1182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/hallways/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || !['admin', 'owner', 'editor'].includes(user.role)) return res.status(403).json({ message: "Admin, owner, or editor access required" });
+      if (!user || !['admin', 'owner', 'editor'].includes(user.role ?? '')) return res.status(403).json({ message: "Admin, owner, or editor access required" });
       const data = insertHallwaySchema.partial().parse(req.body);
       const hallway = await (storage as any).updateHallway?.(req.params.id, data);
       if (!hallway) return res.status(404).json({ message: "Not found" });
@@ -3111,7 +3111,7 @@ https://ksykmaps.fi
         const staff = await storage.getStaff();
         console.log(`👥 Found ${staff.length} staff members to delete`);
         for (const staffMember of staff) {
-          await storage.deleteStaff(staffMember.id);
+          await storage.deleteStaffMember(staffMember.id);
           deletedCount.staff++;
         }
       } catch (error) {

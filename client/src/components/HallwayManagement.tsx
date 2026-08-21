@@ -224,7 +224,7 @@ export default function HallwayManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="buildingId">Building *</Label>
-                    <Select name="buildingId" defaultValue={editingHallway?.buildingId} required>
+                    <Select name="buildingId" defaultValue={editingHallway?.buildingId ?? undefined} required>
                       <SelectTrigger data-testid="select-building">
                         <SelectValue placeholder="Select building" />
                       </SelectTrigger>
@@ -481,7 +481,7 @@ export default function HallwayManagement() {
                       {hallway.name}
                     </CardTitle>
                     <CardDescription>
-                      {getBuildingName(hallway.buildingId)}
+                      {getBuildingName(hallway.buildingId ?? '')}
                       {hallway.floorId && ` • ${getFloorName(hallway.floorId)}`}
                     </CardDescription>
                   </div>

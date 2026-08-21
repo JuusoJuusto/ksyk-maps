@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-20
+FORCE VERCEL REBUILD - 2026-08-21
 
-Bump reason: v4.1.0 — analytics fixed (egg tracking, feature telemetry), /api/t/egg Vercel handler added, APP_URL updated to ksykmaps.fi
+Bump reason: v4.2.0 — full bug fix pass: 120+ TypeScript errors resolved, null-safe role checks, storage stubs, weekday format fix, GeminiAI history type
 
-Timestamp: 1787995200
-Build: FORCE_REBUILD_v4.1.0_ANALYTICS_FIX
+Timestamp: 1788081600
+Build: FORCE_REBUILD_v4.2.0_BUG_FIXES

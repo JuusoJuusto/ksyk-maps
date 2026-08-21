@@ -57,7 +57,7 @@ export function VoiceNavigation() {
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
     recognition.continuous = false;
@@ -69,13 +69,13 @@ export function VoiceNavigation() {
       setTranscript('');
     };
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const result = event.results[0][0].transcript.toLowerCase();
       setTranscript(result);
       processVoiceCommand(result);
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
       speak("Sorry, I didn't catch that. Please try again.");

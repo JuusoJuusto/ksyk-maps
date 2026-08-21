@@ -114,7 +114,7 @@ export default function CampusServices() {
   const formatOpeningHours = (hours: any) => {
     if (!hours) return i18n.language === "fi" ? "Ei tietoa" : "No info";
     
-    const today = new Date().toLocaleDateString("en-US", { weekday: "lowercase" });
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
     const todayHours = hours[today];
     
     if (!todayHours) return i18n.language === "fi" ? "Suljettu" : "Closed";

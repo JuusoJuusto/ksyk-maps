@@ -276,7 +276,7 @@ export default function Home() {
 
   return (
     <div className={`h-screen flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-blue-50'}`}>
-      {isLoading && <LoadingSpinner fullScreen variant="white" message="Loading KSYK Maps..." />}
+      {isLoading && <LoadingSpinner fullScreen message="Loading KSYK Maps..." />}
       
       {/* Top Announcement Banner - Full width, auto-scroll */}
       <AnnouncementBanner />

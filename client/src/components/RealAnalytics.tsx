@@ -79,7 +79,7 @@ export default function RealAnalytics() {
   });
 
   // Analytics summary
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary, isLoading: summaryLoading } = useQuery<any>({
     queryKey: ['analytics-summary', timeRange],
     queryFn: async () => {
       const response = await fetch(`/api/analytics/summary?timeRange=${timeRange}`, {
@@ -281,7 +281,7 @@ export default function RealAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {summary?.topPages?.slice(0, 8).map((page, index) => (
+                  {summary?.topPages?.slice(0, 8).map((page: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{page.page}</span>
@@ -302,7 +302,7 @@ export default function RealAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {summary?.topSearches?.slice(0, 8).map((search, index) => (
+                  {summary?.topSearches?.slice(0, 8).map((search: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <Search className="h-4 w-4 text-gray-500" />
@@ -341,7 +341,7 @@ export default function RealAnalytics() {
                         dataKey="count"
                         nameKey="device"
                       >
-                        {(summary?.deviceBreakdown || []).map((entry, index) => (
+                        {(summary?.deviceBreakdown || []).map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={['#003d82', '#28a745', '#666666', '#999999'][index % 4]} />
                         ))}
                       </Pie>
@@ -350,7 +350,7 @@ export default function RealAnalytics() {
                   </ResponsiveContainer>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  {summary?.deviceBreakdown?.map((item, index) => (
+                  {summary?.deviceBreakdown?.map((item: any, index: number) => (
                     <div key={index} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ['#003d82', '#28a745', '#666666', '#999999'][index % 4] }}></div>
                       <span className="text-sm">{item.device}: {item.percentage}%</span>
@@ -367,7 +367,7 @@ export default function RealAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {summary?.countryBreakdown?.slice(0, 10).map((country, index) => (
+                  {summary?.countryBreakdown?.slice(0, 10).map((country: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-sm font-medium">{country.country}</span>
                       <div className="flex items-center gap-2">
@@ -420,7 +420,7 @@ export default function RealAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {summary?.topRooms?.slice(0, 10).map((room, index) => (
+                  {summary?.topRooms?.slice(0, 10).map((room: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded bg-[#e6f2ff] flex items-center justify-center text-[#003d82] font-bold text-xs">
@@ -445,7 +445,7 @@ export default function RealAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {summary?.topBuildings?.slice(0, 10).map((building, index) => (
+                  {summary?.topBuildings?.slice(0, 10).map((building: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded bg-[#d4edda] flex items-center justify-center text-[#28a745] font-bold text-xs">
@@ -468,7 +468,7 @@ export default function RealAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summary?.featureUsage?.map((feature, index) => (
+                {summary?.featureUsage?.map((feature: any, index: number) => (
                   <div key={index} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">{feature.feature}</span>
@@ -493,7 +493,7 @@ export default function RealAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {summary?.topPages?.map((page, index) => (
+                {summary?.topPages?.map((page: any, index: number) => (
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -563,7 +563,7 @@ export default function RealAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {summary?.errorStats?.map((error, index) => (
+                {summary?.errorStats?.map((error: any, index: number) => (
                   <div key={index} className="flex justify-between items-center p-3 bg-red-50 border border-red-200 rounded">
                     <div>
                       <span className="font-medium text-red-800">{error.error}</span>
