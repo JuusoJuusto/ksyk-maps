@@ -419,10 +419,9 @@ export function useKsykEasterEggs() {
       clickTimer = window.setTimeout(() => { clicks = 0; }, 8000);
       if (clicks >= 10) {
         clicks = 0;
-        if (markAndReport("logo-clicks")) {
-          eggToast("Dev Mode unlocked.", { emoji: "🛠️" });
-          setLocation("/dev-mode-secret");
-        }
+        markAndReport("logo-clicks");
+        eggToast("Dev Mode unlocked.", { emoji: "🛠️" });
+        setLocation("/dev-mode-secret");
       }
     };
     window.addEventListener("click", onClick, true);
@@ -523,10 +522,9 @@ export function useKsykEasterEggs() {
         mobileTapTimer = window.setTimeout(() => { mobileTapStreak = 0; }, 4000);
         if (mobileTapStreak >= 6) {
           mobileTapStreak = 0;
-          if (markAndReport("logo-clicks")) {
-            eggToast("Dev Mode unlocked.", { emoji: "🛠️" });
-            setLocation("/dev-mode-secret");
-          }
+          markAndReport("logo-clicks");
+          eggToast("Dev Mode unlocked.", { emoji: "🛠️" });
+          setLocation("/dev-mode-secret");
         }
       }
     };

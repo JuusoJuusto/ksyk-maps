@@ -131,7 +131,7 @@ export async function generateFromMultimodal(
 export class GeminiChat {
   private model: GenerativeModel;
   private chat: ChatSession;
-  private history: Array<{ role: string; parts: string }> = [];
+  private history: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
   constructor(modelName: string = MODELS.FLASH, systemInstruction?: string) {
     this.model = genAI.getGenerativeModel({ 

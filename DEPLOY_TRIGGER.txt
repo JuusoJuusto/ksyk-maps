@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-20
+FORCE VERCEL REBUILD - 2026-08-21
 
-Bump reason: v4.1.0 — analytics fixed (egg tracking, feature telemetry), /api/t/egg Vercel handler added, APP_URL updated to ksykmaps.fi
+Bump reason: v4.3.0 — English lunch day names, dev mode always navigates, Ctrl+K menu removed
 
-Timestamp: 1787995200
-Build: FORCE_REBUILD_v4.1.0_ANALYTICS_FIX
+Timestamp: 1788168000
+Build: FORCE_REBUILD_v4.3.0_LUNCH_DEVMODE_CMDPALETTE

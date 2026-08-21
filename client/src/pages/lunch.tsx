@@ -83,9 +83,16 @@ export default function Lunch() {
         const title = item.querySelector("title")?.textContent || "";
         const description = item.querySelector("description")?.textContent || "";
         const dateMatch = title.match(/(\d{2})-(\d{2})-(\d{4})/);
-        const rawDay = title.split(",")[0] || "";
-        const FI_TO_EN: Record<string, string> = { ma: "Mon", ti: "Tue", ke: "Wed", to: "Thu", pe: "Fri" };
-        const dayName = i18n.language === "en" && rawDay in FI_TO_EN ? FI_TO_EN[rawDay] : rawDay;
+        const rawDayFirst = (title.split(",")[0] || "").trim().split(/\s+/)[0];
+        const rawDayKey = rawDayFirst.toLowerCase();
+        const FI_TO_EN: Record<string, string> = {
+          ma: "Monday", maanantai: "Monday",
+          ti: "Tuesday", tiistai: "Tuesday",
+          ke: "Wednesday", keskiviikko: "Wednesday",
+          to: "Thursday", torstai: "Thursday",
+          pe: "Friday", perjantai: "Friday",
+        };
+        const dayName = i18n.language === "en" ? (FI_TO_EN[rawDayKey] ?? rawDayFirst) : rawDayFirst;
         if (dateMatch) {
           const itemDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
           if (itemDate.toDateString() === today.toDateString()) {
@@ -149,8 +156,7 @@ export default function Lunch() {
   // wrapping on 320-375px viewports even when the RSS returns long day names.
   const shortDay = (name: string) => {
     if (!name) return "";
-    // Finnish "Maanantai" / English "Monday" — keep the first 2 letters
-    return name.slice(0, 2);
+    return name.slice(0, 3);
   };
 
   return (

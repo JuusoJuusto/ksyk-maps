@@ -31,6 +31,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
+  updateUser(id: string, updates: Partial<Record<string, unknown>>): Promise<void>;
   
   // Building operations
   getBuildings(): Promise<Building[]>;
@@ -219,6 +220,13 @@ class MemStorage implements IStorage {
     }
   }
 
+  async updateUser(id: string, updates: Partial<Record<string, unknown>>): Promise<void> {
+    const index = this.mockUsers.findIndex(u => u.id === id);
+    if (index >= 0) {
+      this.mockUsers[index] = { ...this.mockUsers[index], ...updates, updatedAt: new Date() } as User;
+    }
+  }
+
   // Building operations
   async getBuildings(): Promise<Building[]> { return this.mockBuildings; }
   async getBuilding(id: string): Promise<Building | undefined> { return this.mockBuildings.find(b => b.id === id); }
@@ -274,7 +282,7 @@ class MemStorage implements IStorage {
   async updateRoom(id: string, room: Partial<InsertRoom>): Promise<Room> {
     const index = this.mockRooms.findIndex(r => r.id === id);
     if (index === -1) throw new Error("Room not found");
-    this.mockRooms[index] = { ...this.mockRooms[index], ...room, updatedAt: new Date() };
+    this.mockRooms[index] = { ...this.mockRooms[index], ...(room as any), updatedAt: new Date() };
     return this.mockRooms[index];
   }
   async deleteRoom(id: string): Promise<void> { 
@@ -563,6 +571,10 @@ class MemStorage implements IStorage {
       topReferrers: [],
     };
   }
+
+  async getLiveAnalytics(): Promise<any> { return {}; }
+  async getAnalyticsEvents(_timeRange: string, _limit: number): Promise<any[]> { return []; }
+  async getPerformanceMetrics(_timeRange: string): Promise<any> { return {}; }
 
 }
 

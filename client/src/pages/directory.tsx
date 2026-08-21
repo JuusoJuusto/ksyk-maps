@@ -111,8 +111,8 @@ export default function Directory() {
   });
 
   // Get unique values for filters
-  const roomTypes = [...new Set(rooms.map((room: Room) => room.type))];
-  const departments = [...new Set(staff.map((member: Staff) => member.department).filter(Boolean))];
+  const roomTypes = [...new Set<string>(rooms.map((room: Room) => room.type ?? ''))].filter(Boolean);
+  const departments = [...new Set<string>(staff.map((member: Staff) => member.department ?? '').filter(Boolean))];
 
   const getBuildingName = (buildingId: string) => {
     const building = buildings.find((b: Building) => b.id === buildingId);

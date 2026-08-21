@@ -246,6 +246,7 @@ export default function CommandPalette() {
     for (const b of buildings) {
       if (!b.points || b.points.length < 3) continue;
       const c = polygonCentroid(b.points);
+      if (!c) continue;
       out.push({
         id: `entity.building.${b.id}`,
         label: `Building · ${b.name || b.id.slice(0, 6)}`,
@@ -260,6 +261,7 @@ export default function CommandPalette() {
     for (const r of rooms.slice(0, 200)) {
       if (!r.points || r.points.length < 3) continue;
       const c = polygonCentroid(r.points);
+      if (!c) continue;
       const label = [r.roomNumber, r.name].filter(Boolean).join(" · ") || "(unnamed room)";
       out.push({
         id: `entity.room.${r.id}`,

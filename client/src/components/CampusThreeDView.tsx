@@ -524,13 +524,13 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const cv = renderer.domElement;
       cv.style.cursor = "grab";
 
-      cv.addEventListener("pointerdown", (e) => {
+      cv.addEventListener("pointerdown", (e: PointerEvent) => {
         dragging = true; lastX = e.clientX; lastY = e.clientY;
         cv.style.cursor = "grabbing";
         cv.setPointerCapture?.(e.pointerId);
       });
       cv.addEventListener("pointerup", () => { dragging = false; cv.style.cursor = "grab"; });
-      cv.addEventListener("pointermove", (e) => {
+      cv.addEventListener("pointermove", (e: PointerEvent) => {
         if (!dragging) return;
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
@@ -543,7 +543,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch - dy * 0.004));
         }
       });
-      cv.addEventListener("wheel", (e) => {
+      cv.addEventListener("wheel", (e: WheelEvent) => {
         e.preventDefault();
         if (mode === "orbit") {
           dist = Math.max(40, Math.min(1400, dist * (1 + e.deltaY * 0.001)));

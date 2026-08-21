@@ -10,15 +10,58 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.1.0";
+export const APP_VERSION = "4.3.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.3.0",
+    date: "August 2026",
+    title: "Lunch menu English day names, dev mode always navigates, Ctrl+K menu removed",
+    titleFi: "Ruokalista englanniksi, dev-tila toimii aina, Ctrl+K-valikko poistettu",
+    latest: true,
+    highlights: [
+      "Fix: Lunch menu day names now show in English (Monday–Friday) when language is set to English",
+      "Fix: Dev mode now always opens /dev-mode-secret on 10 logo clicks, not just the first time",
+      "Remove: Ctrl+K / ⌘K command palette removed",
+    ],
+    highlightsFi: [
+      "Korjaus: Ruokalistan viikonpäivät näytetään englanniksi englannin kielessä",
+      "Korjaus: Dev-tila aukeaa aina kun logoa klikataan 10 kertaa",
+      "Poistettu: Ctrl+K-komentopaletti poistettu",
+    ],
+  },
+  {
+    version: "4.2.0",
+    date: "August 2026",
+    title: "Bug fixes: TypeScript errors eliminated, missing storage methods, null-safe role checks",
+    titleFi: "Bugikorjauksia: TypeScript-virheet poistettu, puuttuvat tallennusmetodit, null-turvalliset roolikorit",
+    latest: false,
+    highlights: [
+      "Fix: All TypeScript compile errors resolved (was 120+ errors)",
+      "Fix: IStorage interface now includes updateUser — legacy plaintext→bcrypt migration works",
+      "Fix: campusRoutes.ts stub routes prevent crashes for unimplemented features",
+      "Fix: rotationDeg numeric→string type cast in postgresStorage (building/room insert)",
+      "Fix: user.role null-safe checks across all 40+ admin route handlers",
+      "Fix: deleteStaff → deleteStaffMember call corrected",
+      "Fix: CampusServices weekday format (lowercase is not a valid weekday option)",
+      "Fix: CommandPalette null-check for polygonCentroid return value",
+      "Fix: LoadingSpinner invalid variant prop removed from home.tsx",
+      "Fix: VoiceNavigation SpeechRecognition window type cast",
+      "Fix: GeminiChat history type (parts must be Part[], not string)",
+      "Fix: SvgImportDialog LngLat constructor called with 0 args (was crash-prone)",
+    ],
+    highlightsFi: [
+      "Korjaus: Kaikki TypeScript-käännösvirheet korjattu",
+      "Korjaus: Kampusreitit ei kaadu toteuttamattomiin ominaisuuksiin",
+      "Korjaus: Viikonpäivämuoto CampusServices-komponentissa korjattu",
+    ],
+  },
   {
     version: "4.1.0",
     date: "August 2026",
     title: "Analytics: Easter egg tracking fixed, feature telemetry wired up, APP URL updated to ksykmaps.fi",
     titleFi: "Analytiikka: Pääsiäismunan seuranta korjattu, ominaisuustelemetria toimii, URL päivitetty ksykmaps.fi",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: Easter egg discoveries now correctly persist in the database (all 26+ egg types)",
       "Fix: /api/t/egg handler added to Vercel serverless — eggs were silently 404'd in production",
