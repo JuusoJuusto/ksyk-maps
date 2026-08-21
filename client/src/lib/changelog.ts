@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.2.0";
+export const APP_VERSION = "4.3.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.3.0",
+    date: "August 2026",
+    title: "Lunch menu English day names, dev mode always navigates, Ctrl+K menu removed",
+    titleFi: "Ruokalista englanniksi, dev-tila toimii aina, Ctrl+K-valikko poistettu",
+    latest: true,
+    highlights: [
+      "Fix: Lunch menu day names now show in English (Monday–Friday) when language is set to English",
+      "Fix: Dev mode now always opens /dev-mode-secret on 10 logo clicks, not just the first time",
+      "Remove: Ctrl+K / ⌘K command palette removed",
+    ],
+    highlightsFi: [
+      "Korjaus: Ruokalistan viikonpäivät näytetään englanniksi englannin kielessä",
+      "Korjaus: Dev-tila aukeaa aina kun logoa klikataan 10 kertaa",
+      "Poistettu: Ctrl+K-komentopaletti poistettu",
+    ],
+  },
   {
     version: "4.2.0",
     date: "August 2026",
     title: "Bug fixes: TypeScript errors eliminated, missing storage methods, null-safe role checks",
     titleFi: "Bugikorjauksia: TypeScript-virheet poistettu, puuttuvat tallennusmetodit, null-turvalliset roolikorit",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: All TypeScript compile errors resolved (was 120+ errors)",
       "Fix: IStorage interface now includes updateUser — legacy plaintext→bcrypt migration works",

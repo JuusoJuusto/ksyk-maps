@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-21
 
-Bump reason: v4.2.0 — full bug fix pass: 120+ TypeScript errors resolved, null-safe role checks, storage stubs, weekday format fix, GeminiAI history type
+Bump reason: v4.3.0 — English lunch day names, dev mode always navigates, Ctrl+K menu removed
 
-Timestamp: 1788081600
-Build: FORCE_REBUILD_v4.2.0_BUG_FIXES
+Timestamp: 1788168000
+Build: FORCE_REBUILD_v4.3.0_LUNCH_DEVMODE_CMDPALETTE
