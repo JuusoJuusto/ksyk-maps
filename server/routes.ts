@@ -3281,16 +3281,30 @@ https://ksykmaps.fi
   app.post('/api/wifi/locate', async (req: any, res) => {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
       ?? req.socket?.remoteAddress ?? 'unknown';
-    if (!_wifiRateOk(ip)) return res.status(429).json({ message: 'Too many requests' });
-    const { readings } = req.body || {};
-    if (!Array.isArray(readings) || readings.length === 0) {
+    if (!_wifiRateOk(ip)) {
+      pgDb.insert(appLogs).values({ level: 'warn', message: `wifi/locate rate-limited: ${ip}`, ipAddress: ip }).catch(() => {});
+      return res.status(429).json({ message: 'Too many requests' });
+    }
+    const rawReadings = (req.body || {}).readings;
+    if (!Array.isArray(rawReadings) || rawReadings.length === 0) {
       return res.status(400).json({ message: 'readings[] required' });
+    }
+    // Sanitize: keep only valid bssid/rssi pairs, cap at 100 APs.
+    const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
+      const bssid = String(r?.bssid ?? '').toLowerCase().trim();
+      const rssi = Number(r?.rssi);
+      if (!bssid || bssid.length > 30 || !isFinite(rssi)) return [];
+      return [{ bssid, rssi, ssid: r?.ssid ? String(r.ssid).slice(0, 64) : undefined }];
+    });
+    if (readings.length === 0) {
+      return res.status(400).json({ message: 'No valid readings after sanitization' });
     }
     try {
       const estimate = await wifiLocate(readings);
       if (!estimate) return res.status(404).json({ message: 'No fingerprint data or no match found' });
       res.json(estimate);
     } catch (err) {
+      pgDb.insert(appLogs).values({ level: 'error', message: `wifi/locate error: ${(err as Error).message}`, ipAddress: ip }).catch(() => {});
       res.status(500).json({ message: 'Positioning failed' });
     }
   });
