@@ -138,6 +138,11 @@ fun BeaconScreen() {
     }
 
     fun doCapture() {
+        if (Api.adminToken == null) {
+            status = "Admin sign-in required — go to Settings → Sign in first."
+            statusColor = Color(0xFFDC2626)
+            return
+        }
         val room = selectedRoom ?: return run {
             status = "Pick a room first."; statusColor = Color.Red
         }
@@ -504,7 +509,7 @@ private fun PositionRow(p: JsonObject, onDelete: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
             title = { Text("Delete position?") },
-            text = { Text("This removes the saved beacon reading from Firestore. It also disappears from the desktop admin and the website.") },
+            text = { Text("This removes the saved fingerprint reading from the database. It also disappears from the desktop admin and the website.") },
             confirmButton = {
                 TextButton(onClick = { confirmingDelete = false; onDelete() }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)

@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.5.1 — Android floor in WifiPosition + v1.9.1
+Bump reason: v4.5.2 — Android calibration auth guard, LoginScreen version fix
 
-Timestamp: 1788263000
-Build: FORCE_REBUILD_v4.5.1_ANDROID_FLOOR_WIFI
+Timestamp: 1788264000
+Build: FORCE_REBUILD_v4.5.2_ANDROID_BEACON_AUTH

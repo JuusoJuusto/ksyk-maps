@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.1";
+export const APP_VERSION = "4.5.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.2",
+    date: "August 2026",
+    title: "Android calibration auth guard, login version from BuildConfig",
+    titleFi: "Android-kalibrointi vaatii kirjautumisen, versio BuildConfigista",
+    latest: true,
+    highlights: [
+      "Fix: BeaconScreen shows clear sign-in prompt instead of cryptic 401 error when not authenticated",
+      "Fix: LoginScreen footer version now reads from BuildConfig instead of hardcoded v1.0.0",
+      "Fix: Delete confirmation dialog updated from Firestore→database wording",
+    ],
+    highlightsFi: [
+      "Korjaus: Kalibrointinäkymä näyttää selkeän kirjautumiskehotteen",
+      "Korjaus: Kirjautumisruudun versio tulee nyt BuildConfigista",
+    ],
+  },
   {
     version: "4.5.1",
     date: "August 2026",
     title: "Android floor indicator in Wi-Fi chip, Android v1.9.1",
     titleFi: "Android-kerrosnäyttö Wi-Fi-sijainnissa, Android v1.9.1",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: Android Wi-Fi position chip now shows floor number (e.g. '~Centre · F2')",
       "Fix: WifiPosition data class now carries floor from server response",

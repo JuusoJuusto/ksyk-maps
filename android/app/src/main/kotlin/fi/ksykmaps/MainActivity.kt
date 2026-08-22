@@ -171,6 +171,7 @@ private fun AppShell() {
                             loggedIn = false
                         },
                         onSignIn = { showLogin = true },
+                        onNavigateToBeacons = { navigate(nav, "beacons") },
                     )
                 }
             }

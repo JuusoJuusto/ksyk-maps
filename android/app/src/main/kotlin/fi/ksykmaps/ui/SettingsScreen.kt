@@ -35,7 +35,11 @@ import fi.ksykmaps.data.Session
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
+fun SettingsScreen(
+    onSignOut: () -> Unit,
+    onSignIn: () -> Unit = {},
+    onNavigateToBeacons: () -> Unit = {},
+) {
     val ctx = LocalContext.current
     var apiBase by remember { mutableStateOf(Api.base) }
     var editingApi by remember { mutableStateOf(false) }
@@ -165,12 +169,8 @@ fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
             LinkRow(
                 icon = Icons.Outlined.Sensors,
                 title = "Calibrate fingerprints",
-                subtitle = "Open admin panel to survey rooms",
-                onClick = {
-                    try {
-                        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/admin/beacons")))
-                    } catch (_: Exception) { }
-                },
+                subtitle = "Survey rooms with the native WiFi scanner",
+                onClick = onNavigateToBeacons,
             )
 
             SectionTitle("About")

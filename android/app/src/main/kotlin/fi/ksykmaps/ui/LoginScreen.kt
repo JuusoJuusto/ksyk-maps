@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.ApiException
 import fi.ksykmaps.data.Session
@@ -270,7 +271,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "v1.0.0 · Nordbyte Studio",
+                    "v${BuildConfig.VERSION_NAME} · Nordbyte Studio",
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 )
