@@ -307,8 +307,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (beaconListMatch && req.method === 'GET') {
         const roomId = beaconListMatch[1];
         try {
-          const { getBeaconPositions } = await import('../server/kvStorage.js');
-          return res.status(200).json(await getBeaconPositions(roomId));
+          const { getBeaconPositions, computeFingerprintQuality } = await import('../server/kvStorage.js');
+          const positions = await getBeaconPositions(roomId);
+          return res.status(200).json(positions.map((p: any) => ({
+            ...p,
+            quality: computeFingerprintQuality((p.readings as any[]) ?? []),
+          })));
         } catch {
           return res.status(200).json([]);
         }

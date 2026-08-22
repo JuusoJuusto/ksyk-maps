@@ -182,6 +182,29 @@ export interface PositionEstimate {
   }>;
 }
 
+/** Quality score for a Wi-Fi fingerprint (0–100). */
+export function computeFingerprintQuality(readings: WifiReading[]): {
+  score: number;
+  label: 'excellent' | 'good' | 'fair' | 'poor';
+} {
+  if (!readings || readings.length === 0) return { score: 0, label: 'poor' };
+
+  const apCount = readings.length;
+  const sorted = [...readings].sort((a, b) => b.rssi - a.rssi);
+  const top5 = sorted.slice(0, Math.min(5, sorted.length));
+  const avgTopRssi = top5.reduce((s, r) => s + r.rssi, 0) / top5.length;
+
+  // apScore: 10+ APs → 100, linear below
+  const apScore = Math.min(100, (apCount / 10) * 100);
+  // strengthScore: -30 dBm → 100, -90 dBm → 0
+  const strengthScore = Math.max(0, Math.min(100, ((avgTopRssi + 90) / 60) * 100));
+
+  const score = Math.round(apScore * 0.5 + strengthScore * 0.5);
+  const label: 'excellent' | 'good' | 'fair' | 'poor' =
+    score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'poor';
+  return { score, label };
+}
+
 export async function getAllBeaconSurveys() {
   return db.select().from(beaconSurveys);
 }

@@ -15,6 +15,8 @@ export interface SystemHealth {
   performance: HealthCheckResult;
   memory: HealthCheckResult;
   network: HealthCheckResult;
+  wifiPositioning: HealthCheckResult;
+  hsl: HealthCheckResult;
 }
 
 class HealthMonitor {
@@ -30,34 +32,30 @@ class HealthMonitor {
   }
 
   async performFullHealthCheck(): Promise<SystemHealth> {
-    const [api, database, features, performance, memory, network] = await Promise.all([
+    const [api, database, features, perf, memory, network, wifiPositioning, hsl] = await Promise.all([
       this.checkAPI(),
       this.checkDatabase(),
       this.checkFeatures(),
       this.checkPerformance(),
       this.checkMemory(),
-      this.checkNetwork()
+      this.checkNetwork(),
+      this.checkWifiPositioning(),
+      this.checkHSL(),
     ]);
 
-    const results = [api, database, features, performance, memory, network];
+    const results = [api, database, features, perf, memory, network, wifiPositioning, hsl];
     const hasError = results.some(r => r.status === 'error');
     const hasWarning = results.some(r => r.status === 'warning');
 
     const overall = hasError ? 'error' : hasWarning ? 'warning' : 'healthy';
 
     const health: SystemHealth = {
-      overall,
-      api,
-      database,
-      features,
-      performance,
-      memory,
-      network
+      overall, api, database, features,
+      performance: perf, memory, network,
+      wifiPositioning, hsl,
     };
 
-    // Notify listeners
     this.listeners.forEach(listener => listener(health));
-
     return health;
   }
 
@@ -317,6 +315,76 @@ class HealthMonitor {
       timestamp: new Date(),
       details: { effectiveType, downlink, rtt }
     };
+  }
+
+  private async checkWifiPositioning(): Promise<HealthCheckResult> {
+    try {
+      const start = performance.now();
+      const res = await fetch('/api/wifi/locate', {
+        signal: AbortSignal.timeout(5000),
+      });
+      const duration = performance.now() - start;
+      if (!res.ok) {
+        return { status: 'error', message: 'Wi-Fi positioning endpoint returned an error', timestamp: new Date(), details: { status: res.status } };
+      }
+      const data = await res.json();
+      return {
+        status: data.ready ? 'healthy' : 'warning',
+        message: data.ready
+          ? `Wi-Fi positioning ready — ${data.fingerprintCount} fingerprints`
+          : `Wi-Fi positioning not calibrated (${data.fingerprintCount} fingerprints collected so far)`,
+        timestamp: new Date(),
+        details: { fingerprintCount: data.fingerprintCount, responseTime: Math.round(duration) },
+      };
+    } catch (err) {
+      const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      return {
+        status: 'error',
+        message: isTimeout ? 'Wi-Fi positioning API timed out' : 'Wi-Fi positioning API unreachable',
+        timestamp: new Date(),
+        details: { possibleCauses: ['API server down', 'Network filtering'] },
+      };
+    }
+  }
+
+  private async checkHSL(): Promise<HealthCheckResult> {
+    try {
+      const start = performance.now();
+      const res = await fetch('/api/hsl/stops?lat=60.1887&lng=25.0793&radius=100', {
+        signal: AbortSignal.timeout(8000),
+      });
+      const duration = performance.now() - start;
+      if (res.status === 404) {
+        return { status: 'warning', message: 'HSL endpoint not available on this server', timestamp: new Date() };
+      }
+      if (!res.ok) {
+        return {
+          status: 'warning',
+          message: `HSL/Digitransit API error (${res.status})`,
+          timestamp: new Date(),
+          details: { status: res.status, possibleCauses: ['API outage', 'Rate limit', 'Network filter blocking external APIs'] },
+        };
+      }
+      return {
+        status: 'healthy',
+        message: `HSL API responding (${Math.round(duration)} ms)`,
+        timestamp: new Date(),
+        details: { responseTime: Math.round(duration) },
+      };
+    } catch (err) {
+      const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      const isCors = err instanceof TypeError && (err.message.includes('CORS') || err.message.includes('fetch'));
+      return {
+        status: 'warning',
+        message: isTimeout
+          ? 'HSL API timed out — may be blocked by network filtering or a browser extension'
+          : isCors
+            ? 'HSL API blocked — likely CORS policy or browser extension (e.g. uBlock Origin)'
+            : 'HSL API unreachable',
+        timestamp: new Date(),
+        details: { possibleCauses: ['Network filtering', 'Browser extension', 'API outage', 'CORS policy'] },
+      };
+    }
   }
 
   private measureFPS(): Promise<number> {

@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.5";
+export const APP_VERSION = "4.5.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.6",
+    date: "August 2026",
+    title: "Fingerprint quality scores, Wi-Fi + HSL health checks, diagnostics",
+    titleFi: "Sormenjälkien laatu, Wi-Fi + HSL terveystarkistukset, diagnostiikka",
+    latest: true,
+    highlights: [
+      "New: computeFingerprintQuality() — 0-100 score per fingerprint based on AP count and signal strength",
+      "New: Quality badge shown per position in admin Wi-Fi calibration panel (excellent/good/fair/poor)",
+      "New: GET /api/beacons/:roomId/positions now returns quality score with each fingerprint",
+      "New: Wi-Fi positioning health check in SystemStatus — shows fingerprint count and readiness",
+      "New: HSL/Digitransit health check — detects network filtering vs. API outage vs. browser extension",
+      "Improved: SystemStatus now shows 8 subsystems including Wi-Fi and HSL with causes for warnings",
+    ],
+    highlightsFi: [
+      "Uusi: Sormenjälkien laatu (0-100) AP-määrän ja signaalinvoimakkuuden perusteella",
+      "Uusi: Wi-Fi-paikannuksen ja HSL:n terveystarkistukset diagnostiikkasivulla",
+    ],
+  },
   {
     version: "4.5.5",
     date: "August 2026",
     title: "Offline Wi-Fi fingerprint matching on Android, request IDs, dark mode",
     titleFi: "Offline-sormenjalki-paikannus Androidilla, pyyntötunnisteet, tumma tila",
-    latest: true,
+    latest: false,
     highlights: [
       "New: Android app downloads Wi-Fi fingerprint DB and runs KNN positioning locally when server is unreachable",
       "New: LocalPositioning.kt mirrors server KNN algorithm (MISSING_RSSI=-92, EXTRA_WEIGHT=0.3, K=3)",

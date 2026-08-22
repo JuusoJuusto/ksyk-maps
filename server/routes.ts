@@ -11,7 +11,8 @@ import {
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
   getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
-  getAllFingerprintsWithFloor,
+  getAllFingerprintsWithFloor, computeFingerprintQuality,
+  type WifiReading,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -3307,7 +3308,11 @@ https://ksykmaps.fi
   app.get('/api/beacons/:roomId/positions', async (req, res) => {
     try {
       const positions = await getBeaconPositions(req.params.roomId);
-      res.json(positions);
+      const withQuality = positions.map((p) => ({
+        ...p,
+        quality: computeFingerprintQuality((p.readings as WifiReading[]) ?? []),
+      }));
+      res.json(withQuality);
     } catch (err) {
       res.status(500).json({ message: 'Failed to fetch positions' });
     }

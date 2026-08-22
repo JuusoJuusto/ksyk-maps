@@ -67,6 +67,7 @@ interface SurveyPosition {
   positionLabel: string;  // "Corner NW", "Doorway", etc.
   capturedAt: string;
   readings: BeaconReading[];
+  quality?: { score: number; label: 'excellent' | 'good' | 'fair' | 'poor' };
   /** Optional GPS coordinates of the surveyor at the moment of capture.
    *  When 4+ positions in a room have GPS, the system can auto-derive
    *  the room's bounding rectangle and snap it onto the campus map. */
@@ -500,9 +501,20 @@ export default function BeaconSurveyor() {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-gray-500 mt-0.5">
-                                  {p.readings.length} reading{p.readings.length === 1 ? "" : "s"} ·
+                                <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                  {p.readings.length} AP{p.readings.length === 1 ? "" : "s"} ·
                                   {" "}{new Date(p.capturedAt).toLocaleString()}
+                                  {p.quality && (
+                                    <span className={cn(
+                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                                      p.quality.label === 'excellent' && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                                      p.quality.label === 'good'      && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                      p.quality.label === 'fair'      && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+                                      p.quality.label === 'poor'      && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                    )}>
+                                      {p.quality.score}/100 · {p.quality.label}
+                                    </span>
+                                  )}
                                 </p>
                                 {p.lat != null && p.lng != null && (
                                   <p className="text-[10px] font-mono text-gray-400 mt-0.5">
