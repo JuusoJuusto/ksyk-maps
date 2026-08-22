@@ -33,6 +33,7 @@ import {
   Radio, CornerDownLeft, ChevronRight, CheckCircle2, FlaskConical, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getAdminHeaders } from "@/lib/adminAuth";
 
 interface CoverageEntry { roomId: string; positionCount: number; apCount: number; }
 interface WifiStatus { fingerprintCount: number; ready: boolean; }
@@ -221,7 +222,7 @@ export default function BeaconSurveyor() {
       const r = await fetch(`/api/beacons/${selectedRoomId}/positions`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error("Save failed");
@@ -239,6 +240,7 @@ export default function BeaconSurveyor() {
       const r = await fetch(`/api/beacons/${selectedRoomId}/positions/${positionId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAdminHeaders(),
       });
       if (!r.ok && r.status !== 204) throw new Error("Delete failed");
     },
