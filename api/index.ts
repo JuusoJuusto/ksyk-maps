@@ -338,6 +338,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ── Wi-Fi fingerprint positioning ─────────────────────────────────
+    // POST /api/wifi/locate — send current BSSID/RSSI scan, get estimated position.
+    if (apiPath === '/wifi/locate' && req.method === 'POST') {
+      try {
+        const { wifiLocate } = await import('../server/kvStorage.js');
+        const { readings } = (req.body as any) || {};
+        if (!Array.isArray(readings) || readings.length === 0) {
+          return res.status(400).json({ message: 'readings[] required' });
+        }
+        const estimate = await wifiLocate(readings);
+        if (!estimate) {
+          return res.status(404).json({ message: 'No fingerprint data or no match found' });
+        }
+        return res.status(200).json(estimate);
+      } catch (err) {
+        console.error('wifi/locate error:', err);
+        return res.status(500).json({ message: 'Positioning failed' });
+      }
+    }
+
+    // GET /api/wifi/locate — healthcheck / fingerprint count.
+    if (apiPath === '/wifi/locate' && req.method === 'GET') {
+      try {
+        const { getAllBeaconSurveys } = await import('../server/kvStorage.js');
+        const all = await getAllBeaconSurveys();
+        return res.status(200).json({ fingerprintCount: all.length, ready: all.length > 0 });
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to query fingerprints' });
+      }
+    }
+
     // GET /api/analytics/external â€” aggregated CF + Vercel + Firestore stats.
     if ((apiPath === '/analytics/external' || apiPath.startsWith('/analytics/external?')) && req.method === 'GET') {
       const range = (req.query.range as string) || '24h';

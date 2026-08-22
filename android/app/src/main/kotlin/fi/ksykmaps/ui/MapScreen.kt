@@ -31,8 +31,10 @@ import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ViewInAr
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,6 +125,13 @@ private const val ROOM_SLAB_METERS = 0.35
 private const val SRC_ROUTE = "nav-route"
 private const val LAYER_ROUTE_LINE = "nav-route-line"
 private const val LAYER_ROUTE_CASING = "nav-route-casing"
+
+// Wi-Fi position puck — a pulsing blue circle that shows the estimated
+// indoor position. Separate from the GPS LocationComponent so it works
+// even without GPS permission (Wi-Fi only).
+private const val SRC_WIFI_POS = "wifi-position"
+private const val LAYER_WIFI_POS_HALO = "wifi-position-halo"
+private const val LAYER_WIFI_POS_DOT = "wifi-position-dot"
 private const val WALKING_MPS = 1.35
 
 // CARTO Voyager @2x — matches CampusMap.tsx's TILE_URLS.light so the
@@ -207,6 +216,10 @@ fun MapScreen() {
     var myLocation by remember { mutableStateOf<LatLng?>(null) }
     var searchMode by remember { mutableStateOf(SearchMode.NONE) }
     var showStartPicker by remember { mutableStateOf(false) }
+
+    // Wi-Fi indoor positioning state.
+    val wifiPosition by WifiPositioning.position.collectAsState()
+    val wifiApCount  by WifiPositioning.scanCount.collectAsState()
 
     val locationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -349,6 +362,56 @@ fun MapScreen() {
             val loc = try { map.locationComponent.lastKnownLocation } catch (_: Exception) { null }
             if (loc != null) myLocation = LatLng(loc.latitude, loc.longitude)
             kotlinx.coroutines.delay(3000)
+        }
+    }
+
+    // Wi-Fi scanning loop — starts on composition, updates position puck.
+    // Switches to Navigate mode (5 s interval) when a destination is set.
+    LaunchedEffect(destination) {
+        WifiPositioning.mode = if (destination != null) WifiPositioning.Mode.Navigate
+                               else WifiPositioning.Mode.Idle
+    }
+    LaunchedEffect(Unit) {
+        launch { WifiPositioning.startScanning(ctx) }
+    }
+
+    // Draw (or update) the Wi-Fi position puck on the map whenever
+    // the estimate changes. Uses a separate GeoJSON source so it
+    // never interferes with the room/building layers.
+    LaunchedEffect(wifiPosition, mapRef) {
+        val map = mapRef ?: return@LaunchedEffect
+        val pos = wifiPosition
+        val geoJson: String = if (pos?.lat != null && pos.lng != null) {
+            """{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[${pos.lng},${pos.lat}]},"properties":{"confidence":"${pos.confidence.name}"}}]}"""
+        } else {
+            """{"type":"FeatureCollection","features":[]}"""
+        }
+        map.getStyle { style ->
+            val existing = style.getSourceAs<GeoJsonSource>(SRC_WIFI_POS)
+            if (existing != null) {
+                existing.setGeoJson(geoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_WIFI_POS, geoJson))
+                // Outer halo — large, very translucent blue circle
+                style.addLayer(
+                    org.maplibre.android.style.layers.CircleLayer(LAYER_WIFI_POS_HALO, SRC_WIFI_POS).withProperties(
+                        PropertyFactory.circleRadius(22f),
+                        PropertyFactory.circleColor(AndroidColor.parseColor("#2563EB")),
+                        PropertyFactory.circleOpacity(0.18f),
+                        PropertyFactory.circleStrokeWidth(0f),
+                    )
+                )
+                // Inner filled dot — matches GPS puck color
+                style.addLayer(
+                    org.maplibre.android.style.layers.CircleLayer(LAYER_WIFI_POS_DOT, SRC_WIFI_POS).withProperties(
+                        PropertyFactory.circleRadius(8f),
+                        PropertyFactory.circleColor(AndroidColor.parseColor("#2563EB")),
+                        PropertyFactory.circleOpacity(0.9f),
+                        PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
+                        PropertyFactory.circleStrokeWidth(2.5f),
+                    )
+                )
+            }
         }
     }
 
@@ -787,39 +850,60 @@ fun MapScreen() {
             )
         }
 
-        // ── Building/room count pill (bottom-left) ─────────────────
+        // ── Building/room count pill + Wi-Fi position (bottom-left) ──
         val visibleRoomCount = remember(rooms, selectedFloor) {
             if (selectedFloor == null) rooms.size
             else rooms.count { (it["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() == selectedFloor }
         }
-        Row(
+        Column(
             Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 12.dp, bottom = 24.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(start = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                Icons.Outlined.Business, null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "${buildings.size} · $visibleRoomCount rooms",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (selectedFloor != null) {
-                Spacer(Modifier.width(10.dp))
+            // Wi-Fi position chip — only when we have an estimate.
+            wifiPosition?.let { pos ->
+                WifiPositionChip(
+                    position = pos,
+                    apCount = wifiApCount,
+                    onTap = {
+                        // Centre map on the WiFi estimated position.
+                        val lat = pos.lat ?: return@WifiPositionChip
+                        val lng = pos.lng ?: return@WifiPositionChip
+                        mapRef?.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 18.5),
+                            500,
+                        )
+                    },
+                )
+            }
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.Business, null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    "· Floor $selectedFloor",
+                    "${buildings.size} · $visibleRoomCount rooms",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
+                if (selectedFloor != null) {
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "· Floor $selectedFloor",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }
@@ -1611,6 +1695,65 @@ private fun Chip(text: String) {
     ) {
         Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
              color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Compact chip showing the current Wi-Fi position estimate. */
+@Composable
+private fun WifiPositionChip(
+    position: WifiPosition,
+    apCount: Int,
+    onTap: () -> Unit,
+) {
+    val (dotColor, label) = when (position.confidence) {
+        WifiPosition.Confidence.HIGH   -> Color(0xFF16A34A) to "~${position.positionLabel}"
+        WifiPosition.Confidence.MEDIUM -> Color(0xFFF59E0B) to "~${position.positionLabel}"
+        else                           -> Color(0xFF94A3B8) to "Searching…"
+    }
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .clickable { onTap() }
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(dotColor)
+        )
+        Spacer(Modifier.width(6.dp))
+        Icon(
+            Icons.Outlined.Wifi, null,
+            tint = dotColor,
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (position.confidenceScore > 0) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "${position.confidenceScore}%",
+                fontSize = 10.sp,
+                color = dotColor,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        if (apCount > 0) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "· ${apCount} AP",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

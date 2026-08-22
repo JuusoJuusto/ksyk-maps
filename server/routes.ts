@@ -9,6 +9,8 @@ import {
   kvGet, kvSet, kvMerge,
   createPoi, getPoisByKind, getAllPois, deletePoi,
   incrementEggCounter, appendEggRecent,
+  getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
+  getAllBeaconSurveys, wifiLocate,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -3221,6 +3223,65 @@ https://ksykmaps.fi
   });
 
 
+
+  // ── Beacon survey routes ──────────────────────────────────────────────────
+  app.get('/api/beacons/:roomId/positions', async (req, res) => {
+    try {
+      const positions = await getBeaconPositions(req.params.roomId);
+      res.json(positions);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch positions' });
+    }
+  });
+
+  app.post('/api/beacons/:roomId/positions', isAuthenticated, async (req: any, res) => {
+    const { positionLabel, capturedAt, readings, lat, lng, accuracyM } = req.body || {};
+    if (!positionLabel || !Array.isArray(readings)) {
+      return res.status(400).json({ message: 'positionLabel and readings[] required' });
+    }
+    try {
+      const record = await addBeaconPosition(req.params.roomId, {
+        positionLabel: String(positionLabel).slice(0, 60),
+        capturedAt, readings, lat, lng, accuracyM,
+      });
+      res.status(201).json(record);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to save position' });
+    }
+  });
+
+  app.delete('/api/beacons/:roomId/positions/:positionId', isAuthenticated, async (req: any, res) => {
+    try {
+      await deleteBeaconPosition(req.params.positionId);
+      res.status(204).send('');
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to delete' });
+    }
+  });
+
+  // ── Wi-Fi fingerprint positioning ─────────────────────────────────────────
+  app.post('/api/wifi/locate', async (req, res) => {
+    const { readings } = req.body || {};
+    if (!Array.isArray(readings) || readings.length === 0) {
+      return res.status(400).json({ message: 'readings[] required' });
+    }
+    try {
+      const estimate = await wifiLocate(readings);
+      if (!estimate) return res.status(404).json({ message: 'No fingerprint data or no match found' });
+      res.json(estimate);
+    } catch (err) {
+      res.status(500).json({ message: 'Positioning failed' });
+    }
+  });
+
+  app.get('/api/wifi/locate', async (_req, res) => {
+    try {
+      const all = await getAllBeaconSurveys();
+      res.json({ fingerprintCount: all.length, ready: all.length > 0 });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to query fingerprints' });
+    }
+  });
 
   // ============================================
   // REGISTER AALTO SPACE ROUTES

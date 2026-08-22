@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-21
 
-Bump reason: v4.3.0 — English lunch day names, dev mode always navigates, Ctrl+K menu removed
+Bump reason: v4.4.0 — Wi-Fi fingerprint positioning engine (/api/wifi/locate), Android timetable screen, Android v1.9.0
 
-Timestamp: 1788168000
-Build: FORCE_REBUILD_v4.3.0_LUNCH_DEVMODE_CMDPALETTE
+Timestamp: 1788170000
+Build: FORCE_REBUILD_v4.4.0_WIFI_POSITIONING_TIMETABLE
