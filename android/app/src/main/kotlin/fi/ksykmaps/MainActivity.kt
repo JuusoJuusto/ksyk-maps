@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
@@ -39,6 +40,7 @@ import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
+import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.theme.KsykTheme
 
 /**
@@ -88,11 +90,11 @@ class MainActivity : ComponentActivity() {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab("home",     "Home",     Icons.Outlined.Home),
-    Tab("map",      "Map",      Icons.Outlined.Map),
-    Tab("rooms",    "Rooms",    Icons.Outlined.MeetingRoom),
-    Tab("news",     "News",     Icons.Outlined.Campaign),
-    Tab("settings", "Settings", Icons.Outlined.Settings),
+    Tab("home",      "Home",      Icons.Outlined.Home),
+    Tab("map",       "Map",       Icons.Outlined.Map),
+    Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth),
+    Tab("rooms",     "Rooms",     Icons.Outlined.MeetingRoom),
+    Tab("settings",  "Settings",  Icons.Outlined.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,6 +149,12 @@ private fun AppShell() {
                     )
                 }
                 composable("map")       { MapScreen() }
+                composable("timetable") {
+                    TimetableScreen(onNavigateToRoom = { roomId ->
+                        MapNavIntent.pendingRoomId = roomId
+                        navigate(nav, "map")
+                    })
+                }
                 composable("rooms")     {
                     RoomFinderScreen(onOpenOnMap = { roomId ->
                         MapNavIntent.pendingRoomId = roomId

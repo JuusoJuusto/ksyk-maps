@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.3.0";
+export const APP_VERSION = "4.4.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.4.0",
+    date: "August 2026",
+    title: "Wi-Fi fingerprint indoor positioning engine, Android timetable, Android v1.9.0",
+    titleFi: "Wi-Fi-sormenjälkipaikannus, Android-lukujärjestys, Android v1.9.0",
+    latest: true,
+    highlights: [
+      "New: Wi-Fi fingerprint positioning engine — POST /api/wifi/locate returns estimated room + confidence score",
+      "New: Android Wi-Fi position puck on map (blue dot, updates every 5–30 s)",
+      "New: Android timetable screen with current/next lesson and Navigate button",
+      "New: Android app v1.9.0 (versionCode 10) with 5 bottom tabs: Home, Map, Timetable, Rooms, Settings",
+    ],
+    highlightsFi: [
+      "Uusi: Wi-Fi-sormenjälkipaikannus — tarkentaa sijainnin koulussa",
+      "Uusi: Android-kartta näyttää sinisen pisteen nykyiselle Wi-Fi-sijainnille",
+      "Uusi: Android-lukujärjestys — näyttää nykyisen ja seuraavan tunnin",
+    ],
+  },
   {
     version: "4.3.0",
     date: "August 2026",
     title: "Lunch menu English day names, dev mode always navigates, Ctrl+K menu removed",
     titleFi: "Ruokalista englanniksi, dev-tila toimii aina, Ctrl+K-valikko poistettu",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: Lunch menu day names now show in English (Monday–Friday) when language is set to English",
       "Fix: Dev mode now always opens /dev-mode-secret on 10 logo clicks, not just the first time",
