@@ -419,7 +419,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // Analytics is now a tab inside Logs — no top-level sidebar entry.
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
-    ...(isOwner ? [{ value: "beacons", label: "Beacons", Icon: Radio }] : []),
+    ...(isOwner ? [{ value: "beacons", label: "Wi-Fi", Icon: Radio }] : []),
     ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
   ];
@@ -630,7 +630,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
             analytics: { title: "Analytics", description: "Cloudflare + Vercel + Firestore visitor metrics in one place.", Icon: TrendingUp },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
-            beacons: { title: "Beacon Surveyor", description: "Map WiFi signal strength per room for indoor positioning. Coming later.", Icon: Radio },
+            beacons: { title: "Wi-Fi Positioning", description: "Calibrate indoor positioning fingerprints. Live — POST /api/wifi/locate is active.", Icon: Radio },
             "2fa": { title: "Two-Factor Auth", description: "Enroll and manage 2FA for your account.", Icon: Shield },
             settings: { title: "Settings", description: "App name, branding, and danger zone.", Icon: Settings },
           };
