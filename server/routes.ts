@@ -3402,6 +3402,40 @@ https://ksykmaps.fi
     }
   });
 
+  // POST /api/wifi/replay — dev/admin tool: replay a sequence of Wi-Fi scan
+  // snapshots through the positioning engine and return results for each.
+  // Body: { snapshots: [{ t: 0, readings: [{bssid,rssi},...] }, ...] }
+  // Used to test positioning accuracy against a recorded calibration walk.
+  app.post('/api/wifi/replay', isAuthenticated, async (req: any, res) => {
+    const { snapshots } = req.body || {};
+    if (!Array.isArray(snapshots) || snapshots.length === 0) {
+      return res.status(400).json({ message: 'snapshots[] required' });
+    }
+    if (snapshots.length > 200) {
+      return res.status(400).json({ message: 'Maximum 200 snapshots per replay' });
+    }
+    try {
+      const results = await Promise.all(snapshots.map(async (snap: any, idx: number) => {
+        const rawReadings = Array.isArray(snap.readings) ? snap.readings : [];
+        const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
+          const bssid = String(r?.bssid ?? '').toLowerCase().trim();
+          const rssi = Number(r?.rssi);
+          if (!bssid || bssid.length > 30 || !isFinite(rssi)) return [];
+          return [{ bssid, rssi }];
+        });
+        try {
+          const estimate = readings.length > 0 ? await wifiLocate(readings) : null;
+          return { index: idx, t: snap.t ?? idx, position: estimate, error: null };
+        } catch (err) {
+          return { index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message };
+        }
+      }));
+      res.json({ results, fingerprintCount: (await getAllBeaconSurveys()).length });
+    } catch (err) {
+      res.status(500).json({ message: 'Replay failed' });
+    }
+  });
+
   // GET /api/wifi/fingerprints — full fingerprint database for on-device KNN.
   // The Android app downloads this once and caches it on disk so positioning
   // can run locally when the server is unreachable (airplane mode, poor signal).

@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.6";
+export const APP_VERSION = "4.5.7";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.7",
+    date: "August 2026",
+    title: "Position simulator, replay API, Android notification channels",
+    titleFi: "Paikannussimulaattori, toistusrajapinta, Android-ilmoituskanavat",
+    latest: true,
+    highlights: [
+      "New: WifiSimulator.kt — 9 dev scenarios (strong, weak, no APs, wrong floor, noise, AP appearing/disappearing, competing fingerprints)",
+      "New: POST /api/wifi/replay — replay recorded Wi-Fi scan sequences through the server KNN engine (admin only)",
+      "New: Android notification channels — Timetable reminders, Navigation, Announcements (registered at app start)",
+      "New: KsykApp.kt constants CHANNEL_TIMETABLE, CHANNEL_NAVIGATION, CHANNEL_GENERAL for use by future notification senders",
+    ],
+    highlightsFi: [
+      "Uusi: Paikannussimulaattori 9 testiskenaariolla kehityskäyttöön",
+      "Uusi: Replay-rajapinta tallennettujen Wi-Fi-mittausten toistamiseen",
+      "Uusi: Android-ilmoituskanavat (timetable, navigointi, ilmoitukset)",
+    ],
+  },
   {
     version: "4.5.6",
     date: "August 2026",
     title: "Fingerprint quality scores, Wi-Fi + HSL health checks, diagnostics",
     titleFi: "Sormenjälkien laatu, Wi-Fi + HSL terveystarkistukset, diagnostiikka",
-    latest: true,
+    latest: false,
     highlights: [
       "New: computeFingerprintQuality() — 0-100 score per fingerprint based on AP count and signal strength",
       "New: Quality badge shown per position in admin Wi-Fi calibration panel (excellent/good/fair/poor)",

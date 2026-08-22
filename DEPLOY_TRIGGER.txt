@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-23
 
-Bump reason: v4.5.6 — fingerprint quality, Wi-Fi + HSL health checks, diagnostics
+Bump reason: v4.5.7 — position simulator, replay API, Android notification channels
 
-Timestamp: 1788354000
-Build: FORCE_REBUILD_v4.5.6_QUALITY_HEALTH
+Timestamp: 1788355000
+Build: FORCE_REBUILD_v4.5.7_SIMULATOR_REPLAY_NOTIF
