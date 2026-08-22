@@ -298,6 +298,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (beaconListMatch && req.method === 'POST') {
+        if (!requireAdminAuth(req, res)) return;
         const roomId = beaconListMatch[1];
         try {
           const { addBeaconPosition } = await import('../server/kvStorage.js');
@@ -326,6 +327,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (beaconOneMatch && req.method === 'DELETE') {
+        if (!requireAdminAuth(req, res)) return;
         const [, , positionId] = beaconOneMatch;
         try {
           const { deleteBeaconPosition } = await import('../server/kvStorage.js');
