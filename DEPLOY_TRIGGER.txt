@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.5.3 — offline banner, SQL pagination, Edge cache for rooms/buildings
+Bump reason: v4.5.4 — health endpoint, Wilma proxy, schedule source field
 
-Timestamp: 1788265000
-Build: FORCE_REBUILD_v4.5.3_SCALABILITY
+Timestamp: 1788266000
+Build: FORCE_REBUILD_v4.5.4_HEALTH_WILMA

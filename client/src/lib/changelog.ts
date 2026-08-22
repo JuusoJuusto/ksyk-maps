@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.3";
+export const APP_VERSION = "4.5.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.4",
+    date: "August 2026",
+    title: "Health endpoint, Wilma live proxy (env-var driven), schedule source field",
+    titleFi: "Terveystarkistus, Wilma-proxy (ympäristömuuttuja), aikataulun lähdekenttä",
+    latest: true,
+    highlights: [
+      "New: GET /api/health endpoint — returns DB status, version, and Wilma config state for uptime monitors",
+      "New: Room schedule endpoint now attempts live Wilma proxy when WILMA_BASE_URL + WILMA_SESSION env vars are set",
+      "New: Schedule response includes 'source' field (wilma-live | wilma-db | none) and 'wilmaConfigured' flag",
+      "Improved: Wilma proxy gracefully falls back to static DB data if the live request fails or times out",
+    ],
+    highlightsFi: [
+      "Uusi: /api/health-päätepisteen kautta nähdään tietokannan tila ja Wilma-konfiguraatio",
+      "Uusi: Huoneaikataulu yrittää Wilma-proxya kun WILMA_BASE_URL ja WILMA_SESSION on asetettu",
+    ],
+  },
   {
     version: "4.5.3",
     date: "August 2026",
     title: "Offline banner, SQL pagination for users/staff, Edge cache for rooms/buildings",
     titleFi: "Offline-banneri, SQL-sivutus, CDN-välimuisti huoneille ja rakennuksille",
-    latest: true,
+    latest: false,
     highlights: [
       "New: Offline status banner in web app — shown when navigator.onLine is false",
       "Fix: users and staff DB queries now use SQL LIMIT/OFFSET instead of in-memory slice (scalability for 1000+ users)",

@@ -93,6 +93,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Health check — used by uptime monitors and Vercel health checks.
+  // Returns DB reachability + version without exposing internals.
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await storage.getBuildings(); // lightweight probe
+      res.json({
+        status: 'ok',
+        version: process.env.npm_package_version ?? 'unknown',
+        db: 'connected',
+        wilma: process.env.WILMA_BASE_URL ? 'configured' : 'not-configured',
+        ts: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(503).json({
+        status: 'degraded',
+        db: 'unreachable',
+        error: (err as Error).message,
+        ts: new Date().toISOString(),
+      });
+    }
+  });
+
   // Logs API endpoint - for frontend error logging (rate-limited)
   app.post('/api/logs', rateLimiters.general, async (req, res) => {
     try {
@@ -1052,23 +1074,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Room schedule endpoint — returns today's timetable for a room.
-  // Queries the wilma_schedules table by room number and today's day-of-week.
-  // Architecture is intentionally modular: swap the storage call below for a
-  // live Wilma API proxy when credentials become available.
+  //
+  // Source selection (checked in order):
+  //   1. Live Wilma proxy  — when WILMA_BASE_URL + WILMA_SESSION env vars are set.
+  //      Set WILMA_BASE_URL to the school's Wilma instance (e.g. https://ksyk.inschool.fi)
+  //      and WILMA_SESSION to a valid Wilma2SID cookie value.
+  //   2. Static DB fallback — wilma_schedules table seeded via admin import.
+  //   3. Empty schedule     — neither configured.
   app.get('/api/rooms/:id/schedule', async (req, res) => {
     try {
       const room = await storage.getRoom(req.params.id);
       if (!room) return res.status(404).json({ message: 'Room not found' });
 
       const now = new Date();
-      // JS getDay(): 0=Sun, 1=Mon … 6=Sat  →  wilma_schedules day_of_week: 1=Mon … 5=Fri
       const jsDay = now.getDay();
-      const wilmaDay = jsDay === 0 || jsDay === 6 ? null : jsDay; // null on weekends
+      const wilmaDay = jsDay === 0 || jsDay === 6 ? null : jsDay;
 
       interface WilmaScheduleRow {
         id: string;
         dayOfWeek: number;
-        timeSlot: string;       // e.g. "08:00-09:30"
+        timeSlot: string;
         subject: string;
         room: string;
         teacherName: string;
@@ -1077,33 +1102,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let schedule: WilmaScheduleRow[] = [];
+      let source: 'wilma-live' | 'wilma-db' | 'none' = 'none';
+
       if (wilmaDay !== null) {
-        // Fetch all schedules for this room number on today's weekday
-        try {
-          const all: WilmaScheduleRow[] = await (storage as any).getWilmaSchedulesAll?.() ?? [];
-          schedule = all.filter(
-            (s) => s.isActive && s.dayOfWeek === wilmaDay &&
-              s.room?.toUpperCase() === room.roomNumber?.toUpperCase()
-          );
-        } catch { /* wilma_schedules may not be seeded — return empty gracefully */ }
+        const wilmaBaseUrl = process.env.WILMA_BASE_URL;
+        const wilmaSession = process.env.WILMA_SESSION;
+
+        if (wilmaBaseUrl && wilmaSession && room.roomNumber) {
+          // Live Wilma proxy — requests the schedule page for this room.
+          // Wilma returns HTML; we extract JSON from the embedded data script.
+          try {
+            const resp = await fetch(
+              `${wilmaBaseUrl}/wilma2/schedule/room/${encodeURIComponent(room.roomNumber)}?format=json`,
+              {
+                headers: {
+                  Cookie: `Wilma2SID=${wilmaSession}`,
+                  'User-Agent': 'KSYK-Maps/1.0',
+                },
+                signal: AbortSignal.timeout(5000),
+              }
+            );
+            if (resp.ok) {
+              const data = await resp.json() as any;
+              // Wilma schedule JSON: { schedule: [{ period, subject, teacher, startLesson, endLesson }] }
+              const today = now.toISOString().slice(0, 10);
+              const items: any[] = Array.isArray(data?.schedule) ? data.schedule : [];
+              schedule = items
+                .filter((e: any) => e.date === today || !e.date)
+                .map((e: any, i: number) => ({
+                  id: `live-${i}`,
+                  dayOfWeek: wilmaDay,
+                  timeSlot: `${e.startLesson ?? ''}${e.endLesson ? `-${e.endLesson}` : ''}`,
+                  subject: e.subject ?? '',
+                  room: room.roomNumber ?? '',
+                  teacherName: e.teacher ?? '',
+                  teacherId: null,
+                  isActive: true,
+                }));
+              source = 'wilma-live';
+            } else {
+              console.warn(`[schedule] Wilma proxy returned ${resp.status} for room ${room.roomNumber}`);
+            }
+          } catch (proxyErr) {
+            console.warn('[schedule] Wilma proxy failed, falling back to DB:', (proxyErr as Error).message);
+          }
+        }
+
+        if (source === 'none') {
+          // DB fallback
+          try {
+            const all: WilmaScheduleRow[] = await (storage as any).getWilmaSchedulesAll?.() ?? [];
+            schedule = all.filter(
+              (s) => s.isActive && s.dayOfWeek === wilmaDay &&
+                s.room?.toUpperCase() === room.roomNumber?.toUpperCase()
+            );
+            if (schedule.length > 0) source = 'wilma-db';
+          } catch { /* wilma_schedules not seeded — leave empty */ }
+        }
       }
 
-      // Parse "HH:MM-HH:MM" into minutes-from-midnight for current/next detection
       const nowMins = now.getHours() * 60 + now.getMinutes();
-      const parse = (slot: string) => {
+      const parseSlot = (slot: string) => {
         const [start, end] = slot.split('-');
         const [sh, sm] = (start || '').split(':').map(Number);
         const [eh, em] = (end || '').split(':').map(Number);
-        return {
-          startMins: (sh || 0) * 60 + (sm || 0),
-          endMins: (eh || 0) * 60 + (em || 0),
-        };
+        return { startMins: (sh || 0) * 60 + (sm || 0), endMins: (eh || 0) * 60 + (em || 0) };
       };
 
       const entries = schedule
-        .sort((a, b) => parse(a.timeSlot).startMins - parse(b.timeSlot).startMins)
+        .sort((a, b) => parseSlot(a.timeSlot).startMins - parseSlot(b.timeSlot).startMins)
         .map((s) => {
-          const { startMins, endMins } = parse(s.timeSlot);
+          const { startMins, endMins } = parseSlot(s.timeSlot);
           const [startTime, endTime] = s.timeSlot.split('-');
           return {
             id: s.id,
@@ -1114,12 +1183,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             group: null as string | null,
             isCurrent: nowMins >= startMins && nowMins < endMins,
             isNext: nowMins < startMins &&
-              !schedule.some((x) => {
-                const p = parse(x.timeSlot);
-                return nowMins >= p.startMins && nowMins < p.endMins;
-              }) &&
+              !schedule.some((x) => { const p = parseSlot(x.timeSlot); return nowMins >= p.startMins && nowMins < p.endMins; }) &&
               startMins === Math.min(
-                ...schedule.filter((x) => parse(x.timeSlot).startMins > nowMins).map((x) => parse(x.timeSlot).startMins)
+                ...schedule.filter((x) => parseSlot(x.timeSlot).startMins > nowMins).map((x) => parseSlot(x.timeSlot).startMins)
               ),
           };
         });
@@ -1130,7 +1196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: now.toISOString().slice(0, 10),
         dayOfWeek: wilmaDay,
         schedule: entries,
-        source: entries.length > 0 ? 'wilma' : 'none',
+        source,
+        wilmaConfigured: !!process.env.WILMA_BASE_URL,
         lastUpdated: entries.length > 0 ? now.toISOString() : null,
       });
     } catch (error) {
