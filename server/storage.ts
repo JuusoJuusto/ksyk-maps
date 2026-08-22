@@ -29,7 +29,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(limit?: number, offset?: number): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
   updateUser(id: string, updates: Partial<Record<string, unknown>>): Promise<void>;
   
@@ -63,7 +63,7 @@ export interface IStorage {
   searchRooms(query: string): Promise<Room[]>;
   
   // Staff operations
-  getStaff(): Promise<Staff[]>;
+  getStaff(limit?: number, offset?: number): Promise<Staff[]>;
   getStaffMember(id: string): Promise<Staff | undefined>;
   createStaffMember(staff: InsertStaff): Promise<Staff>;
   updateStaffMember(id: string, staff: Partial<InsertStaff>): Promise<Staff>;
@@ -209,8 +209,8 @@ class MemStorage implements IStorage {
     return user;
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return this.mockUsers;
+  async getAllUsers(limit = 200, offset = 0): Promise<User[]> {
+    return this.mockUsers.slice(offset, offset + limit);
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -301,7 +301,7 @@ class MemStorage implements IStorage {
   async deleteHallway(id: string): Promise<void> { throw new Error("Not implemented"); }
 
   // Staff operations
-  async getStaff(): Promise<Staff[]> { return []; }
+  async getStaff(_limit = 200, _offset = 0): Promise<Staff[]> { return []; }
   async getStaffMember(id: string): Promise<Staff | undefined> { return undefined; }
   async createStaffMember(staff: InsertStaff): Promise<Staff> { throw new Error("Not implemented"); }
   async updateStaffMember(id: string, staff: Partial<InsertStaff>): Promise<Staff> { throw new Error("Not implemented"); }

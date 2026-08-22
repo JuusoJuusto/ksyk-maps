@@ -20,6 +20,7 @@ data class WifiPosition(
     val positionLabel: String,
     val lat: Double?,
     val lng: Double?,
+    val floor: Int?,
     val confidence: Confidence,
     val confidenceScore: Int,    // 0–100
     val sharedApCount: Int,
@@ -105,6 +106,7 @@ object WifiPositioning {
             val posLabel = (obj["positionLabel"] as? JsonPrimitive)?.contentOrNull ?: ""
             val lat = (obj["lat"] as? JsonPrimitive)?.doubleOrNull
             val lng = (obj["lng"] as? JsonPrimitive)?.doubleOrNull
+            val floor = (obj["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
             val confStr = (obj["confidence"] as? JsonPrimitive)?.contentOrNull ?: "low"
             val confScore = (obj["confidenceScore"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0
             val sharedAp = (obj["sharedApCount"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0
@@ -120,6 +122,7 @@ object WifiPositioning {
                 positionLabel = posLabel,
                 lat = lat,
                 lng = lng,
+                floor = floor,
                 confidence = conf,
                 confidenceScore = confScore,
                 sharedApCount = sharedAp,

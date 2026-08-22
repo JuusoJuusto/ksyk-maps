@@ -10,15 +10,114 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.4.0";
+export const APP_VERSION = "4.5.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.4",
+    date: "August 2026",
+    title: "Health endpoint, Wilma live proxy (env-var driven), schedule source field",
+    titleFi: "Terveystarkistus, Wilma-proxy (ympäristömuuttuja), aikataulun lähdekenttä",
+    latest: true,
+    highlights: [
+      "New: GET /api/health endpoint — returns DB status, version, and Wilma config state for uptime monitors",
+      "New: Room schedule endpoint now attempts live Wilma proxy when WILMA_BASE_URL + WILMA_SESSION env vars are set",
+      "New: Schedule response includes 'source' field (wilma-live | wilma-db | none) and 'wilmaConfigured' flag",
+      "Improved: Wilma proxy gracefully falls back to static DB data if the live request fails or times out",
+    ],
+    highlightsFi: [
+      "Uusi: /api/health-päätepisteen kautta nähdään tietokannan tila ja Wilma-konfiguraatio",
+      "Uusi: Huoneaikataulu yrittää Wilma-proxya kun WILMA_BASE_URL ja WILMA_SESSION on asetettu",
+    ],
+  },
+  {
+    version: "4.5.3",
+    date: "August 2026",
+    title: "Offline banner, SQL pagination for users/staff, Edge cache for rooms/buildings",
+    titleFi: "Offline-banneri, SQL-sivutus, CDN-välimuisti huoneille ja rakennuksille",
+    latest: false,
+    highlights: [
+      "New: Offline status banner in web app — shown when navigator.onLine is false",
+      "Fix: users and staff DB queries now use SQL LIMIT/OFFSET instead of in-memory slice (scalability for 1000+ users)",
+      "Fix: /api/buildings and /api/rooms responses now include Cache-Control: s-maxage=30 for Vercel Edge caching",
+      "Fix: removed verbose console.log that serialized all buildings JSON on every request",
+    ],
+    highlightsFi: [
+      "Uusi: Offline-banneri web-sovelluksessa",
+      "Korjaus: Käyttäjät ja henkilökunta haetaan nyt SQL LIMIT/OFFSET:lla",
+      "Korjaus: Vercel Edge välimuistittaa rakennukset ja huoneet 30 sekuntia",
+    ],
+  },
+  {
+    version: "4.5.2",
+    date: "August 2026",
+    title: "Android calibration auth guard, login version from BuildConfig",
+    titleFi: "Android-kalibrointi vaatii kirjautumisen, versio BuildConfigista",
+    latest: false,
+    highlights: [
+      "Fix: BeaconScreen shows clear sign-in prompt instead of cryptic 401 error when not authenticated",
+      "Fix: LoginScreen footer version now reads from BuildConfig instead of hardcoded v1.0.0",
+      "Fix: Delete confirmation dialog updated from Firestore→database wording",
+    ],
+    highlightsFi: [
+      "Korjaus: Kalibrointinäkymä näyttää selkeän kirjautumiskehotteen",
+      "Korjaus: Kirjautumisruudun versio tulee nyt BuildConfigista",
+    ],
+  },
+  {
+    version: "4.5.1",
+    date: "August 2026",
+    title: "Android floor indicator in Wi-Fi chip, Android v1.9.1",
+    titleFi: "Android-kerrosnäyttö Wi-Fi-sijainnissa, Android v1.9.1",
+    latest: false,
+    highlights: [
+      "Fix: Android Wi-Fi position chip now shows floor number (e.g. '~Centre · F2')",
+      "Fix: WifiPosition data class now carries floor from server response",
+      "Android v1.9.1 (versionCode 11)",
+    ],
+    highlightsFi: [
+      "Korjaus: Android-paikannus näyttää kerrosnumeron",
+    ],
+  },
+  {
+    version: "4.5.0",
+    date: "August 2026",
+    title: "Admin Wi-Fi positioning dashboard, rate limiting, DB coverage index",
+    titleFi: "Admin-Wi-Fi-kojelauta, nopeusrajoitus, tietokantaindeksi",
+    latest: false,
+    highlights: [
+      "New: Admin beacon surveyor shows live system status (fingerprint count, rooms covered)",
+      "New: Test-locate form in admin panel — paste readings and verify positioning engine",
+      "New: Per-room coverage badges in room list (green=4+ positions, amber=partial)",
+      "New: GET /api/beacons/coverage endpoint for per-room fingerprint stats",
+      "Security: POST /api/wifi/locate rate-limited to 15 req/IP/min",
+      "Performance: DB index on beacon_surveys.room_id",
+    ],
+    highlightsFi: [
+      "Uusi: Admin-paneeli näyttää Wi-Fi-paikannnuksen tilan reaaliajassa",
+      "Uusi: Testaustoiminto — liitä nykyiset BSSID/RSSI-lukemat ja tarkista tulos",
+      "Turvallisuus: /api/wifi/locate rajoitettu 15 pyyntöön/min/IP",
+    ],
+  },
+  {
+    version: "4.4.1",
+    date: "August 2026",
+    title: "Wi-Fi positioning floor detection from room database",
+    titleFi: "Wi-Fi-paikannus: kerros haetaan huonetietokannasta",
+    latest: false,
+    highlights: [
+      "Fix: /api/wifi/locate now returns the correct floor number resolved from the rooms table",
+    ],
+    highlightsFi: [
+      "Korjaus: /api/wifi/locate palauttaa nyt oikean kerroksen huonetietokannasta",
+    ],
+  },
   {
     version: "4.4.0",
     date: "August 2026",
     title: "Wi-Fi fingerprint indoor positioning engine, Android timetable, Android v1.9.0",
     titleFi: "Wi-Fi-sormenjälkipaikannus, Android-lukujärjestys, Android v1.9.0",
-    latest: true,
+    latest: false,
     highlights: [
       "New: Wi-Fi fingerprint positioning engine — POST /api/wifi/locate returns estimated room + confidence score",
       "New: Android Wi-Fi position puck on map (blue dot, updates every 5–30 s)",

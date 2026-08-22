@@ -29,10 +29,20 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Wifi, MapPin, Plus, Save, Trash2, Search, Loader2, AlertTriangle,
-  Radio, CornerDownLeft, ChevronRight,
+  Wifi, MapPin, Plus, Save, Trash2, Search, Loader2,
+  Radio, CornerDownLeft, ChevronRight, CheckCircle2, FlaskConical, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getAdminHeaders } from "@/lib/adminAuth";
+
+interface CoverageEntry { roomId: string; positionCount: number; apCount: number; }
+interface WifiStatus { fingerprintCount: number; ready: boolean; }
+interface LocateResult {
+  roomId: string; positionLabel: string;
+  floor: number | null;
+  confidence: string; confidenceScore: number;
+  sharedApCount: number; distance: number;
+}
 
 interface Room {
   id: string;
@@ -80,6 +90,69 @@ export default function BeaconSurveyor() {
 
   const [query, setQuery] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [testPaste, setTestPaste] = useState("");
+  const [testResult, setTestResult] = useState<LocateResult | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [showTest, setShowTest] = useState(false);
+
+  /* ── System status ──────────────────────────────────────────────── */
+  const { data: wifiStatus, refetch: refetchStatus, isFetching: statusFetching } =
+    useQuery<WifiStatus>({
+      queryKey: ["wifi-status"],
+      queryFn: async () => {
+        const r = await fetch("/api/wifi/locate");
+        if (!r.ok) throw new Error("status fetch failed");
+        return r.json();
+      },
+      staleTime: 30_000,
+    });
+
+  /* ── Per-room coverage ──────────────────────────────────────────── */
+  const { data: coverage = [] } = useQuery<CoverageEntry[]>({
+    queryKey: ["beacon-coverage"],
+    queryFn: async () => {
+      const r = await fetch("/api/beacons/coverage");
+      if (!r.ok) return [];
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const coverageMap = useMemo(() => {
+    const m = new Map<string, CoverageEntry>();
+    for (const c of coverage) m.set(c.roomId, c);
+    return m;
+  }, [coverage]);
+
+  /* ── Test locate ────────────────────────────────────────────────── */
+  const runTest = async () => {
+    setTestBusy(true);
+    setTestError(null);
+    setTestResult(null);
+    const readings: { bssid: string; rssi: number; ssid?: string }[] = [];
+    for (const raw of testPaste.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line) continue;
+      const m = line.match(/^([0-9a-f:.\-]+)\s+(-?\d+)(?:\s+(.+))?$/i);
+      if (!m) continue;
+      readings.push({ bssid: m[1].toLowerCase(), rssi: parseInt(m[2], 10), ssid: m[3]?.trim() || undefined });
+    }
+    if (readings.length === 0) { setTestError("No valid readings parsed — use: <bssid> <rssi> [ssid]"); setTestBusy(false); return; }
+    try {
+      const resp = await fetch("/api/wifi/locate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ readings }),
+      });
+      if (!resp.ok) { setTestError(`Server: ${(await resp.json()).message ?? resp.status}`); return; }
+      setTestResult(await resp.json());
+    } catch (e) {
+      setTestError((e as Error).message);
+    } finally {
+      setTestBusy(false);
+    }
+  };
 
   /* ── Rooms list ─────────────────────────────────────────────────── */
   const { data: rooms = [] } = useQuery<Room[]>({
@@ -149,7 +222,7 @@ export default function BeaconSurveyor() {
       const r = await fetch(`/api/beacons/${selectedRoomId}/positions`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error("Save failed");
@@ -167,6 +240,7 @@ export default function BeaconSurveyor() {
       const r = await fetch(`/api/beacons/${selectedRoomId}/positions/${positionId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAdminHeaders(),
       });
       if (!r.ok && r.status !== 204) throw new Error("Delete failed");
     },
@@ -180,24 +254,107 @@ export default function BeaconSurveyor() {
 
   return (
     <div className="space-y-5">
-      {/* Heads-up notice */}
+      {/* System status */}
       <Card className={cn(
-        "border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20",
+        wifiStatus?.ready
+          ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20"
+          : "border-gray-200 dark:border-gray-800",
       )}>
-        <CardContent className="py-4 flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
-          <div className="text-sm">
-            <p className="font-semibold text-amber-900 dark:text-amber-200">Coming later — scaffolding only</p>
-            <p className="text-amber-800/80 dark:text-amber-300/80 text-xs mt-0.5 leading-relaxed">
-              This page captures WiFi access-point signal strengths per room corner. The
-              indoor-positioning runtime that consumes these fingerprints isn't built yet —
-              survey readings are stored so we have data to test against once it ships.
-              Browsers don't expose WiFi scanning, so for now readings are entered by hand
-              from a phone's network info tool.
+        <CardContent className="py-4 flex items-center gap-4">
+          {wifiStatus?.ready ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+          ) : (
+            <Wifi className="h-5 w-5 text-gray-400 shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              Wi-Fi Positioning
+              <Badge variant="secondary" className={cn(
+                "text-[10px]",
+                wifiStatus?.ready
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
+              )}>
+                {wifiStatus?.ready ? "LIVE" : "NO DATA"}
+              </Badge>
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {wifiStatus
+                ? `${wifiStatus.fingerprintCount} fingerprints · ${coverage.length} room${coverage.length === 1 ? "" : "s"} covered`
+                : "Loading…"}
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { refetchStatus(); queryClient.invalidateQueries({ queryKey: ["beacon-coverage"] }); }}
+            disabled={statusFetching}
+            className="h-8 w-8 p-0 text-gray-400"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", statusFetching && "animate-spin")} />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTest((v) => !v)}
+            className="h-8 text-xs gap-1.5"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            Test
+          </Button>
         </CardContent>
       </Card>
+
+      {/* Test locate panel */}
+      {showTest && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <FlaskConical className="h-4 w-4 text-blue-600" />
+              Test locate
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Paste current BSSID/RSSI readings to verify the positioning engine.
+              Format: <code className="font-mono">aa:bb:cc:dd:ee:ff -67 [ssid]</code> one per line.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <textarea
+              value={testPaste}
+              onChange={(e) => setTestPaste(e.target.value)}
+              placeholder={"aa:bb:cc:dd:ee:ff -67 ksyk-staff\n11:22:33:44:55:66 -82 eduroam"}
+              className={cn(
+                "w-full text-xs font-mono p-2.5 border border-input rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y h-24",
+                darkMode ? "bg-gray-900" : "bg-white",
+              )}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={runTest}
+                disabled={testBusy || !testPaste.trim()}
+                className="h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5"
+              >
+                {testBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
+                Run
+              </Button>
+              {testError && <p className="text-xs text-red-600 dark:text-red-400">{testError}</p>}
+            </div>
+            {testResult && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 p-3 text-xs space-y-1">
+                <p className="font-semibold text-blue-900 dark:text-blue-200">
+                  Room: <span className="font-mono">{testResult.roomId}</span> · {testResult.positionLabel}
+                  {testResult.floor != null && <span> · Floor {testResult.floor}</span>}
+                </p>
+                <p className="text-blue-800/80 dark:text-blue-300/80">
+                  Confidence: <strong>{testResult.confidence}</strong> ({testResult.confidenceScore}%)
+                  · {testResult.sharedApCount} shared APs · dist {testResult.distance}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-4">
         {/* Rooms sidebar */}
@@ -224,24 +381,38 @@ export default function BeaconSurveyor() {
             <div className="max-h-[420px] overflow-y-auto -mx-2">
               {filtered.length === 0 ? (
                 <p className="px-3 py-6 text-xs text-center text-gray-500">No rooms match.</p>
-              ) : filtered.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setSelectedRoomId(r.id)}
-                  className={cn(
-                    "w-full px-3 py-2 flex items-center gap-2 text-sm border-l-2 transition-colors",
-                    selectedRoomId === r.id
-                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 border-blue-600"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 border-transparent",
-                  )}
-                >
-                  <span className="font-mono text-xs font-bold w-12 shrink-0 tabular-nums">{r.roomNumber}</span>
-                  <span className="flex-1 truncate text-xs">{r.name || r.type || "—"}</span>
-                  <span className="text-[10px] text-gray-400 shrink-0">F{r.floor}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                </button>
-              ))}
+              ) : filtered.map((r) => {
+                const cov = coverageMap.get(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSelectedRoomId(r.id)}
+                    className={cn(
+                      "w-full px-3 py-2 flex items-center gap-2 text-sm border-l-2 transition-colors",
+                      selectedRoomId === r.id
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 border-blue-600"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 border-transparent",
+                    )}
+                  >
+                    <span className="font-mono text-xs font-bold w-12 shrink-0 tabular-nums">{r.roomNumber}</span>
+                    <span className="flex-1 truncate text-xs">{r.name || r.type || "—"}</span>
+                    {cov ? (
+                      <span className={cn(
+                        "text-[10px] font-semibold px-1 rounded shrink-0",
+                        cov.positionCount >= 4
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+                      )}>
+                        {cov.positionCount}p
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-gray-400 shrink-0">F{r.floor}</span>
+                    )}
+                    <ChevronRight className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                  </button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

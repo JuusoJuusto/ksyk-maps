@@ -10,7 +10,7 @@ import {
   createPoi, getPoisByKind, getAllPois, deletePoi,
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
-  getAllBeaconSurveys, wifiLocate,
+  getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -92,6 +92,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Failed to log error to database:', logErr);
     }
   };
+
+  // Health check — used by uptime monitors and Vercel health checks.
+  // Returns DB reachability + version without exposing internals.
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await storage.getBuildings(); // lightweight probe
+      res.json({
+        status: 'ok',
+        version: process.env.npm_package_version ?? 'unknown',
+        db: 'connected',
+        wilma: process.env.WILMA_BASE_URL ? 'configured' : 'not-configured',
+        ts: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(503).json({
+        status: 'degraded',
+        db: 'unreachable',
+        error: (err as Error).message,
+        ts: new Date().toISOString(),
+      });
+    }
+  });
 
   // Logs API endpoint - for frontend error logging (rate-limited)
   app.post('/api/logs', rateLimiters.general, async (req, res) => {
@@ -788,6 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/buildings', async (req, res) => {
     try {
       const buildings = await storage.getBuildings();
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
       res.json(Array.isArray(buildings) ? buildings : []);
     } catch (error) {
       await logError(error, 'GET /api/buildings');
@@ -952,6 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildingId = req.query.buildingId as string;
       const rooms = await storage.getRooms(buildingId);
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
       res.json(Array.isArray(rooms) ? rooms : []);
     } catch (error) {
       await logError(error, 'GET /api/rooms', { buildingId: req.query.buildingId });
@@ -1050,23 +1074,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Room schedule endpoint — returns today's timetable for a room.
-  // Queries the wilma_schedules table by room number and today's day-of-week.
-  // Architecture is intentionally modular: swap the storage call below for a
-  // live Wilma API proxy when credentials become available.
+  //
+  // Source selection (checked in order):
+  //   1. Live Wilma proxy  — when WILMA_BASE_URL + WILMA_SESSION env vars are set.
+  //      Set WILMA_BASE_URL to the school's Wilma instance (e.g. https://ksyk.inschool.fi)
+  //      and WILMA_SESSION to a valid Wilma2SID cookie value.
+  //   2. Static DB fallback — wilma_schedules table seeded via admin import.
+  //   3. Empty schedule     — neither configured.
   app.get('/api/rooms/:id/schedule', async (req, res) => {
     try {
       const room = await storage.getRoom(req.params.id);
       if (!room) return res.status(404).json({ message: 'Room not found' });
 
       const now = new Date();
-      // JS getDay(): 0=Sun, 1=Mon … 6=Sat  →  wilma_schedules day_of_week: 1=Mon … 5=Fri
       const jsDay = now.getDay();
-      const wilmaDay = jsDay === 0 || jsDay === 6 ? null : jsDay; // null on weekends
+      const wilmaDay = jsDay === 0 || jsDay === 6 ? null : jsDay;
 
       interface WilmaScheduleRow {
         id: string;
         dayOfWeek: number;
-        timeSlot: string;       // e.g. "08:00-09:30"
+        timeSlot: string;
         subject: string;
         room: string;
         teacherName: string;
@@ -1075,33 +1102,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let schedule: WilmaScheduleRow[] = [];
+      let source: 'wilma-live' | 'wilma-db' | 'none' = 'none';
+
       if (wilmaDay !== null) {
-        // Fetch all schedules for this room number on today's weekday
-        try {
-          const all: WilmaScheduleRow[] = await (storage as any).getWilmaSchedulesAll?.() ?? [];
-          schedule = all.filter(
-            (s) => s.isActive && s.dayOfWeek === wilmaDay &&
-              s.room?.toUpperCase() === room.roomNumber?.toUpperCase()
-          );
-        } catch { /* wilma_schedules may not be seeded — return empty gracefully */ }
+        const wilmaBaseUrl = process.env.WILMA_BASE_URL;
+        const wilmaSession = process.env.WILMA_SESSION;
+
+        if (wilmaBaseUrl && wilmaSession && room.roomNumber) {
+          // Live Wilma proxy — requests the schedule page for this room.
+          // Wilma returns HTML; we extract JSON from the embedded data script.
+          try {
+            const resp = await fetch(
+              `${wilmaBaseUrl}/wilma2/schedule/room/${encodeURIComponent(room.roomNumber)}?format=json`,
+              {
+                headers: {
+                  Cookie: `Wilma2SID=${wilmaSession}`,
+                  'User-Agent': 'KSYK-Maps/1.0',
+                },
+                signal: AbortSignal.timeout(5000),
+              }
+            );
+            if (resp.ok) {
+              const data = await resp.json() as any;
+              // Wilma schedule JSON: { schedule: [{ period, subject, teacher, startLesson, endLesson }] }
+              const today = now.toISOString().slice(0, 10);
+              const items: any[] = Array.isArray(data?.schedule) ? data.schedule : [];
+              schedule = items
+                .filter((e: any) => e.date === today || !e.date)
+                .map((e: any, i: number) => ({
+                  id: `live-${i}`,
+                  dayOfWeek: wilmaDay,
+                  timeSlot: `${e.startLesson ?? ''}${e.endLesson ? `-${e.endLesson}` : ''}`,
+                  subject: e.subject ?? '',
+                  room: room.roomNumber ?? '',
+                  teacherName: e.teacher ?? '',
+                  teacherId: null,
+                  isActive: true,
+                }));
+              source = 'wilma-live';
+            } else {
+              console.warn(`[schedule] Wilma proxy returned ${resp.status} for room ${room.roomNumber}`);
+            }
+          } catch (proxyErr) {
+            console.warn('[schedule] Wilma proxy failed, falling back to DB:', (proxyErr as Error).message);
+          }
+        }
+
+        if (source === 'none') {
+          // DB fallback
+          try {
+            const all: WilmaScheduleRow[] = await (storage as any).getWilmaSchedulesAll?.() ?? [];
+            schedule = all.filter(
+              (s) => s.isActive && s.dayOfWeek === wilmaDay &&
+                s.room?.toUpperCase() === room.roomNumber?.toUpperCase()
+            );
+            if (schedule.length > 0) source = 'wilma-db';
+          } catch { /* wilma_schedules not seeded — leave empty */ }
+        }
       }
 
-      // Parse "HH:MM-HH:MM" into minutes-from-midnight for current/next detection
       const nowMins = now.getHours() * 60 + now.getMinutes();
-      const parse = (slot: string) => {
+      const parseSlot = (slot: string) => {
         const [start, end] = slot.split('-');
         const [sh, sm] = (start || '').split(':').map(Number);
         const [eh, em] = (end || '').split(':').map(Number);
-        return {
-          startMins: (sh || 0) * 60 + (sm || 0),
-          endMins: (eh || 0) * 60 + (em || 0),
-        };
+        return { startMins: (sh || 0) * 60 + (sm || 0), endMins: (eh || 0) * 60 + (em || 0) };
       };
 
       const entries = schedule
-        .sort((a, b) => parse(a.timeSlot).startMins - parse(b.timeSlot).startMins)
+        .sort((a, b) => parseSlot(a.timeSlot).startMins - parseSlot(b.timeSlot).startMins)
         .map((s) => {
-          const { startMins, endMins } = parse(s.timeSlot);
+          const { startMins, endMins } = parseSlot(s.timeSlot);
           const [startTime, endTime] = s.timeSlot.split('-');
           return {
             id: s.id,
@@ -1112,12 +1183,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             group: null as string | null,
             isCurrent: nowMins >= startMins && nowMins < endMins,
             isNext: nowMins < startMins &&
-              !schedule.some((x) => {
-                const p = parse(x.timeSlot);
-                return nowMins >= p.startMins && nowMins < p.endMins;
-              }) &&
+              !schedule.some((x) => { const p = parseSlot(x.timeSlot); return nowMins >= p.startMins && nowMins < p.endMins; }) &&
               startMins === Math.min(
-                ...schedule.filter((x) => parse(x.timeSlot).startMins > nowMins).map((x) => parse(x.timeSlot).startMins)
+                ...schedule.filter((x) => parseSlot(x.timeSlot).startMins > nowMins).map((x) => parseSlot(x.timeSlot).startMins)
               ),
           };
         });
@@ -1128,7 +1196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: now.toISOString().slice(0, 10),
         dayOfWeek: wilmaDay,
         schedule: entries,
-        source: entries.length > 0 ? 'wilma' : 'none',
+        source,
+        wilmaConfigured: !!process.env.WILMA_BASE_URL,
         lastUpdated: entries.length > 0 ? now.toISOString() : null,
       });
     } catch (error) {
@@ -1299,10 +1368,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const allUsers = await storage.getAllUsers();
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(allUsers.slice(offset, offset + limit));
+      res.json(await storage.getAllUsers(limit, offset));
     } catch (error) {
       await logError(error, 'GET /api/users', { isAuthenticated: req.isAuthenticated() });
       res.status(500).json({ message: "Failed to fetch users" });
@@ -1483,10 +1551,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff routes
   app.get('/api/staff', async (req, res) => {
     try {
-      const staff = await storage.getStaff();
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(staff.slice(offset, offset + limit));
+      res.json(await storage.getStaff(limit, offset));
     } catch (error) {
       await logError(error, 'GET /api/staff');
       res.status(500).json({ message: "Failed to fetch staff" });
@@ -3259,17 +3326,52 @@ https://ksykmaps.fi
     }
   });
 
+  app.get('/api/beacons/coverage', async (_req, res) => {
+    try {
+      res.json(await getBeaconCoverage());
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch coverage' });
+    }
+  });
+
   // ── Wi-Fi fingerprint positioning ─────────────────────────────────────────
-  app.post('/api/wifi/locate', async (req, res) => {
-    const { readings } = req.body || {};
-    if (!Array.isArray(readings) || readings.length === 0) {
+  // Simple in-process rate limit: 15 req/IP/minute. Good enough for local dev.
+  const _wifiRateMap = new Map<string, { n: number; reset: number }>();
+  function _wifiRateOk(ip: string): boolean {
+    const now = Date.now();
+    const entry = _wifiRateMap.get(ip);
+    if (!entry || now > entry.reset) { _wifiRateMap.set(ip, { n: 1, reset: now + 60_000 }); return true; }
+    entry.n++;
+    return entry.n <= 15;
+  }
+
+  app.post('/api/wifi/locate', async (req: any, res) => {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      ?? req.socket?.remoteAddress ?? 'unknown';
+    if (!_wifiRateOk(ip)) {
+      pgDb.insert(appLogs).values({ level: 'warn', message: `wifi/locate rate-limited: ${ip}`, ipAddress: ip }).catch(() => {});
+      return res.status(429).json({ message: 'Too many requests' });
+    }
+    const rawReadings = (req.body || {}).readings;
+    if (!Array.isArray(rawReadings) || rawReadings.length === 0) {
       return res.status(400).json({ message: 'readings[] required' });
+    }
+    // Sanitize: keep only valid bssid/rssi pairs, cap at 100 APs.
+    const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
+      const bssid = String(r?.bssid ?? '').toLowerCase().trim();
+      const rssi = Number(r?.rssi);
+      if (!bssid || bssid.length > 30 || !isFinite(rssi)) return [];
+      return [{ bssid, rssi, ssid: r?.ssid ? String(r.ssid).slice(0, 64) : undefined }];
+    });
+    if (readings.length === 0) {
+      return res.status(400).json({ message: 'No valid readings after sanitization' });
     }
     try {
       const estimate = await wifiLocate(readings);
       if (!estimate) return res.status(404).json({ message: 'No fingerprint data or no match found' });
       res.json(estimate);
     } catch (err) {
+      pgDb.insert(appLogs).values({ level: 'error', message: `wifi/locate error: ${(err as Error).message}`, ipAddress: ip }).catch(() => {});
       res.status(500).json({ message: 'Positioning failed' });
     }
   });

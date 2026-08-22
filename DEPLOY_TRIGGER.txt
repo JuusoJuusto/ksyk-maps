@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-21
+FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.4.0 — Wi-Fi fingerprint positioning engine (/api/wifi/locate), Android timetable screen, Android v1.9.0
+Bump reason: v4.5.4 — health endpoint, Wilma proxy, schedule source field
 
-Timestamp: 1788170000
-Build: FORCE_REBUILD_v4.4.0_WIFI_POSITIONING_TIMETABLE
+Timestamp: 1788266000
+Build: FORCE_REBUILD_v4.5.4_HEALTH_WILMA

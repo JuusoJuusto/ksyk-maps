@@ -1705,9 +1705,10 @@ private fun WifiPositionChip(
     apCount: Int,
     onTap: () -> Unit,
 ) {
+    val floorSuffix = position.floor?.let { " · F$it" } ?: ""
     val (dotColor, label) = when (position.confidence) {
-        WifiPosition.Confidence.HIGH   -> Color(0xFF16A34A) to "~${position.positionLabel}"
-        WifiPosition.Confidence.MEDIUM -> Color(0xFFF59E0B) to "~${position.positionLabel}"
+        WifiPosition.Confidence.HIGH   -> Color(0xFF16A34A) to "~${position.positionLabel}$floorSuffix"
+        WifiPosition.Confidence.MEDIUM -> Color(0xFFF59E0B) to "~${position.positionLabel}$floorSuffix"
         else                           -> Color(0xFF94A3B8) to "Searching…"
     }
     Row(

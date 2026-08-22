@@ -430,17 +430,21 @@ export const kvSettings = pgTable("kv_settings", {
 });
 
 // WiFi beacon survey positions (indoor positioning research data).
-export const beaconSurveys = pgTable("beacon_surveys", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  roomId: varchar("room_id").notNull(),
-  positionLabel: varchar("position_label").notNull(),
-  capturedAt: timestamp("captured_at"),
-  readings: jsonb("readings"),  // [{ bssid, rssi, ssid? }]
-  lat: real("lat"),
-  lng: real("lng"),
-  accuracyM: real("accuracy_m"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const beaconSurveys = pgTable(
+  "beacon_surveys",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    roomId: varchar("room_id").notNull(),
+    positionLabel: varchar("position_label").notNull(),
+    capturedAt: timestamp("captured_at"),
+    readings: jsonb("readings"),  // [{ bssid, rssi, ssid? }]
+    lat: real("lat"),
+    lng: real("lng"),
+    accuracyM: real("accuracy_m"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [index("IDX_beacon_surveys_room_id").on(table.roomId)],
+);
 
 // Relations
 export const buildingsRelations = relations(buildings, ({ many }) => ({

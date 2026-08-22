@@ -83,14 +83,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     console.log(`Handling request: ${req.method} ${apiPath}`);
     
-    // Health check
-    if (apiPath === '/' || apiPath === '') {
-      return res.status(200).json({
-        message: "KSYK Maps API is running",
-        version: "1.0.0",
-        timestamp: new Date().toISOString(),
-        env: { HAS_POSTGRES_URL: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL, NODE_ENV: process.env.NODE_ENV }
-      });
+    // Health check — also served at /api/health for uptime monitors
+    if (apiPath === '/' || apiPath === '' || apiPath === '/health') {
+      try {
+        const { storage: st } = await import('../server/storage.js');
+        await st.getBuildings();
+        return res.status(200).json({
+          status: 'ok',
+          version: process.env.npm_package_version ?? '4.5.3',
+          db: 'connected',
+          wilma: process.env.WILMA_BASE_URL ? 'configured' : 'not-configured',
+          ts: new Date().toISOString(),
+        });
+      } catch (err) {
+        return res.status(503).json({
+          status: 'degraded',
+          db: 'unreachable',
+          error: (err as Error).message,
+          ts: new Date().toISOString(),
+        });
+      }
     }
 
     // Debug endpoint — admin only
@@ -298,6 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (beaconListMatch && req.method === 'POST') {
+        if (!requireAdminAuth(req, res)) return;
         const roomId = beaconListMatch[1];
         try {
           const { addBeaconPosition } = await import('../server/kvStorage.js');
@@ -326,6 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (beaconOneMatch && req.method === 'DELETE') {
+        if (!requireAdminAuth(req, res)) return;
         const [, , positionId] = beaconOneMatch;
         try {
           const { deleteBeaconPosition } = await import('../server/kvStorage.js');
@@ -338,9 +352,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/beacons/coverage — per-room fingerprint counts for admin dashboard.
+    if (apiPath === '/beacons/coverage' && req.method === 'GET') {
+      try {
+        const { getBeaconCoverage } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getBeaconCoverage());
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch coverage' });
+      }
+    }
+
     // ── Wi-Fi fingerprint positioning ─────────────────────────────────
     // POST /api/wifi/locate — send current BSSID/RSSI scan, get estimated position.
     if (apiPath === '/wifi/locate' && req.method === 'POST') {
+      const rl = checkRateLimit(getRealIP(req.headers), 15, 60_000);
+      if (!rl.allowed) {
+        res.setHeader('X-RateLimit-Remaining', '0');
+        return res.status(429).json({ message: 'Too many requests — wait a minute' });
+      }
       try {
         const { wifiLocate } = await import('../server/kvStorage.js');
         const { readings } = (req.body as any) || {};
@@ -629,10 +658,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath.startsWith('/buildings')) {
       if (req.method !== 'GET' && !requireAdminAuth(req, res)) return;
       if (req.method === 'GET' && apiPath === '/buildings') {
-        console.log('ðŸ¢ Fetching buildings from storage...');
         const buildings = await storage.getBuildings();
-        console.log(`âœ… Found ${buildings.length} buildings`);
-        console.log('Buildings data:', JSON.stringify(buildings, null, 2));
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
         return res.status(200).json(buildings);
       }
       
@@ -672,6 +699,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
         return res.status(200).json(rooms);
       }
       
