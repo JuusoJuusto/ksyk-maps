@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-22
+FORCE VERCEL REBUILD - 2026-08-23
 
-Bump reason: v4.5.4 — health endpoint, Wilma proxy, schedule source field
+Bump reason: v4.5.8 — coverage visualization, floor quality heatmap
 
-Timestamp: 1788266000
-Build: FORCE_REBUILD_v4.5.4_HEALTH_WILMA
+Timestamp: 1788356000
+Build: FORCE_REBUILD_v4.5.8_COVERAGE_VIZ

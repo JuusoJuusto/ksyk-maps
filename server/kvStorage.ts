@@ -182,8 +182,58 @@ export interface PositionEstimate {
   }>;
 }
 
+/** Quality score for a Wi-Fi fingerprint (0–100). */
+export function computeFingerprintQuality(readings: WifiReading[]): {
+  score: number;
+  label: 'excellent' | 'good' | 'fair' | 'poor';
+} {
+  if (!readings || readings.length === 0) return { score: 0, label: 'poor' };
+
+  const apCount = readings.length;
+  const sorted = [...readings].sort((a, b) => b.rssi - a.rssi);
+  const top5 = sorted.slice(0, Math.min(5, sorted.length));
+  const avgTopRssi = top5.reduce((s, r) => s + r.rssi, 0) / top5.length;
+
+  // apScore: 10+ APs → 100, linear below
+  const apScore = Math.min(100, (apCount / 10) * 100);
+  // strengthScore: -30 dBm → 100, -90 dBm → 0
+  const strengthScore = Math.max(0, Math.min(100, ((avgTopRssi + 90) / 60) * 100));
+
+  const score = Math.round(apScore * 0.5 + strengthScore * 0.5);
+  const label: 'excellent' | 'good' | 'fair' | 'poor' =
+    score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'poor';
+  return { score, label };
+}
+
 export async function getAllBeaconSurveys() {
   return db.select().from(beaconSurveys);
+}
+
+export async function getAllFingerprintsWithFloor(): Promise<Array<{
+  id: string;
+  roomId: string;
+  positionLabel: string;
+  lat: number | null;
+  lng: number | null;
+  floor: number | null;
+  readings: WifiReading[];
+}>> {
+  const rows = await db.execute(sql`
+    SELECT s.id, s.room_id, s.position_label, s.lat, s.lng, s.readings,
+           r.floor
+    FROM   beacon_surveys s
+    LEFT   JOIN rooms r ON r.id = s.room_id
+    ORDER  BY s.created_at
+  `);
+  return (rows as any[]).map((r: any) => ({
+    id: String(r.id),
+    roomId: String(r.room_id),
+    positionLabel: String(r.position_label ?? ''),
+    lat: r.lat != null ? Number(r.lat) : null,
+    lng: r.lng != null ? Number(r.lng) : null,
+    floor: r.floor != null ? Number(r.floor) : null,
+    readings: (r.readings ?? []) as WifiReading[],
+  }));
 }
 
 export async function getBeaconCoverage(): Promise<Array<{
@@ -204,6 +254,54 @@ export async function getBeaconCoverage(): Promise<Array<{
     positionCount: Number(r.position_count),
     apCount: Number(r.ap_count ?? 0),
   }));
+}
+
+export async function getBeaconCoverageWithQuality(): Promise<Array<{
+  roomId: string;
+  roomNumber: string | null;
+  floor: number | null;
+  positionCount: number;
+  avgQuality: number;
+  qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none';
+}>> {
+  const rows = await db.execute(sql`
+    SELECT s.room_id,
+           r.room_number,
+           r.floor,
+           COUNT(*)::int                AS position_count,
+           jsonb_agg(s.readings)        AS all_readings
+    FROM   beacon_surveys s
+    LEFT   JOIN rooms r ON r.id = s.room_id
+    GROUP  BY s.room_id, r.room_number, r.floor
+    ORDER  BY r.floor NULLS LAST, r.room_number
+  `);
+
+  return (rows as any[]).map((row: any) => {
+    const posCount = Number(row.position_count);
+    const allReadings = (row.all_readings ?? []) as (WifiReading[] | null)[];
+    let total = 0;
+    let count = 0;
+    for (const readings of allReadings) {
+      if (!readings) continue;
+      total += computeFingerprintQuality(readings).score;
+      count++;
+    }
+    const avgQuality = count > 0 ? Math.round(total / count) : 0;
+    const qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none' =
+      posCount === 0 ? 'none'
+      : avgQuality >= 80 ? 'excellent'
+      : avgQuality >= 60 ? 'good'
+      : avgQuality >= 40 ? 'fair'
+      : 'poor';
+    return {
+      roomId:       String(row.room_id),
+      roomNumber:   row.room_number ?? null,
+      floor:        row.floor != null ? Number(row.floor) : null,
+      positionCount: posCount,
+      avgQuality,
+      qualityLabel,
+    };
+  });
 }
 
 function computeRssiDistance(

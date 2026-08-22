@@ -43,6 +43,11 @@ function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: st
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Correlation / request ID — echoed back so callers can include it in bug reports.
+  const requestId = (req.headers['x-request-id'] as string) ||
+    'KSYK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+  res.setHeader('X-Request-ID', requestId);
+
   // Set security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -302,8 +307,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (beaconListMatch && req.method === 'GET') {
         const roomId = beaconListMatch[1];
         try {
-          const { getBeaconPositions } = await import('../server/kvStorage.js');
-          return res.status(200).json(await getBeaconPositions(roomId));
+          const { getBeaconPositions, computeFingerprintQuality } = await import('../server/kvStorage.js');
+          const positions = await getBeaconPositions(roomId);
+          return res.status(200).json(positions.map((p: any) => ({
+            ...p,
+            quality: computeFingerprintQuality((p.readings as any[]) ?? []),
+          })));
         } catch {
           return res.status(200).json([]);
         }
@@ -362,6 +371,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/beacons/coverage-quality — per-room coverage with floor + quality label.
+    if (apiPath === '/beacons/coverage-quality' && req.method === 'GET') {
+      try {
+        const { getBeaconCoverageWithQuality } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getBeaconCoverageWithQuality());
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch coverage quality' });
+      }
+    }
+
     // ── Wi-Fi fingerprint positioning ─────────────────────────────────
     // POST /api/wifi/locate — send current BSSID/RSSI scan, get estimated position.
     if (apiPath === '/wifi/locate' && req.method === 'POST') {
@@ -395,6 +414,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ fingerprintCount: all.length, ready: all.length > 0 });
       } catch (err) {
         return res.status(500).json({ message: 'Failed to query fingerprints' });
+      }
+    }
+
+    // POST /api/wifi/replay — admin dev tool: replay scan snapshots through the engine.
+    if (apiPath === '/wifi/replay' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      const { snapshots } = req.body || {};
+      if (!Array.isArray(snapshots) || snapshots.length === 0) {
+        return res.status(400).json({ message: 'snapshots[] required' });
+      }
+      if (snapshots.length > 200) {
+        return res.status(400).json({ message: 'Maximum 200 snapshots per replay' });
+      }
+      try {
+        const { wifiLocate, getAllBeaconSurveys } = await import('../server/kvStorage.js');
+        const results = await Promise.all(snapshots.map(async (snap: any, idx: number) => {
+          const rawReadings = Array.isArray(snap.readings) ? snap.readings : [];
+          const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
+            const bssid = String(r?.bssid ?? '').toLowerCase().trim();
+            const rssi = Number(r?.rssi);
+            if (!bssid || bssid.length > 30 || !isFinite(rssi)) return [];
+            return [{ bssid, rssi }];
+          });
+          try {
+            const estimate = readings.length > 0 ? await wifiLocate(readings) : null;
+            return { index: idx, t: snap.t ?? idx, position: estimate, error: null };
+          } catch (err) {
+            return { index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message };
+          }
+        }));
+        const all = await getAllBeaconSurveys();
+        return res.status(200).json({ results, fingerprintCount: all.length });
+      } catch (err) {
+        return res.status(500).json({ message: 'Replay failed' });
+      }
+    }
+
+    // GET /api/wifi/fingerprints — full fingerprint DB for on-device KNN fallback.
+    if (apiPath === '/wifi/fingerprints' && req.method === 'GET') {
+      try {
+        const { getAllFingerprintsWithFloor } = await import('../server/kvStorage.js');
+        const fps = await getAllFingerprintsWithFloor();
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        return res.status(200).json(fps);
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch fingerprints' });
       }
     }
 

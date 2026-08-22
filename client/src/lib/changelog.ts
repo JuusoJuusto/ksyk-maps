@@ -10,15 +10,89 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.4";
+export const APP_VERSION = "4.5.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.8",
+    date: "August 2026",
+    title: "Coverage visualization: floor-level fingerprint quality heatmap",
+    titleFi: "Kattavuusvisualisointi: lattiakohtainen sormenjälkilaatuheatmap",
+    latest: true,
+    highlights: [
+      "New: GET /api/beacons/coverage-quality — per-room coverage with floor, quality label (excellent/good/fair/poor/none)",
+      "New: Floor Coverage bar chart in admin Wi-Fi panel — shows calibration completeness per floor",
+      "New: Color-coded progress bars: green=excellent, blue=good, yellow=fair, red=poor, gray=none",
+      "New: getBeaconCoverageWithQuality() in kvStorage.ts — SQL join with rooms for floor + room number",
+    ],
+    highlightsFi: [
+      "Uusi: Kattavuusvisualisointi admin-paneelissa — lattiakohtainen palkki näyttää sormenjälkien laadun",
+      "Uusi: /api/beacons/coverage-quality kertoo laaturykelmittäin (excellent/good/fair/poor/none)",
+    ],
+  },
+  {
+    version: "4.5.7",
+    date: "August 2026",
+    title: "Position simulator, replay API, Android notification channels",
+    titleFi: "Paikannussimulaattori, toistusrajapinta, Android-ilmoituskanavat",
+    latest: false,
+    highlights: [
+      "New: WifiSimulator.kt — 9 dev scenarios (strong, weak, no APs, wrong floor, noise, AP appearing/disappearing, competing fingerprints)",
+      "New: POST /api/wifi/replay — replay recorded Wi-Fi scan sequences through the server KNN engine (admin only)",
+      "New: Android notification channels — Timetable reminders, Navigation, Announcements (registered at app start)",
+      "New: KsykApp.kt constants CHANNEL_TIMETABLE, CHANNEL_NAVIGATION, CHANNEL_GENERAL for use by future notification senders",
+    ],
+    highlightsFi: [
+      "Uusi: Paikannussimulaattori 9 testiskenaariolla kehityskäyttöön",
+      "Uusi: Replay-rajapinta tallennettujen Wi-Fi-mittausten toistamiseen",
+      "Uusi: Android-ilmoituskanavat (timetable, navigointi, ilmoitukset)",
+    ],
+  },
+  {
+    version: "4.5.6",
+    date: "August 2026",
+    title: "Fingerprint quality scores, Wi-Fi + HSL health checks, diagnostics",
+    titleFi: "Sormenjälkien laatu, Wi-Fi + HSL terveystarkistukset, diagnostiikka",
+    latest: false,
+    highlights: [
+      "New: computeFingerprintQuality() — 0-100 score per fingerprint based on AP count and signal strength",
+      "New: Quality badge shown per position in admin Wi-Fi calibration panel (excellent/good/fair/poor)",
+      "New: GET /api/beacons/:roomId/positions now returns quality score with each fingerprint",
+      "New: Wi-Fi positioning health check in SystemStatus — shows fingerprint count and readiness",
+      "New: HSL/Digitransit health check — detects network filtering vs. API outage vs. browser extension",
+      "Improved: SystemStatus now shows 8 subsystems including Wi-Fi and HSL with causes for warnings",
+    ],
+    highlightsFi: [
+      "Uusi: Sormenjälkien laatu (0-100) AP-määrän ja signaalinvoimakkuuden perusteella",
+      "Uusi: Wi-Fi-paikannuksen ja HSL:n terveystarkistukset diagnostiikkasivulla",
+    ],
+  },
+  {
+    version: "4.5.5",
+    date: "August 2026",
+    title: "Offline Wi-Fi fingerprint matching on Android, request IDs, dark mode",
+    titleFi: "Offline-sormenjalki-paikannus Androidilla, pyyntötunnisteet, tumma tila",
+    latest: false,
+    highlights: [
+      "New: Android app downloads Wi-Fi fingerprint DB and runs KNN positioning locally when server is unreachable",
+      "New: LocalPositioning.kt mirrors server KNN algorithm (MISSING_RSSI=-92, EXTRA_WEIGHT=0.3, K=3)",
+      "New: GET /api/wifi/fingerprints endpoint returns full fingerprint DB with floor from rooms join",
+      "New: Request correlation IDs (KSYK-XXXXXXXX) on every backend request in both server/routes.ts and api/index.ts",
+      "New: Android dark mode + Material You dynamic colors (Android 12+) in theme.kt",
+      "New: RSSI exponential smoothing (α=0.3), AP decay, floor hysteresis (2-of-3 votes) in WifiPositioning.kt",
+    ],
+    highlightsFi: [
+      "Uusi: Android lataa sormenjälkitietokannan ja ajaa KNN-paikannuksen paikallisesti ilman yhteyttä",
+      "Uusi: Pyyntötunnisteet (KSYK-XXXXXXXX) kaikissa backend-pyynnöissä",
+      "Uusi: Tumma tila ja Material You -värit Android 12+ -laitteilla",
+    ],
+  },
   {
     version: "4.5.4",
     date: "August 2026",
     title: "Health endpoint, Wilma live proxy (env-var driven), schedule source field",
     titleFi: "Terveystarkistus, Wilma-proxy (ympäristömuuttuja), aikataulun lähdekenttä",
-    latest: true,
+    latest: false,
     highlights: [
       "New: GET /api/health endpoint — returns DB status, version, and Wilma config state for uptime monitors",
       "New: Room schedule endpoint now attempts live Wilma proxy when WILMA_BASE_URL + WILMA_SESSION env vars are set",

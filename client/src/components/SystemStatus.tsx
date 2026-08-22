@@ -3,16 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
   Database,
   Zap,
   Wifi,
   Server,
   HardDrive,
-  RefreshCw
+  RefreshCw,
+  Bus,
+  Radio,
 } from 'lucide-react';
 import { healthMonitor, type SystemHealth } from '@/utils/healthCheck';
 
@@ -74,10 +76,12 @@ export function SystemStatus() {
   const healthChecks = health ? [
     { name: 'API Endpoints', status: health.api, icon: Server },
     { name: 'Database', status: health.database, icon: Database },
-    { name: 'Features', status: health.features, icon: Zap },
+    { name: 'Wi-Fi Positioning', status: health.wifiPositioning, icon: Radio },
+    { name: 'HSL / Digitransit', status: health.hsl, icon: Bus },
+    { name: 'Browser Features', status: health.features, icon: Zap },
     { name: 'Performance', status: health.performance, icon: Activity },
     { name: 'Memory', status: health.memory, icon: HardDrive },
-    { name: 'Network', status: health.network, icon: Wifi }
+    { name: 'Network', status: health.network, icon: Wifi },
   ] : [];
 
   return (

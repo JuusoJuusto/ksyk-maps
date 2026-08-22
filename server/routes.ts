@@ -10,7 +10,9 @@ import {
   createPoi, getPoisByKind, getAllPois, deletePoi,
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
-  getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
+  getAllBeaconSurveys, getBeaconCoverage, getBeaconCoverageWithQuality, wifiLocate,
+  getAllFingerprintsWithFloor, computeFingerprintQuality,
+  type WifiReading,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -69,6 +71,17 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Request ID middleware — every request gets a unique KSYK-XXXXXXXX correlation
+  // ID attached to res.locals and echoed back as X-Request-ID. Include this ID
+  // when filing bug reports so we can find the exact request in the log viewer.
+  app.use((req: any, res: any, next: any) => {
+    const id = req.headers['x-request-id'] as string ||
+      'KSYK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    res.locals.requestId = id;
+    res.setHeader('X-Request-ID', id);
+    next();
+  });
+
   // Error logging helper
   const logError = async (error: any, source: string, details?: any) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -3295,7 +3308,11 @@ https://ksykmaps.fi
   app.get('/api/beacons/:roomId/positions', async (req, res) => {
     try {
       const positions = await getBeaconPositions(req.params.roomId);
-      res.json(positions);
+      const withQuality = positions.map((p) => ({
+        ...p,
+        quality: computeFingerprintQuality((p.readings as WifiReading[]) ?? []),
+      }));
+      res.json(withQuality);
     } catch (err) {
       res.status(500).json({ message: 'Failed to fetch positions' });
     }
@@ -3331,6 +3348,16 @@ https://ksykmaps.fi
       res.json(await getBeaconCoverage());
     } catch (err) {
       res.status(500).json({ message: 'Failed to fetch coverage' });
+    }
+  });
+
+  // GET /api/beacons/coverage-quality — per-room coverage with floor + quality label.
+  // Powers the admin coverage visualization (excellent/good/fair/poor/none per room).
+  app.get('/api/beacons/coverage-quality', async (_req, res) => {
+    try {
+      res.json(await getBeaconCoverageWithQuality());
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch coverage quality' });
     }
   });
 
@@ -3382,6 +3409,53 @@ https://ksykmaps.fi
       res.json({ fingerprintCount: all.length, ready: all.length > 0 });
     } catch (err) {
       res.status(500).json({ message: 'Failed to query fingerprints' });
+    }
+  });
+
+  // POST /api/wifi/replay — dev/admin tool: replay a sequence of Wi-Fi scan
+  // snapshots through the positioning engine and return results for each.
+  // Body: { snapshots: [{ t: 0, readings: [{bssid,rssi},...] }, ...] }
+  // Used to test positioning accuracy against a recorded calibration walk.
+  app.post('/api/wifi/replay', isAuthenticated, async (req: any, res) => {
+    const { snapshots } = req.body || {};
+    if (!Array.isArray(snapshots) || snapshots.length === 0) {
+      return res.status(400).json({ message: 'snapshots[] required' });
+    }
+    if (snapshots.length > 200) {
+      return res.status(400).json({ message: 'Maximum 200 snapshots per replay' });
+    }
+    try {
+      const results = await Promise.all(snapshots.map(async (snap: any, idx: number) => {
+        const rawReadings = Array.isArray(snap.readings) ? snap.readings : [];
+        const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
+          const bssid = String(r?.bssid ?? '').toLowerCase().trim();
+          const rssi = Number(r?.rssi);
+          if (!bssid || bssid.length > 30 || !isFinite(rssi)) return [];
+          return [{ bssid, rssi }];
+        });
+        try {
+          const estimate = readings.length > 0 ? await wifiLocate(readings) : null;
+          return { index: idx, t: snap.t ?? idx, position: estimate, error: null };
+        } catch (err) {
+          return { index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message };
+        }
+      }));
+      res.json({ results, fingerprintCount: (await getAllBeaconSurveys()).length });
+    } catch (err) {
+      res.status(500).json({ message: 'Replay failed' });
+    }
+  });
+
+  // GET /api/wifi/fingerprints — full fingerprint database for on-device KNN.
+  // The Android app downloads this once and caches it on disk so positioning
+  // can run locally when the server is unreachable (airplane mode, poor signal).
+  app.get('/api/wifi/fingerprints', async (_req, res) => {
+    try {
+      const fps = await getAllFingerprintsWithFloor();
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      res.json(fps);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch fingerprints' });
     }
   });
 

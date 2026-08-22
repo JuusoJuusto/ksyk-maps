@@ -36,6 +36,14 @@ import { cn } from "@/lib/utils";
 import { getAdminHeaders } from "@/lib/adminAuth";
 
 interface CoverageEntry { roomId: string; positionCount: number; apCount: number; }
+interface CoverageQualityEntry {
+  roomId: string;
+  roomNumber: string | null;
+  floor: number | null;
+  positionCount: number;
+  avgQuality: number;
+  qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none';
+}
 interface WifiStatus { fingerprintCount: number; ready: boolean; }
 interface LocateResult {
   roomId: string; positionLabel: string;
@@ -67,6 +75,7 @@ interface SurveyPosition {
   positionLabel: string;  // "Corner NW", "Doorway", etc.
   capturedAt: string;
   readings: BeaconReading[];
+  quality?: { score: number; label: 'excellent' | 'good' | 'fair' | 'poor' };
   /** Optional GPS coordinates of the surveyor at the moment of capture.
    *  When 4+ positions in a room have GPS, the system can auto-derive
    *  the room's bounding rectangle and snap it onto the campus map. */
@@ -124,6 +133,28 @@ export default function BeaconSurveyor() {
     for (const c of coverage) m.set(c.roomId, c);
     return m;
   }, [coverage]);
+
+  /* ── Coverage quality (floor breakdown) ─────────────────────────── */
+  const { data: coverageQuality = [] } = useQuery<CoverageQualityEntry[]>({
+    queryKey: ["beacon-coverage-quality"],
+    queryFn: async () => {
+      const r = await fetch("/api/beacons/coverage-quality");
+      if (!r.ok) return [];
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const floorSummary = useMemo(() => {
+    const floors = new Map<number, { excellent: number; good: number; fair: number; poor: number; none: number }>();
+    for (const e of coverageQuality) {
+      const f = e.floor ?? -1;
+      if (!floors.has(f)) floors.set(f, { excellent: 0, good: 0, fair: 0, poor: 0, none: 0 });
+      const entry = floors.get(f)!;
+      entry[e.positionCount === 0 ? 'none' : e.qualityLabel]++;
+    }
+    return [...floors.entries()].sort((a, b) => a[0] - b[0]);
+  }, [coverageQuality]);
 
   /* ── Test locate ────────────────────────────────────────────────── */
   const runTest = async () => {
@@ -356,6 +387,61 @@ export default function BeaconSurveyor() {
         </Card>
       )}
 
+      {/* Floor coverage map */}
+      {floorSummary.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Radio className="h-4 w-4 text-blue-600" />
+              Coverage by Floor
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Rooms with calibrated fingerprints — collect more fingerprints in yellow/red areas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-2">
+            {floorSummary.map(([floor, counts]) => {
+              const total = counts.excellent + counts.good + counts.fair + counts.poor + counts.none;
+              const calibrated = counts.excellent + counts.good + counts.fair + counts.poor;
+              return (
+                <div key={floor} className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300 w-16 shrink-0">
+                      {floor === -1 ? 'Unknown' : `Floor ${floor}`}
+                    </span>
+                    <span className="text-gray-400">{calibrated}/{total} rooms</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
+                      {counts.excellent > 0 && (
+                        <div style={{ width: `${(counts.excellent / total) * 100}%` }} className="bg-green-500 h-full" title={`Excellent: ${counts.excellent}`} />
+                      )}
+                      {counts.good > 0 && (
+                        <div style={{ width: `${(counts.good / total) * 100}%` }} className="bg-blue-500 h-full" title={`Good: ${counts.good}`} />
+                      )}
+                      {counts.fair > 0 && (
+                        <div style={{ width: `${(counts.fair / total) * 100}%` }} className="bg-yellow-400 h-full" title={`Fair: ${counts.fair}`} />
+                      )}
+                      {counts.poor > 0 && (
+                        <div style={{ width: `${(counts.poor / total) * 100}%` }} className="bg-red-400 h-full" title={`Poor: ${counts.poor}`} />
+                      )}
+                      {counts.none > 0 && (
+                        <div style={{ width: `${(counts.none / total) * 100}%` }} className="bg-gray-200 dark:bg-gray-700 h-full" title={`No data: ${counts.none}`} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-3 pt-1 text-[10px] text-gray-500">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Excellent</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Good</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> Fair</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> Poor</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" /> None</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-4">
         {/* Rooms sidebar */}
         <Card className="overflow-hidden h-fit">
@@ -500,9 +586,20 @@ export default function BeaconSurveyor() {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-gray-500 mt-0.5">
-                                  {p.readings.length} reading{p.readings.length === 1 ? "" : "s"} ·
+                                <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                  {p.readings.length} AP{p.readings.length === 1 ? "" : "s"} ·
                                   {" "}{new Date(p.capturedAt).toLocaleString()}
+                                  {p.quality && (
+                                    <span className={cn(
+                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                                      p.quality.label === 'excellent' && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                                      p.quality.label === 'good'      && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                      p.quality.label === 'fair'      && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+                                      p.quality.label === 'poor'      && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                    )}>
+                                      {p.quality.score}/100 · {p.quality.label}
+                                    </span>
+                                  )}
                                 </p>
                                 {p.lat != null && p.lng != null && (
                                   <p className="text-[10px] font-mono text-gray-400 mt-0.5">
