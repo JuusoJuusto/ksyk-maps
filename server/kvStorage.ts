@@ -186,6 +186,33 @@ export async function getAllBeaconSurveys() {
   return db.select().from(beaconSurveys);
 }
 
+export async function getAllFingerprintsWithFloor(): Promise<Array<{
+  id: string;
+  roomId: string;
+  positionLabel: string;
+  lat: number | null;
+  lng: number | null;
+  floor: number | null;
+  readings: WifiReading[];
+}>> {
+  const rows = await db.execute(sql`
+    SELECT s.id, s.room_id, s.position_label, s.lat, s.lng, s.readings,
+           r.floor
+    FROM   beacon_surveys s
+    LEFT   JOIN rooms r ON r.id = s.room_id
+    ORDER  BY s.created_at
+  `);
+  return (rows as any[]).map((r: any) => ({
+    id: String(r.id),
+    roomId: String(r.room_id),
+    positionLabel: String(r.position_label ?? ''),
+    lat: r.lat != null ? Number(r.lat) : null,
+    lng: r.lng != null ? Number(r.lng) : null,
+    floor: r.floor != null ? Number(r.floor) : null,
+    readings: (r.readings ?? []) as WifiReading[],
+  }));
+}
+
 export async function getBeaconCoverage(): Promise<Array<{
   roomId: string;
   positionCount: number;

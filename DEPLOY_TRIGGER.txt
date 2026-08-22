@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.5.4 — health endpoint, Wilma proxy, schedule source field
+Bump reason: v4.5.5 — offline fingerprint matching, request IDs, Android dark mode
 
-Timestamp: 1788266000
-Build: FORCE_REBUILD_v4.5.4_HEALTH_WILMA
+Timestamp: 1788267000
+Build: FORCE_REBUILD_v4.5.5_OFFLINE_KNN_DARKMODE

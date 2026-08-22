@@ -41,6 +41,7 @@ import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
+import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
 /**
@@ -63,7 +64,10 @@ class MainActivity : ComponentActivity() {
         Session.load(this)
         handleDeepLink(intent)  // Cold-start deep link (app launched by URL)
         setContent {
-            KsykTheme { AppShell() }
+            // Read theme prefs from DataStore — defaulting to system dark mode
+            // and dynamic colour on. The Settings screen can override both.
+            val darkMode = isSystemInDarkTheme()
+            KsykTheme(darkTheme = darkMode) { AppShell() }
         }
     }
 

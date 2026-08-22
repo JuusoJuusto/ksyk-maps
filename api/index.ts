@@ -43,6 +43,11 @@ function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: st
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Correlation / request ID — echoed back so callers can include it in bug reports.
+  const requestId = (req.headers['x-request-id'] as string) ||
+    'KSYK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+  res.setHeader('X-Request-ID', requestId);
+
   // Set security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -395,6 +400,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ fingerprintCount: all.length, ready: all.length > 0 });
       } catch (err) {
         return res.status(500).json({ message: 'Failed to query fingerprints' });
+      }
+    }
+
+    // GET /api/wifi/fingerprints — full fingerprint DB for on-device KNN fallback.
+    if (apiPath === '/wifi/fingerprints' && req.method === 'GET') {
+      try {
+        const { getAllFingerprintsWithFloor } = await import('../server/kvStorage.js');
+        const fps = await getAllFingerprintsWithFloor();
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        return res.status(200).json(fps);
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch fingerprints' });
       }
     }
 

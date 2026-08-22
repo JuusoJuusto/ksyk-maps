@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.4";
+export const APP_VERSION = "4.5.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.5",
+    date: "August 2026",
+    title: "Offline Wi-Fi fingerprint matching on Android, request IDs, dark mode",
+    titleFi: "Offline-sormenjalki-paikannus Androidilla, pyyntötunnisteet, tumma tila",
+    latest: true,
+    highlights: [
+      "New: Android app downloads Wi-Fi fingerprint DB and runs KNN positioning locally when server is unreachable",
+      "New: LocalPositioning.kt mirrors server KNN algorithm (MISSING_RSSI=-92, EXTRA_WEIGHT=0.3, K=3)",
+      "New: GET /api/wifi/fingerprints endpoint returns full fingerprint DB with floor from rooms join",
+      "New: Request correlation IDs (KSYK-XXXXXXXX) on every backend request in both server/routes.ts and api/index.ts",
+      "New: Android dark mode + Material You dynamic colors (Android 12+) in theme.kt",
+      "New: RSSI exponential smoothing (α=0.3), AP decay, floor hysteresis (2-of-3 votes) in WifiPositioning.kt",
+    ],
+    highlightsFi: [
+      "Uusi: Android lataa sormenjälkitietokannan ja ajaa KNN-paikannuksen paikallisesti ilman yhteyttä",
+      "Uusi: Pyyntötunnisteet (KSYK-XXXXXXXX) kaikissa backend-pyynnöissä",
+      "Uusi: Tumma tila ja Material You -värit Android 12+ -laitteilla",
+    ],
+  },
   {
     version: "4.5.4",
     date: "August 2026",
     title: "Health endpoint, Wilma live proxy (env-var driven), schedule source field",
     titleFi: "Terveystarkistus, Wilma-proxy (ympäristömuuttuja), aikataulun lähdekenttä",
-    latest: true,
+    latest: false,
     highlights: [
       "New: GET /api/health endpoint — returns DB status, version, and Wilma config state for uptime monitors",
       "New: Room schedule endpoint now attempts live Wilma proxy when WILMA_BASE_URL + WILMA_SESSION env vars are set",

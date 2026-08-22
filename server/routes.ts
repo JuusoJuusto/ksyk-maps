@@ -11,6 +11,7 @@ import {
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
   getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
+  getAllFingerprintsWithFloor,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -69,6 +70,17 @@ function sessionTimeoutMiddleware(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Request ID middleware — every request gets a unique KSYK-XXXXXXXX correlation
+  // ID attached to res.locals and echoed back as X-Request-ID. Include this ID
+  // when filing bug reports so we can find the exact request in the log viewer.
+  app.use((req: any, res: any, next: any) => {
+    const id = req.headers['x-request-id'] as string ||
+      'KSYK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    res.locals.requestId = id;
+    res.setHeader('X-Request-ID', id);
+    next();
+  });
+
   // Error logging helper
   const logError = async (error: any, source: string, details?: any) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -3382,6 +3394,19 @@ https://ksykmaps.fi
       res.json({ fingerprintCount: all.length, ready: all.length > 0 });
     } catch (err) {
       res.status(500).json({ message: 'Failed to query fingerprints' });
+    }
+  });
+
+  // GET /api/wifi/fingerprints — full fingerprint database for on-device KNN.
+  // The Android app downloads this once and caches it on disk so positioning
+  // can run locally when the server is unreachable (airplane mode, poor signal).
+  app.get('/api/wifi/fingerprints', async (_req, res) => {
+    try {
+      const fps = await getAllFingerprintsWithFloor();
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      res.json(fps);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch fingerprints' });
     }
   });
 
