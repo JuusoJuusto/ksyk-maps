@@ -23,7 +23,7 @@ import MaintenanceMode from "@/components/MaintenanceMode";
 // adblock-resistantly, so Vercel Analytics adds nothing.
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { initAnalytics } from "@/lib/analytics";
 import { initTelemetry } from "@/lib/telemetry";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -43,6 +43,32 @@ import DevModeEasterEgg from "@/pages/dev-mode";
 import NotFound from "@/pages/not-found";
 import BuilderPage from "@/pages/builder";
 import "./lib/i18n";
+
+function OfflineBanner() {
+  const [offline, setOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  if (!offline) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+        background: "#1e293b", color: "#f8fafc",
+        textAlign: "center", padding: "8px 16px", fontSize: "14px",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+      }}
+    >
+      No internet connection — the map works, but live data won't update until you reconnect.
+    </div>
+  );
+}
 
 /** Sends visitors at legacy admin URLs to the single canonical /admin. */
 function LegacyAdminRedirect() {
@@ -180,6 +206,7 @@ export default function App() {
             <TooltipProvider>
               <HelpProvider>
                 <HelpBubble>
+                  <OfflineBanner />
                   <AccessibilityClasses />
                   <CookieConsent />
                   <Toaster />

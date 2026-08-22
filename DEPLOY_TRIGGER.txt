@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.5.2 — Android calibration auth guard, LoginScreen version fix
+Bump reason: v4.5.3 — offline banner, SQL pagination, Edge cache for rooms/buildings
 
-Timestamp: 1788264000
-Build: FORCE_REBUILD_v4.5.2_ANDROID_BEACON_AUTH
+Timestamp: 1788265000
+Build: FORCE_REBUILD_v4.5.3_SCALABILITY

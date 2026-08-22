@@ -788,6 +788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/buildings', async (req, res) => {
     try {
       const buildings = await storage.getBuildings();
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
       res.json(Array.isArray(buildings) ? buildings : []);
     } catch (error) {
       await logError(error, 'GET /api/buildings');
@@ -952,6 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildingId = req.query.buildingId as string;
       const rooms = await storage.getRooms(buildingId);
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
       res.json(Array.isArray(rooms) ? rooms : []);
     } catch (error) {
       await logError(error, 'GET /api/rooms', { buildingId: req.query.buildingId });
@@ -1299,10 +1301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const allUsers = await storage.getAllUsers();
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(allUsers.slice(offset, offset + limit));
+      res.json(await storage.getAllUsers(limit, offset));
     } catch (error) {
       await logError(error, 'GET /api/users', { isAuthenticated: req.isAuthenticated() });
       res.status(500).json({ message: "Failed to fetch users" });
@@ -1483,10 +1484,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff routes
   app.get('/api/staff', async (req, res) => {
     try {
-      const staff = await storage.getStaff();
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(staff.slice(offset, offset + limit));
+      res.json(await storage.getStaff(limit, offset));
     } catch (error) {
       await logError(error, 'GET /api/staff');
       res.status(500).json({ message: "Failed to fetch staff" });

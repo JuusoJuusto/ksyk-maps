@@ -31,7 +31,7 @@
   type InsertAppSettings,
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, and, desc, or, gt, isNull } from "drizzle-orm";
+import { eq, like, and, desc, or, gt, isNull, asc } from "drizzle-orm";
 import type { IStorage } from "./storage.js";
 // NOTE: `.js` REQUIRED for Vercel ESM runtime â€” see firebaseStorage.ts.
 import { hashPasswordFieldsInPlace } from "./passwordUtils.js";
@@ -68,8 +68,8 @@ export class DatabaseStorage implements Partial<IStorage> {
     return user;
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+  async getAllUsers(limit = 200, offset = 0): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.createdAt)).limit(limit).offset(offset);
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -229,8 +229,8 @@ export class DatabaseStorage implements Partial<IStorage> {
   }
 
   // Staff operations
-  async getStaff(): Promise<Staff[]> {
-    return await db.select().from(staff).where(eq(staff.isActive, true));
+  async getStaff(limit = 200, offset = 0): Promise<Staff[]> {
+    return await db.select().from(staff).where(eq(staff.isActive, true)).orderBy(asc(staff.lastName)).limit(limit).offset(offset);
   }
 
   async getStaffMember(id: string): Promise<Staff | undefined> {

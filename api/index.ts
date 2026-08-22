@@ -646,10 +646,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath.startsWith('/buildings')) {
       if (req.method !== 'GET' && !requireAdminAuth(req, res)) return;
       if (req.method === 'GET' && apiPath === '/buildings') {
-        console.log('ðŸ¢ Fetching buildings from storage...');
         const buildings = await storage.getBuildings();
-        console.log(`âœ… Found ${buildings.length} buildings`);
-        console.log('Buildings data:', JSON.stringify(buildings, null, 2));
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
         return res.status(200).json(buildings);
       }
       
@@ -689,6 +687,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
         return res.status(200).json(rooms);
       }
       

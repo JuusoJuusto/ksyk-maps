@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.2";
+export const APP_VERSION = "4.5.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.3",
+    date: "August 2026",
+    title: "Offline banner, SQL pagination for users/staff, Edge cache for rooms/buildings",
+    titleFi: "Offline-banneri, SQL-sivutus, CDN-välimuisti huoneille ja rakennuksille",
+    latest: true,
+    highlights: [
+      "New: Offline status banner in web app — shown when navigator.onLine is false",
+      "Fix: users and staff DB queries now use SQL LIMIT/OFFSET instead of in-memory slice (scalability for 1000+ users)",
+      "Fix: /api/buildings and /api/rooms responses now include Cache-Control: s-maxage=30 for Vercel Edge caching",
+      "Fix: removed verbose console.log that serialized all buildings JSON on every request",
+    ],
+    highlightsFi: [
+      "Uusi: Offline-banneri web-sovelluksessa",
+      "Korjaus: Käyttäjät ja henkilökunta haetaan nyt SQL LIMIT/OFFSET:lla",
+      "Korjaus: Vercel Edge välimuistittaa rakennukset ja huoneet 30 sekuntia",
+    ],
+  },
   {
     version: "4.5.2",
     date: "August 2026",
     title: "Android calibration auth guard, login version from BuildConfig",
     titleFi: "Android-kalibrointi vaatii kirjautumisen, versio BuildConfigista",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: BeaconScreen shows clear sign-in prompt instead of cryptic 401 error when not authenticated",
       "Fix: LoginScreen footer version now reads from BuildConfig instead of hardcoded v1.0.0",
