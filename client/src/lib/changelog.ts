@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.0";
+export const APP_VERSION = "4.5.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.1",
+    date: "August 2026",
+    title: "Android floor indicator in Wi-Fi chip, Android v1.9.1",
+    titleFi: "Android-kerrosnäyttö Wi-Fi-sijainnissa, Android v1.9.1",
+    latest: true,
+    highlights: [
+      "Fix: Android Wi-Fi position chip now shows floor number (e.g. '~Centre · F2')",
+      "Fix: WifiPosition data class now carries floor from server response",
+      "Android v1.9.1 (versionCode 11)",
+    ],
+    highlightsFi: [
+      "Korjaus: Android-paikannus näyttää kerrosnumeron",
+    ],
+  },
   {
     version: "4.5.0",
     date: "August 2026",
     title: "Admin Wi-Fi positioning dashboard, rate limiting, DB coverage index",
     titleFi: "Admin-Wi-Fi-kojelauta, nopeusrajoitus, tietokantaindeksi",
-    latest: true,
+    latest: false,
     highlights: [
       "New: Admin beacon surveyor shows live system status (fingerprint count, rooms covered)",
       "New: Test-locate form in admin panel — paste readings and verify positioning engine",
