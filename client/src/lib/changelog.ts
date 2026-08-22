@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.7";
+export const APP_VERSION = "4.5.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.8",
+    date: "August 2026",
+    title: "Coverage visualization: floor-level fingerprint quality heatmap",
+    titleFi: "Kattavuusvisualisointi: lattiakohtainen sormenjälkilaatuheatmap",
+    latest: true,
+    highlights: [
+      "New: GET /api/beacons/coverage-quality — per-room coverage with floor, quality label (excellent/good/fair/poor/none)",
+      "New: Floor Coverage bar chart in admin Wi-Fi panel — shows calibration completeness per floor",
+      "New: Color-coded progress bars: green=excellent, blue=good, yellow=fair, red=poor, gray=none",
+      "New: getBeaconCoverageWithQuality() in kvStorage.ts — SQL join with rooms for floor + room number",
+    ],
+    highlightsFi: [
+      "Uusi: Kattavuusvisualisointi admin-paneelissa — lattiakohtainen palkki näyttää sormenjälkien laadun",
+      "Uusi: /api/beacons/coverage-quality kertoo laaturykelmittäin (excellent/good/fair/poor/none)",
+    ],
+  },
   {
     version: "4.5.7",
     date: "August 2026",
     title: "Position simulator, replay API, Android notification channels",
     titleFi: "Paikannussimulaattori, toistusrajapinta, Android-ilmoituskanavat",
-    latest: true,
+    latest: false,
     highlights: [
       "New: WifiSimulator.kt — 9 dev scenarios (strong, weak, no APs, wrong floor, noise, AP appearing/disappearing, competing fingerprints)",
       "New: POST /api/wifi/replay — replay recorded Wi-Fi scan sequences through the server KNN engine (admin only)",

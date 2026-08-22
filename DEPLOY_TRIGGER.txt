@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-23
 
-Bump reason: v4.5.7 — position simulator, replay API, Android notification channels
+Bump reason: v4.5.8 — coverage visualization, floor quality heatmap
 
-Timestamp: 1788355000
-Build: FORCE_REBUILD_v4.5.7_SIMULATOR_REPLAY_NOTIF
+Timestamp: 1788356000
+Build: FORCE_REBUILD_v4.5.8_COVERAGE_VIZ

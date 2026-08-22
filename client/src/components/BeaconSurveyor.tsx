@@ -36,6 +36,14 @@ import { cn } from "@/lib/utils";
 import { getAdminHeaders } from "@/lib/adminAuth";
 
 interface CoverageEntry { roomId: string; positionCount: number; apCount: number; }
+interface CoverageQualityEntry {
+  roomId: string;
+  roomNumber: string | null;
+  floor: number | null;
+  positionCount: number;
+  avgQuality: number;
+  qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none';
+}
 interface WifiStatus { fingerprintCount: number; ready: boolean; }
 interface LocateResult {
   roomId: string; positionLabel: string;
@@ -125,6 +133,28 @@ export default function BeaconSurveyor() {
     for (const c of coverage) m.set(c.roomId, c);
     return m;
   }, [coverage]);
+
+  /* ── Coverage quality (floor breakdown) ─────────────────────────── */
+  const { data: coverageQuality = [] } = useQuery<CoverageQualityEntry[]>({
+    queryKey: ["beacon-coverage-quality"],
+    queryFn: async () => {
+      const r = await fetch("/api/beacons/coverage-quality");
+      if (!r.ok) return [];
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const floorSummary = useMemo(() => {
+    const floors = new Map<number, { excellent: number; good: number; fair: number; poor: number; none: number }>();
+    for (const e of coverageQuality) {
+      const f = e.floor ?? -1;
+      if (!floors.has(f)) floors.set(f, { excellent: 0, good: 0, fair: 0, poor: 0, none: 0 });
+      const entry = floors.get(f)!;
+      entry[e.positionCount === 0 ? 'none' : e.qualityLabel]++;
+    }
+    return [...floors.entries()].sort((a, b) => a[0] - b[0]);
+  }, [coverageQuality]);
 
   /* ── Test locate ────────────────────────────────────────────────── */
   const runTest = async () => {
@@ -353,6 +383,61 @@ export default function BeaconSurveyor() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Floor coverage map */}
+      {floorSummary.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Radio className="h-4 w-4 text-blue-600" />
+              Coverage by Floor
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Rooms with calibrated fingerprints — collect more fingerprints in yellow/red areas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-2">
+            {floorSummary.map(([floor, counts]) => {
+              const total = counts.excellent + counts.good + counts.fair + counts.poor + counts.none;
+              const calibrated = counts.excellent + counts.good + counts.fair + counts.poor;
+              return (
+                <div key={floor} className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300 w-16 shrink-0">
+                      {floor === -1 ? 'Unknown' : `Floor ${floor}`}
+                    </span>
+                    <span className="text-gray-400">{calibrated}/{total} rooms</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
+                      {counts.excellent > 0 && (
+                        <div style={{ width: `${(counts.excellent / total) * 100}%` }} className="bg-green-500 h-full" title={`Excellent: ${counts.excellent}`} />
+                      )}
+                      {counts.good > 0 && (
+                        <div style={{ width: `${(counts.good / total) * 100}%` }} className="bg-blue-500 h-full" title={`Good: ${counts.good}`} />
+                      )}
+                      {counts.fair > 0 && (
+                        <div style={{ width: `${(counts.fair / total) * 100}%` }} className="bg-yellow-400 h-full" title={`Fair: ${counts.fair}`} />
+                      )}
+                      {counts.poor > 0 && (
+                        <div style={{ width: `${(counts.poor / total) * 100}%` }} className="bg-red-400 h-full" title={`Poor: ${counts.poor}`} />
+                      )}
+                      {counts.none > 0 && (
+                        <div style={{ width: `${(counts.none / total) * 100}%` }} className="bg-gray-200 dark:bg-gray-700 h-full" title={`No data: ${counts.none}`} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-3 pt-1 text-[10px] text-gray-500">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Excellent</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Good</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> Fair</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> Poor</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" /> None</span>
+            </div>
           </CardContent>
         </Card>
       )}

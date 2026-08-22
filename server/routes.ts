@@ -10,7 +10,7 @@ import {
   createPoi, getPoisByKind, getAllPois, deletePoi,
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
-  getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
+  getAllBeaconSurveys, getBeaconCoverage, getBeaconCoverageWithQuality, wifiLocate,
   getAllFingerprintsWithFloor, computeFingerprintQuality,
   type WifiReading,
 } from "./kvStorage";
@@ -3348,6 +3348,16 @@ https://ksykmaps.fi
       res.json(await getBeaconCoverage());
     } catch (err) {
       res.status(500).json({ message: 'Failed to fetch coverage' });
+    }
+  });
+
+  // GET /api/beacons/coverage-quality — per-room coverage with floor + quality label.
+  // Powers the admin coverage visualization (excellent/good/fair/poor/none per room).
+  app.get('/api/beacons/coverage-quality', async (_req, res) => {
+    try {
+      res.json(await getBeaconCoverageWithQuality());
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch coverage quality' });
     }
   });
 

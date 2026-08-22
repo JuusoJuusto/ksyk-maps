@@ -256,6 +256,54 @@ export async function getBeaconCoverage(): Promise<Array<{
   }));
 }
 
+export async function getBeaconCoverageWithQuality(): Promise<Array<{
+  roomId: string;
+  roomNumber: string | null;
+  floor: number | null;
+  positionCount: number;
+  avgQuality: number;
+  qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none';
+}>> {
+  const rows = await db.execute(sql`
+    SELECT s.room_id,
+           r.room_number,
+           r.floor,
+           COUNT(*)::int                AS position_count,
+           jsonb_agg(s.readings)        AS all_readings
+    FROM   beacon_surveys s
+    LEFT   JOIN rooms r ON r.id = s.room_id
+    GROUP  BY s.room_id, r.room_number, r.floor
+    ORDER  BY r.floor NULLS LAST, r.room_number
+  `);
+
+  return (rows as any[]).map((row: any) => {
+    const posCount = Number(row.position_count);
+    const allReadings = (row.all_readings ?? []) as (WifiReading[] | null)[];
+    let total = 0;
+    let count = 0;
+    for (const readings of allReadings) {
+      if (!readings) continue;
+      total += computeFingerprintQuality(readings).score;
+      count++;
+    }
+    const avgQuality = count > 0 ? Math.round(total / count) : 0;
+    const qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none' =
+      posCount === 0 ? 'none'
+      : avgQuality >= 80 ? 'excellent'
+      : avgQuality >= 60 ? 'good'
+      : avgQuality >= 40 ? 'fair'
+      : 'poor';
+    return {
+      roomId:       String(row.room_id),
+      roomNumber:   row.room_number ?? null,
+      floor:        row.floor != null ? Number(row.floor) : null,
+      positionCount: posCount,
+      avgQuality,
+      qualityLabel,
+    };
+  });
+}
+
 function computeRssiDistance(
   current: WifiReading[],
   fingerprint: WifiReading[]

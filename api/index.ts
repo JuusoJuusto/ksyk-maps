@@ -371,6 +371,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/beacons/coverage-quality — per-room coverage with floor + quality label.
+    if (apiPath === '/beacons/coverage-quality' && req.method === 'GET') {
+      try {
+        const { getBeaconCoverageWithQuality } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getBeaconCoverageWithQuality());
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch coverage quality' });
+      }
+    }
+
     // ── Wi-Fi fingerprint positioning ─────────────────────────────────
     // POST /api/wifi/locate — send current BSSID/RSSI scan, get estimated position.
     if (apiPath === '/wifi/locate' && req.method === 'POST') {
