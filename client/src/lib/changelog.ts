@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.4.1";
+export const APP_VERSION = "4.5.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.0",
+    date: "August 2026",
+    title: "Admin Wi-Fi positioning dashboard, rate limiting, DB coverage index",
+    titleFi: "Admin-Wi-Fi-kojelauta, nopeusrajoitus, tietokantaindeksi",
+    latest: true,
+    highlights: [
+      "New: Admin beacon surveyor shows live system status (fingerprint count, rooms covered)",
+      "New: Test-locate form in admin panel — paste readings and verify positioning engine",
+      "New: Per-room coverage badges in room list (green=4+ positions, amber=partial)",
+      "New: GET /api/beacons/coverage endpoint for per-room fingerprint stats",
+      "Security: POST /api/wifi/locate rate-limited to 15 req/IP/min",
+      "Performance: DB index on beacon_surveys.room_id",
+    ],
+    highlightsFi: [
+      "Uusi: Admin-paneeli näyttää Wi-Fi-paikannnuksen tilan reaaliajassa",
+      "Uusi: Testaustoiminto — liitä nykyiset BSSID/RSSI-lukemat ja tarkista tulos",
+      "Turvallisuus: /api/wifi/locate rajoitettu 15 pyyntöön/min/IP",
+    ],
+  },
   {
     version: "4.4.1",
     date: "August 2026",
     title: "Wi-Fi positioning floor detection from room database",
     titleFi: "Wi-Fi-paikannus: kerros haetaan huonetietokannasta",
-    latest: true,
+    latest: false,
     highlights: [
       "Fix: /api/wifi/locate now returns the correct floor number resolved from the rooms table",
     ],

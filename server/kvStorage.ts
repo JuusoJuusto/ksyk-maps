@@ -186,6 +186,26 @@ export async function getAllBeaconSurveys() {
   return db.select().from(beaconSurveys);
 }
 
+export async function getBeaconCoverage(): Promise<Array<{
+  roomId: string;
+  positionCount: number;
+  apCount: number;
+}>> {
+  const result = await db.execute(sql`
+    SELECT room_id,
+           COUNT(*)::int                                 AS position_count,
+           COALESCE(SUM(jsonb_array_length(readings)), 0)::int AS ap_count
+    FROM   beacon_surveys
+    GROUP  BY room_id
+    ORDER  BY position_count DESC
+  `);
+  return (result as any[]).map((r: any) => ({
+    roomId: r.room_id,
+    positionCount: Number(r.position_count),
+    apCount: Number(r.ap_count ?? 0),
+  }));
+}
+
 function computeRssiDistance(
   current: WifiReading[],
   fingerprint: WifiReading[]

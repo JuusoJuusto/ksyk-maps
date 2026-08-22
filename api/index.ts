@@ -338,9 +338,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // GET /api/beacons/coverage — per-room fingerprint counts for admin dashboard.
+    if (apiPath === '/beacons/coverage' && req.method === 'GET') {
+      try {
+        const { getBeaconCoverage } = await import('../server/kvStorage.js');
+        return res.status(200).json(await getBeaconCoverage());
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to fetch coverage' });
+      }
+    }
+
     // ── Wi-Fi fingerprint positioning ─────────────────────────────────
     // POST /api/wifi/locate — send current BSSID/RSSI scan, get estimated position.
     if (apiPath === '/wifi/locate' && req.method === 'POST') {
+      const rl = checkRateLimit(getRealIP(req.headers), 15, 60_000);
+      if (!rl.allowed) {
+        res.setHeader('X-RateLimit-Remaining', '0');
+        return res.status(429).json({ message: 'Too many requests — wait a minute' });
+      }
       try {
         const { wifiLocate } = await import('../server/kvStorage.js');
         const { readings } = (req.body as any) || {};

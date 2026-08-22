@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.4.1 — floor detection in /api/wifi/locate from rooms table
+Bump reason: v4.5.0 — admin Wi-Fi dashboard, rate limiting, coverage index, beacon_surveys index
 
-Timestamp: 1788256400
-Build: FORCE_REBUILD_v4.4.1_WIFI_FLOOR_DETECTION
+Timestamp: 1788260000
+Build: FORCE_REBUILD_v4.5.0_WIFI_ADMIN_DASHBOARD

@@ -10,7 +10,7 @@ import {
   createPoi, getPoisByKind, getAllPois, deletePoi,
   incrementEggCounter, appendEggRecent,
   getBeaconPositions, addBeaconPosition, deleteBeaconPosition,
-  getAllBeaconSurveys, wifiLocate,
+  getAllBeaconSurveys, getBeaconCoverage, wifiLocate,
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
@@ -3259,8 +3259,29 @@ https://ksykmaps.fi
     }
   });
 
+  app.get('/api/beacons/coverage', async (_req, res) => {
+    try {
+      res.json(await getBeaconCoverage());
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch coverage' });
+    }
+  });
+
   // ── Wi-Fi fingerprint positioning ─────────────────────────────────────────
-  app.post('/api/wifi/locate', async (req, res) => {
+  // Simple in-process rate limit: 15 req/IP/minute. Good enough for local dev.
+  const _wifiRateMap = new Map<string, { n: number; reset: number }>();
+  function _wifiRateOk(ip: string): boolean {
+    const now = Date.now();
+    const entry = _wifiRateMap.get(ip);
+    if (!entry || now > entry.reset) { _wifiRateMap.set(ip, { n: 1, reset: now + 60_000 }); return true; }
+    entry.n++;
+    return entry.n <= 15;
+  }
+
+  app.post('/api/wifi/locate', async (req: any, res) => {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      ?? req.socket?.remoteAddress ?? 'unknown';
+    if (!_wifiRateOk(ip)) return res.status(429).json({ message: 'Too many requests' });
     const { readings } = req.body || {};
     if (!Array.isArray(readings) || readings.length === 0) {
       return res.status(400).json({ message: 'readings[] required' });
