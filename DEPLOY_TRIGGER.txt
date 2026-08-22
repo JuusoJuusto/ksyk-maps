@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-21
+FORCE VERCEL REBUILD - 2026-08-22
 
-Bump reason: v4.4.0 — Wi-Fi fingerprint positioning engine (/api/wifi/locate), Android timetable screen, Android v1.9.0
+Bump reason: v4.4.1 — floor detection in /api/wifi/locate from rooms table
 
-Timestamp: 1788170000
-Build: FORCE_REBUILD_v4.4.0_WIFI_POSITIONING_TIMETABLE
+Timestamp: 1788256400
+Build: FORCE_REBUILD_v4.4.1_WIFI_FLOOR_DETECTION

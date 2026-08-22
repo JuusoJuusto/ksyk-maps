@@ -7,7 +7,7 @@
  * incrementEggCounter / appendEggRecent  →  kv_settings, atomic JSONB SQL
  */
 import { db } from "./db.js";
-import { campusPois, kvSettings, beaconSurveys } from "../shared/schema.js";
+import { campusPois, kvSettings, beaconSurveys, rooms } from "../shared/schema.js";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
@@ -263,15 +263,23 @@ export async function wifiLocate(
     confidenceScore = Math.round(Math.max(10, Math.min(44, 44 - distance * 0.3)));
   }
 
-  // Best-effort floor from the survey's room association (roomId → look up room)
-  // We don't join here for speed — the client should resolve roomId → floor via /api/rooms.
+  // Resolve floor from the rooms table for the best-matched room.
+  let floor: number | null = null;
+  try {
+    const roomRows = await db
+      .select({ floor: rooms.floor, roomNumber: rooms.roomNumber, name: rooms.name })
+      .from(rooms)
+      .where(eq(rooms.id, best.s.roomId))
+      .limit(1);
+    floor = roomRows[0]?.floor ?? null;
+  } catch { /* non-critical — floor stays null */ }
 
   return {
     roomId: best.s.roomId,
     positionLabel: best.s.positionLabel,
     lat: best.s.lat ?? null,
     lng: best.s.lng ?? null,
-    floor: null, // resolved client-side from roomId
+    floor,
     confidence,
     confidenceScore,
     sharedApCount: sharedCount,

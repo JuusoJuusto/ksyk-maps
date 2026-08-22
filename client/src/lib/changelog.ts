@@ -10,15 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.4.0";
+export const APP_VERSION = "4.4.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.4.1",
+    date: "August 2026",
+    title: "Wi-Fi positioning floor detection from room database",
+    titleFi: "Wi-Fi-paikannus: kerros haetaan huonetietokannasta",
+    latest: true,
+    highlights: [
+      "Fix: /api/wifi/locate now returns the correct floor number resolved from the rooms table",
+    ],
+    highlightsFi: [
+      "Korjaus: /api/wifi/locate palauttaa nyt oikean kerroksen huonetietokannasta",
+    ],
+  },
   {
     version: "4.4.0",
     date: "August 2026",
     title: "Wi-Fi fingerprint indoor positioning engine, Android timetable, Android v1.9.0",
     titleFi: "Wi-Fi-sormenjälkipaikannus, Android-lukujärjestys, Android v1.9.0",
-    latest: true,
+    latest: false,
     highlights: [
       "New: Wi-Fi fingerprint positioning engine — POST /api/wifi/locate returns estimated room + confidence score",
       "New: Android Wi-Fi position puck on map (blue dot, updates every 5–30 s)",
