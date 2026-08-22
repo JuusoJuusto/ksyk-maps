@@ -162,6 +162,16 @@ fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
                     } ?: append(" · no estimate yet")
                 },
             )
+            LinkRow(
+                icon = Icons.Outlined.Sensors,
+                title = "Calibrate fingerprints",
+                subtitle = "Open admin panel to survey rooms",
+                onClick = {
+                    try {
+                        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/admin/beacons")))
+                    } catch (_: Exception) { }
+                },
+            )
 
             SectionTitle("About")
             SettingRow(
