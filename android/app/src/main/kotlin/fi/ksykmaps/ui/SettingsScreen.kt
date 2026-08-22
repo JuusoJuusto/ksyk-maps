@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
@@ -41,6 +43,8 @@ fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
     var dynamicColour by remember { mutableStateOf(true) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
+    val wifiApCount by WifiPositioning.scanCount.collectAsState()
+    val wifiPos by WifiPositioning.position.collectAsState()
 
     Scaffold(
         topBar = {
@@ -146,11 +150,24 @@ fun SettingsScreen(onSignOut: () -> Unit, onSignIn: () -> Unit = {}) {
                 )
             }
 
+            SectionTitle("Wi-Fi Positioning")
+            SettingRow(
+                icon = Icons.Outlined.Wifi,
+                title = "Indoor positioning",
+                subtitle = buildString {
+                    append("$wifiApCount AP${if (wifiApCount == 1) "" else "s"} visible")
+                    wifiPos?.let { pos ->
+                        append(" · ${pos.confidence.name.lowercase()}")
+                        pos.floor?.let { append(" · Floor $it") }
+                    } ?: append(" · no estimate yet")
+                },
+            )
+
             SectionTitle("About")
             SettingRow(
                 icon = Icons.Outlined.Info,
                 title = "KSYK Maps Mobile",
-                subtitle = "Version 1.2.0 · © 2026 Nordbyte Studio",
+                subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · © 2026 Nordbyte Studio",
             )
         }
     }

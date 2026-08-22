@@ -16,7 +16,7 @@ android {
         versionName = "1.9.1"
     }
 
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.8" }
 
     signingConfigs {
