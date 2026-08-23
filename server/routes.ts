@@ -3416,7 +3416,14 @@ https://ksykmaps.fi
   // snapshots through the positioning engine and return results for each.
   // Body: { snapshots: [{ t: 0, readings: [{bssid,rssi},...] }, ...] }
   // Used to test positioning accuracy against a recorded calibration walk.
-  app.post('/api/wifi/replay', isAuthenticated, async (req: any, res) => {
+  // POST /api/wifi/replay — admin-only dev tool. Snapshots are processed
+  // sequentially (not Promise.all) so a maximal request cannot saturate the
+  // DB with hundreds of concurrent fingerprint queries.
+  app.post('/api/wifi/replay', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
+    const user = await storage.getUser(req.user.claims.sub);
+    if (user?.role !== 'owner' && user?.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
     const { snapshots } = req.body || {};
     if (!Array.isArray(snapshots) || snapshots.length === 0) {
       return res.status(400).json({ message: 'snapshots[] required' });
@@ -3425,7 +3432,9 @@ https://ksykmaps.fi
       return res.status(400).json({ message: 'Maximum 200 snapshots per replay' });
     }
     try {
-      const results = await Promise.all(snapshots.map(async (snap: any, idx: number) => {
+      const results: any[] = [];
+      for (let idx = 0; idx < snapshots.length; idx++) {
+        const snap = snapshots[idx];
         const rawReadings = Array.isArray(snap.readings) ? snap.readings : [];
         const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
           const bssid = String(r?.bssid ?? '').toLowerCase().trim();
@@ -3435,11 +3444,11 @@ https://ksykmaps.fi
         });
         try {
           const estimate = readings.length > 0 ? await wifiLocate(readings) : null;
-          return { index: idx, t: snap.t ?? idx, position: estimate, error: null };
+          results.push({ index: idx, t: snap.t ?? idx, position: estimate, error: null });
         } catch (err) {
-          return { index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message };
+          results.push({ index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message });
         }
-      }));
+      }
       res.json({ results, fingerprintCount: (await getAllBeaconSurveys()).length });
     } catch (err) {
       res.status(500).json({ message: 'Replay failed' });

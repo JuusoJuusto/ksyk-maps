@@ -104,15 +104,20 @@ object WifiPositioning {
                     // In Navigate mode always update (user may be moving).
                     val shouldLocate = mode is Mode.Navigate || hash != lastLocateHash
                     if (shouldLocate) {
-                        lastLocateHash = hash
                         try {
                             val estimate = locate(smoothed)
+                            // Commit hash only on a successful round-trip (even if no
+                            // position was returned). An exception means the server was
+                            // unreachable — leave the hash unchanged so the next scan
+                            // with the same RSSI data retries instead of being skipped.
+                            lastLocateHash = hash
                             if (estimate != null) {
                                 val stabilizedFloor = stabilizeFloor(estimate.floor)
                                 _position.value = estimate.copy(floor = stabilizedFloor)
                             }
                         } catch (_: Exception) {
-                            // Server unreachable — keep last known position
+                            // Server unreachable — keep last known position and hash so
+                            // the next identical scan retries.
                         }
                     }
                 }

@@ -38,6 +38,8 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
+import org.json.JSONArray
+import org.json.JSONObject
 
 // DataStore for persisting the user's personal timetable.
 private val Context.scheduleStore: DataStore<Preferences> by preferencesDataStore(name = "ksyk_schedule")
@@ -65,9 +67,32 @@ private suspend fun loadEntries(ctx: Context): List<ScheduleEntry> {
 }
 
 private suspend fun saveEntries(ctx: Context, entries: List<ScheduleEntry>) {
+    val encoded = kotlinJson.encodeToString(entries)
     ctx.scheduleStore.edit { prefs ->
-        prefs[SCHEDULE_KEY] = kotlinJson.encodeToString(entries)
+        prefs[SCHEDULE_KEY] = encoded
     }
+    // Keep widget + notification alarm in sync
+    withContext(Dispatchers.Main) {
+        val widgetJson = buildWidgetJson(entries)
+        NextLessonWidget.saveEntriesForWidget(ctx, widgetJson)
+        NextLessonWidget.notifyTimetableChanged(ctx)
+        LessonReminderScheduler.schedule(ctx, entries)
+    }
+}
+
+private fun buildWidgetJson(entries: List<ScheduleEntry>): String {
+    val arr = JSONArray()
+    for (e in entries) {
+        arr.put(JSONObject().apply {
+            put("dayOfWeek", e.dayOfWeek)
+            put("startHhmm", e.startHhmm)
+            put("endHhmm", e.endHhmm)
+            put("subject", e.subject)
+            put("roomNumber", e.roomNumber)
+            put("teacher", e.teacher)
+        })
+    }
+    return arr.toString()
 }
 
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7

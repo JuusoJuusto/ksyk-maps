@@ -429,7 +429,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       try {
         const { wifiLocate, getAllBeaconSurveys } = await import('../server/kvStorage.js');
-        const results = await Promise.all(snapshots.map(async (snap: any, idx: number) => {
+        // Sequential processing prevents a maximal request from saturating the
+        // DB with hundreds of concurrent fingerprint queries.
+        const results: any[] = [];
+        for (let idx = 0; idx < snapshots.length; idx++) {
+          const snap = snapshots[idx];
           const rawReadings = Array.isArray(snap.readings) ? snap.readings : [];
           const readings = rawReadings.slice(0, 100).flatMap((r: any) => {
             const bssid = String(r?.bssid ?? '').toLowerCase().trim();
@@ -439,11 +443,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
           try {
             const estimate = readings.length > 0 ? await wifiLocate(readings) : null;
-            return { index: idx, t: snap.t ?? idx, position: estimate, error: null };
+            results.push({ index: idx, t: snap.t ?? idx, position: estimate, error: null });
           } catch (err) {
-            return { index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message };
+            results.push({ index: idx, t: snap.t ?? idx, position: null, error: (err as Error).message });
           }
-        }));
+        }
         const all = await getAllBeaconSurveys();
         return res.status(200).json({ results, fingerprintCount: all.length });
       } catch (err) {

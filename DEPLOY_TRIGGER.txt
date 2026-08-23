@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-23
 
-Bump reason: v4.5.8 — coverage visualization, floor quality heatmap
+Bump reason: v4.5.9 — bug fixes, devpanel, Android notifications + widget
 
-Timestamp: 1788356000
-Build: FORCE_REBUILD_v4.5.8_COVERAGE_VIZ
+Timestamp: 1788360000
+Build: FORCE_REBUILD_v4.5.9_BUGFIXES_DEVPANEL

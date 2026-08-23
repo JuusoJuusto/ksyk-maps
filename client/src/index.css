@@ -1583,11 +1583,25 @@ body {
   outline: none !important;
 }
 
-/* Reduced-motion users — strip animations */
+/* Reduced-motion users — strip all animations and transitions globally */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   .leaflet-fade-anim .leaflet-tile,
   .leaflet-zoom-anim .leaflet-zoom-animated {
     transition: none !important;
+    animation: none !important;
+  }
+
+  /* Dark-mode ambient animation is heavy — disable it entirely */
+  .dark {
     animation: none !important;
   }
 }
