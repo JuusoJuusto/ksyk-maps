@@ -18,19 +18,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import android.content.Context
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -38,12 +31,6 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
-import org.json.JSONArray
-import org.json.JSONObject
-
-// DataStore for persisting the user's personal timetable.
-private val Context.scheduleStore: DataStore<Preferences> by preferencesDataStore(name = "ksyk_schedule")
-private val SCHEDULE_KEY = stringPreferencesKey("entries")
 
 @Serializable
 data class ScheduleEntry(
@@ -57,44 +44,6 @@ data class ScheduleEntry(
     val teacher: String = "",
 )
 
-private val kotlinJson = Json { ignoreUnknownKeys = true }
-
-private suspend fun loadEntries(ctx: Context): List<ScheduleEntry> {
-    val pref = ctx.scheduleStore.data.first()[SCHEDULE_KEY] ?: return emptyList()
-    return try {
-        kotlinJson.decodeFromString<List<ScheduleEntry>>(pref)
-    } catch (_: Exception) { emptyList() }
-}
-
-private suspend fun saveEntries(ctx: Context, entries: List<ScheduleEntry>) {
-    val encoded = kotlinJson.encodeToString(entries)
-    ctx.scheduleStore.edit { prefs ->
-        prefs[SCHEDULE_KEY] = encoded
-    }
-    // Keep widget + notification alarm in sync
-    withContext(Dispatchers.Main) {
-        val widgetJson = buildWidgetJson(entries)
-        NextLessonWidget.saveEntriesForWidget(ctx, widgetJson)
-        NextLessonWidget.notifyTimetableChanged(ctx)
-        LessonReminderScheduler.schedule(ctx, entries)
-    }
-}
-
-private fun buildWidgetJson(entries: List<ScheduleEntry>): String {
-    val arr = JSONArray()
-    for (e in entries) {
-        arr.put(JSONObject().apply {
-            put("dayOfWeek", e.dayOfWeek)
-            put("startHhmm", e.startHhmm)
-            put("endHhmm", e.endHhmm)
-            put("subject", e.subject)
-            put("roomNumber", e.roomNumber)
-            put("teacher", e.teacher)
-        })
-    }
-    return arr.toString()
-}
-
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7
 
 private fun nowHhmm(): String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -106,7 +55,10 @@ private fun hhmm(s: String): Int {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimetableScreen(onNavigateToRoom: (roomId: String) -> Unit = {}) {
+fun TimetableScreen(
+    onNavigateToRoom: (roomId: String) -> Unit = {},
+    onOpenWilmaConnect: () -> Unit = {},
+) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -116,9 +68,12 @@ fun TimetableScreen(onNavigateToRoom: (roomId: String) -> Unit = {}) {
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     val dow = todayDow()
     val nowMins = hhmm(nowHhmm())
+    val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
+    val wilmaCount = remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
+        wilmaCount.value = entries.count { it.id.startsWith("wilma_") }
         try {
             val r = withContext(Dispatchers.IO) { Api.get("/rooms") }
             rooms = r.jsonArray.mapNotNull { it as? JsonObject }
@@ -145,6 +100,9 @@ fun TimetableScreen(onNavigateToRoom: (roomId: String) -> Unit = {}) {
             TopAppBar(
                 title = { Text("Timetable", fontWeight = FontWeight.SemiBold) },
                 actions = {
+                    IconButton(onClick = onOpenWilmaConnect) {
+                        Icon(Icons.Outlined.CalendarMonth, "Wilma calendar")
+                    }
                     IconButton(onClick = { showAdd = true }) {
                         Icon(Icons.Outlined.Add, "Add lesson")
                     }
@@ -160,6 +118,15 @@ fun TimetableScreen(onNavigateToRoom: (roomId: String) -> Unit = {}) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Wilma calendar banner
+            item {
+                WilmaBanner(
+                    connected = wilmaConnected.value,
+                    importedCount = wilmaCount.value,
+                    onConnect = onOpenWilmaConnect,
+                )
+            }
+
             // Today header
             item {
                 Text(
@@ -389,10 +356,61 @@ private fun EmptyState() {
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Tap + to add your timetable",
+            "Import from Wilma or tap + to add manually",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         )
+    }
+}
+
+@Composable
+private fun WilmaBanner(
+    connected: Boolean,
+    importedCount: Int,
+    onConnect: () -> Unit,
+) {
+    if (connected) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                .clickable(onClick = onConnect)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.CalendarMonth, null,
+                modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Wilma calendar connected", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                if (importedCount > 0) {
+                    Text("$importedCount lessons imported", fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Icon(Icons.Outlined.ChevronRight, null,
+                modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else {
+        OutlinedCard(
+            onClick = onConnect,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.CalendarMonth, null,
+                    modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Import from Wilma", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Auto-fill your timetable from your school calendar",
+                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.Outlined.ChevronRight, null,
+                    modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 

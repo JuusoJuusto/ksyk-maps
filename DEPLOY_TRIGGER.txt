@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-24
 
-Bump reason: v4.5.11 — Android app finalization: KSYK Maps Admin, three home-screen widgets, home screen improvements
+Bump reason: v4.5.12 — Wilma iCalendar integration, smart classroom matching, schedule card, Android Wilma connect
 
-Timestamp: 1788446500
-Build: FORCE_REBUILD_v4.5.11_ANDROID_FINALIZATION
+Timestamp: 1788450000
+Build: FORCE_REBUILD_v4.5.12_WILMA_ICALENDAR

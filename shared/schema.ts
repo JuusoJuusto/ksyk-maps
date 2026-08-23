@@ -917,7 +917,37 @@ export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
   updatedAt: true,
 });
 
+// Classroom aliases — map Wilma location strings to KSYK Maps room IDs.
+export const roomAliases = pgTable("room_aliases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  wilmaString: varchar("wilma_string", { length: 512 }).notNull().unique(),
+  roomId: varchar("room_id").references(() => rooms.id).notNull(),
+  confidence: integer("confidence").default(99),
+  method: varchar("method").default("manual"),
+  approved: boolean("approved").default(true),
+  approvedBy: varchar("approved_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRoomAliasSchema = createInsertSchema(roomAliases).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Unknown location reports — Wilma strings that couldn't be matched.
+export const unknownLocations = pgTable("unknown_locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  wilmaString: varchar("wilma_string", { length: 512 }).notNull(),
+  occurrences: integer("occurrences").default(1),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  resolved: boolean("resolved").default(false),
+  resolvedRoomId: varchar("resolved_room_id").references(() => rooms.id),
+});
+
 // Types
+export type RoomAlias = typeof roomAliases.$inferSelect;
+export type InsertRoomAlias = z.infer<typeof insertRoomAliasSchema>;
+export type UnknownLocation = typeof unknownLocations.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Building = typeof buildings.$inferSelect;
