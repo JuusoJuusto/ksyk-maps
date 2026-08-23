@@ -1,5 +1,5 @@
 /**
- * KSYK Maps — Beacon Surveyor (admin).
+ * KSYK Maps — Wi-Fi Fingerprint Surveyor (admin).
  *
  * Used to map indoor positioning fingerprints by walking each classroom
  * and recording WiFi access-point signal strengths at named positions
@@ -10,13 +10,9 @@
  * Browsers can't scan WiFi directly, so each "reading" is captured by
  * the surveyor either:
  *   a) pasting RSSI values their phone's WiFi tool reported, or
- *   b) using the experimental NetworkInformation API where available.
+ *   b) using the Electron desktop app which has native WiFi access.
  *
- * Stored in Firestore at /beaconSurveys/{roomId}/positions/{positionId}.
- *
- * The whole feature is gated behind security.beaconPositioningEnabled
- * (in admin Settings → Navigation & Positioning) so it stays hidden
- * until the school is ready to roll it out.
+ * Stored in beacon_surveys table (PostgreSQL via Drizzle ORM).
  */
 
 import { useMemo, useState } from "react";
@@ -64,7 +60,7 @@ interface BeaconReading {
   bssid: string;          // MAC of the access point (lowercased)
   ssid?: string;          // friendly SSID name
   rssi: number;           // dBm, typically -30 to -95
-  source?: "manual" | "wifi" | "bluetooth"; // how the reading was captured
+  source?: "manual" | "wifi"; // how the reading was captured
 }
 
 /** True when running inside the Electron desktop app, which has native WiFi access. */
@@ -720,40 +716,9 @@ function NewPositionForm({
       return;
     }
 
-    // Browser fallback: Web Bluetooth (Chrome only, experimental).
-    const nav = navigator as any;
-    if (!nav.bluetooth?.requestLEScan) {
-      setScanError("Use the Electron desktop app for WiFi scanning. In browser, paste readings manually below.");
-      setScanBusy(false);
-      return;
-    }
-    try {
-      const bleScan = await nav.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
-      const seen: Record<string, BeaconReading> = {};
-      const onAdv = (e: any) => {
-        const id = String(e.device?.id || e.device?.name || "");
-        if (!id) return;
-        const rssi = e.rssi;
-        if (typeof rssi !== "number") return;
-        if (!seen[id] || seen[id].rssi < rssi) {
-          seen[id] = { bssid: id.toLowerCase().slice(0, 30), ssid: e.device?.name || undefined, rssi, source: "bluetooth" };
-        }
-      };
-      nav.bluetooth.addEventListener("advertisementreceived", onAdv);
-      await new Promise((r) => setTimeout(r, 5000));
-      bleScan.stop();
-      nav.bluetooth.removeEventListener("advertisementreceived", onAdv);
-      const arr = Object.values(seen).sort((a, b) => b.rssi - a.rssi);
-      if (arr.length === 0) {
-        setScanError("No BLE beacons heard. Use the Electron app for WiFi scanning.");
-      } else {
-        setReadings((prev) => [...arr, ...prev.filter((p) => !arr.find((a) => a.bssid === p.bssid))]);
-      }
-    } catch (err) {
-      setScanError((err as Error).message || "Bluetooth scan failed.");
-    } finally {
-      setScanBusy(false);
-    }
+    // Browser: no native WiFi access — instruct the user to paste readings manually.
+    setScanError("Use the Electron desktop app for native WiFi scanning. In browser, paste readings manually below.");
+    setScanBusy(false);
   };
 
   const parsePaste = () => {
@@ -803,15 +768,15 @@ function NewPositionForm({
         </CardTitle>
         <CardDescription className="text-xs">
           Walk to a corner, tap <strong>Capture GPS</strong> +{" "}
-          <strong>{IS_ELECTRON ? "Scan WiFi" : "Scan BLE"}</strong>, then save.
+          <strong>Scan Wi-Fi</strong>, then save.
           {IS_ELECTRON
-            ? " Running in desktop app — native WiFi scanning is active."
-            : " In browser only BLE beacons are scannable; use the desktop app for full WiFi scanning."}
+            ? " Running in desktop app — native Wi-Fi scanning is active."
+            : " In browser, paste readings manually (use phone/Electron app for native scanning)."}
           {" "}With 4+ corners + GPS we'll auto-detect the room shape.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Capture row — GPS + Bluetooth */}
+        {/* Capture row — GPS + Wi-Fi */}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -839,7 +804,7 @@ function NewPositionForm({
             )}
           >
             {scanBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
-            {scanBusy ? "Scanning…" : IS_ELECTRON ? "Scan WiFi" : "Scan BLE (5s)"}
+            {scanBusy ? "Scanning…" : "Scan Wi-Fi"}
           </button>
         </div>
         {gpsError && (

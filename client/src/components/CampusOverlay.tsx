@@ -176,18 +176,19 @@ export default function CampusOverlay({
       try { map.moveLayer("campus-walls-line"); } catch { /* not yet added */ }
       try { map.moveLayer("campus-walls-inner-line", "campus-walls-line"); } catch { /* not yet added */ }
       // Door/entrance pins and POI chips+icons all above walls.
-      try { map.moveLayer("campus-doors-chip"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-doors-tail"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-doors-letter"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-entrances-chip"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-entrances-tail"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-entrances-letter"); } catch { /* not yet added */ }
-      try { map.moveLayer("campus-entrances-label"); } catch { /* not yet added */ }
-      try { map.moveLayer(`${LAYERS.poisChip}-glow`); } catch { /* not yet added */ }
-      try { map.moveLayer(`${LAYERS.poisChip}-shadow`); } catch { /* not yet added */ }
-      try { map.moveLayer(LAYERS.poisChip); } catch { /* not yet added */ }
-      try { map.moveLayer(LAYERS.poisIcon); } catch { /* not yet added */ }
-      try { map.moveLayer(`${LAYERS.poisChip}-name`); } catch { /* not yet added */ }
+      // hasLayer guard used instead of try/catch to prevent MapLibre from
+      // firing internal error events for layers that don't exist yet.
+      if (map.getLayer("campus-doors-chip"))     map.moveLayer("campus-doors-chip");
+      if (map.getLayer("campus-doors-tail"))     map.moveLayer("campus-doors-tail");
+      if (map.getLayer("campus-doors-letter"))   map.moveLayer("campus-doors-letter");
+      if (map.getLayer("campus-entrances-chip")) map.moveLayer("campus-entrances-chip");
+      if (map.getLayer("campus-entrances-tail")) map.moveLayer("campus-entrances-tail");
+      if (map.getLayer("campus-entrances-letter")) map.moveLayer("campus-entrances-letter");
+      if (map.getLayer("campus-entrances-label")) map.moveLayer("campus-entrances-label");
+      // glow/shadow layers have been removed; skip moveLayer to avoid errors
+      if (map.getLayer(LAYERS.poisChip))               map.moveLayer(LAYERS.poisChip);
+      if (map.getLayer(LAYERS.poisIcon))               map.moveLayer(LAYERS.poisIcon);
+      if (map.getLayer(`${LAYERS.poisChip}-name`))     map.moveLayer(`${LAYERS.poisChip}-name`);
       applyVisibility();
     };
     // Rebuild the CACHED 3D-room source whenever the active floor changes
@@ -254,7 +255,8 @@ export default function CampusOverlay({
       // the vertical stack even while the active floor is highlighted.
       setVis(LAYERS.roomsFill,              rVis && !is3D);
       setVis(LAYERS.rooms3D,               rVis && is3D);
-      setVis(`${LAYERS.rooms3D}-ghost`,    rVis && is3D);
+      setVis(`${LAYERS.rooms3D}-ghost-below`, rVis && is3D);
+      setVis(`${LAYERS.rooms3D}-ghost-above`, rVis && is3D);
       setVis(LAYERS.roomsOutline,          rVis);
       setVis("campus-rooms-separator",     rVis);
       setVis(LAYERS.roomsLabel,            rVis && lVis);
@@ -2021,8 +2023,14 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
     filter: ["boolean", ["get", "isActive"], true],
     minzoom: 15,
   });
+  // fill-extrusion-opacity does not support data expressions (MapLibre
+  // limitation). The old single ghost layer used a nested ["case"] inside
+  // ["interpolate"] which MapLibre rejects. Split into two constant-opacity
+  // layers filtered by the "isAbove" property instead.
+  try { map.removeLayer(`${LAYERS.rooms3D}-ghost`); } catch { /* already gone */ }
+  // Rooms BELOW the active floor — semi-transparent so users see stack context.
   addLayerIfMissing(map, {
-    id: `${LAYERS.rooms3D}-ghost`,
+    id: `${LAYERS.rooms3D}-ghost-below`,
     source: "campus-rooms-3d",
     type: "fill-extrusion",
     layout: { visibility: "none" },
@@ -2030,15 +2038,32 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
       "fill-extrusion-color": ["get", "color"],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base"],
-      "fill-extrusion-opacity": [
-        "interpolate", ["linear"], ["zoom"],
-        15, ["case", ["boolean", ["get", "isAbove"], false], 0.05, 0.15],
-        17, ["case", ["boolean", ["get", "isAbove"], false], 0.10, 0.30],
-        20, ["case", ["boolean", ["get", "isAbove"], false], 0.14, 0.42],
-      ],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.15, 17, 0.30, 20, 0.42],
       "fill-extrusion-vertical-gradient": false,
     },
-    filter: ["!", ["boolean", ["get", "isActive"], true]],
+    filter: ["all",
+      ["!", ["boolean", ["get", "isActive"], true]],
+      ["!", ["boolean", ["get", "isAbove"], false]],
+    ],
+    minzoom: 15,
+  });
+  // Rooms ABOVE the active floor — very low opacity (ghosted out).
+  addLayerIfMissing(map, {
+    id: `${LAYERS.rooms3D}-ghost-above`,
+    source: "campus-rooms-3d",
+    type: "fill-extrusion",
+    layout: { visibility: "none" },
+    paint: {
+      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-base": ["get", "base"],
+      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.05, 17, 0.10, 20, 0.14],
+      "fill-extrusion-vertical-gradient": false,
+    },
+    filter: ["all",
+      ["!", ["boolean", ["get", "isActive"], true]],
+      ["boolean", ["get", "isAbove"], false],
+    ],
     minzoom: 15,
   });
   addLayerIfMissing(map, {

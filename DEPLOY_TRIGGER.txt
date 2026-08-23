@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-23
 
-Bump reason: v4.5.9 — bug fixes, devpanel, Android notifications + widget
+Bump reason: v4.5.10 — MapLibre ghost layer fix, external script removal, Wi-Fi Positioning rename
 
-Timestamp: 1788360000
-Build: FORCE_REBUILD_v4.5.9_BUGFIXES_DEVPANEL
+Timestamp: 1788360100
+Build: FORCE_REBUILD_v4.5.10_MAPLIBRE_FIXES_CLEANUP

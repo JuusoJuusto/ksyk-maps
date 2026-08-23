@@ -10,9 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.9";
+export const APP_VERSION = "4.5.10";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.10",
+    date: "August 2026",
+    title: "MapLibre fixes, external script cleanup, Wi-Fi Positioning rename",
+    highlights: [
+      "Fix: MapLibre fill-extrusion-opacity data expression error on ghost room layers (split into two constant-opacity layers)",
+      "Fix: layer reordering no longer fires MapLibre errors for doors/entrances/POI chips (hasLayer guards)",
+      "Fix: developer panel null crash on first open before data loads",
+      "Removed: Cloudflare beacon.min.js, Replit dev banner, and Pyodide external scripts",
+      "Renamed: 'Beacon Surveyor' → 'Wi-Fi Fingerprint Surveyor' throughout admin UI",
+      "Removed: Web Bluetooth BLE scanning fallback (Wi-Fi-only survey tool now)",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.9",
     date: "August 2026",
@@ -26,7 +40,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "New: Android home-screen widget showing next lesson",
       "A11y: prefers-reduced-motion now strips all global animations",
     ],
-    latest: true,
   },
   {
     version: "4.5.8",
