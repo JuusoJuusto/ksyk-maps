@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.8";
+export const APP_VERSION = "4.5.9";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.9",
+    date: "August 2026",
+    title: "Bug fixes: retry on failed Wi-Fi locate, full coverage map, replay security",
+    highlights: [
+      "Fix: Wi-Fi positioning now retries after server errors instead of silently skipping identical scans",
+      "Fix: coverage map now includes uncalibrated rooms (previously omitted by beacon_surveys anchor)",
+      "Fix: replay endpoint restricted to admin role, sequential processing, rate-limited",
+      "New: Ctrl+Shift+D developer panel (API latency, cache status, Wi-Fi fingerprint count, versions)",
+      "New: Android lesson reminder notifications via AlarmManager 5 min before class",
+      "New: Android home-screen widget showing next lesson",
+      "A11y: prefers-reduced-motion now strips all global animations",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.8",
     date: "August 2026",
     title: "Coverage visualization: floor-level fingerprint quality heatmap",
     titleFi: "Kattavuusvisualisointi: lattiakohtainen sormenjälkilaatuheatmap",
-    latest: true,
+    latest: false,
     highlights: [
       "New: GET /api/beacons/coverage-quality — per-room coverage with floor, quality label (excellent/good/fair/poor/none)",
       "New: Floor Coverage bar chart in admin Wi-Fi panel — shows calibration completeness per floor",

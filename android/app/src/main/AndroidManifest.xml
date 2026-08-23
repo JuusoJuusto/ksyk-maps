@@ -12,6 +12,14 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="33" />
 
+    <!-- Timetable lesson reminders (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Exact alarm for on-time lesson reminders (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        tools:targetApi="31" />
+    <!-- Re-schedule reminders after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".KsykApp"
         android:allowBackup="true"
@@ -32,15 +40,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!--
-                Deep link — https://ksykmaps.fi/?room=<id> opens the app on
-                the Map tab focused on the requested room. Same URL format
-                as the "Share room" copy-link flow on the web, so a link
-                shared from any device (WhatsApp, email, browser bar) can
-                land directly in the native app on any phone that has it
-                installed. `autoVerify` triggers Android App Links so we
-                skip the "open with…" chooser once verified.
-            -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -49,5 +48,25 @@
                 <data android:scheme="https" android:host="www.ksykmaps.fi" />
             </intent-filter>
         </activity>
+
+        <!-- Fires the timetable lesson reminder notification -->
+        <receiver
+            android:name=".ui.LessonReminderReceiver"
+            android:exported="false" />
+
+        <!-- Home-screen widget: next lesson glance -->
+        <receiver
+            android:name=".ui.NextLessonWidget"
+            android:exported="true"
+            android:label="Next Lesson">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_lesson_widget_info" />
+        </receiver>
+
     </application>
 </manifest>

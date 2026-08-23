@@ -264,15 +264,17 @@ export async function getBeaconCoverageWithQuality(): Promise<Array<{
   avgQuality: number;
   qualityLabel: 'excellent' | 'good' | 'fair' | 'poor' | 'none';
 }>> {
+  // Anchor on rooms so uncalibrated rooms appear with positionCount=0 /
+  // qualityLabel='none', giving the UI accurate floor totals.
   const rows = await db.execute(sql`
-    SELECT s.room_id,
+    SELECT r.id                                                       AS room_id,
            r.room_number,
            r.floor,
-           COUNT(*)::int                AS position_count,
-           jsonb_agg(s.readings)        AS all_readings
-    FROM   beacon_surveys s
-    LEFT   JOIN rooms r ON r.id = s.room_id
-    GROUP  BY s.room_id, r.room_number, r.floor
+           COUNT(s.id)::int                                           AS position_count,
+           jsonb_agg(s.readings) FILTER (WHERE s.readings IS NOT NULL) AS all_readings
+    FROM   rooms r
+    LEFT   JOIN beacon_surveys s ON s.room_id = r.id
+    GROUP  BY r.id, r.room_number, r.floor
     ORDER  BY r.floor NULLS LAST, r.room_number
   `);
 
