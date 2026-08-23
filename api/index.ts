@@ -2395,6 +2395,210 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       return res.status(410).json({ success: false, status: 'removed', message: 'Wilma integration has been removed.' });
     }
 
+    // ── iCalendar parse proxy ────────────────────────────────────────────
+    // POST /api/calendar/parse { url } → { events, stats, unknownLocations }
+    // The URL is NOT logged or stored. Fetch-on-demand, caller caches result.
+    if (apiPath === '/calendar/parse' && req.method === 'POST') {
+      const { url } = req.body || {};
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ message: 'url is required' });
+      }
+      const trimmedUrl = url.trim();
+      if (!trimmedUrl.startsWith('https://') && !trimmedUrl.startsWith('http://')) {
+        return res.status(400).json({ message: 'url must be http(s)' });
+      }
+      // Rate limit: 10 calendar fetches per IP per 5 min
+      const calRL = checkRateLimit(`cal:${clientIP}`, 10, 5 * 60 * 1000);
+      if (!calRL.allowed) {
+        return res.status(429).json({ message: 'Too many calendar requests. Try again later.' });
+      }
+
+      try {
+        // Fetch iCal without logging the URL
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const icalRes = await fetch(trimmedUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'KSYK-Maps-Calendar/1.0', 'Accept': 'text/calendar,*/*' },
+          redirect: 'follow',
+        });
+        clearTimeout(timeout);
+
+        if (!icalRes.ok) {
+          return res.status(422).json({
+            message: `Calendar server returned ${icalRes.status}`,
+            code: 'FETCH_ERROR',
+          });
+        }
+
+        const contentType = icalRes.headers.get('content-type') ?? '';
+        if (!contentType.includes('calendar') && !contentType.includes('text') && !contentType.includes('octet')) {
+          return res.status(422).json({ message: 'URL does not point to a calendar', code: 'NOT_CALENDAR' });
+        }
+
+        const icalText = await icalRes.text();
+        if (!icalText.includes('BEGIN:VCALENDAR')) {
+          return res.status(422).json({ message: 'Not a valid iCalendar file', code: 'INVALID_ICAL' });
+        }
+
+        // Parse iCal
+        const { parseICalFeed } = await import('../server/icalParser.js');
+        const expanded = parseICalFeed(icalText);
+
+        // Load rooms and aliases for matching
+        const { storage: st } = await import('../server/storage.js');
+        const rooms = await st.getRooms();
+
+        const { db: pgDb } = await import('../server/db.js');
+        const { roomAliases, unknownLocations } = await import('../shared/schema.js');
+        const { eq } = await import('drizzle-orm');
+        const aliases = await pgDb.select().from(roomAliases).where(eq(roomAliases.approved, true)).catch(() => []);
+
+        // Match each event's location to a room
+        const { matchRoom } = await import('../server/classroomMatcher.js');
+        const matchableRooms = rooms.map((r: any) => ({
+          id: r.id,
+          roomNumber: r.roomNumber,
+          name: r.name,
+          nameFi: r.nameFi,
+          nameEn: r.nameEn,
+        }));
+        const matchableAliases = aliases.map((a: any) => ({
+          id: a.id,
+          wilmaString: a.wilmaString,
+          roomId: a.roomId,
+        }));
+
+        let matched = 0, unmatched = 0;
+        const unknownSet = new Set<string>();
+
+        const events = expanded.map((ev: any) => {
+          const result = matchRoom(ev.location, matchableRooms, matchableAliases);
+          if (result.confidence >= 70) {
+            matched++;
+          } else {
+            unmatched++;
+            if (ev.location) unknownSet.add(ev.location);
+          }
+          return {
+            uid: ev.uid,
+            summary: ev.summary,
+            location: ev.location,
+            teacher: ev.teacher,
+            date: ev.date,
+            startHhmm: ev.startHhmm,
+            endHhmm: ev.endHhmm,
+            dayOfWeek: ev.dayOfWeek,
+            matchedRoomId: result.confidence >= 70 ? result.roomId : null,
+            matchedRoomNumber: result.confidence >= 70 ? result.roomNumber : null,
+            matchConfidence: result.confidence,
+            matchMethod: result.method,
+          };
+        });
+
+        // Record unknown locations for admin review (best-effort, non-blocking)
+        if (unknownSet.size > 0) {
+          try {
+            for (const ws of unknownSet) {
+              await pgDb.insert(unknownLocations).values({ wilmaString: ws }).catch(() => {});
+            }
+          } catch { /* non-critical */ }
+        }
+
+        return res.status(200).json({
+          events,
+          stats: {
+            total: events.length,
+            matched,
+            unmatched,
+            ambiguous: events.filter((e: any) => e.matchConfidence >= 50 && e.matchConfidence < 70).length,
+          },
+          unknownLocations: [...unknownSet],
+        });
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return res.status(504).json({ message: 'Calendar URL timed out', code: 'TIMEOUT' });
+        }
+        console.error('[calendar/parse] error:', err?.message);
+        return res.status(502).json({ message: 'Could not fetch calendar', code: 'NETWORK_ERROR' });
+      }
+    }
+
+    // ── Room aliases (admin) ─────────────────────────────────────────────
+    if (apiPath === '/admin/aliases') {
+      if (!requireAdminAuth(req, res)) return;
+      const { db: pgDb } = await import('../server/db.js');
+      const { roomAliases, rooms: roomsTable } = await import('../shared/schema.js');
+
+      if (req.method === 'GET') {
+        const { eq } = await import('drizzle-orm');
+        const rows = await pgDb
+          .select({
+            id: roomAliases.id,
+            wilmaString: roomAliases.wilmaString,
+            roomId: roomAliases.roomId,
+            roomNumber: roomsTable.roomNumber,
+            roomName: roomsTable.name,
+            confidence: roomAliases.confidence,
+            method: roomAliases.method,
+            approved: roomAliases.approved,
+            approvedBy: roomAliases.approvedBy,
+            createdAt: roomAliases.createdAt,
+          })
+          .from(roomAliases)
+          .leftJoin(roomsTable, eq(roomAliases.roomId, roomsTable.id))
+          .orderBy(roomAliases.createdAt)
+          .catch(() => []);
+        return res.status(200).json(rows);
+      }
+
+      if (req.method === 'POST') {
+        const { wilmaString, roomId, confidence, method } = req.body || {};
+        if (!wilmaString || !roomId) {
+          return res.status(400).json({ message: 'wilmaString and roomId are required' });
+        }
+        const auth = verifyAdminToken(
+          ((req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined)
+            ?.replace(/^Bearer\s+/i, '').trim() ?? ''
+        );
+        const row = await pgDb.insert(roomAliases).values({
+          wilmaString: wilmaString.trim(),
+          roomId,
+          confidence: confidence ?? 99,
+          method: method ?? 'manual',
+          approved: true,
+          approvedBy: auth?.userId ?? 'admin',
+        } as any).returning().catch((e: any) => { throw e; });
+        return res.status(201).json(row[0]);
+      }
+    }
+
+    if (apiPath.match(/^\/admin\/aliases\/([^/]+)$/) && req.method === 'DELETE') {
+      if (!requireAdminAuth(req, res)) return;
+      const aliasId = apiPath.split('/').pop()!;
+      const { db: pgDb } = await import('../server/db.js');
+      const { roomAliases } = await import('../shared/schema.js');
+      const { eq } = await import('drizzle-orm');
+      await pgDb.delete(roomAliases).where(eq(roomAliases.id, aliasId)).catch(() => {});
+      return res.status(204).end();
+    }
+
+    // ── Unknown locations (admin review) ─────────────────────────────────
+    if (apiPath === '/admin/unknown-locations' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      const { db: pgDb } = await import('../server/db.js');
+      const { unknownLocations } = await import('../shared/schema.js');
+      const { eq, desc } = await import('drizzle-orm');
+      const rows = await pgDb
+        .select()
+        .from(unknownLocations)
+        .where(eq(unknownLocations.resolved, false))
+        .orderBy(desc(unknownLocations.occurrences))
+        .limit(200)
+        .catch(() => []);
+      return res.status(200).json(rows);
+    }
+
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",

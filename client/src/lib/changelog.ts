@@ -10,9 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.11";
+export const APP_VERSION = "4.5.12";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.12",
+    date: "August 2026",
+    title: "Wilma iCalendar integration + smart classroom matching",
+    highlights: [
+      "New: Import your Wilma timetable directly — no password required",
+      "New: Smart 6-stage classroom matching: alias → exact → normalized → token → fuzzy (Levenshtein)",
+      "New: Schedule card on web — floating NOW/NEXT panel with Today and Week views",
+      "New: Wilma Connect screen on Android — FI/EN setup guide, sync, disconnect",
+      "New: Timetable screen Wilma banner — one-tap import replaces manual entry",
+      "New: Room navigation from schedule — tap Navigate to route to your classroom",
+      "New: Admin alias management — review unknown locations, add/approve aliases",
+      "Privacy: Wilma URL stored only locally (localStorage / SharedPreferences), never logged server-side",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.11",
     date: "August 2026",
@@ -26,7 +42,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Improved: Student home screen now shows current and next lesson at the top",
       "Removed: Beacon survey from student app nav (admin-only feature)",
     ],
-    latest: true,
   },
   {
     version: "4.5.10",

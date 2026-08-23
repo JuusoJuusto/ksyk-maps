@@ -41,6 +41,7 @@ import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
+import fi.ksykmaps.ui.WilmaConnectScreen
 import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
@@ -155,10 +156,19 @@ private fun AppShell() {
                 }
                 composable("map")       { MapScreen() }
                 composable("timetable") {
-                    TimetableScreen(onNavigateToRoom = { roomId ->
-                        MapNavIntent.pendingRoomId = roomId
-                        navigate(nav, "map")
-                    })
+                    TimetableScreen(
+                        onNavigateToRoom = { roomId ->
+                            MapNavIntent.pendingRoomId = roomId
+                            navigate(nav, "map")
+                        },
+                        onOpenWilmaConnect = { navigate(nav, "wilmaConnect") },
+                    )
+                }
+                composable("wilmaConnect") {
+                    WilmaConnectScreen(
+                        onBack = { nav.popBackStack() },
+                        onImported = { nav.popBackStack() },
+                    )
                 }
                 composable("rooms")     {
                     RoomFinderScreen(onOpenOnMap = { roomId ->
