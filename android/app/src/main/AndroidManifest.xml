@@ -68,5 +68,33 @@
                 android:resource="@xml/next_lesson_widget_info" />
         </receiver>
 
+        <!-- Home-screen widget: currently ongoing lesson -->
+        <receiver
+            android:name=".ui.CurrentLessonWidget"
+            android:exported="true"
+            android:label="Current Lesson">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/current_lesson_widget_info" />
+        </receiver>
+
+        <!-- Home-screen widget: today's full schedule -->
+        <receiver
+            android:name=".ui.TodayScheduleWidget"
+            android:exported="true"
+            android:label="Today's Schedule">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_schedule_widget_info" />
+        </receiver>
+
     </application>
 </manifest>

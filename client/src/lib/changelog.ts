@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.10";
+export const APP_VERSION = "4.5.11";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.11",
+    date: "August 2026",
+    title: "Android app finalization: two separate apps, widgets, home screen",
+    highlights: [
+      "New: KSYK Maps Admin — separate Android app (fi.ksykmaps.admin) with dashboard, Wi-Fi Positioning, rooms, logs, settings",
+      "New: Admin app adaptive navigation — NavigationRail on tablets (≥600dp), NavigationBar on phones",
+      "New: Admin app requires real backend authorization (admin/owner role from /auth/admin-login)",
+      "New: Current Lesson home-screen widget — shows ongoing lesson at a glance",
+      "New: Today's Schedule home-screen widget — shows up to 4 remaining lessons for the day",
+      "Improved: Student home screen now shows current and next lesson at the top",
+      "Removed: Beacon survey from student app nav (admin-only feature)",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.10",
     date: "August 2026",
@@ -25,7 +40,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Renamed: 'Beacon Surveyor' → 'Wi-Fi Fingerprint Surveyor' throughout admin UI",
       "Removed: Web Bluetooth BLE scanning fallback (Wi-Fi-only survey tool now)",
     ],
-    latest: true,
   },
   {
     version: "4.5.9",

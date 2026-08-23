@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "KSYK Maps"
 include(":app")
+include(":admin")

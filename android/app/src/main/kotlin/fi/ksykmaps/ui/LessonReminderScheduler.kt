@@ -10,6 +10,12 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
+private fun hhmm(s: String): Int {
+    val parts = s.split(":")
+    if (parts.size != 2) return Int.MAX_VALUE
+    return (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
+}
+
 object LessonReminderScheduler {
     const val REMINDER_MINUTES = 5L
     private const val REQUEST_CODE = 42_001
