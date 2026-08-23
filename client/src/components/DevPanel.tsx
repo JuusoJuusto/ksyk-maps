@@ -138,8 +138,8 @@ export default function DevPanel() {
     },
     {
       label: "API latency",
-      value: data?.apiLatencyMs !== null ? `${data!.apiLatencyMs} ms` : "unreachable",
-      ok: data?.apiLatencyMs !== null,
+      value: data?.apiLatencyMs != null ? `${data.apiLatencyMs} ms` : "unreachable",
+      ok: data?.apiLatencyMs != null,
     },
     {
       label: "Last request ID",
