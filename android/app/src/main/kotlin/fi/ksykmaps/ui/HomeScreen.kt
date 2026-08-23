@@ -21,12 +21,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
+import org.json.JSONArray
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /**
@@ -36,6 +40,14 @@ import java.time.format.DateTimeFormatter
  *
  * Pull down to refresh the whole screen at once.
  */
+private data class TimetableLesson(
+    val subject: String,
+    val startHhmm: String,
+    val endHhmm: String,
+    val roomNumber: String,
+    val roomId: String = "",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -43,8 +55,10 @@ fun HomeScreen(
     onOpenBeacons: () -> Unit,
     onOpenAnnouncements: () -> Unit,
     onOpenAccount: () -> Unit,
+    onOpenTimetable: () -> Unit = {},
     onOpenBuildings: () -> Unit = onOpenRooms,
 ) {
+    val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
@@ -55,6 +69,8 @@ fun HomeScreen(
     var refreshing by remember { mutableStateOf(false) }
     var lastRefreshed by remember { mutableStateOf<LocalDateTime?>(null) }
     var apiOk by remember { mutableStateOf(true) }
+    var currentLesson by remember { mutableStateOf<TimetableLesson?>(null) }
+    var nextLesson by remember { mutableStateOf<TimetableLesson?>(null) }
 
     fun reload() {
         loading = true
@@ -79,6 +95,32 @@ fun HomeScreen(
             } catch (_: Exception) {
                 apiOk = false
             } finally {
+                // Read timetable from widget SharedPreferences (written by TimetableScreen on save)
+                try {
+                    val prefs = ctx.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
+                    val json = prefs.getString("entries_json", "[]") ?: "[]"
+                    val arr = JSONArray(json)
+                    val fmt = DateTimeFormatter.ofPattern("HH:mm")
+                    val now = LocalTime.now()
+                    val todayDow = java.time.LocalDate.now().dayOfWeek.value
+                    val todayEntries = (0 until arr.length()).mapNotNull { i ->
+                        val o = arr.getJSONObject(i)
+                        if (o.optInt("dayOfWeek") == todayDow) o else null
+                    }.sortedBy { it.optString("startHhmm", "99:99") }
+                    currentLesson = todayEntries.firstOrNull { e ->
+                        val start = runCatching { LocalTime.parse(e.optString("startHhmm"), fmt) }.getOrNull() ?: return@firstOrNull false
+                        val end   = runCatching { LocalTime.parse(e.optString("endHhmm"),   fmt) }.getOrNull() ?: return@firstOrNull false
+                        !now.isBefore(start) && now.isBefore(end)
+                    }?.let { e ->
+                        TimetableLesson(e.optString("subject"), e.optString("startHhmm"), e.optString("endHhmm"), e.optString("roomNumber"), e.optString("roomId"))
+                    }
+                    nextLesson = todayEntries.firstOrNull { e ->
+                        val start = runCatching { LocalTime.parse(e.optString("startHhmm"), fmt) }.getOrNull() ?: return@firstOrNull false
+                        now.isBefore(start)
+                    }?.let { e ->
+                        TimetableLesson(e.optString("subject"), e.optString("startHhmm"), e.optString("endHhmm"), e.optString("roomNumber"), e.optString("roomId"))
+                    }
+                } catch (_: Exception) {}
                 loading = false
                 refreshing = false
             }
@@ -114,6 +156,23 @@ fun HomeScreen(
         ) {
             if (loading) {
                 item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+            }
+
+            // Timetable card — current/next lesson prominently at top
+            if (currentLesson != null || nextLesson != null) {
+                item {
+                    TimetableCard(
+                        current = currentLesson,
+                        next = nextLesson,
+                        onOpenTimetable = onOpenTimetable,
+                        onNavigate = { lesson ->
+                            if (lesson.roomId.isNotBlank()) {
+                                MapNavIntent.pendingRoomId = lesson.roomId
+                                onOpenRooms()
+                            }
+                        },
+                    )
+                }
             }
 
             // Greeting card — big gradient banner with signed-in email
@@ -194,9 +253,9 @@ fun HomeScreen(
                     )
                     ActionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.Wifi,
-                        label = "Beacon survey",
-                        onClick = onOpenBeacons,
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "My timetable",
+                        onClick = onOpenTimetable,
                     )
                 }
             }
@@ -361,6 +420,67 @@ private fun ActionTile(
         ) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
             Text(label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun TimetableCard(
+    current: TimetableLesson?,
+    next: TimetableLesson?,
+    onOpenTimetable: () -> Unit,
+    onNavigate: (TimetableLesson) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onOpenTimetable() },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Today", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Icons.Outlined.CalendarMonth, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            if (current != null) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f))
+                LessonRow(
+                    badge = "NOW",
+                    badgeColor = MaterialTheme.colorScheme.secondary,
+                    lesson = current,
+                    onNavigate = { onNavigate(current) },
+                )
+            }
+            if (next != null) {
+                if (current != null) HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f))
+                LessonRow(
+                    badge = "NEXT",
+                    badgeColor = MaterialTheme.colorScheme.tertiary,
+                    lesson = next,
+                    onNavigate = { onNavigate(next) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LessonRow(badge: String, badgeColor: androidx.compose.ui.graphics.Color, lesson: TimetableLesson, onNavigate: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Badge(containerColor = badgeColor) { Text(badge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(lesson.subject, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text(
+                "${lesson.startHhmm}–${lesson.endHhmm}${if (lesson.roomNumber.isNotBlank()) " · Room ${lesson.roomNumber}" else ""}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+            )
+        }
+        if (lesson.roomId.isNotBlank()) {
+            IconButton(onClick = onNavigate, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Outlined.Navigation, "Navigate", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
         }
     }
 }

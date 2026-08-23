@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/widget_background">
+
+    <TextView
+        android:id="@+id/widget_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TODAY'S SCHEDULE"
+        android:textSize="9sp"
+        android:letterSpacing="0.15"
+        android:textColor="#9960A5FA"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- Row 1 -->
+    <LinearLayout
+        android:id="@+id/row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/time1"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textColor="#9960A5FA"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/subject1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/room1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textSize="10sp"
+            android:textColor="#77FFFFFF" />
+    </LinearLayout>
+
+    <!-- Divider 1 -->
+    <View
+        android:id="@+id/div1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="5dp"
+        android:background="#22FFFFFF"
+        android:visibility="gone" />
+
+    <!-- Row 2 -->
+    <LinearLayout
+        android:id="@+id/row2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/time2"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textColor="#9960A5FA"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/subject2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/room2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textSize="10sp"
+            android:textColor="#77FFFFFF" />
+    </LinearLayout>
+
+    <!-- Divider 2 -->
+    <View
+        android:id="@+id/div2"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="5dp"
+        android:background="#22FFFFFF"
+        android:visibility="gone" />
+
+    <!-- Row 3 -->
+    <LinearLayout
+        android:id="@+id/row3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/time3"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textColor="#9960A5FA"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/subject3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/room3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textSize="10sp"
+            android:textColor="#77FFFFFF" />
+    </LinearLayout>
+
+    <!-- Divider 3 -->
+    <View
+        android:id="@+id/div3"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="5dp"
+        android:background="#22FFFFFF"
+        android:visibility="gone" />
+
+    <!-- Row 4 -->
+    <LinearLayout
+        android:id="@+id/row4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/time4"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textColor="#9960A5FA"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/subject4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/room4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textSize="10sp"
+            android:textColor="#77FFFFFF" />
+    </LinearLayout>
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="No lessons today"
+        android:textSize="13sp"
+        android:textColor="#77FFFFFF"
+        android:visibility="gone" />
+
+</LinearLayout>

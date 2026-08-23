@@ -970,60 +970,64 @@ fun MapScreen() {
         if (destPt != null && originPt != null) {
             val distMeters = haversineMeters(originPt, destPt)
             val walkSec = (distMeters / WALKING_MPS).toInt()
-            RouteInfoChip(
-                distanceMeters = distMeters,
-                walkSeconds = walkSec,
-                destinationLabel = labelOf(curDest),
-                originLabel = if (originIsMyLocation) "Oma sijainti" else labelOf(curOrigin!!),
-                onClear = {
-                    destination = null
-                    origin = null
-                    originIsMyLocation = false
-                },
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 74.dp),
-            )
+            Box(Modifier.fillMaxSize()) {
+                RouteInfoChip(
+                    distanceMeters = distMeters,
+                    walkSeconds = walkSec,
+                    destinationLabel = labelOf(curDest),
+                    originLabel = if (originIsMyLocation) "Oma sijainti" else labelOf(curOrigin!!),
+                    onClear = {
+                        destination = null
+                        origin = null
+                        originIsMyLocation = false
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 74.dp),
+                )
+            }
         }
     }
 
     // "Lähtöpaikka" picker — appears after the user hits "Suunnista
     // tänne" in a room sheet. Two quick actions + a cancel.
     if (showStartPicker) {
-        StartPickerCard(
-            destinationLabel = labelOf(destination),
-            onMyLocation = {
-                originIsMyLocation = true
-                origin = null
-                showStartPicker = false
-                // Prompt for GPS if not granted yet.
-                val hasLocation = ContextCompat.checkSelfPermission(
-                    ctx, Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-                if (hasLocation) {
-                    followMe = true
-                    mapRef?.let { enableLocation(ctx, it) }
-                    // Seed myLocation from last-known so the line
-                    // draws immediately without waiting for the first
-                    // GPS fix; the LocationComponent will update it
-                    // as the user walks.
-                    mapRef?.locationComponent?.lastKnownLocation?.let { loc ->
-                        myLocation = LatLng(loc.latitude, loc.longitude)
+        Box(Modifier.fillMaxSize()) {
+            StartPickerCard(
+                destinationLabel = labelOf(destination),
+                onMyLocation = {
+                    originIsMyLocation = true
+                    origin = null
+                    showStartPicker = false
+                    // Prompt for GPS if not granted yet.
+                    val hasLocation = ContextCompat.checkSelfPermission(
+                        ctx, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (hasLocation) {
+                        followMe = true
+                        mapRef?.let { enableLocation(ctx, it) }
+                        // Seed myLocation from last-known so the line
+                        // draws immediately without waiting for the first
+                        // GPS fix; the LocationComponent will update it
+                        // as the user walks.
+                        mapRef?.locationComponent?.lastKnownLocation?.let { loc ->
+                            myLocation = LatLng(loc.latitude, loc.longitude)
+                        }
+                    } else {
+                        locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     }
-                } else {
-                    locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }
-            },
-            onSearchRoom = {
-                searchMode = SearchMode.ORIGIN
-                showStartPicker = false
-                searchFocused = true
-            },
-            onCancel = {
-                showStartPicker = false
-                destination = null
-            },
-        )
+                },
+                onSearchRoom = {
+                    searchMode = SearchMode.ORIGIN
+                    showStartPicker = false
+                    searchFocused = true
+                },
+                onCancel = {
+                    showStartPicker = false
+                    destination = null
+                },
+            )
+        }
     }
 }
 

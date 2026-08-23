@@ -658,7 +658,7 @@ function NewPositionForm({
   const [gps, setGps] = useState<{ lat: number; lng: number; accuracyM: number } | null>(null);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
-  /** WiFi / BLE scan status. */
+  /** WiFi scan status. */
   const [scanBusy, setScanBusy] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 

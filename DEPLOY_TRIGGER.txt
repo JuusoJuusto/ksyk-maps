@@ -1,6 +1,6 @@
-FORCE VERCEL REBUILD - 2026-08-23
+FORCE VERCEL REBUILD - 2026-08-24
 
-Bump reason: v4.5.10 — MapLibre ghost layer fix, external script removal, Wi-Fi Positioning rename
+Bump reason: v4.5.11 — Android app finalization: KSYK Maps Admin, three home-screen widgets, home screen improvements
 
-Timestamp: 1788360100
-Build: FORCE_REBUILD_v4.5.10_MAPLIBRE_FIXES_CLEANUP
+Timestamp: 1788446500
+Build: FORCE_REBUILD_v4.5.11_ANDROID_FINALIZATION

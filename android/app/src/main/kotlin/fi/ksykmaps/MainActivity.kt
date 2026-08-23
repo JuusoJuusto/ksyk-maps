@@ -145,10 +145,11 @@ private fun AppShell() {
             ) {
                 composable("home") {
                     HomeScreen(
-                        onOpenRooms         = { navigate(nav, "map") },
-                        onOpenBeacons       = { navigate(nav, "beacons") },
+                        onOpenRooms         = { navigate(nav, "rooms") },
+                        onOpenBeacons       = { /* admin-only */ },
                         onOpenAnnouncements = { navigate(nav, "news") },
                         onOpenAccount       = { navigate(nav, "settings") },
+                        onOpenTimetable     = { navigate(nav, "timetable") },
                         onOpenBuildings     = { navigate(nav, "map") },
                     )
                 }
