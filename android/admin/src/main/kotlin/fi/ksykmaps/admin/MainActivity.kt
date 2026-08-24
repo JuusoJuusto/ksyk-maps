@@ -54,6 +54,7 @@ private fun AdminShell() {
     }
 
     var currentId by remember { mutableStateOf("dashboard") }
+    val onNavigate: (String) -> Unit = { currentId = it }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
     if (wide) {
@@ -71,7 +72,7 @@ private fun AdminShell() {
             }
             VerticalDivider()
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                AdminContent(currentId, onSignOut = { loggedIn = false })
+                AdminContent(currentId, onNavigate = onNavigate, onSignOut = { loggedIn = false })
             }
         }
     } else {
@@ -90,16 +91,16 @@ private fun AdminShell() {
             },
         ) { pad ->
             Box(Modifier.padding(pad)) {
-                AdminContent(currentId, onSignOut = { loggedIn = false })
+                AdminContent(currentId, onNavigate = onNavigate, onSignOut = { loggedIn = false })
             }
         }
     }
 }
 
 @Composable
-private fun AdminContent(currentId: String, onSignOut: () -> Unit) {
+private fun AdminContent(currentId: String, onNavigate: (String) -> Unit, onSignOut: () -> Unit) {
     when (currentId) {
-        "dashboard" -> DashboardScreen()
+        "dashboard" -> DashboardScreen(onNavigate = onNavigate)
         "wifi"      -> WifiPositioningScreen()
         "rooms"     -> RoomsScreen()
         "logs"      -> LogsScreen()

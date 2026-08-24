@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.15";
+export const APP_VERSION = "4.5.16";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.16",
+    date: "August 2026",
+    title: "Subject colors, widget tap-to-open, admin dashboard v2, lesson counts",
+    highlights: [
+      "New: Timetable subject color strips — each subject gets a consistent color across all views",
+      "New: Day chips show lesson count badges (e.g. Mon 3, Tue 5)",
+      "New: All 3 widgets now open the app when tapped",
+      "Improved: Admin dashboard shows announcement count, last-updated time, and clickable stat cards that navigate to the right screen",
+      "Improved: Admin dashboard stat cards are tappable — tap Rooms to go to Rooms, tap Wi-Fi to go to Wi-Fi panel",
+      "Improved: Admin recent errors section has a View all button linking to Logs tab",
+      "Bump: Student app 1.12.0 / Admin app 1.1.0",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.15",
     date: "August 2026",

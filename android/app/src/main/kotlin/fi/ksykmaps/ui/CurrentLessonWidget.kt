@@ -1,5 +1,6 @@
 package fi.ksykmaps.ui
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -28,10 +29,20 @@ class CurrentLessonWidget : AppWidgetProvider() {
     }
 
     companion object {
+        private fun launchPendingIntent(context: Context): PendingIntent {
+            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                ?: Intent()
+            return PendingIntent.getActivity(
+                context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+
         private fun updateWidget(context: Context, manager: AppWidgetManager, id: Int) {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val raw = prefs.getString("entries_json", null)
             val views = RemoteViews(context.packageName, R.layout.widget_current_lesson)
+            views.setOnClickPendingIntent(R.id.widget_root, launchPendingIntent(context))
             val now = LocalTime.now()
             val nowMins = now.hour * 60 + now.minute
             val current = if (raw != null) findCurrent(raw, nowMins) else null

@@ -48,6 +48,16 @@ data class ScheduleEntry(
 
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7
 
+private val SUBJECT_PALETTE = listOf(
+    0xFF3B82F6, 0xFF8B5CF6, 0xFF10B981, 0xFFEF4444,
+    0xFFf59E0B, 0xFF06B6D4, 0xFFEC4899, 0xFF84CC16,
+    0xFF6366F1, 0xFFF97316,
+)
+private fun subjectColor(subject: String): Color {
+    val idx = Math.abs(subject.trim().lowercase().hashCode()) % SUBJECT_PALETTE.size
+    return Color(SUBJECT_PALETTE[idx].toLong())
+}
+
 private fun nowHhmm(): String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
 
 private fun hhmm(s: String): Int {
@@ -85,6 +95,8 @@ fun TimetableScreen(
             rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
         }
     }
+
+    val countByDow = remember(entries) { entries.groupBy { it.dayOfWeek }.mapValues { it.value.size } }
 
     val dayEntries = entries.filter { it.dayOfWeek == selectedDow }
         .sortedBy { hhmm(it.startHhmm) }
@@ -145,6 +157,7 @@ fun TimetableScreen(
                     selected = selectedDow,
                     today = todayDow,
                     onSelect = { selectedDow = it },
+                    countByDow = countByDow,
                 )
             }
 
@@ -385,18 +398,17 @@ private fun EntryRow(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Accent strip for current lesson
-        if (isCurrent) {
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .height(56.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
-                    )
-            )
-        }
+        // Left color strip — subject color always, brighter when current
+        val sColor = subjectColor(entry.subject)
+        Box(
+            Modifier
+                .width(4.dp)
+                .height(56.dp)
+                .background(
+                    if (isCurrent) sColor else sColor.copy(alpha = 0.5f),
+                    RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                )
+        )
         Column(
             Modifier
                 .weight(1f)
@@ -458,7 +470,12 @@ private fun EmptyState() {
 }
 
 @Composable
-private fun DaySelector(selected: Int, today: Int, onSelect: (Int) -> Unit) {
+private fun DaySelector(
+    selected: Int,
+    today: Int,
+    onSelect: (Int) -> Unit,
+    countByDow: Map<Int, Int> = emptyMap(),
+) {
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     Row(
         Modifier
@@ -468,15 +485,16 @@ private fun DaySelector(selected: Int, today: Int, onSelect: (Int) -> Unit) {
     ) {
         days.forEachIndexed { i, label ->
             val dow = i + 1
+            val count = countByDow[dow] ?: 0
+            val chipLabel = buildString {
+                append(label)
+                if (dow == today) append(" ·")
+                if (count > 0) append(" $count")
+            }
             FilterChip(
                 selected = selected == dow,
                 onClick = { onSelect(dow) },
-                label = {
-                    Text(
-                        if (dow == today) "$label ·" else label,
-                        fontSize = 13.sp,
-                    )
-                },
+                label = { Text(chipLabel, fontSize = 12.sp) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,

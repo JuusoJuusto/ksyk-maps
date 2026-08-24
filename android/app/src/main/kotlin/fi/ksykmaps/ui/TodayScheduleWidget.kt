@@ -1,5 +1,6 @@
 package fi.ksykmaps.ui
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -54,6 +55,9 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val raw = prefs.getString("entries_json", null)
             val views = RemoteViews(context.packageName, R.layout.widget_today_schedule)
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
+            val pi = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            views.setOnClickPendingIntent(R.id.widget_root, pi)
             val today = LocalDate.now()
             val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
             val dayName = today.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)

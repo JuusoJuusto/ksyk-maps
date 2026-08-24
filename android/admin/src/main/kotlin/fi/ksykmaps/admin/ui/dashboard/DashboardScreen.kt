@@ -1,5 +1,6 @@
 package fi.ksykmaps.admin.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,9 +11,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import fi.ksykmaps.admin.data.AdminApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -20,6 +23,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 private data class DashboardState(
     val backendOk: Boolean? = null,
@@ -30,13 +35,15 @@ private data class DashboardState(
     val wifiReady: Boolean? = null,
     val roomCount: Int? = null,
     val userCount: Int? = null,
+    val announcementCount: Int? = null,
     val recentErrors: List<JsonObject> = emptyList(),
+    val lastUpdated: LocalDateTime? = null,
     val error: String? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(onNavigate: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(DashboardState()) }
     var refreshing by remember { mutableStateOf(false) }
@@ -76,6 +83,9 @@ fun DashboardScreen() {
                     ?.mapNotNull { it as? JsonObject } ?: emptyList()
             }.getOrElse { emptyList() }
         }
+        val announcementsJob = async(Dispatchers.IO) {
+            runCatching { (AdminApi.get("/announcements") as? JsonArray)?.size }.getOrNull()
+        }
         val latency = System.currentTimeMillis() - t0
         val health = healthJob.await()
         val wifi = wifiJob.await()
@@ -88,7 +98,9 @@ fun DashboardScreen() {
             wifiReady = wifi?.second,
             roomCount = roomsJob.await(),
             userCount = usersJob.await(),
+            announcementCount = announcementsJob.await(),
             recentErrors = logsJob.await(),
+            lastUpdated = LocalDateTime.now(),
         )
     }
 
@@ -111,6 +123,62 @@ fun DashboardScreen() {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Header with last-updated
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Dashboard", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        if (state.lastUpdated != null) {
+                            Text(
+                                "Updated ${state.lastUpdated!!.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (state.backendOk == true) {
+                        Badge(containerColor = MaterialTheme.colorScheme.secondary) { Text("Online") }
+                    } else if (state.backendOk == false) {
+                        Badge(containerColor = MaterialTheme.colorScheme.error) { Text("Offline") }
+                    }
+                }
+            }
+
+            // Quick stats row
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatCard(Modifier.weight(1f), "Rooms",  state.roomCount?.toString() ?: "—", Icons.Outlined.MeetingRoom, onClick = { onNavigate("rooms") })
+                    StatCard(Modifier.weight(1f), "Users",  state.userCount?.toString() ?: "—", Icons.Outlined.People)
+                    StatCard(Modifier.weight(1f), "News",   state.announcementCount?.toString() ?: "—", Icons.Outlined.Campaign)
+                }
+            }
+
+            // Wi-Fi stats
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        label = "Fingerprints",
+                        value = state.wifiFingerprints?.toString() ?: "—",
+                        icon = Icons.Outlined.Fingerprint,
+                        onClick = { onNavigate("wifi") },
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        label = "Wi-Fi",
+                        value = when (state.wifiReady) { true -> "Ready"; false -> "Not ready"; null -> "—" },
+                        icon = Icons.Outlined.Wifi,
+                        accent = when (state.wifiReady) {
+                            true -> Color(0xFF10B981)
+                            false -> Color(0xFFEF4444)
+                            null -> null
+                        },
+                        onClick = { onNavigate("wifi") },
+                    )
+                }
+            }
+
+            // System health
             item {
                 Text("System Health", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
@@ -133,41 +201,13 @@ fun DashboardScreen() {
                 }
             }
 
-            item {
-                Spacer(Modifier.height(4.dp))
-                Text("Wi-Fi Positioning", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label = "Fingerprints",
-                        value = state.wifiFingerprints?.toString() ?: "—",
-                        icon = Icons.Outlined.Fingerprint,
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label = "Status",
-                        value = when (state.wifiReady) { true -> "Ready"; false -> "Not ready"; null -> "—" },
-                        icon = Icons.Outlined.LocationOn,
-                    )
-                }
-            }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                Text("Campus Data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard(Modifier.weight(1f), "Rooms",  state.roomCount?.toString() ?: "—", Icons.Outlined.MeetingRoom)
-                    StatCard(Modifier.weight(1f), "Users",  state.userCount?.toString() ?: "—", Icons.Outlined.People)
-                }
-            }
-
             if (state.recentErrors.isNotEmpty()) {
                 item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Recent Errors", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { onNavigate("logs") }) { Text("View all") }
+                    }
                     Spacer(Modifier.height(4.dp))
-                    Text("Recent Errors", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
                 }
                 items(state.recentErrors) { err -> ErrorRow(err); Spacer(Modifier.height(4.dp)) }
             }
@@ -212,16 +252,29 @@ private fun MetricRow(label: String, value: String, tint: androidx.compose.ui.gr
 }
 
 @Composable
-private fun StatCard(modifier: Modifier = Modifier, label: String, value: String, icon: ImageVector) {
-    Card(modifier = modifier) {
-        Column(Modifier.padding(14.dp)) {
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    icon: ImageVector,
+    accent: Color? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val cardMod = if (onClick != null) modifier.clickable { onClick() } else modifier
+    Card(cardMod) {
+        Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(icon, null, Modifier.size(14.dp), tint = accent ?: MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(4.dp))
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(4.dp))
-            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = accent ?: MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
