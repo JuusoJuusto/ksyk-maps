@@ -50,6 +50,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -259,7 +260,8 @@ fun MapScreen() {
             val json = withContext(Dispatchers.IO) { Api.get("/buildings") }
             buildings = json.jsonArray.mapNotNull { it as? JsonObject }
             offlineMode = false
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Analytics.trackError("MapScreen", "buildings: ${e.message ?: "unknown"}")
             val cached = Api.getOffline("/buildings")
             if (cached != null) {
                 buildings = cached.jsonArray.mapNotNull { it as? JsonObject }
@@ -784,6 +786,10 @@ fun MapScreen() {
                 searchEntities(query = searchQuery, rooms = rooms, buildings = buildings)
             },
             onPickRoom = { r ->
+                val rNum = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: ""
+                val rId  = (r["id"] as? JsonPrimitive)?.contentOrNull ?: ""
+                Analytics.trackRoomView(rId, rNum)
+                Analytics.trackBuildingSearch(searchQuery, 1)
                 if (searchMode == SearchMode.ORIGIN) {
                     origin = r
                     originIsMyLocation = false
@@ -816,6 +822,10 @@ fun MapScreen() {
                 searchFocused = false
             },
             onPickBuilding = { b ->
+                val bName = (b["name"] as? JsonPrimitive)?.contentOrNull ?: ""
+                val bId   = (b["id"] as? JsonPrimitive)?.contentOrNull ?: ""
+                Analytics.trackBuildingOpen(bId, bName)
+                Analytics.trackBuildingSearch(searchQuery, 1)
                 if (searchMode == SearchMode.ORIGIN) {
                     origin = b
                     originIsMyLocation = false

@@ -2027,7 +2027,7 @@ function installRooms(map: MaplibreMap, rooms: Room[], activeFloor: number | nul
   // limitation). The old single ghost layer used a nested ["case"] inside
   // ["interpolate"] which MapLibre rejects. Split into two constant-opacity
   // layers filtered by the "isAbove" property instead.
-  try { map.removeLayer(`${LAYERS.rooms3D}-ghost`); } catch { /* already gone */ }
+  if (map.getLayer(`${LAYERS.rooms3D}-ghost`)) map.removeLayer(`${LAYERS.rooms3D}-ghost`);
   // Rooms BELOW the active floor — semi-transparent so users see stack context.
   addLayerIfMissing(map, {
     id: `${LAYERS.rooms3D}-ghost-below`,
@@ -2237,8 +2237,8 @@ function installPOIs(
   // Remove old glow/shadow layers — they had offset values that differed
   // from the chip translate, creating staggered jitter during mobile pan/zoom.
   // MazeMap-style: clean chip with stroke only, no extra ring layers.
-  try { map.removeLayer(`${LAYERS.poisChip}-glow`); } catch { /* not present */ }
-  try { map.removeLayer(`${LAYERS.poisChip}-shadow`); } catch { /* not present */ }
+  if (map.getLayer(`${LAYERS.poisChip}-glow`))   map.removeLayer(`${LAYERS.poisChip}-glow`);
+  if (map.getLayer(`${LAYERS.poisChip}-shadow`)) map.removeLayer(`${LAYERS.poisChip}-shadow`);
   // Tint chip background by kind — MazeMap uses semantic colors so a
   // toilet reads pink, elevator blue, stairs a warm ochre, entrance
   // green, exits red. Icon stays black for max contrast.
@@ -2459,9 +2459,11 @@ function upsertGeoJSONSource(map: MaplibreMap, id: string, data: unknown) {
   }
 }
 
-/** Remove+re-add a layer so style changes in existing sessions take effect. */
+/** Remove+re-add a layer so style changes in existing sessions take effect.
+ *  Uses getLayer() guard to prevent MapLibre from firing its internal error
+ *  event — try/catch alone catches the JS exception but still emits the event. */
 function replaceLayer(map: MaplibreMap, layer: import("maplibre-gl").AddLayerObject) {
-  try { map.removeLayer(layer.id); } catch { /* not present yet */ }
+  if (map.getLayer(layer.id)) map.removeLayer(layer.id);
   try { map.addLayer(layer); } catch { /* style not ready */ }
 }
 

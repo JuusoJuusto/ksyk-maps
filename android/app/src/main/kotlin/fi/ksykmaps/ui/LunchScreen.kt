@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fi.ksykmaps.data.Analytics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +47,8 @@ fun LunchScreen() {
     var error by remember { mutableStateOf<String?>(null) }
     val today = remember { LocalDate.now() }
     var selectedIdx by remember { mutableIntStateOf(0) }
+    var refreshTaps by remember { mutableIntStateOf(0) }
+    var showFoodEgg by remember { mutableStateOf(false) }
 
     fun doFetch() {
         scope.launch {
@@ -54,9 +57,13 @@ fun LunchScreen() {
                 val result = withContext(Dispatchers.IO) { fetchMenu() }
                 days = result
                 val todayIdx = result.indexOfFirst { it.date == today }
-                if (todayIdx >= 0) selectedIdx = todayIdx
+                if (todayIdx >= 0) {
+                    selectedIdx = todayIdx
+                    Analytics.trackLunchView(result.getOrNull(todayIdx)?.label ?: "today")
+                }
             } catch (e: Exception) {
                 error = e.localizedMessage ?: "Ruokalistaa ei voitu ladata"
+                Analytics.trackError("LunchScreen", e.localizedMessage ?: "fetch failed")
             } finally {
                 loading = false
             }
@@ -76,7 +83,14 @@ fun LunchScreen() {
                             Icon(Icons.Outlined.Refresh, contentDescription = "Päivitä")
                         }
                     }
-                    TextButton(onClick = {}) {
+                    TextButton(onClick = {
+                        refreshTaps++
+                        if (refreshTaps >= 5) {
+                            refreshTaps = 0
+                            Analytics.trackEasterEgg("compass_group_tap")
+                            showFoodEgg = true
+                        }
+                    }) {
                         Text("Compass Group", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
@@ -253,6 +267,17 @@ fun LunchScreen() {
                 }
             }
         }
+    }
+
+    if (showFoodEgg) {
+        AlertDialog(
+            onDismissRequest = { showFoodEgg = false },
+            title = { Text("Salainen resepti") },
+            text = { Text("Huhu! Loydat piiloreseptin: yksi ruokalusikka motivaatiota, kaksi kupillista koodia ja sopiva maara kokkausaikaa. Hyvaa ruokahalua!") },
+            confirmButton = {
+                TextButton(onClick = { showFoodEgg = false }) { Text("Herkullista!") }
+            },
+        )
     }
 }
 

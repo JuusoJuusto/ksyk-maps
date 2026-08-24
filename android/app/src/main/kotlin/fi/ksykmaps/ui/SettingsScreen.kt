@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.BuildConfig
+import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
@@ -24,6 +25,8 @@ import androidx.compose.foundation.clickable
 
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
+private const val KEY_EGGS_FOUND = "easter_eggs_found"
+private const val TOTAL_EGGS = 3
 
 fun getAppLanguage(ctx: android.content.Context): String =
     ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
@@ -44,6 +47,9 @@ fun SettingsScreen(
 
     var notificationsEnabled by remember { mutableStateOf(false) }
     var dynamicColour by remember { mutableStateOf(true) }
+    var eggTaps by remember { mutableIntStateOf(0) }
+    var eggsFound by remember { mutableIntStateOf(prefs.getInt(KEY_EGGS_FOUND, 0)) }
+    var activeEgg by remember { mutableStateOf<String?>(null) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf(prefs.getString(KEY_LANGUAGE, "en") ?: "en") }
@@ -251,15 +257,78 @@ fun SettingsScreen(
 
             item { SectionTitle(if (isFi) "Tietoja" else "About") }
             item {
-                SettingRow(
-                    icon = Icons.Outlined.Info,
-                    title = "KSYK Maps Mobile",
-                    subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · © 2026 Nordbyte Studio",
-                )
+                // Easter egg #1: tap the version row 7 times
+                Card(
+                    Modifier.fillMaxWidth().clickable {
+                        eggTaps++
+                        if (eggTaps >= 7) {
+                            eggTaps = 0
+                            if (eggsFound < TOTAL_EGGS) {
+                                eggsFound++
+                                prefs.edit().putInt(KEY_EGGS_FOUND, eggsFound).apply()
+                            }
+                            Analytics.trackEasterEgg("version_tap_7")
+                            activeEgg = "version_tap"
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary)
+                        Column(Modifier.weight(1f)) {
+                            Text("KSYK Maps Mobile", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · © 2026 Nordbyte Studio",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (eggsFound > 0) {
+                                Text(
+                                    if (isFi) "$eggsFound/$TOTAL_EGGS salaisuutta loydetty"
+                                    else "$eggsFound/$TOTAL_EGGS secrets found",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             item { Spacer(Modifier.height(8.dp)) }
         }
+    }
+
+    if (activeEgg != null) {
+        AlertDialog(
+            onDismissRequest = { activeEgg = null },
+            title = { Text(if (isFi) "Salainen paikkio!" else "Secret unlocked!") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (isFi) "Loysit Paalpoyto-tilan. Kehittajan viesti: Hei, olet loydat piilomoodin!"
+                        else "You found the Developer Mode. Hi there, explorer — you found a hidden egg!",
+                    )
+                    Text(
+                        if (isFi) "$eggsFound / $TOTAL_EGGS salaisuutta loydetty"
+                        else "$eggsFound / $TOTAL_EGGS secrets found",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { activeEgg = null }) {
+                    Text(if (isFi) "Siisti!" else "Nice!")
+                }
+            },
+        )
     }
 
     if (editingName) {

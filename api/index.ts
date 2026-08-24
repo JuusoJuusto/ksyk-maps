@@ -917,6 +917,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     
+    // Analytics event ingest — accepts POST from the Android app and web.
+    // Stored as a rolling list in KV (last 5000 events). No auth required
+    // so the student app (no login) can report errors and searches.
+    if (apiPath === '/analytics-event' && req.method === 'POST') {
+      try {
+        const { kvGet, kvSet } = await import('../server/kvStorage.js');
+        const event = {
+          ...sanitizeObject(req.body),
+          ip: clientIP.slice(0, 45), // truncate — analytics, not audit log
+          receivedAt: new Date().toISOString(),
+        };
+        const current: any[] = (await kvGet('analyticsEvents')) ?? [];
+        current.unshift(event);
+        await kvSet('analyticsEvents', current.slice(0, 5000));
+        return res.status(204).send('');
+      } catch {
+        return res.status(204).send('');
+      }
+    }
+
+    // Analytics summary — admin only, returns aggregated counts.
+    if (apiPath === '/analytics' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvGet } = await import('../server/kvStorage.js');
+        const events: any[] = (await kvGet('analyticsEvents')) ?? [];
+        const counts: Record<string, number> = {};
+        const buildingSearches: Record<string, number> = {};
+        const errors: any[] = [];
+        const easterEggs: Record<string, number> = {};
+        for (const ev of events) {
+          counts[ev.event] = (counts[ev.event] ?? 0) + 1;
+          if (ev.event === 'building_search' && ev.q) buildingSearches[ev.q] = (buildingSearches[ev.q] ?? 0) + 1;
+          if (ev.event === 'app_error') errors.push({ screen: ev.screen, msg: ev.msg, ts: ev.receivedAt });
+          if (ev.event === 'easter_egg') easterEggs[ev.name] = (easterEggs[ev.name] ?? 0) + 1;
+        }
+        return res.status(200).json({
+          totalEvents: events.length,
+          eventCounts: counts,
+          topBuildingSearches: Object.entries(buildingSearches)
+            .sort((a, b) => b[1] - a[1]).slice(0, 20)
+            .map(([q, n]) => ({ query: q, count: n })),
+          recentErrors: errors.slice(0, 50),
+          easterEggs,
+        });
+      } catch {
+        return res.status(200).json({ totalEvents: 0, eventCounts: {}, topBuildingSearches: [], recentErrors: [], easterEggs: {} });
+      }
+    }
+
     // Lunch menu proxy to bypass CORS
     if (apiPath === '/lunch-menu' && req.method === 'GET') {
       try {
