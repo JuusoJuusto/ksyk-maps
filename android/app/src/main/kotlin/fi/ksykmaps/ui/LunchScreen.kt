@@ -235,20 +235,43 @@ fun LunchScreen() {
                                 }
                             }
                         } else {
+                            val dishCount = day.dishes.count { !isDishCategory(it) }
                             item {
                                 Text(
-                                    "${day.dishes.size} ruokalajia",
+                                    "$dishCount ruokalajia",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            items(day.dishes) { dish -> DishRow(dish) }
+                            items(day.dishes) { dish ->
+                                if (isDishCategory(dish)) CategoryLabel(dish)
+                                else DishRow(dish)
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+// A dish entry is a food-group category label if it's all uppercase and
+// has no parentheses (allergen codes live in parens; categories never do).
+private fun isDishCategory(dish: String): Boolean {
+    val letters = dish.filter { it.isLetter() }
+    return letters.isNotEmpty() && letters.all { it.isUpperCase() } && !dish.contains('(')
+}
+
+@Composable
+private fun CategoryLabel(text: String) {
+    Text(
+        text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp, start = 2.dp),
+    )
 }
 
 @Composable

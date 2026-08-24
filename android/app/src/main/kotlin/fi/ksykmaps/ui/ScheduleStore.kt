@@ -32,21 +32,13 @@ data class Jakso(
     val endDate: String,     // ISO "2026-05-29"
 )
 
-// Finnish upper secondary school jaksot for 2025–2026 and 2026–2027.
-// Dates are typical for Finnish lukio; schools vary by ~1 week.
+// KSYK jaksot for the 2026–2027 academic year with official dates.
 private val DEFAULT_JAKSOT = listOf(
-    // 2025–2026
-    Jakso("j1",  "Jakso 1",     "2025-08-11", "2025-10-03"),
-    Jakso("j2",  "Jakso 2",     "2025-10-13", "2025-12-05"),
-    Jakso("j3",  "Jakso 3",     "2025-12-08", "2026-01-30"),
-    Jakso("j4",  "Jakso 4",     "2026-02-02", "2026-04-09"),
-    Jakso("j5",  "Jakso 5",     "2026-04-13", "2026-05-29"),
-    // 2026–2027
-    Jakso("j6",  "Jakso 1 '26", "2026-08-12", "2026-10-02"),
-    Jakso("j7",  "Jakso 2 '26", "2026-10-12", "2026-12-04"),
-    Jakso("j8",  "Jakso 3 '26", "2026-12-07", "2027-01-29"),
-    Jakso("j9",  "Jakso 4 '27", "2027-02-01", "2027-04-09"),
-    Jakso("j10", "Jakso 5 '27", "2027-04-12", "2027-05-29"),
+    Jakso("j1", "1. jakso", "2026-08-12", "2026-10-05"),
+    Jakso("j2", "2. jakso", "2026-10-06", "2026-12-01"),
+    Jakso("j3", "3. jakso", "2026-12-02", "2027-02-08"),
+    Jakso("j4", "4. jakso", "2027-02-09", "2027-04-12"),
+    Jakso("j5", "5. jakso", "2027-04-13", "2027-06-05"),
 )
 
 internal suspend fun loadJaksot(ctx: Context): List<Jakso> {
@@ -54,12 +46,13 @@ internal suspend fun loadJaksot(ctx: Context): List<Jakso> {
     val stored = if (pref != null) {
         try { scheduleJson.decodeFromString<List<Jakso>>(pref) } catch (_: Exception) { emptyList() }
     } else { emptyList() }
-    if (stored.isEmpty()) return DEFAULT_JAKSOT
-    // Merge: add DEFAULT entries whose ID is missing from stored so new
-    // academic-year jaksot appear for users who already have stored data.
-    val storedIds = stored.map { it.id }.toSet()
-    return (stored + DEFAULT_JAKSOT.filter { it.id !in storedIds })
-        .sortedBy { it.startDate }
+    // Use stored only if it contains exactly the same IDs as defaults (i.e.
+    // admin edits). Any other stored set (legacy data from older builds) is
+    // discarded in favour of the authoritative DEFAULT_JAKSOT.
+    val defaultIds = DEFAULT_JAKSOT.map { it.id }.toSet()
+    val storedIds  = stored.map { it.id }.toSet()
+    if (stored.isNotEmpty() && storedIds == defaultIds) return stored.sortedBy { it.startDate }
+    return DEFAULT_JAKSOT
 }
 
 internal suspend fun saveJaksot(ctx: Context, jaksot: List<Jakso>) {

@@ -10,9 +10,21 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.20";
+export const APP_VERSION = "4.5.21";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.21",
+    date: "August 2026",
+    title: "Map crash fix (singleton GL), jaksot overhaul, schedule button removed",
+    highlights: [
+      "Fixed Android map crash: MapView now survives tab switches (singleton GL context)",
+      "Jaksot updated to 2026–27 official dates (1.–5. jakso only, no year suffixes)",
+      "Removed Schedule button from main map page",
+      "Lunch tab: food group/category labels styled distinctly from dish items",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.20",
     date: "August 2026",
@@ -25,7 +37,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Lunch tab: refresh button, date labels on chips, week number, retry on error",
       "Settings: removed Wi-Fi positioning section from student app",
     ],
-    latest: true,
   },
   {
     version: "4.5.19",

@@ -166,6 +166,19 @@ private const val STYLE_JSON_LIGHT = """{
 private val KSYK_CENTER = LatLng(60.192059, 25.006670)
 private const val KSYK_ZOOM = 17.5
 
+// Singleton holder — keeps the MapView (and its GL context) alive across
+// tab switches. NavHost destroys and recreates MapScreen on every visit,
+// but destroying the MapView kills the GL thread and crashes MapLibre.
+private object MapViewHolder {
+    var view: MapView? = null
+    var map: MapLibreMap? = null
+}
+// Delegating callbacks — updated by SideEffect on every recomposition so
+// the singleton click/camera listeners always read current Compose state.
+private var mapClickDelegate: ((LatLng) -> Boolean) = { _ -> false }
+private var cameraIdleDelegate: (() -> Unit) = {}
+private var cameraMovedDelegate: (() -> Unit) = {}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen() {
@@ -179,7 +192,6 @@ fun MapScreen() {
         MapLibre.getInstance(ctx.applicationContext, "", org.maplibre.android.WellKnownTileServer.MapLibre)
         onDispose { }
     }
-
     var buildings by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var doors by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
@@ -189,6 +201,13 @@ fun MapScreen() {
     var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
     var offlineMode by remember { mutableStateOf(false) }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
+    // Restore mapRef from singleton when returning to the map tab after a
+    // tab switch. NavHost recreates MapScreen but MapViewHolder keeps the
+    // live MapLibreMap object, so we just hand it back to local state and
+    // let all LaunchedEffect(mapRef) blocks re-fire naturally.
+    LaunchedEffect(Unit) {
+        MapViewHolder.map?.let { if (mapRef == null) mapRef = it }
+    }
     var followMe by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searchFocused by remember { mutableStateOf(false) }
@@ -634,6 +653,29 @@ fun MapScreen() {
         }
     }
 
+    // Keep singleton callbacks up-to-date on every recomposition so the
+    // single MapLibre listener (registered once in factory) always reads
+    // the current composition's state rather than stale first-composition
+    // captures. SideEffect runs after every recomposition, after all
+    // state reads are stable.
+    SideEffect {
+        mapClickDelegate = click@ { latLng ->
+            val roomHit = pickRoomAt(rooms, latLng, selectedFloor)
+            if (roomHit != null) { selectedRoom = roomHit; return@click true }
+            val hit = pickBuildingAt(buildings, latLng)
+            if (hit != null) selected = hit
+            hit != null
+        }
+        cameraIdleDelegate = {
+            MapViewHolder.map?.cameraPosition?.let { cp ->
+                savePersistedCamera(ctx, cp.target?.latitude ?: 0.0, cp.target?.longitude ?: 0.0, cp.zoom, cp.bearing, cp.tilt)
+                currentBearing = cp.bearing
+            }
+        }
+        cameraMovedDelegate = {
+            MapViewHolder.map?.cameraPosition?.bearing?.let { b -> currentBearing = b }
+        }
+    }
     val mapViewHolder = remember { mutableStateOf<MapView?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -646,7 +688,9 @@ fun MapScreen() {
                 Lifecycle.Event.ON_STOP    -> mv.onStop()
                 Lifecycle.Event.ON_DESTROY -> {
                     mapRef = null
+                    MapViewHolder.map = null
                     try { mv.onDestroy() } catch (_: Exception) {}
+                    MapViewHolder.view = null
                 }
                 else -> {}
             }
@@ -655,13 +699,12 @@ fun MapScreen() {
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapRef = null
-            // pause → stop → destroy order is required by MapLibre's native GL
-            // layer. Skipping onPause before onStop leaves the renderer in an
-            // inconsistent state and causes a crash on the next tab visit.
+            // Pause + stop only — do NOT destroy. Destroying kills the GL
+            // context and crashes MapLibre when the user returns to this tab.
+            // onDestroy is called only on actual Activity destruction (above).
             mapViewHolder.value?.let { mv ->
                 try { mv.onPause() } catch (_: Exception) {}
                 try { mv.onStop() } catch (_: Exception) {}
-                try { mv.onDestroy() } catch (_: Exception) {}
             }
             mapViewHolder.value = null
         }
@@ -670,62 +713,43 @@ fun MapScreen() {
     Box(Modifier.fillMaxSize()) {
         AndroidView(
             factory = { c ->
-                MapView(c).also { mv ->
-                    mapViewHolder.value = mv
-                    mv.getMapAsync { m ->
-                        m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
-                            // v1.6.0 — camera persistence. If we have a
-                            // saved view from the last session, restore
-                            // it (position + zoom + bearing + pitch);
-                            // otherwise fall back to the KSYK default.
-                            val restored = loadPersistedCamera(c)
-                            val cam = CameraPosition.Builder()
-                                .target(restored?.target ?: KSYK_CENTER)
-                                .zoom(restored?.zoom ?: KSYK_ZOOM)
-                                .bearing(restored?.bearing ?: 0.0)
-                                .tilt(restored?.tilt ?: 0.0)
-                                .build()
-                            m.cameraPosition = cam
-                            m.uiSettings.apply {
-                                isCompassEnabled = true
-                                isRotateGesturesEnabled = true
-                                isTiltGesturesEnabled = true
-                                isAttributionEnabled = true
-                                isLogoEnabled = false
-                                setAttributionMargins(16, 0, 0, 24)
-                            }
-                            m.addOnMapClickListener { latLng ->
-                                val roomHit = pickRoomAt(rooms, latLng, selectedFloor)
-                                if (roomHit != null) {
-                                    selectedRoom = roomHit
-                                    return@addOnMapClickListener true
+                val existing = MapViewHolder.view
+                if (existing != null) {
+                    // Reuse the existing MapView so the GL context is never
+                    // destroyed on tab switch. The DisposableEffect lifecycle
+                    // observer will call onStart + onResume when it registers.
+                    mapViewHolder.value = existing
+                    existing
+                } else {
+                    MapView(c).also { mv ->
+                        MapViewHolder.view = mv
+                        mapViewHolder.value = mv
+                        mv.getMapAsync { m ->
+                            MapViewHolder.map = m
+                            m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
+                                val restored = loadPersistedCamera(c)
+                                val cam = CameraPosition.Builder()
+                                    .target(restored?.target ?: KSYK_CENTER)
+                                    .zoom(restored?.zoom ?: KSYK_ZOOM)
+                                    .bearing(restored?.bearing ?: 0.0)
+                                    .tilt(restored?.tilt ?: 0.0)
+                                    .build()
+                                m.cameraPosition = cam
+                                m.uiSettings.apply {
+                                    isCompassEnabled = true
+                                    isRotateGesturesEnabled = true
+                                    isTiltGesturesEnabled = true
+                                    isAttributionEnabled = true
+                                    isLogoEnabled = false
+                                    setAttributionMargins(16, 0, 0, 24)
                                 }
-                                val hit = pickBuildingAt(buildings, latLng)
-                                if (hit != null) selected = hit
-                                hit != null
+                                // Delegate to file-level vars so re-entry recompositions
+                                // update the handlers without re-registering listeners.
+                                m.addOnMapClickListener { latLng -> mapClickDelegate(latLng) }
+                                m.addOnCameraIdleListener { cameraIdleDelegate() }
+                                m.addOnCameraMoveListener { cameraMovedDelegate() }
+                                mapRef = m
                             }
-                            // Persist camera on every settle so the
-                            // next launch restores where the user left
-                            // off. addOnCameraIdleListener fires when
-                            // the user stops interacting.
-                            m.addOnCameraIdleListener {
-                                val cp = m.cameraPosition
-                                savePersistedCamera(
-                                    c,
-                                    cp.target?.latitude ?: 0.0,
-                                    cp.target?.longitude ?: 0.0,
-                                    cp.zoom, cp.bearing, cp.tilt,
-                                )
-                                currentBearing = cp.bearing
-                            }
-                            // Also update bearing during interactive
-                            // moves (not just when it settles) so the
-                            // compass tracks live under the user's
-                            // finger, not lags behind by 300 ms.
-                            m.addOnCameraMoveListener {
-                                currentBearing = m.cameraPosition.bearing
-                            }
-                            mapRef = m
                         }
                     }
                 }
