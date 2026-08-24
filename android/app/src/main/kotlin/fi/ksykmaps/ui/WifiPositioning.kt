@@ -83,47 +83,44 @@ object WifiPositioning {
     // hammering the server while the user is standing still.
     private var lastLocateHash = 0
 
+    private var isScanning = false
+
     suspend fun startScanning(ctx: Context) {
-        // Pre-load fingerprint DB for offline fallback. Api.get() handles disk
-        // caching so this works even without a network connection on first run.
-        LocalPositioning.refresh()
+        if (isScanning) return
+        isScanning = true
+        try {
+            LocalPositioning.refresh()
 
-        while (true) {
-            val intervalMs: Long = when (mode) {
-                is Mode.Navigate -> 5_000L
-                else             -> 30_000L
-            }
+            while (true) {
+                val intervalMs: Long = when (mode) {
+                    is Mode.Navigate -> 5_000L
+                    else             -> 30_000L
+                }
 
-            if (hasPermission(ctx)) {
-                val raw = scanWifi(ctx)
-                _scanCount.value = raw.size
-                if (raw.isNotEmpty()) {
-                    val smoothed = applySmoothing(raw)
-                    val hash = rssiHash(smoothed)
-                    // Only call the server when RSSI changed meaningfully.
-                    // In Navigate mode always update (user may be moving).
-                    val shouldLocate = mode is Mode.Navigate || hash != lastLocateHash
-                    if (shouldLocate) {
-                        try {
-                            val estimate = locate(smoothed)
-                            // Commit hash only on a successful round-trip (even if no
-                            // position was returned). An exception means the server was
-                            // unreachable — leave the hash unchanged so the next scan
-                            // with the same RSSI data retries instead of being skipped.
-                            lastLocateHash = hash
-                            if (estimate != null) {
-                                val stabilizedFloor = stabilizeFloor(estimate.floor)
-                                _position.value = estimate.copy(floor = stabilizedFloor)
-                            }
-                        } catch (_: Exception) {
-                            // Server unreachable — keep last known position and hash so
-                            // the next identical scan retries.
+                if (hasPermission(ctx)) {
+                    val raw = scanWifi(ctx)
+                    _scanCount.value = raw.size
+                    if (raw.isNotEmpty()) {
+                        val smoothed = applySmoothing(raw)
+                        val hash = rssiHash(smoothed)
+                        val shouldLocate = mode is Mode.Navigate || hash != lastLocateHash
+                        if (shouldLocate) {
+                            try {
+                                val estimate = locate(smoothed)
+                                lastLocateHash = hash
+                                if (estimate != null) {
+                                    val stabilizedFloor = stabilizeFloor(estimate.floor)
+                                    _position.value = estimate.copy(floor = stabilizedFloor)
+                                }
+                            } catch (_: Exception) {}
                         }
                     }
                 }
-            }
 
-            delay(intervalMs)
+                delay(intervalMs)
+            }
+        } finally {
+            isScanning = false
         }
     }
 

@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.14";
+export const APP_VERSION = "4.5.15";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.15",
+    date: "August 2026",
+    title: "Map crash fix, admin rate limit fix, timetable day picker, UI polish",
+    highlights: [
+      "Fixed: Map tab crash on re-visit — MapView lifecycle (onStop/onDestroy) now properly called on cleanup",
+      "Fixed: Admin app 429 'Rate limited' error — authenticated admins now get a separate 1000/min bucket",
+      "Fixed: Wi-Fi scan loop no longer duplicates on map tab re-entry",
+      "New: Timetable day selector — tap Mon–Sun chip to browse any day's lessons",
+      "New: Timetable shows a 'Today' shortcut button when browsing another day",
+      "Improved: Home screen greeting is now time-aware (Good morning/afternoon/evening)",
+      "Improved: Anonymous users shown as 'Student' instead of 'guest'",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.14",
     date: "August 2026",
@@ -27,7 +42,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Improved: Today's schedule rows highlight current lesson with accent strip",
       "Improved: Admin APK renamed to ksykmaps-admin-debug/release-<version>.apk",
     ],
-    latest: true,
   },
   {
     version: "4.5.13",

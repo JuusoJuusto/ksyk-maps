@@ -294,6 +294,13 @@ fun HomeScreen(
 
 @Composable
 private fun GreetingCard(email: String, apiOk: Boolean, lastRefreshed: LocalDateTime?) {
+    val hour = LocalTime.now().hour
+    val greeting = when {
+        hour < 12 -> "Good morning"
+        hour < 17 -> "Good afternoon"
+        else      -> "Good evening"
+    }
+    val displayName = if (email == "guest" || email.isBlank()) "Student" else email.substringBefore("@")
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -311,14 +318,14 @@ private fun GreetingCard(email: String, apiOk: Boolean, lastRefreshed: LocalDate
         ) {
             Column {
                 Text(
-                    "Welcome back",
+                    greeting,
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    email,
+                    displayName,
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,

@@ -2,9 +2,11 @@ package fi.ksykmaps.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -66,7 +68,9 @@ fun TimetableScreen(
     var showAdd by remember { mutableStateOf(false) }
     var editEntry by remember { mutableStateOf<ScheduleEntry?>(null) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
-    val dow = todayDow()
+    val todayDow = remember { todayDow() }
+    var selectedDow by remember { mutableIntStateOf(todayDow) }
+    val isToday = selectedDow == todayDow
     val nowMins = hhmm(nowHhmm())
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
@@ -82,15 +86,15 @@ fun TimetableScreen(
         }
     }
 
-    val todayEntries = entries.filter { it.dayOfWeek == dow }
+    val dayEntries = entries.filter { it.dayOfWeek == selectedDow }
         .sortedBy { hhmm(it.startHhmm) }
 
-    val currentEntry = todayEntries.firstOrNull { e ->
+    val currentEntry = if (isToday) dayEntries.firstOrNull { e ->
         hhmm(e.startHhmm) <= nowMins && nowMins < hhmm(e.endHhmm)
-    }
-    val nextEntry = todayEntries.firstOrNull { e ->
+    } else null
+    val nextEntry = if (isToday) dayEntries.firstOrNull { e ->
         hhmm(e.startHhmm) > nowMins
-    }
+    } else null
     val currentProgress: Float = currentEntry?.let { e ->
         val start = hhmm(e.startHhmm)
         val end = hhmm(e.endHhmm)
@@ -100,7 +104,7 @@ fun TimetableScreen(
     val currentRemaining: Int? = currentEntry?.let { e -> (hhmm(e.endHhmm) - nowMins).coerceAtLeast(0) }
     val minutesUntilNext: Int? = nextEntry?.let { e -> (hhmm(e.startHhmm) - nowMins).coerceAtLeast(0) }
 
-    val todayName = DayOfWeek.of(if (dow in 1..7) dow else 1)
+    val dayName = DayOfWeek.of(if (selectedDow in 1..7) selectedDow else 1)
         .getDisplayName(TextStyle.FULL, Locale.ENGLISH)
 
     Scaffold(
@@ -135,24 +139,47 @@ fun TimetableScreen(
                 )
             }
 
-            // Today header
+            // Day selector
             item {
-                Text(
-                    todayName,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    nowHhmm(),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                DaySelector(
+                    selected = selectedDow,
+                    today = todayDow,
+                    onSelect = { selectedDow = it },
                 )
             }
 
-            // Current lesson card
+            // Day header
             item {
-                if (dow in 1..5) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            dayName,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (isToday) {
+                            Text(
+                                nowHhmm(),
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (selectedDow != todayDow) {
+                        TextButton(onClick = { selectedDow = todayDow }) {
+                            Text("Today")
+                        }
+                    }
+                }
+            }
+
+            // Current lesson card (today only)
+            if (isToday && selectedDow in 1..5) {
+                item {
                     LessonCard(
                         label = "NOW",
                         entry = currentEntry,
@@ -167,11 +194,7 @@ fun TimetableScreen(
                         },
                     )
                 }
-            }
-
-            // Next lesson card
-            item {
-                if (dow in 1..5) {
+                item {
                     LessonCard(
                         label = "NEXT",
                         entry = nextEntry,
@@ -187,18 +210,18 @@ fun TimetableScreen(
                 }
             }
 
-            // Today's full schedule
-            if (todayEntries.isNotEmpty()) {
+            // Selected day's full schedule
+            if (dayEntries.isNotEmpty()) {
                 item {
                     Text(
-                        "Today",
+                        if (isToday) "Today's schedule" else "All lessons",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
-                items(todayEntries) { entry ->
+                items(dayEntries) { entry ->
                     EntryRow(
                         entry = entry,
                         isCurrent = entry == currentEntry,
@@ -212,7 +235,7 @@ fun TimetableScreen(
                         },
                     )
                 }
-            } else if (dow in 1..5) {
+            } else if (selectedDow in 1..5) {
                 item { EmptyState() }
             } else {
                 item {
@@ -431,6 +454,35 @@ private fun EmptyState() {
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         )
+    }
+}
+
+@Composable
+private fun DaySelector(selected: Int, today: Int, onSelect: (Int) -> Unit) {
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        days.forEachIndexed { i, label ->
+            val dow = i + 1
+            FilterChip(
+                selected = selected == dow,
+                onClick = { onSelect(dow) },
+                label = {
+                    Text(
+                        if (dow == today) "$label ·" else label,
+                        fontSize = 13.sp,
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+        }
     }
 }
 

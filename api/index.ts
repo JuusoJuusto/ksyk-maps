@@ -60,16 +60,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
   
-  // Rate limiting
+  // Rate limiting — admins get a separate high-capacity bucket so the
+  // dashboard (which fires 5 parallel requests on load) never hits 429.
   const clientIP = getRealIP(req.headers);
-  const rateLimit = checkRateLimit(clientIP, 100, 60000); // 100 requests per minute
-  
-  // Set rate limit headers
-  res.setHeader('X-RateLimit-Limit', '100');
+  const adminHeader = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
+  const adminToken = adminHeader?.replace(/^Bearer\s+/i, '').trim();
+  const isAdminReq = adminToken ? verifyAdminToken(adminToken) !== null : false;
+  const rateLimitKey = isAdminReq ? `admin:${adminToken!.slice(-16)}` : clientIP;
+  const maxReq = isAdminReq ? 1000 : 100;
+  const rateLimit = checkRateLimit(rateLimitKey, maxReq, 60000);
+
+  res.setHeader('X-RateLimit-Limit', maxReq.toString());
   res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
   res.setHeader('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString());
-  
-  // Check if rate limit exceeded
+
   if (!rateLimit.allowed) {
     console.log(`âš ï¸ Rate limit exceeded for IP: ${clientIP}`);
     return res.status(429).json({

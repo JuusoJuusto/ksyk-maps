@@ -694,6 +694,10 @@ fun MapScreen() {
                     onStart(); onResume()
                 }
             },
+            onRelease = { mv ->
+                try { mv.onStop() } catch (_: Exception) {}
+                try { mv.onDestroy() } catch (_: Exception) {}
+            },
             modifier = Modifier.fillMaxSize(),
         )
 
