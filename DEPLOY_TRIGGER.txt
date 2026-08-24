@@ -1,6 +1,6 @@
 FORCE VERCEL REBUILD - 2026-08-24
 
-Bump reason: v4.5.12 — Wilma iCalendar integration, smart classroom matching, schedule card, Android Wilma connect
+Bump reason: v4.5.13 — Critical DB fixes, Android navigation crash, duplicate lessons, student UI cleanup
 
-Timestamp: 1788450000
-Build: FORCE_REBUILD_v4.5.12_WILMA_ICALENDAR
+Timestamp: 1788453600
+Build: FORCE_REBUILD_v4.5.13_CRITICAL_FIXES

@@ -62,8 +62,8 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
-    var openTickets by remember { mutableStateOf(0) }
     var announcementCount by remember { mutableStateOf(0) }
+    var todayLessons by remember { mutableStateOf(0) }
     var recentAnnouncements by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
@@ -78,16 +78,10 @@ fun HomeScreen(
             try {
                 val rs = withContext(Dispatchers.IO) { Api.get("/rooms") }
                 val bs = withContext(Dispatchers.IO) { Api.get("/buildings") }
-                val ts = try { withContext(Dispatchers.IO) { Api.get("/tickets") } } catch (_: Exception) { null }
                 val ans = withContext(Dispatchers.IO) { Api.get("/announcements?limit=20") }
 
                 rooms = rs.jsonArray.size
                 buildings = bs.jsonArray.size
-                openTickets = ts?.jsonArray?.count {
-                    val obj = it as? JsonObject
-                    val st = (obj?.get("status") as? JsonPrimitive)?.contentOrNull?.lowercase()
-                    st == "pending" || st == "in_progress" || st == "open"
-                } ?: 0
                 announcementCount = ans.jsonArray.size
                 recentAnnouncements = ans.jsonArray.mapNotNull { it as? JsonObject }.take(3)
                 apiOk = true
@@ -107,6 +101,7 @@ fun HomeScreen(
                         val o = arr.getJSONObject(i)
                         if (o.optInt("dayOfWeek") == todayDow) o else null
                     }.sortedBy { it.optString("startHhmm", "99:99") }
+                    todayLessons = todayEntries.size
                     currentLesson = todayEntries.firstOrNull { e ->
                         val start = runCatching { LocalTime.parse(e.optString("startHhmm"), fmt) }.getOrNull() ?: return@firstOrNull false
                         val end   = runCatching { LocalTime.parse(e.optString("endHhmm"),   fmt) }.getOrNull() ?: return@firstOrNull false
@@ -215,10 +210,11 @@ fun HomeScreen(
                 ) {
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.SupportAgent,
-                        value = openTickets.toString(),
-                        label = "OPEN TICKETS",
+                        icon = Icons.Outlined.CalendarMonth,
+                        value = todayLessons.toString(),
+                        label = "TODAY",
                         accent = Color(0xFFEF4444),
+                        onClick = onOpenTimetable,
                     )
                     StatCard(
                         modifier = Modifier.weight(1f),
