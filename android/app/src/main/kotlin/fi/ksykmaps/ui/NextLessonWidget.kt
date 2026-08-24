@@ -35,7 +35,6 @@ class NextLessonWidget : AppWidgetProvider() {
             })
         }
 
-        // Exposed so TimetableScreen can persist the JSON for the widget to read
         fun saveEntriesForWidget(context: Context, entriesJson: String) {
             context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
                 .edit()
@@ -43,52 +42,61 @@ class NextLessonWidget : AppWidgetProvider() {
                 .apply()
         }
 
+        private fun toMins(hhmm: String): Int {
+            val parts = hhmm.split(":")
+            return if (parts.size == 2) (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0) else 0
+        }
+
+        private fun formatCountdown(minutesAway: Int): String = when {
+            minutesAway <= 0 -> "now"
+            minutesAway < 60 -> "in $minutesAway min"
+            else -> {
+                val h = minutesAway / 60
+                val m = minutesAway % 60
+                if (m == 0) "in ${h}h" else "in ${h}h ${m}m"
+            }
+        }
+
         private fun updateWidget(context: Context, manager: AppWidgetManager, id: Int) {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val raw = prefs.getString("entries_json", null)
-
             val views = RemoteViews(context.packageName, R.layout.widget_next_lesson)
-
-            val next = if (raw != null) findNext(raw) else null
+            val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
+            val next = if (raw != null) findNext(raw, nowMins) else null
 
             if (next != null) {
                 val subject = next.optString("subject", "—").ifBlank { "—" }
                 val start = next.optString("startHhmm", "")
                 val room = next.optString("roomNumber", "")
+                val startMins = toMins(start)
+                val minutesAway = (startMins - nowMins).coerceAtLeast(0)
+
                 val details = buildString {
                     if (start.isNotBlank()) append(start)
-                    if (room.isNotBlank()) append(" · Room $room")
+                    if (room.isNotBlank()) append("  ·  Room $room")
                 }
+
                 views.setTextViewText(R.id.widget_subject, subject)
                 views.setTextViewText(R.id.widget_details, details)
+                views.setTextViewText(R.id.widget_countdown, formatCountdown(minutesAway))
             } else {
                 views.setTextViewText(R.id.widget_subject, "No more lessons today")
                 views.setTextViewText(R.id.widget_details, "")
+                views.setTextViewText(R.id.widget_countdown, "")
             }
 
             manager.updateAppWidget(id, views)
         }
 
-        private fun findNext(raw: String): org.json.JSONObject? {
+        private fun findNext(raw: String, nowMins: Int): org.json.JSONObject? {
             return try {
                 val arr = JSONArray(raw)
                 val today = LocalDate.now().dayOfWeek.value
-                val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
                 (0 until arr.length())
                     .map { arr.getJSONObject(it) }
                     .filter { it.optInt("dayOfWeek") == today }
-                    .filter { obj ->
-                        val parts = obj.optString("startHhmm").split(":")
-                        if (parts.size == 2)
-                            (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0) > nowMins
-                        else false
-                    }
-                    .minByOrNull { obj ->
-                        val parts = obj.optString("startHhmm").split(":")
-                        if (parts.size == 2)
-                            (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
-                        else Int.MAX_VALUE
-                    }
+                    .filter { obj -> toMins(obj.optString("startHhmm")) > nowMins }
+                    .minByOrNull { obj -> toMins(obj.optString("startHhmm")) }
             } catch (_: Exception) { null }
         }
     }

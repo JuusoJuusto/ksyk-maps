@@ -10,9 +10,25 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.13";
+export const APP_VERSION = "4.5.14";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.14",
+    date: "August 2026",
+    title: "Widgets overhaul, onboarding, FI/EN language toggle, timetable polish",
+    highlights: [
+      "New: Widget redesign — progress bar in NOW widget, countdown in NEXT, current lesson highlight in TODAY",
+      "New: First-launch onboarding — 3-page intro with pager dots and Wilma connect prompt",
+      "New: FI/EN language toggle in Settings — key labels adapt instantly",
+      "Improved: Settings screen now scrollable (LazyColumn) so nothing gets cut off",
+      "Improved: NOW lesson card shows time progress bar and minutes remaining",
+      "Improved: NEXT lesson card shows countdown (in X min / in Xh Ym)",
+      "Improved: Today's schedule rows highlight current lesson with accent strip",
+      "Improved: Admin APK renamed to ksykmaps-admin-debug/release-<version>.apk",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.13",
     date: "August 2026",
@@ -25,7 +41,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Fixed: OPEN TICKETS admin stat removed from student home screen",
       "Improved: APK output named ksykmaps-debug/release-<version>.apk",
     ],
-    latest: true,
   },
   {
     version: "4.5.12",

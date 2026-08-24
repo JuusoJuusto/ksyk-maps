@@ -24,6 +24,19 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+
+    // Rename output APKs to ksykmaps-admin-<variant>-<versionName>.apk
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "ksykmaps-admin-${variant.buildType.name}-${variant.versionName}.apk"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

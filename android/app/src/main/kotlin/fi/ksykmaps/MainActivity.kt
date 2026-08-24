@@ -38,35 +38,22 @@ import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LoginScreen
 import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
+import fi.ksykmaps.ui.OnboardingScreen
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
+import fi.ksykmaps.ui.isOnboardingDone
 import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
-/**
- * Single-activity Compose host with a Material-3 bottom nav bar.
- *
- * Routes:
- *   home          · Landing dashboard with live stats
- *   map           · Native MapLibre campus map — primary screen
- *   rooms         · Searchable room finder (list view companion to Map)
- *   beacons       · WiFi + GPS survey (linked from Home quick-actions)
- *   buildings     · Campus buildings directory (linked from Home)
- *   news          · School announcements
- *   settings      · App preferences + about
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Must be BEFORE super.onCreate — installs the splash screen shim.
         installSplashScreen()
         super.onCreate(savedInstanceState)
         Session.load(this)
-        handleDeepLink(intent)  // Cold-start deep link (app launched by URL)
+        handleDeepLink(intent)
         setContent {
-            // Read theme prefs from DataStore — defaulting to system dark mode
-            // and dynamic colour on. The Settings screen can override both.
             val darkMode = isSystemInDarkTheme()
             KsykTheme(darkTheme = darkMode) { AppShell() }
         }
@@ -74,17 +61,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Warm-start deep link — app is already running, user taps a
-        // ksykmaps.fi/?room=<id> link somewhere. singleTop launchMode
-        // means we get onNewIntent instead of a fresh activity.
         setIntent(intent)
         handleDeepLink(intent)
     }
 
     private fun handleDeepLink(intent: Intent?) {
         val data: Uri = intent?.data ?: return
-        // We only recognise the room-focus query for now; other pages
-        // fall back to opening the browser via the OS chooser.
         val roomId = data.getQueryParameter("room") ?: return
         if (roomId.isNotBlank()) {
             MapNavIntent.pendingRoomId = roomId
@@ -107,25 +89,20 @@ private val TABS = listOf(
 private fun AppShell() {
     val ctx = LocalContext.current
     val nav = rememberNavController()
-    // v1.5.0 — no forced login. The app opens straight to the map like
-    // the website. Sign-in is optional and lives in Settings; it's only
-    // needed for admin features (Beacons survey, publishing changes).
-    // Public campus data (buildings, rooms, announcements) is served
-    // to anonymous callers by /api on the server side, matching the
-    // web anon experience.
     var loggedIn by remember { mutableStateOf(Api.sessionEmail != null) }
     var showLogin by remember { mutableStateOf(false) }
+    var onboardingDone by remember { mutableStateOf(isOnboardingDone(ctx)) }
 
-    // Cold-start deep link — if MainActivity received a room URL and
-    // pushed the id into MapNavIntent before we composed, jump to the
-    // Map tab so MapScreen's own LaunchedEffect can consume the intent.
     LaunchedEffect(Unit) {
         if (MapNavIntent.pendingRoomId != null) navigate(nav, "map")
     }
 
-    // Optional login sheet — surfaces only when the user explicitly
-    // triggers it (Settings → Sign in, or a screen that requires auth
-    // like the beacon survey). Doesn't block the rest of the app.
+    // Show onboarding for first-time users
+    if (!onboardingDone) {
+        OnboardingScreen(onDone = { onboardingDone = true })
+        return
+    }
+
     if (showLogin) {
         LoginScreen(onLoggedIn = {
             loggedIn = true

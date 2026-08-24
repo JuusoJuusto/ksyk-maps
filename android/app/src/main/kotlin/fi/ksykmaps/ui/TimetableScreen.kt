@@ -91,6 +91,14 @@ fun TimetableScreen(
     val nextEntry = todayEntries.firstOrNull { e ->
         hhmm(e.startHhmm) > nowMins
     }
+    val currentProgress: Float = currentEntry?.let { e ->
+        val start = hhmm(e.startHhmm)
+        val end = hhmm(e.endHhmm)
+        val duration = (end - start).coerceAtLeast(1)
+        ((nowMins - start).toFloat() / duration).coerceIn(0f, 1f)
+    } ?: 0f
+    val currentRemaining: Int? = currentEntry?.let { e -> (hhmm(e.endHhmm) - nowMins).coerceAtLeast(0) }
+    val minutesUntilNext: Int? = nextEntry?.let { e -> (hhmm(e.startHhmm) - nowMins).coerceAtLeast(0) }
 
     val todayName = DayOfWeek.of(if (dow in 1..7) dow else 1)
         .getDisplayName(TextStyle.FULL, Locale.ENGLISH)
@@ -151,6 +159,9 @@ fun TimetableScreen(
                         emptyText = if (nowMins < hhmm("08:00")) "School hasn't started yet"
                                     else "No lesson right now",
                         accentColor = MaterialTheme.colorScheme.primary,
+                        progress = currentProgress,
+                        remaining = currentRemaining,
+                        countdown = null,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
@@ -166,6 +177,9 @@ fun TimetableScreen(
                         entry = nextEntry,
                         emptyText = "No more lessons today",
                         accentColor = MaterialTheme.colorScheme.secondary,
+                        progress = null,
+                        remaining = null,
+                        countdown = minutesUntilNext,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
@@ -240,6 +254,9 @@ private fun LessonCard(
     entry: ScheduleEntry?,
     emptyText: String,
     accentColor: Color,
+    progress: Float?,         // 0..1 for NOW card, null for NEXT
+    remaining: Int?,          // minutes remaining for NOW card
+    countdown: Int?,          // minutes until start for NEXT card
     onNavigate: (ScheduleEntry) -> Unit,
 ) {
     ElevatedCard(
@@ -248,13 +265,36 @@ private fun LessonCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(
-                label,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                color = accentColor,
-            )
+            // Label row with countdown badge
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    label,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = accentColor,
+                    modifier = Modifier.weight(1f),
+                )
+                if (entry != null) {
+                    val badge = when {
+                        remaining != null && remaining > 0 -> "$remaining min left"
+                        countdown != null && countdown > 0 -> {
+                            val h = countdown / 60; val m = countdown % 60
+                            if (h > 0) "in ${h}h${if (m > 0) " ${m}m" else ""}" else "in ${m}m"
+                        }
+                        countdown == 0 -> "starting now"
+                        else -> null
+                    }
+                    if (badge != null) {
+                        Text(
+                            badge,
+                            fontSize = 11.sp,
+                            color = accentColor.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(6.dp))
             if (entry != null) {
                 Text(entry.subject, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -267,6 +307,16 @@ private fun LessonCard(
                     if (entry.teacher.isNotBlank()) {
                         InfoChip(Icons.Outlined.Person, entry.teacher)
                     }
+                }
+                // Progress bar for NOW card
+                if (progress != null) {
+                    Spacer(Modifier.height(10.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                        color = accentColor,
+                        trackColor = accentColor.copy(alpha = 0.15f),
+                    )
                 }
                 if (entry.roomId.isNotBlank()) {
                     Spacer(Modifier.height(10.dp))
@@ -302,7 +352,6 @@ private fun EntryRow(
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
 ) {
-    val dayName = DayOfWeek.of(entry.dayOfWeek).getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
     Row(
         Modifier
             .fillMaxWidth()
@@ -310,18 +359,40 @@ private fun EntryRow(
             .background(
                 if (isCurrent) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-            .padding(12.dp),
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(entry.subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        // Accent strip for current lesson
+        if (isCurrent) {
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .height(56.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                    )
+            )
+        }
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(start = if (isCurrent) 10.dp else 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)
+        ) {
+            Text(
+                entry.subject,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 "${entry.startHhmm}–${entry.endHhmm}" +
                     (if (entry.roomNumber.isNotBlank()) " · Room ${entry.roomNumber}" else "") +
                     (if (entry.teacher.isNotBlank()) " · ${entry.teacher}" else ""),
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (entry.roomId.isNotBlank()) {
