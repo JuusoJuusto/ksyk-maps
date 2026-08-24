@@ -21,7 +21,6 @@ import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
 import androidx.compose.foundation.clickable
-import androidx.compose.runtime.collectAsState
 
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
@@ -39,7 +38,6 @@ object ThemeState {
 fun SettingsScreen(
     onSignOut: () -> Unit,
     onSignIn: () -> Unit = {},
-    onNavigateToBeacons: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
@@ -54,9 +52,6 @@ fun SettingsScreen(
     var userName by remember { mutableStateOf(getUserName(ctx)) }
     var editingName by remember { mutableStateOf(false) }
     var themeMode by remember { mutableStateOf(ThemeState.mode) }
-    val wifiApCount by WifiPositioning.scanCount.collectAsState()
-    val wifiPos by WifiPositioning.position.collectAsState()
-
     val isFi = language == "fi"
 
     Scaffold(
@@ -268,30 +263,6 @@ fun SettingsScreen(
                         onClick = onSignIn,
                     )
                 }
-            }
-
-            item { SectionTitle(if (isFi) "Wi-Fi-paikannus" else "Wi-Fi Positioning") }
-            item {
-                SettingRow(
-                    icon = Icons.Outlined.Wifi,
-                    title = if (isFi) "Sisätilapaikannus" else "Indoor positioning",
-                    subtitle = buildString {
-                        append("$wifiApCount AP${if (wifiApCount == 1) "" else "s"} visible")
-                        wifiPos?.let { pos ->
-                            append(" · ${pos.confidence.name.lowercase()}")
-                            pos.floor?.let { append(" · Floor $it") }
-                        } ?: append(" · no estimate yet")
-                    },
-                )
-            }
-            item {
-                LinkRow(
-                    icon = Icons.Outlined.Sensors,
-                    title = if (isFi) "Kalibroi sormenjäljet" else "Calibrate fingerprints",
-                    subtitle = if (isFi) "Skannaa huoneita Wi-Fi-skannerilla"
-                               else "Survey rooms with the native WiFi scanner",
-                    onClick = onNavigateToBeacons,
-                )
             }
 
             item { SectionTitle(if (isFi) "Tietoja" else "About") }

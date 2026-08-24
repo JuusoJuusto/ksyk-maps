@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import java.io.StringReader
@@ -38,25 +39,30 @@ private data class LunchDay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LunchScreen() {
+    val scope = rememberCoroutineScope()
     var days by remember { mutableStateOf<List<LunchDay>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val today = remember { LocalDate.now() }
     var selectedIdx by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
-        loading = true; error = null
-        try {
-            val result = withContext(Dispatchers.IO) { fetchMenu() }
-            days = result
-            val todayIdx = result.indexOfFirst { it.date == today }
-            if (todayIdx >= 0) selectedIdx = todayIdx
-        } catch (e: Exception) {
-            error = e.localizedMessage ?: "Failed to load menu"
-        } finally {
-            loading = false
+    fun doFetch() {
+        scope.launch {
+            loading = true; error = null
+            try {
+                val result = withContext(Dispatchers.IO) { fetchMenu() }
+                days = result
+                val todayIdx = result.indexOfFirst { it.date == today }
+                if (todayIdx >= 0) selectedIdx = todayIdx
+            } catch (e: Exception) {
+                error = e.localizedMessage ?: "Ruokalistaa ei voitu ladata"
+            } finally {
+                loading = false
+            }
         }
     }
+
+    LaunchedEffect(Unit) { doFetch() }
 
     Scaffold(
         topBar = {
@@ -64,7 +70,11 @@ fun LunchScreen() {
                 title = { Text("Lounas", fontWeight = FontWeight.SemiBold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 actions = {
-                    // Show source attribution
+                    if (!loading) {
+                        IconButton(onClick = { doFetch() }) {
+                            Icon(Icons.Outlined.Refresh, contentDescription = "Päivitä")
+                        }
+                    }
                     TextButton(onClick = {}) {
                         Text("Compass Group", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -75,14 +85,24 @@ fun LunchScreen() {
         when {
             loading -> {
                 Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            "Ladataan ruokalistaa…",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             error != null -> {
                 Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
                             Icons.Outlined.CloudOff, null,
@@ -92,15 +112,30 @@ fun LunchScreen() {
                         Text("Ruokalistaa ei voitu ladata", fontWeight = FontWeight.SemiBold)
                         Text(
                             error!!,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        FilledTonalButton(onClick = { doFetch() }) {
+                            Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Yritä uudelleen")
+                        }
                     }
                 }
             }
             days.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                    Text("Ei ruokalistaa tälle viikolle")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.RestaurantMenu, null,
+                            Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        )
+                        Text("Ei ruokalistaa tälle viikolle")
+                    }
                 }
             }
             else -> {
@@ -109,7 +144,20 @@ fun LunchScreen() {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // Day chips
+                    // Week info header
+                    item {
+                        val weekNum = days.firstOrNull()?.date?.let {
+                            java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear().getFrom(it).toInt()
+                        }
+                        Text(
+                            if (weekNum != null) "Viikko $weekNum" else "Tällä viikolla",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    // Day chips — show "Ma 24.8" style labels
                     item {
                         Row(
                             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -117,38 +165,37 @@ fun LunchScreen() {
                         ) {
                             days.forEachIndexed { i, day ->
                                 val isToday = day.date == today
+                                val abbrev = when (day.date?.dayOfWeek?.value) {
+                                    1 -> "Ma"; 2 -> "Ti"; 3 -> "Ke"; 4 -> "To"; 5 -> "Pe"
+                                    6 -> "La"; 7 -> "Su"; else -> day.label.take(2)
+                                }
+                                val chipLabel = buildString {
+                                    append(abbrev)
+                                    day.date?.let { d -> append(" ${d.dayOfMonth}.${d.monthValue}.") }
+                                    if (isToday) append(" ·")
+                                }
                                 FilterChip(
                                     selected = selectedIdx == i,
                                     onClick = { selectedIdx = i },
-                                    label = {
-                                        Text(
-                                            buildString {
-                                                append(day.label.take(2))
-                                                if (isToday) append(" ·")
-                                            },
-                                            fontSize = 13.sp,
-                                        )
-                                    },
+                                    label = { Text(chipLabel, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = if (isToday)
                                             MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.secondaryContainer,
+                                        else MaterialTheme.colorScheme.secondaryContainer,
                                         selectedLabelColor = if (isToday)
                                             MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSecondaryContainer,
+                                        else MaterialTheme.colorScheme.onSecondaryContainer,
                                     ),
                                 )
                             }
                         }
                     }
 
-                    // Selected day header
+                    // Selected day header + dishes
                     val day = days.getOrNull(selectedIdx)
                     if (day != null) {
                         item {
-                            Column {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
                                     day.label,
                                     fontSize = 22.sp,
@@ -160,6 +207,12 @@ fun LunchScreen() {
                                         fontSize = 13.sp,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Medium,
+                                    )
+                                } else if (day.date != null) {
+                                    Text(
+                                        "${day.date.dayOfMonth}.${day.date.monthValue}.${day.date.year}",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -182,6 +235,13 @@ fun LunchScreen() {
                                 }
                             }
                         } else {
+                            item {
+                                Text(
+                                    "${day.dishes.size} ruokalajia",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                             items(day.dishes) { dish -> DishRow(dish) }
                         }
                     }

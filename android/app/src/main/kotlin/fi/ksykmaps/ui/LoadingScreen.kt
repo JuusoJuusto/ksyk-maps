@@ -1,9 +1,11 @@
 package fi.ksykmaps.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.*
@@ -11,9 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -21,34 +25,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-private val BlueDark   = Color(0xFF1E3A8A)
-private val BlueMain   = Color(0xFF2563EB)
-private val BlueLight  = Color(0xFF3B82F6)
+private val SplashBlue = Color(0xFF2563EB)
 
 @Composable
 fun LoadingScreen(onFinished: () -> Unit) {
-    var phase by remember { mutableIntStateOf(0) } // 0=in, 1=hold, 2=out
-
-    // Logo pulse animation
-    val logoScale by animateFloatAsState(
-        targetValue = when (phase) { 0 -> 1f; else -> 1.08f },
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 180f),
-        label = "logo-scale",
+    var progress by remember { mutableStateOf(0f) }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 300),
+        label = "progress",
     )
 
-    // Fade-out the whole screen
     val screenAlpha by animateFloatAsState(
-        targetValue = if (phase == 2) 0f else 1f,
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-        label = "screen-alpha",
-        finishedListener = { if (phase == 2) onFinished() },
+        targetValue = if (progress >= 1f) 0f else 1f,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "fade",
+        finishedListener = { if (progress >= 1f) onFinished() },
+    )
+
+    val ringRotation by rememberInfiniteTransition(label = "ring").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 950, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "spin",
     )
 
     LaunchedEffect(Unit) {
-        delay(300)
-        phase = 1          // logo bounce
-        delay(1000)
-        phase = 2          // fade out
+        val stages = listOf(0.20f, 0.45f, 0.65f, 0.82f, 0.95f, 1.0f)
+        val pauses  = listOf(150L, 200L, 250L, 200L, 200L, 100L)
+        for ((target, ms) in stages.zip(pauses)) {
+            delay(ms)
+            progress = target
+        }
     }
 
     if (screenAlpha <= 0.001f) return
@@ -57,85 +68,95 @@ fun LoadingScreen(onFinished: () -> Unit) {
         Modifier
             .fillMaxSize()
             .graphicsLayer { alpha = screenAlpha }
-            .background(
-                Brush.radialGradient(
-                    listOf(BlueLight, BlueMain, BlueDark),
-                    radius = 1400f,
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(0.dp),
-            modifier = Modifier.scale(logoScale),
         ) {
-            // Logo circle
+            // Spinning ring + logo — matches the website SplashScreen SVG ring style
             Box(
-                Modifier
-                    .size(110.dp)
-                    .scale(logoScale)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f)),
+                Modifier.size(80.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    Icons.Outlined.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(60.dp),
-                    tint = Color.White,
-                )
+                Canvas(Modifier.fillMaxSize()) {
+                    val sw   = 3.dp.toPx()
+                    val inset = sw / 2f
+                    val arcSize = Size(size.width - sw, size.height - sw)
+                    val topLeft  = Offset(inset, inset)
+                    // Grey background track
+                    drawArc(
+                        color = Color(0xFFE5E7EB),
+                        startAngle = 0f, sweepAngle = 360f, useCenter = false,
+                        topLeft = topLeft, size = arcSize,
+                        style = Stroke(sw, cap = StrokeCap.Round),
+                    )
+                    // Blue spinning arc (~230° dasharray, same proportion as website)
+                    drawArc(
+                        color = SplashBlue,
+                        startAngle = ringRotation - 90f,
+                        sweepAngle = 230f,
+                        useCenter = false,
+                        topLeft = topLeft, size = arcSize,
+                        style = Stroke(sw, cap = StrokeCap.Round),
+                    )
+                }
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(SplashBlue.copy(alpha = 0.09f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Map,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = SplashBlue,
+                    )
+                }
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
 
             Text(
                 "KSYK Maps",
-                fontSize = 28.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
-                letterSpacing = 0.5.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                letterSpacing = (-0.2).sp,
             )
-
-            Spacer(Modifier.height(6.dp))
-
+            Spacer(Modifier.height(3.dp))
             Text(
                 "Campus navigation",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(28.dp))
 
-            LoadingDots()
-        }
-    }
-}
-
-@Composable
-private fun LoadingDots() {
-    val infiniteTransition = rememberInfiniteTransition(label = "dots")
-
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(3) { i ->
-            val offsetY by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = -8f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(400, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                    initialStartOffset = StartOffset(i * 120),
-                ),
-                label = "dot-$i",
-            )
-            Box(
-                Modifier
-                    .size(7.dp)
-                    .offset(y = offsetY.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.8f))
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(200.dp),
+            ) {
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = SplashBlue,
+                    trackColor = Color(0xFFE5E7EB),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "${(animatedProgress * 100).toInt()}%",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                )
+            }
         }
     }
 }

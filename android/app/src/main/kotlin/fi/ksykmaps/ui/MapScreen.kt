@@ -655,7 +655,11 @@ fun MapScreen() {
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapRef = null
+            // pause → stop → destroy order is required by MapLibre's native GL
+            // layer. Skipping onPause before onStop leaves the renderer in an
+            // inconsistent state and causes a crash on the next tab visit.
             mapViewHolder.value?.let { mv ->
+                try { mv.onPause() } catch (_: Exception) {}
                 try { mv.onStop() } catch (_: Exception) {}
                 try { mv.onDestroy() } catch (_: Exception) {}
             }

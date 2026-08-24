@@ -94,7 +94,7 @@ fun TimetableScreen(
         val loadedJaksot = loadJaksot(ctx)
         jaksot = loadedJaksot
         // Auto-select the current active jakso; fall back to "all"
-        selectedJaksoId = activeJaksoId(loadedJaksot) ?: "all"
+        selectedJaksoId = activeJaksoId(loadedJaksot) ?: loadedJaksot.firstOrNull()?.id ?: "all"
         try {
             val r = withContext(Dispatchers.IO) { Api.get("/rooms") }
             rooms = r.jsonArray.mapNotNull { it as? JsonObject }
@@ -509,11 +509,6 @@ private fun JaksoSelector(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        FilterChip(
-            selected = selected == "all",
-            onClick = { onSelect("all") },
-            label = { Text("All periods", fontSize = 12.sp) },
-        )
         jaksot.forEach { jakso ->
             val isCurrent = jakso.startDate <= today && today <= jakso.endDate
             FilterChip(

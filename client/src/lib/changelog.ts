@@ -10,9 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.19";
+export const APP_VERSION = "4.5.20";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.20",
+    date: "August 2026",
+    title: "Map crash fix, loading screen redesign, lunch + timetable improvements",
+    highlights: [
+      "Fixed Android map tab crash (correct pause→stop→destroy lifecycle order)",
+      "Redesigned loading screen to match website style: spinning ring + progress bar",
+      "Timetable: auto-selects correct jakso based on today's date; 2026–27 jaksot added",
+      "Removed 'All jaksot' option — app always shows the active/upcoming period",
+      "Lunch tab: refresh button, date labels on chips, week number, retry on error",
+      "Settings: removed Wi-Fi positioning section from student app",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.19",
     date: "August 2026",
@@ -24,7 +38,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "New: Android app loading screen — animated logo + bouncing dots, fades into the main UI",
       "Bump: Student app 1.15.0",
     ],
-    latest: true,
   },
   {
     version: "4.5.18",
