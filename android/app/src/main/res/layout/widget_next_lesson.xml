@@ -7,19 +7,38 @@
     android:background="@drawable/widget_background"
     android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/widget_label"
-        android:layout_width="wrap_content"
+    <!-- Header: label + countdown badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="NEXT LESSON"
-        android:textSize="9sp"
-        android:letterSpacing="0.15"
-        android:textColor="#99FFFFFF"
-        android:fontFamily="sans-serif-medium" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
+        <TextView
+            android:id="@+id/widget_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="NEXT LESSON"
+            android:textSize="9sp"
+            android:letterSpacing="0.12"
+            android:textColor="#99FFFFFF"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/widget_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="10sp"
+            android:textColor="#BBFFFFFF"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
+    <!-- Subject name -->
     <TextView
         android:id="@+id/widget_subject"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="—"
@@ -30,15 +49,15 @@
         android:ellipsize="end"
         android:fontFamily="sans-serif-medium" />
 
+    <!-- Details: time + room -->
     <TextView
         android:id="@+id/widget_details"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text=""
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textColor="#AAFFFFFF"
         android:maxLines="1"
         android:ellipsize="end" />
-
 </LinearLayout>

@@ -1,22 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="14dp"
-    android:background="@drawable/widget_background"
-    android:gravity="center_vertical">
+    android:background="@drawable/widget_background">
 
-    <TextView
-        android:id="@+id/widget_label"
-        android:layout_width="wrap_content"
+    <!-- Header: label + end time -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="NOW IN CLASS"
-        android:textSize="9sp"
-        android:letterSpacing="0.15"
-        android:textColor="#9960A5FA"
-        android:fontFamily="sans-serif-medium" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
+        <TextView
+            android:id="@+id/widget_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="NOW IN CLASS"
+            android:textSize="9sp"
+            android:letterSpacing="0.12"
+            android:textColor="#AAFFFFFF"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/widget_until"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="9sp"
+            android:textColor="#88FFFFFF"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
+    <!-- Subject name -->
     <TextView
         android:id="@+id/widget_subject"
         android:layout_width="match_parent"
@@ -30,15 +49,43 @@
         android:ellipsize="end"
         android:fontFamily="sans-serif-medium" />
 
+    <!-- Details: time + room -->
     <TextView
         android:id="@+id/widget_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text=""
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textColor="#AAFFFFFF"
         android:maxLines="1"
         android:ellipsize="end" />
 
+    <!-- Push progress to bottom -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Time progress bar -->
+    <ProgressBar
+        android:id="@+id/widget_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#99FFFFFF"
+        android:progressBackgroundTint="#22FFFFFF" />
+
+    <!-- Remaining time -->
+    <TextView
+        android:id="@+id/widget_remaining"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:text=""
+        android:textSize="9sp"
+        android:textColor="#88FFFFFF"
+        android:gravity="end" />
 </LinearLayout>
