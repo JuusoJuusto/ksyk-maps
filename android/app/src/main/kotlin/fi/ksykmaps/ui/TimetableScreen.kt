@@ -130,13 +130,14 @@ fun TimetableScreen(
     val currentRemaining: Int? = currentEntry?.let { e -> (hhmm(e.endHhmm) - nowMins).coerceAtLeast(0) }
     val minutesUntilNext: Int? = nextEntry?.let { e -> (hhmm(e.startHhmm) - nowMins).coerceAtLeast(0) }
 
+    val lang = remember { getAppLanguage(ctx) }
     val dayName = DayOfWeek.of(if (selectedDow in 1..7) selectedDow else 1)
-        .getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+        .getDisplayName(TextStyle.FULL, if (lang == "fi") Locale("fi") else Locale.ENGLISH)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Timetable", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (lang == "fi") "Lukujärjestys" else "Timetable", fontWeight = FontWeight.SemiBold) },
                 actions = {
                     IconButton(onClick = onOpenWilmaConnect) {
                         Icon(Icons.Outlined.CalendarMonth, "Wilma calendar")
@@ -183,6 +184,7 @@ fun TimetableScreen(
                     today = todayDow,
                     onSelect = { selectedDow = it },
                     countByDow = countByDow,
+                    lang = lang,
                 )
             }
 
@@ -209,7 +211,7 @@ fun TimetableScreen(
                     }
                     if (selectedDow != todayDow) {
                         TextButton(onClick = { selectedDow = todayDow }) {
-                            Text("Today")
+                            Text(if (lang == "fi") "Tänään" else "Today")
                         }
                     }
                 }
@@ -219,14 +221,17 @@ fun TimetableScreen(
             if (isToday && selectedDow in 1..5) {
                 item {
                     LessonCard(
-                        label = "NOW",
+                        label = if (lang == "fi") "NYT" else "NOW",
                         entry = currentEntry,
-                        emptyText = if (nowMins < hhmm("08:00")) "School hasn't started yet"
-                                    else "No lesson right now",
+                        emptyText = if (nowMins < hhmm("08:00"))
+                            if (lang == "fi") "Koulu ei ole vielä alkanut" else "School hasn't started yet"
+                        else
+                            if (lang == "fi") "Ei oppituntia juuri nyt" else "No lesson right now",
                         accentColor = MaterialTheme.colorScheme.primary,
                         progress = currentProgress,
                         remaining = currentRemaining,
                         countdown = null,
+                        lang = lang,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
@@ -234,13 +239,14 @@ fun TimetableScreen(
                 }
                 item {
                     LessonCard(
-                        label = "NEXT",
+                        label = if (lang == "fi") "SEURAAVA" else "NEXT",
                         entry = nextEntry,
-                        emptyText = "No more lessons today",
+                        emptyText = if (lang == "fi") "Ei enää oppitunteja tänään" else "No more lessons today",
                         accentColor = MaterialTheme.colorScheme.secondary,
                         progress = null,
                         remaining = null,
                         countdown = minutesUntilNext,
+                        lang = lang,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
@@ -252,7 +258,8 @@ fun TimetableScreen(
             if (dayEntries.isNotEmpty()) {
                 item {
                     Text(
-                        if (isToday) "Today's schedule" else "All lessons",
+                        if (isToday) (if (lang == "fi") "Tämän päivän tunnit" else "Today's schedule")
+                        else (if (lang == "fi") "Kaikki tunnit" else "All lessons"),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -263,6 +270,7 @@ fun TimetableScreen(
                     EntryRow(
                         entry = entry,
                         isCurrent = entry == currentEntry,
+                        lang = lang,
                         onDelete = {
                             val updated = entries.filterNot { it.id == entry.id }
                             entries = updated
@@ -274,7 +282,7 @@ fun TimetableScreen(
                     )
                 }
             } else if (selectedDow in 1..5) {
-                item { EmptyState() }
+                item { EmptyState(lang = lang) }
             } else {
                 item {
                     Card(
@@ -282,7 +290,10 @@ fun TimetableScreen(
                         shape = RoundedCornerShape(14.dp),
                     ) {
                         Box(Modifier.padding(20.dp)) {
-                            Text("It's the weekend — enjoy!", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                if (lang == "fi") "Viikonloppu — nauti siitä!" else "It's the weekend — enjoy!",
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                 }
@@ -320,6 +331,7 @@ private fun LessonCard(
     progress: Float?,         // 0..1 for NOW card, null for NEXT
     remaining: Int?,          // minutes remaining for NOW card
     countdown: Int?,          // minutes until start for NEXT card
+    lang: String = "en",
     onNavigate: (ScheduleEntry) -> Unit,
 ) {
     ElevatedCard(
@@ -340,12 +352,16 @@ private fun LessonCard(
                 )
                 if (entry != null) {
                     val badge = when {
-                        remaining != null && remaining > 0 -> "$remaining min left"
+                        remaining != null && remaining > 0 ->
+                            if (lang == "fi") "$remaining min jäljellä" else "$remaining min left"
                         countdown != null && countdown > 0 -> {
                             val h = countdown / 60; val m = countdown % 60
-                            if (h > 0) "in ${h}h${if (m > 0) " ${m}m" else ""}" else "in ${m}m"
+                            if (lang == "fi")
+                                if (h > 0) "${h}h${if (m > 0) " ${m}m" else ""} päästä" else "${m}m päästä"
+                            else
+                                if (h > 0) "in ${h}h${if (m > 0) " ${m}m" else ""}" else "in ${m}m"
                         }
-                        countdown == 0 -> "starting now"
+                        countdown == 0 -> if (lang == "fi") "alkaa nyt" else "starting now"
                         else -> null
                     }
                     if (badge != null) {
@@ -364,7 +380,7 @@ private fun LessonCard(
                 Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (entry.roomNumber.isNotBlank()) {
-                        InfoChip(Icons.Outlined.MeetingRoom, "Room ${entry.roomNumber}")
+                        InfoChip(Icons.Outlined.MeetingRoom, "${if (lang == "fi") "Luokka" else "Room"} ${entry.roomNumber}")
                     }
                     InfoChip(Icons.Outlined.Schedule, "${entry.startHhmm}–${entry.endHhmm}")
                     if (entry.teacher.isNotBlank()) {
@@ -389,7 +405,7 @@ private fun LessonCard(
                     ) {
                         Icon(Icons.Outlined.Navigation, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Navigate", fontSize = 13.sp)
+                        Text(if (lang == "fi") "Navigoi" else "Navigate", fontSize = 13.sp)
                     }
                 }
             } else {
@@ -412,6 +428,7 @@ private fun InfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text
 private fun EntryRow(
     entry: ScheduleEntry,
     isCurrent: Boolean,
+    lang: String = "en",
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
 ) {
@@ -450,7 +467,7 @@ private fun EntryRow(
             )
             Text(
                 "${entry.startHhmm}–${entry.endHhmm}" +
-                    (if (entry.roomNumber.isNotBlank()) " · Room ${entry.roomNumber}" else "") +
+                    (if (entry.roomNumber.isNotBlank()) " · ${if (lang == "fi") "Luokka" else "Room"} ${entry.roomNumber}" else "") +
                     (if (entry.teacher.isNotBlank()) " · ${entry.teacher}" else ""),
                 fontSize = 12.sp,
                 color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -471,7 +488,7 @@ private fun EntryRow(
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(lang: String = "en") {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -484,12 +501,13 @@ private fun EmptyState() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "No lessons added for today",
+            if (lang == "fi") "Ei oppitunteja tälle päivälle" else "No lessons added for today",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Import from Wilma or tap + to add manually",
+            if (lang == "fi") "Tuo Wilmasta tai paina + lisätäksesi käsin"
+            else "Import from Wilma or tap + to add manually",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         )
@@ -539,8 +557,12 @@ private fun DaySelector(
     today: Int,
     onSelect: (Int) -> Unit,
     countByDow: Map<Int, Int> = emptyMap(),
+    lang: String = "en",
 ) {
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val days = if (lang == "fi")
+        listOf("Ma", "Ti", "Ke", "To", "Pe", "La", "Su")
+    else
+        listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     Row(
         Modifier
             .fillMaxWidth()

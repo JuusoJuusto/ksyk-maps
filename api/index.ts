@@ -2443,6 +2443,85 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       } catch { /* non-critical */ }
       return res.status(204).end();
     }
+    // ── Telemetry GET endpoints (admin dashboard) ──────────────────────────
+    // AppLogsManager calls these to render analytics charts.
+    // They proxy data from the same KV store that /api/analytics-event writes.
+    if (apiPath === '/telemetry/events' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvGet } = await import('../server/kvStorage.js');
+        const events: any[] = (await kvGet('analyticsEvents')) ?? [];
+        return res.status(200).json(events.slice(0, 500));
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+    if (apiPath === '/telemetry/summary' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvGet } = await import('../server/kvStorage.js');
+        const events: any[] = (await kvGet('analyticsEvents')) ?? [];
+        const counts: Record<string, number> = {};
+        const errors: any[] = [];
+        for (const ev of events) {
+          counts[ev.event] = (counts[ev.event] ?? 0) + 1;
+          if (ev.event === 'app_error') errors.push({ screen: ev.screen, msg: ev.msg, ts: ev.receivedAt });
+        }
+        return res.status(200).json({
+          totalEvents: events.length,
+          eventCounts: counts,
+          recentErrors: errors.slice(0, 50),
+        });
+      } catch {
+        return res.status(200).json({ totalEvents: 0, eventCounts: {}, recentErrors: [] });
+      }
+    }
+    if (apiPath === '/telemetry/searches' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvGet } = await import('../server/kvStorage.js');
+        const events: any[] = (await kvGet('analyticsEvents')) ?? [];
+        const searches: Record<string, number> = {};
+        for (const ev of events) {
+          if ((ev.event === 'building_search' || ev.event === 'room_search') && ev.q) {
+            searches[ev.q] = (searches[ev.q] ?? 0) + 1;
+          }
+        }
+        const result = Object.entries(searches)
+          .sort((a, b) => b[1] - a[1]).slice(0, 50)
+          .map(([query, count]) => ({ query, count }));
+        return res.status(200).json(result);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+    if (apiPath === '/telemetry/rooms' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvGet } = await import('../server/kvStorage.js');
+        const events: any[] = (await kvGet('analyticsEvents')) ?? [];
+        const rooms: Record<string, number> = {};
+        for (const ev of events) {
+          if (ev.event === 'room_view' && ev.roomId) {
+            rooms[ev.roomId] = (rooms[ev.roomId] ?? 0) + 1;
+          }
+        }
+        const result = Object.entries(rooms)
+          .sort((a, b) => b[1] - a[1]).slice(0, 50)
+          .map(([roomId, views]) => ({ roomId, views }));
+        return res.status(200).json(result);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // ── 2FA status stub ────────────────────────────────────────────────────
+    if (apiPath === '/auth/2fa/status' && req.method === 'GET') {
+      const payload = requireAdminAuth(req, res);
+      if (!payload) return;
+      return res.status(200).json({ enabled: false, verified: false });
+    }
+
     // Pixel beacon fallback — tiny 1×1 GIF response.
     if (apiPath === '/t/p' && req.method === 'GET') {
       const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');

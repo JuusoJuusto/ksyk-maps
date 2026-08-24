@@ -62,6 +62,17 @@
             android:name=".ui.LessonReminderReceiver"
             android:exported="false" />
 
+        <!-- Re-schedules timetable reminders after device reboot -->
+        <receiver
+            android:name=".ui.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
         <!-- Home-screen widget: next lesson glance -->
         <receiver
             android:name=".ui.NextLessonWidget"

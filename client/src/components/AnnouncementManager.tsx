@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,8 +65,7 @@ export default function AnnouncementManager() {
     mutationFn: async (data: any) => {
       const response = await fetch("/api/announcements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Failed to create announcement");
@@ -81,8 +81,7 @@ export default function AnnouncementManager() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const response = await fetch(`/api/announcements/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Failed to update announcement");
@@ -98,7 +97,7 @@ export default function AnnouncementManager() {
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/announcements/${id}`, {
         method: "DELETE",
-        credentials: "include",
+        headers: { ...getAdminHeaders() },
       });
       if (!response.ok) throw new Error("Failed to delete announcement");
     },

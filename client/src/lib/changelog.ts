@@ -10,9 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.24";
+export const APP_VERSION = "4.5.25";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.25",
+    date: "August 2026",
+    title: "Map crash fix, i18n, admin telemetry, announcement auth, notifications",
+    titleFi: "Kartan kaatuminen korjattu, kielituki, telemetria, ilmoitukset",
+    highlights: [
+      "Android map no longer crashes when switching between tabs — fixed NavBackStackEntry lifecycle destroying the GL context prematurely",
+      "Timetable screen fully localized: Finnish/English day names, UI labels, and status badges respect the language setting",
+      "Admin panel: announcement creation (POST) now sends the admin auth token — was returning 401",
+      "Admin panel: telemetry dashboard (GET /api/telemetry/events|summary|searches|rooms) now returns real data",
+      "Admin panel: /api/auth/2fa/status no longer returns 404",
+      "Android notifications: BootReceiver rescheduled reminders after device reboot; also fires on app cold start",
+    ],
+    highlightsFi: [
+      "Android-kartta ei enää kaadu välilehtien vaihdon yhteydessä",
+      "Lukujärjestys täysin suomennettu: päivien nimet, tilamerkit ja napit",
+      "Admin-paneeli: ilmoitusten luominen toimii nyt (401-virhe korjattu)",
+      "Admin-paneeli: telemetriadashboard näyttää oikeaa dataa",
+      "Android-ilmoitukset: uudelleenkäynnistyksen jälkeen muistutukset palautuvat",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.22",
     date: "August 2026",
@@ -24,7 +46,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Loading screen shows owl logo instead of map icon",
       "Announcements 500 error fixed (table auto-created, GET is now fault-tolerant)",
     ],
-    latest: true,
   },
   {
     version: "4.5.20",

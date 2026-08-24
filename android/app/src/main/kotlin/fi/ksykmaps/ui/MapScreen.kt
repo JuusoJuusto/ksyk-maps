@@ -688,15 +688,29 @@ fun MapScreen() {
             // back to MapViewHolder.view so the reused map is always resumed.
             val mv = mapViewHolder.value ?: MapViewHolder.view ?: return@LifecycleEventObserver
             when (event) {
-                Lifecycle.Event.ON_START   -> mv.onStart()
-                Lifecycle.Event.ON_RESUME  -> mv.onResume()
-                Lifecycle.Event.ON_PAUSE   -> mv.onPause()
-                Lifecycle.Event.ON_STOP    -> mv.onStop()
+                Lifecycle.Event.ON_START   -> try { mv.onStart()  } catch (_: Exception) {}
+                Lifecycle.Event.ON_RESUME  -> try { mv.onResume() } catch (_: Exception) {}
+                Lifecycle.Event.ON_PAUSE   -> try { mv.onPause()  } catch (_: Exception) {}
+                Lifecycle.Event.ON_STOP    -> try { mv.onStop()   } catch (_: Exception) {}
                 Lifecycle.Event.ON_DESTROY -> {
-                    mapRef = null
-                    MapViewHolder.map = null
-                    try { mv.onDestroy() } catch (_: Exception) {}
-                    MapViewHolder.view = null
+                    // LocalLifecycleOwner inside NavHost is the NavBackStackEntry's
+                    // lifecycle — ON_DESTROY fires on every tab switch (popUpTo pops
+                    // the entry), NOT only when the Activity itself exits. Destroying
+                    // the MapView here kills the GL thread and causes a native crash
+                    // when the user returns to the Map tab. Only clean up when the
+                    // Activity is truly going away (user back-pressed or rotation).
+                    val act = ctx as? android.app.Activity
+                    val reallyGone = act?.isFinishing == true ||
+                                     act?.isChangingConfigurations == true
+                    if (reallyGone) {
+                        mapRef = null
+                        MapViewHolder.map = null
+                        try { mv.onDestroy() } catch (e: Exception) {
+                            Analytics.trackError("MapScreen", "onDestroy: ${e.message}")
+                        }
+                        MapViewHolder.view = null
+                    }
+                    // Tab navigation: skip destroy — GL context stays alive.
                 }
                 else -> {}
             }
@@ -704,13 +718,12 @@ fun MapScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapRef = null
-            // Pause + stop only — do NOT destroy. Destroying kills the GL
-            // context and crashes MapLibre when the user returns to this tab.
-            // onDestroy is called only on actual Activity destruction (above).
+            // Composable leaving (tab switch): pause + stop so the GL thread
+            // quiesces cleanly. Do NOT destroy — that kills the GL context and
+            // crashes MapLibre when the user switches back to the Map tab.
             mapViewHolder.value?.let { mv ->
                 try { mv.onPause() } catch (_: Exception) {}
-                try { mv.onStop() } catch (_: Exception) {}
+                try { mv.onStop()  } catch (_: Exception) {}
             }
             mapViewHolder.value = null
         }

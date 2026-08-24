@@ -36,6 +36,7 @@ import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.BuildingsScreen
 import fi.ksykmaps.ui.HomeScreen
+import fi.ksykmaps.ui.LessonReminderScheduler
 import fi.ksykmaps.ui.LoginScreen
 import fi.ksykmaps.ui.LunchScreen
 import fi.ksykmaps.ui.MapNavIntent
@@ -46,8 +47,12 @@ import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
 import fi.ksykmaps.ui.isOnboardingDone
+import fi.ksykmaps.ui.loadEntries
 import fi.ksykmaps.ui.ThemeState
 import fi.ksykmaps.ui.LoadingScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
@@ -61,6 +66,15 @@ class MainActivity : ComponentActivity() {
             .getString("dark_mode", "system") ?: "system"
         ThemeState.mode = savedTheme
         handleDeepLink(intent)
+        // Re-arm lesson reminders on every cold start. Alarms survive across
+        // tab switches but are cleared on reboot — this ensures they're always
+        // set without requiring the user to open the timetable screen first.
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val entries = loadEntries(this@MainActivity)
+                if (entries.isNotEmpty()) LessonReminderScheduler.schedule(this@MainActivity, entries)
+            } catch (_: Exception) {}
+        }
         setContent {
             val systemDark = isSystemInDarkTheme()
             val darkMode = when (ThemeState.mode) {
