@@ -2,12 +2,10 @@ package fi.ksykmaps.ui
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,10 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fi.ksykmaps.R
 import kotlinx.coroutines.delay
 
 private val SplashBlue = Color(0xFF2563EB)
@@ -102,20 +102,13 @@ fun LoadingScreen(onFinished: () -> Unit) {
                         style = Stroke(sw, cap = StrokeCap.Round),
                     )
                 }
-                Box(
-                    Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(SplashBlue.copy(alpha = 0.09f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.Map,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = SplashBlue,
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.ksykmaps_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                )
             }
 
             Spacer(Modifier.height(20.dp))

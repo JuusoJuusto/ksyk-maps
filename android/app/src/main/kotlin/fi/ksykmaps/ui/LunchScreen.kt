@@ -30,10 +30,11 @@ import java.time.LocalDate
 private const val MENU_URL =
     "https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi"
 
+private data class Dish(val text: String, val isCategory: Boolean)
 private data class LunchDay(
     val label: String,
     val date: LocalDate?,
-    val dishes: List<String>,
+    val dishes: List<Dish>,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -235,7 +236,7 @@ fun LunchScreen() {
                                 }
                             }
                         } else {
-                            val dishCount = day.dishes.count { !isDishCategory(it) }
+                            val dishCount = day.dishes.count { !it.isCategory }
                             item {
                                 Text(
                                     "$dishCount ruokalajia",
@@ -244,8 +245,8 @@ fun LunchScreen() {
                                 )
                             }
                             items(day.dishes) { dish ->
-                                if (isDishCategory(dish)) CategoryLabel(dish)
-                                else DishRow(dish)
+                                if (dish.isCategory) CategoryLabel(dish.text)
+                                else DishRow(dish.text)
                             }
                         }
                     }
@@ -253,13 +254,6 @@ fun LunchScreen() {
             }
         }
     }
-}
-
-// A dish entry is a food-group category label if it's all uppercase and
-// has no parentheses (allergen codes live in parens; categories never do).
-private fun isDishCategory(dish: String): Boolean {
-    val letters = dish.filter { it.isLetter() }
-    return letters.isNotEmpty() && letters.all { it.isUpperCase() } && !dish.contains('(')
 }
 
 @Composable
@@ -350,28 +344,29 @@ private fun parseRss(xml: String): List<LunchDay> {
     return days
 }
 
-private fun extractDishes(html: String): List<String> {
-    // Split on <p> tags, strip all other tags, decode entities
-    val result = mutableListOf<String>()
+private fun extractDishes(html: String): List<Dish> {
+    val result = mutableListOf<Dish>()
     val pTagRegex = Regex("<p[^>]*>(.*?)</p>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
     val matches = pTagRegex.findAll(html)
     if (matches.any()) {
         matches.forEach { m ->
-            val text = m.groupValues[1]
-                .replace(Regex("<[^>]+>"), "")
-                .decodeHtmlEntities()
-                .trim()
-            if (text.isNotBlank() && text.length > 2) result += text
+            val inner = m.groupValues[1]
+            val isCategory = inner.contains("<strong>", ignoreCase = true) || inner.contains("<b>", ignoreCase = true)
+            val text = inner.replace(Regex("<[^>]+>"), "").decodeHtmlEntities().trim()
+            if (text.isNotBlank() && text.length > 2) result += Dish(text, isCategory)
         }
     } else {
-        // Fallback: no <p> tags — strip all tags and split by newline/semicolon
         html.replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
             .replace(Regex("<[^>]+>"), "")
             .decodeHtmlEntities()
             .split("\n")
             .map { it.trim() }
             .filter { it.isNotBlank() && it.length > 2 }
-            .forEach { result += it }
+            .forEach { text ->
+                val letters = text.filter { it.isLetter() }
+                val isCategory = letters.isNotEmpty() && letters.all { it.isUpperCase() } && !text.contains('(')
+                result += Dish(text, isCategory)
+            }
     }
     return result
 }

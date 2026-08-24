@@ -10,18 +10,19 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.21";
+export const APP_VERSION = "4.5.22";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
-    version: "4.5.21",
+    version: "4.5.22",
     date: "August 2026",
-    title: "Map crash fix (singleton GL), jaksot overhaul, schedule button removed",
+    title: "Wilma jakso tagging, lunch categories, settings cleanup, announcements fix",
     highlights: [
-      "Fixed Android map crash: MapView now survives tab switches (singleton GL context)",
-      "Jaksot updated to 2026–27 official dates (1.–5. jakso only, no year suffixes)",
-      "Removed Schedule button from main map page",
-      "Lunch tab: food group/category labels styled distinctly from dish items",
+      "Wilma import now tags each lesson to the correct jakso based on event date",
+      "Lunch category headers (LOUNAS etc.) detected by HTML structure, styled distinctly",
+      "Settings: removed API endpoint section, language moved right below theme",
+      "Loading screen shows owl logo instead of map icon",
+      "Announcements 500 error fixed (table auto-created, GET is now fault-tolerant)",
     ],
     latest: true,
   },

@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
+import java.time.LocalDate
 import java.util.UUID
 
 private const val WILMA_PREFS = "ksyk_wilma"
@@ -65,6 +66,7 @@ fun WilmaConnectScreen(
         syncing = true
         scope.launch(Dispatchers.IO) {
             try {
+                val jaksot = loadJaksot(ctx)
                 val body = buildJsonObject { put("url", trimmed) }
                 val result = Api.post("/calendar/parse", body)
                 val obj = result.jsonObject
@@ -77,6 +79,14 @@ fun WilmaConnectScreen(
                         val start = ev["startHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                         val end = ev["endHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                         val summary = ev["summary"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                        val dateStr = ev["date"]?.jsonPrimitive?.contentOrNull
+                        val jaksoId = if (dateStr != null) {
+                            try {
+                                val d = LocalDate.parse(dateStr)
+                                val ds = d.toString()
+                                jaksot.firstOrNull { j -> j.startDate <= ds && ds <= j.endDate }?.id ?: "all"
+                            } catch (_: Exception) { "all" }
+                        } else "all"
                         ScheduleEntry(
                             id = "wilma_${ev["uid"]?.jsonPrimitive?.contentOrNull ?: UUID.randomUUID()}",
                             dayOfWeek = dow,
@@ -86,15 +96,16 @@ fun WilmaConnectScreen(
                             roomId = ev["matchedRoomId"]?.jsonPrimitive?.contentOrNull ?: "",
                             roomNumber = ev["matchedRoomNumber"]?.jsonPrimitive?.contentOrNull ?: "",
                             teacher = ev["teacher"]?.jsonPrimitive?.contentOrNull ?: "",
+                            jaksoId = jaksoId,
                         )
                     } catch (_: Exception) { null }
                 }
 
-                // Deduplicate by (dayOfWeek, startHhmm, endHhmm, subject) —
+                // Deduplicate by (dayOfWeek, start+end, subject, jaksoId) —
                 // RRULE expansion produces one entry per occurrence, but for
-                // the weekly timetable we only need one per unique pattern.
+                // the weekly timetable we only need one per unique pattern per jakso.
                 val deduped = imported
-                    .distinctBy { Triple(it.dayOfWeek, it.startHhmm + it.endHhmm, it.subject) }
+                    .distinctBy { listOf(it.dayOfWeek, it.startHhmm, it.endHhmm, it.subject, it.jaksoId) }
                 // Keep manually added entries, replace all wilma_ ones
                 val existing = loadEntries(ctx)
                 val manual = existing.filter { !it.id.startsWith("wilma_") }

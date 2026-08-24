@@ -69,6 +69,22 @@ export async function ensureSchema(): Promise<void> {
         resolved_room_id varchar
       );
 
+      CREATE TABLE IF NOT EXISTS announcements (
+        id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        title       varchar   NOT NULL,
+        title_en    varchar,
+        title_fi    varchar,
+        content     text      NOT NULL,
+        content_en  text,
+        content_fi  text,
+        priority    varchar   DEFAULT 'normal',
+        author_id   varchar,
+        expires_at  timestamp,
+        is_active   boolean   DEFAULT true,
+        created_at  timestamp DEFAULT now(),
+        updated_at  timestamp DEFAULT now()
+      );
+
       CREATE INDEX IF NOT EXISTS campus_pois_kind_idx  ON campus_pois (kind);
       CREATE INDEX IF NOT EXISTS campus_pois_floor_idx ON campus_pois (floor);
       CREATE INDEX IF NOT EXISTS beacon_surveys_room_idx ON beacon_surveys (room_id);

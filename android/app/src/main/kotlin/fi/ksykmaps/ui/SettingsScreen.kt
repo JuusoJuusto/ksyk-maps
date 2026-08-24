@@ -42,8 +42,6 @@ fun SettingsScreen(
     val ctx = LocalContext.current
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
 
-    var apiBase by remember { mutableStateOf(Api.base) }
-    var editingApi by remember { mutableStateOf(false) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var dynamicColour by remember { mutableStateOf(true) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
@@ -128,42 +126,6 @@ fun SettingsScreen(
                 }
             }
 
-            item { SectionTitle(if (isFi) "Palvelin" else "Server") }
-            item {
-                SettingRow(
-                    icon = Icons.Outlined.Public,
-                    title = if (isFi) "API-osoite" else "API endpoint",
-                    subtitle = apiBase,
-                    trailing = {
-                        TextButton(onClick = { editingApi = true }) {
-                            Text(if (isFi) "Muuta" else "Change")
-                        }
-                    },
-                )
-            }
-
-            item { SectionTitle(if (isFi) "Asetukset" else "Preferences") }
-            item {
-                ToggleRow(
-                    icon = Icons.Outlined.Notifications,
-                    title = if (isFi) "Ilmoitukset" else "Notifications",
-                    subtitle = if (isFi) "Kuulutukset ja uudet tiedotteet"
-                               else "Announcements + school news",
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it },
-                )
-            }
-            item {
-                ToggleRow(
-                    icon = Icons.Outlined.ColorLens,
-                    title = if (isFi) "Dynaaminen väri" else "Dynamic colour",
-                    subtitle = if (isFi) "Tapetsista johdettu väripaletti (Android 12+)"
-                               else "Match your wallpaper on Android 12+",
-                    checked = dynamicColour,
-                    onCheckedChange = { dynamicColour = it },
-                )
-            }
-
             item { SectionTitle(if (isFi) "Kieli" else "Language") }
             item {
                 Card(
@@ -201,6 +163,28 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+
+            item { SectionTitle(if (isFi) "Asetukset" else "Preferences") }
+            item {
+                ToggleRow(
+                    icon = Icons.Outlined.Notifications,
+                    title = if (isFi) "Ilmoitukset" else "Notifications",
+                    subtitle = if (isFi) "Kuulutukset ja uudet tiedotteet"
+                               else "Announcements + school news",
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it },
+                )
+            }
+            item {
+                ToggleRow(
+                    icon = Icons.Outlined.ColorLens,
+                    title = if (isFi) "Dynaaminen väri" else "Dynamic colour",
+                    subtitle = if (isFi) "Tapetsista johdettu väripaletti (Android 12+)"
+                               else "Match your wallpaper on Android 12+",
+                    checked = dynamicColour,
+                    onCheckedChange = { dynamicColour = it },
+                )
             }
 
             item { SectionTitle(if (isFi) "KSYK Maps muualla" else "KSYK Maps everywhere") }
@@ -305,44 +289,6 @@ fun SettingsScreen(
         )
     }
 
-    if (editingApi) {
-        var draft by remember { mutableStateOf(apiBase) }
-        AlertDialog(
-            onDismissRequest = { editingApi = false },
-            title = { Text("API endpoint") },
-            text = {
-                Column {
-                    Text(
-                        "Override the base URL the app talks to. Useful for pointing " +
-                        "at a staging environment while testing.",
-                        fontSize = 13.sp,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = draft,
-                        onValueChange = { draft = it },
-                        label = { Text("Base URL") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    Api.base = draft.trim().trimEnd('/')
-                    apiBase = Api.base
-                    editingApi = false
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    draft = "https://ksykmaps.fi/api"
-                    Api.base = draft; apiBase = draft
-                    editingApi = false
-                }) { Text("Reset") }
-            },
-        )
-    }
 }
 
 @Composable

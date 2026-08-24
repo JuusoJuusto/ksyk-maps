@@ -877,11 +877,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath.startsWith('/announcements')) {
       if (req.method === 'GET') {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-        const announcements = await storage.getAnnouncements(limit);
-        return res.status(200).json(announcements);
+        try {
+          const announcements = await storage.getAnnouncements(limit);
+          return res.status(200).json(announcements);
+        } catch {
+          return res.status(200).json([]);
+        }
       }
-      
+
       if (req.method === 'POST') {
+        const admin = requireAdminAuth(req, res);
+        if (!admin) return;
         const announcement = await storage.createAnnouncement(req.body);
         return res.status(201).json(announcement);
       }
