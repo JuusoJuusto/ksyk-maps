@@ -46,6 +46,8 @@ import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
 import fi.ksykmaps.ui.isOnboardingDone
+import fi.ksykmaps.ui.ThemeState
+import fi.ksykmaps.ui.LoadingScreen
 import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
@@ -54,9 +56,18 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         Session.load(this)
+        // Restore persisted theme preference so ThemeState is set before first frame
+        val savedTheme = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
+            .getString("dark_mode", "system") ?: "system"
+        ThemeState.mode = savedTheme
         handleDeepLink(intent)
         setContent {
-            val darkMode = isSystemInDarkTheme()
+            val systemDark = isSystemInDarkTheme()
+            val darkMode = when (ThemeState.mode) {
+                "dark"  -> true
+                "light" -> false
+                else    -> systemDark
+            }
             KsykTheme(darkTheme = darkMode) { AppShell() }
         }
     }
@@ -94,6 +105,7 @@ private fun AppShell() {
     var loggedIn by remember { mutableStateOf(Api.sessionEmail != null) }
     var showLogin by remember { mutableStateOf(false) }
     var onboardingDone by remember { mutableStateOf(isOnboardingDone(ctx)) }
+    var showLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         if (MapNavIntent.pendingRoomId != null) navigate(nav, "map")
@@ -172,6 +184,11 @@ private fun AppShell() {
                 }
             }
         }
+    }
+
+    // Loading screen overlay — shows once on first launch, fades out after ~1.5s
+    if (showLoading) {
+        LoadingScreen(onFinished = { showLoading = false })
     }
 }
 

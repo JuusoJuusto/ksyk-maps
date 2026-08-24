@@ -47,6 +47,14 @@
                 <data android:scheme="https" android:host="ksykmaps.fi" />
                 <data android:scheme="https" android:host="www.ksykmaps.fi" />
             </intent-filter>
+
+            <!-- mpassId OAuth redirect URI — Chrome Custom Tab returns here after login -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fi.ksykmaps" android:host="auth" android:path="/callback" />
+            </intent-filter>
         </activity>
 
         <!-- Fires the timetable lesson reminder notification -->

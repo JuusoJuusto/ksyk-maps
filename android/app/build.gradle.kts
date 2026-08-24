@@ -12,8 +12,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.13.0"
+        versionCode = 17
+        versionName = "1.15.0"
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -76,11 +76,15 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.compose.ui:ui:$compose")
     implementation("androidx.compose.ui:ui-tooling-preview:$compose")
     implementation("androidx.compose.material3:material3:1.3.0")
     implementation("androidx.compose.material:material-icons-extended:$compose")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Chrome Custom Tabs — for mpassId OAuth (NOT WebView)
+    implementation("androidx.browser:browser:1.8.0")
 
     // Network
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

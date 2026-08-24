@@ -10,9 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.17";
+export const APP_VERSION = "4.5.19";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.19",
+    date: "August 2026",
+    title: "Transparent logos, loading screen, favicons regenerated",
+    highlights: [
+      "Fix: Google favicon and search result thumbnail now use transparent logo (no white background box)",
+      "Fix: og:image regenerated as branded blue-circle icon — looks clean on dark and light backgrounds",
+      "Fix: All favicon sizes (16–192) regenerated from transparent source",
+      "New: Android app loading screen — animated logo + bouncing dots, fades into the main UI",
+      "Bump: Student app 1.15.0",
+    ],
+    latest: true,
+  },
+  {
+    version: "4.5.18",
+    date: "August 2026",
+    title: "Map crash fix, jaksot, onboarding name + mpassId, theme toggle",
+    highlights: [
+      "Fix: Map no longer crashes the whole app — proper DisposableEffect + LifecycleEventObserver lifecycle management",
+      "New: Timetable period (jakso) system — auto-detects current jakso, filter entries per period, add lessons to a specific jakso",
+      "New: Onboarding asks for your name on the first page; name shown in greeting card",
+      "New: mpassId sign-in button in onboarding (Chrome Custom Tab, not WebView)",
+      "New: Settings — profile section with name editing",
+      "New: Settings — System / Light / Dark theme toggle",
+      "Bump: Student app 1.14.0",
+    ],
+  },
   {
     version: "4.5.17",
     date: "August 2026",
@@ -24,7 +51,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "New: Home screen quick actions reorganised — Timetable, Lunch, Find a room, News",
       "Bump: Student app 1.13.0",
     ],
-    latest: true,
   },
   {
     version: "4.5.16",

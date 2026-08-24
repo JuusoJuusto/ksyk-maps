@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -631,11 +634,41 @@ fun MapScreen() {
         }
     }
 
+    val mapViewHolder = remember { mutableStateOf<MapView?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            val mv = mapViewHolder.value ?: return@LifecycleEventObserver
+            when (event) {
+                Lifecycle.Event.ON_START   -> mv.onStart()
+                Lifecycle.Event.ON_RESUME  -> mv.onResume()
+                Lifecycle.Event.ON_PAUSE   -> mv.onPause()
+                Lifecycle.Event.ON_STOP    -> mv.onStop()
+                Lifecycle.Event.ON_DESTROY -> {
+                    mapRef = null
+                    try { mv.onDestroy() } catch (_: Exception) {}
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapRef = null
+            mapViewHolder.value?.let { mv ->
+                try { mv.onStop() } catch (_: Exception) {}
+                try { mv.onDestroy() } catch (_: Exception) {}
+            }
+            mapViewHolder.value = null
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         AndroidView(
             factory = { c ->
-                MapView(c).apply {
-                    getMapAsync { m ->
+                MapView(c).also { mv ->
+                    mapViewHolder.value = mv
+                    mv.getMapAsync { m ->
                         m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
                             // v1.6.0 — camera persistence. If we have a
                             // saved view from the last session, restore
@@ -691,12 +724,7 @@ fun MapScreen() {
                             mapRef = m
                         }
                     }
-                    onStart(); onResume()
                 }
-            },
-            onRelease = { mv ->
-                try { mv.onStop() } catch (_: Exception) {}
-                try { mv.onDestroy() } catch (_: Exception) {}
             },
             modifier = Modifier.fillMaxSize(),
         )

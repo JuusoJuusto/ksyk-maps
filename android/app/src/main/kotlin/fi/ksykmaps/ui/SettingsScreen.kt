@@ -23,13 +23,16 @@ import fi.ksykmaps.data.Session
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.collectAsState
 
-private const val PREFS_APP = "ksyk_prefs"
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
 
 fun getAppLanguage(ctx: android.content.Context): String =
     ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
         .getString(KEY_LANGUAGE, "en") ?: "en"
+
+object ThemeState {
+    var mode by androidx.compose.runtime.mutableStateOf("system") // "system" | "dark" | "light"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +51,9 @@ fun SettingsScreen(
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf(prefs.getString(KEY_LANGUAGE, "en") ?: "en") }
+    var userName by remember { mutableStateOf(getUserName(ctx)) }
+    var editingName by remember { mutableStateOf(false) }
+    var themeMode by remember { mutableStateOf(ThemeState.mode) }
     val wifiApCount by WifiPositioning.scanCount.collectAsState()
     val wifiPos by WifiPositioning.position.collectAsState()
 
@@ -68,6 +74,65 @@ fun SettingsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Profile
+            item { SectionTitle(if (isFi) "Profiili" else "Profile") }
+            item {
+                SettingRow(
+                    icon = Icons.Outlined.Person,
+                    title = if (isFi) "Nimesi" else "Your name",
+                    subtitle = if (userName.isNotBlank()) userName
+                               else if (isFi) "Aseta nimi" else "Tap to set your name",
+                    trailing = {
+                        TextButton(onClick = { editingName = true }) {
+                            Text(if (isFi) "Muuta" else "Edit")
+                        }
+                    },
+                )
+            }
+
+            // Theme
+            item { SectionTitle(if (isFi) "Teema" else "Theme") }
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Outlined.Palette, null, tint = MaterialTheme.colorScheme.primary)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                if (isFi) "Väriteema" else "Colour theme",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            mapOf(
+                                "system" to if (isFi) "Auto" else "Auto",
+                                "light"  to if (isFi) "Vaalea" else "Light",
+                                "dark"   to if (isFi) "Tumma" else "Dark",
+                            ).forEach { (mode, label) ->
+                                FilterChip(
+                                    selected = themeMode == mode,
+                                    onClick = {
+                                        themeMode = mode
+                                        ThemeState.mode = mode
+                                        prefs.edit().putString(KEY_DARK_MODE, mode).apply()
+                                    },
+                                    label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
+                                    modifier = Modifier.height(32.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             item { SectionTitle(if (isFi) "Palvelin" else "Server") }
             item {
                 SettingRow(
@@ -240,6 +305,33 @@ fun SettingsScreen(
 
             item { Spacer(Modifier.height(8.dp)) }
         }
+    }
+
+    if (editingName) {
+        var nameDraft by remember { mutableStateOf(userName) }
+        AlertDialog(
+            onDismissRequest = { editingName = false },
+            title = { Text(if (isFi) "Muuta nimi" else "Change name") },
+            text = {
+                OutlinedTextField(
+                    value = nameDraft,
+                    onValueChange = { nameDraft = it },
+                    label = { Text(if (isFi) "Etunimesi" else "Your first name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    saveUserName(ctx, nameDraft)
+                    userName = nameDraft.trim()
+                    editingName = false
+                }) { Text(if (isFi) "Tallenna" else "Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingName = false }) { Text(if (isFi) "Peruuta" else "Cancel") }
+            },
+        )
     }
 
     if (editingApi) {

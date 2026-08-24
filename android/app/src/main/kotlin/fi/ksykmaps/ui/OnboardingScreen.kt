@@ -1,6 +1,8 @@
 package fi.ksykmaps.ui
 
 import android.content.Context
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -9,6 +11,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -18,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,22 +32,50 @@ import kotlinx.coroutines.launch
 
 private const val PREFS_ONBOARD = "ksyk_onboarding"
 private const val KEY_DONE = "done"
+const val PREFS_APP = "ksyk_prefs"
+const val KEY_USER_NAME = "user_name"
 
 fun isOnboardingDone(ctx: Context): Boolean =
     ctx.getSharedPreferences(PREFS_ONBOARD, Context.MODE_PRIVATE).getBoolean(KEY_DONE, false)
+
+fun getUserName(ctx: Context): String =
+    ctx.getSharedPreferences(PREFS_APP, Context.MODE_PRIVATE).getString(KEY_USER_NAME, "") ?: ""
+
+fun saveUserName(ctx: Context, name: String) {
+    ctx.getSharedPreferences(PREFS_APP, Context.MODE_PRIVATE)
+        .edit().putString(KEY_USER_NAME, name.trim()).apply()
+}
 
 private fun markOnboardingDone(ctx: Context) {
     ctx.getSharedPreferences(PREFS_ONBOARD, Context.MODE_PRIVATE)
         .edit().putBoolean(KEY_DONE, true).apply()
 }
 
+// mpassId OAuth endpoint — needs a registered client_id from Opetushallitus.
+// When properly configured, opens in Chrome Custom Tab and redirects back
+// to fi.ksykmaps://auth/callback?code=... which MainActivity handles.
+private const val MPASSID_AUTH_URL =
+    "https://mpass-proxy.csc.fi/idp/profile/oidc/authorize" +
+    "?client_id=ksykmaps-placeholder" +
+    "&redirect_uri=fi.ksykmaps%3A%2F%2Fauth%2Fcallback" +
+    "&response_type=code" +
+    "&scope=openid+profile+email"
+
 private data class OnboardPage(
     val icon: ImageVector,
     val title: String,
     val subtitle: String,
+    val isNamePage: Boolean = false,
+    val isLoginPage: Boolean = false,
 )
 
 private val PAGES = listOf(
+    OnboardPage(
+        icon = Icons.Outlined.Person,
+        title = "What's your name?",
+        subtitle = "We'll use it to personalise your experience. You can change it later in Settings.",
+        isNamePage = true,
+    ),
     OnboardPage(
         icon = Icons.Outlined.Map,
         title = "Welcome to KSYK Maps",
@@ -56,6 +90,7 @@ private val PAGES = listOf(
         icon = Icons.Outlined.CalendarMonth,
         title = "Your timetable, always ready",
         subtitle = "Import your Wilma calendar to see your schedule automatically. Add lessons manually too.",
+        isLoginPage = true,
     ),
 )
 
@@ -66,6 +101,8 @@ fun OnboardingScreen(onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { PAGES.size })
     val isLast = pagerState.currentPage == PAGES.lastIndex
+    var nameInput by remember { mutableStateOf(getUserName(ctx)) }
+    val keyboard = LocalSoftwareKeyboardController.current
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -79,6 +116,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
             Box(Modifier.fillMaxWidth().padding(end = 12.dp, top = 8.dp)) {
                 TextButton(
                     onClick = {
+                        if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
                         markOnboardingDone(ctx)
                         onDone()
                     },
@@ -93,22 +131,29 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 state = pagerState,
                 modifier = Modifier.weight(1f),
             ) { page ->
-                OnboardPageContent(PAGES[page])
+                val p = PAGES[page]
+                if (p.isNamePage) {
+                    NamePage(name = nameInput, onNameChange = { nameInput = it })
+                } else {
+                    OnboardPageContent(p)
+                }
             }
 
-            // Dots + button
+            // Dots + buttons
             Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 PageDots(total = PAGES.size, current = pagerState.currentPage)
 
                 Button(
                     onClick = {
+                        if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
+                        keyboard?.hide()
                         if (isLast) {
                             markOnboardingDone(ctx)
                             onDone()
@@ -126,23 +171,106 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     )
                 }
 
-                // On the last page, show the Wilma connect option
+                // Last page: Wilma connect + mpassId login options
                 AnimatedVisibility(visible = isLast) {
-                    OutlinedButton(
-                        onClick = {
-                            markOnboardingDone(ctx)
-                            onDone() // caller will navigate to wilmaConnect
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                    ) {
-                        Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Connect Wilma calendar", fontSize = 14.sp)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
+                                markOnboardingDone(ctx)
+                                onDone()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Connect Wilma calendar", fontSize = 14.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
+                                try {
+                                    CustomTabsIntent.Builder()
+                                        .setShowTitle(true)
+                                        .build()
+                                        .launchUrl(ctx, Uri.parse(MPASSID_AUTH_URL))
+                                } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Icon(Icons.Outlined.School, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Sign in with mpassId", fontSize = 14.sp)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NamePage(name: String, onNameChange: (String) -> Unit) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Person,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            "What's your name?",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            "We'll personalise your experience. You can change this later in Settings.",
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 22.sp,
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Your first name") },
+            placeholder = { Text("e.g. Juuso") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+            leadingIcon = { Icon(Icons.Outlined.Person, null) },
+        )
     }
 }
 

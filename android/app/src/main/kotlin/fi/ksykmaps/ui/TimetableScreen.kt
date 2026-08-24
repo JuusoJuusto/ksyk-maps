@@ -44,6 +44,7 @@ data class ScheduleEntry(
     val roomId: String = "",
     val roomNumber: String = "",
     val teacher: String = "",
+    val jaksoId: String = "all",  // "all" = every jakso; "j1"… = specific period
 )
 
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7
@@ -75,6 +76,8 @@ fun TimetableScreen(
     val scope = rememberCoroutineScope()
 
     var entries by remember { mutableStateOf<List<ScheduleEntry>>(emptyList()) }
+    var jaksot by remember { mutableStateOf<List<Jakso>>(emptyList()) }
+    var selectedJaksoId by remember { mutableStateOf<String>("all") }
     var showAdd by remember { mutableStateOf(false) }
     var editEntry by remember { mutableStateOf<ScheduleEntry?>(null) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
@@ -88,6 +91,10 @@ fun TimetableScreen(
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
         wilmaCount.value = entries.count { it.id.startsWith("wilma_") }
+        val loadedJaksot = loadJaksot(ctx)
+        jaksot = loadedJaksot
+        // Auto-select the current active jakso; fall back to "all"
+        selectedJaksoId = activeJaksoId(loadedJaksot) ?: "all"
         try {
             val r = withContext(Dispatchers.IO) { Api.get("/rooms") }
             rooms = r.jsonArray.mapNotNull { it as? JsonObject }
@@ -96,9 +103,16 @@ fun TimetableScreen(
         }
     }
 
-    val countByDow = remember(entries) { entries.groupBy { it.dayOfWeek }.mapValues { it.value.size } }
+    val countByDow = remember(entries, selectedJaksoId) {
+        entries
+            .filter { selectedJaksoId == "all" || it.jaksoId == "all" || it.jaksoId == selectedJaksoId }
+            .groupBy { it.dayOfWeek }
+            .mapValues { it.value.size }
+    }
 
-    val dayEntries = entries.filter { it.dayOfWeek == selectedDow }
+    val dayEntries = entries
+        .filter { it.dayOfWeek == selectedDow }
+        .filter { selectedJaksoId == "all" || it.jaksoId == "all" || it.jaksoId == selectedJaksoId }
         .sortedBy { hhmm(it.startHhmm) }
 
     val currentEntry = if (isToday) dayEntries.firstOrNull { e ->
@@ -149,6 +163,17 @@ fun TimetableScreen(
                     importedCount = wilmaCount.value,
                     onConnect = onOpenWilmaConnect,
                 )
+            }
+
+            // Jakso (period) selector
+            if (jaksot.isNotEmpty()) {
+                item {
+                    JaksoSelector(
+                        jaksot = jaksot,
+                        selected = selectedJaksoId,
+                        onSelect = { selectedJaksoId = it },
+                    )
+                }
             }
 
             // Day selector
@@ -268,6 +293,8 @@ fun TimetableScreen(
     if (showAdd || editEntry != null) {
         AddEditDialog(
             rooms = rooms,
+            jaksot = jaksot,
+            defaultJaksoId = selectedJaksoId,
             existing = editEntry,
             onSave = { e ->
                 val updated = if (editEntry != null) {
@@ -470,6 +497,48 @@ private fun EmptyState() {
 }
 
 @Composable
+private fun JaksoSelector(
+    jaksot: List<Jakso>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    val today = remember { LocalDate.now().toString() }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        FilterChip(
+            selected = selected == "all",
+            onClick = { onSelect("all") },
+            label = { Text("All periods", fontSize = 12.sp) },
+        )
+        jaksot.forEach { jakso ->
+            val isCurrent = jakso.startDate <= today && today <= jakso.endDate
+            FilterChip(
+                selected = selected == jakso.id,
+                onClick = { onSelect(jakso.id) },
+                label = {
+                    Text(
+                        if (isCurrent) "${jakso.name} (now)" else jakso.name,
+                        fontSize = 12.sp,
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = if (isCurrent)
+                        MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.secondary,
+                    selectedLabelColor = if (isCurrent)
+                        MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSecondary,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
 private fun DaySelector(
     selected: Int,
     today: Int,
@@ -559,6 +628,8 @@ private fun WilmaBanner(
 @Composable
 private fun AddEditDialog(
     rooms: List<JsonObject>,
+    jaksot: List<Jakso>,
+    defaultJaksoId: String,
     existing: ScheduleEntry?,
     onSave: (ScheduleEntry) -> Unit,
     onDismiss: () -> Unit,
@@ -569,6 +640,7 @@ private fun AddEditDialog(
     var end by remember { mutableStateOf(existing?.endHhmm ?: "09:45") }
     var subject by remember { mutableStateOf(existing?.subject ?: "") }
     var teacher by remember { mutableStateOf(existing?.teacher ?: "") }
+    var jaksoId by remember { mutableStateOf(existing?.jaksoId ?: defaultJaksoId) }
     var selectedRoom by remember { mutableStateOf<JsonObject?>(
         existing?.roomId?.let { id -> rooms.firstOrNull { (it["id"] as? JsonPrimitive)?.contentOrNull == id } }
     ) }
@@ -624,6 +696,27 @@ private fun AddEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+                // Jakso picker
+                if (jaksot.isNotEmpty()) {
+                    Text("Period", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        FilterChip(
+                            selected = jaksoId == "all",
+                            onClick = { jaksoId = "all" },
+                            label = { Text("All periods", fontSize = 11.sp) },
+                        )
+                        jaksot.forEach { j ->
+                            FilterChip(
+                                selected = jaksoId == j.id,
+                                onClick = { jaksoId = j.id },
+                                label = { Text(j.name, fontSize = 11.sp) },
+                            )
+                        }
+                    }
+                }
                 // Room picker button
                 OutlinedCard(
                     onClick = { roomSheet = true },
@@ -662,6 +755,7 @@ private fun AddEditDialog(
                         roomId = roomId,
                         roomNumber = roomNum,
                         teacher = teacher.trim(),
+                        jaksoId = jaksoId,
                     )
                 )
             }) { Text("Save") }
