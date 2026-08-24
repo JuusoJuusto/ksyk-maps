@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.MeetingRoom
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
@@ -36,6 +37,7 @@ import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.BuildingsScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LoginScreen
+import fi.ksykmaps.ui.LunchScreen
 import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.OnboardingScreen
@@ -80,7 +82,7 @@ private val TABS = listOf(
     Tab("home",      "Home",      Icons.Outlined.Home),
     Tab("map",       "Map",       Icons.Outlined.Map),
     Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth),
-    Tab("rooms",     "Rooms",     Icons.Outlined.MeetingRoom),
+    Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant),
     Tab("settings",  "Settings",  Icons.Outlined.Settings),
 )
 
@@ -129,9 +131,11 @@ private fun AppShell() {
                         onOpenAccount       = { navigate(nav, "settings") },
                         onOpenTimetable     = { navigate(nav, "timetable") },
                         onOpenBuildings     = { navigate(nav, "map") },
+                        onOpenLunch         = { navigate(nav, "lunch") },
                     )
                 }
-                composable("map")       { MapScreen() }
+                composable("map")    { MapScreen() }
+                composable("lunch")  { LunchScreen() }
                 composable("timetable") {
                     TimetableScreen(
                         onNavigateToRoom = { roomId ->

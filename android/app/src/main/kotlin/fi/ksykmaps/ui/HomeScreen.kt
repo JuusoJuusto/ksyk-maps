@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -57,6 +58,7 @@ fun HomeScreen(
     onOpenAccount: () -> Unit,
     onOpenTimetable: () -> Unit = {},
     onOpenBuildings: () -> Unit = onOpenRooms,
+    onOpenLunch: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -243,15 +245,15 @@ fun HomeScreen(
                 ) {
                     ActionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.Search,
-                        label = "Find a room",
-                        onClick = onOpenRooms,
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "Timetable",
+                        onClick = onOpenTimetable,
                     )
                     ActionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.CalendarMonth,
-                        label = "My timetable",
-                        onClick = onOpenTimetable,
+                        icon = Icons.Outlined.Restaurant,
+                        label = "Lunch",
+                        onClick = onOpenLunch,
                     )
                 }
             }
@@ -262,15 +264,15 @@ fun HomeScreen(
                 ) {
                     ActionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.Campaign,
-                        label = "Read news",
-                        onClick = onOpenAnnouncements,
+                        icon = Icons.Outlined.MeetingRoom,
+                        label = "Find a room",
+                        onClick = onOpenRooms,
                     )
                     ActionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Outlined.Person,
-                        label = "Account",
-                        onClick = onOpenAccount,
+                        icon = Icons.Outlined.Campaign,
+                        label = "News",
+                        onClick = onOpenAnnouncements,
                     )
                 }
             }

@@ -10,9 +10,22 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.16";
+export const APP_VERSION = "4.5.17";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.17",
+    date: "August 2026",
+    title: "Lunch menu tab — live Compass Group weekly menu",
+    highlights: [
+      "New: Lunch tab in the bottom nav — fetches the weekly menu from the school cafeteria (Compass Group)",
+      "New: Day chips with today highlighted, Finnish day labels, full dish list per day",
+      "New: Lunch quick-action tile on Home screen",
+      "New: Home screen quick actions reorganised — Timetable, Lunch, Find a room, News",
+      "Bump: Student app 1.13.0",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.16",
     date: "August 2026",
