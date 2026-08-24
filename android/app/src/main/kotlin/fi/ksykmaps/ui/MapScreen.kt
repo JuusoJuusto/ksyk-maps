@@ -680,7 +680,11 @@ fun MapScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            val mv = mapViewHolder.value ?: return@LifecycleEventObserver
+            // mapViewHolder.value may not be set yet when the observer first
+            // fires (Lifecycle dispatches pending events synchronously on
+            // addObserver, which can race with AndroidView's factory). Fall
+            // back to MapViewHolder.view so the reused map is always resumed.
+            val mv = mapViewHolder.value ?: MapViewHolder.view ?: return@LifecycleEventObserver
             when (event) {
                 Lifecycle.Event.ON_START   -> mv.onStart()
                 Lifecycle.Event.ON_RESUME  -> mv.onResume()
@@ -715,10 +719,14 @@ fun MapScreen() {
             factory = { c ->
                 val existing = MapViewHolder.view
                 if (existing != null) {
-                    // Reuse the existing MapView so the GL context is never
-                    // destroyed on tab switch. The DisposableEffect lifecycle
-                    // observer will call onStart + onResume when it registers.
+                    // Reuse existing MapView so the GL context survives tab
+                    // switches. Call onStart+onResume here as a guarantee —
+                    // the lifecycle observer may race with this factory and
+                    // fire before mapViewHolder.value is set, missing the
+                    // resume call. Double-calling is safe (MapLibre no-ops).
                     mapViewHolder.value = existing
+                    try { existing.onStart() } catch (_: Exception) {}
+                    try { existing.onResume() } catch (_: Exception) {}
                     existing
                 } else {
                     MapView(c).also { mv ->
