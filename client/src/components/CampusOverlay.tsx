@@ -2464,11 +2464,16 @@ function upsertGeoJSONSource(map: MaplibreMap, id: string, data: unknown) {
  *  event — try/catch alone catches the JS exception but still emits the event. */
 function replaceLayer(map: MaplibreMap, layer: import("maplibre-gl").AddLayerObject) {
   if (map.getLayer(layer.id)) map.removeLayer(layer.id);
+  // Guard: skip add if source isn't registered yet — prevents the circle
+  // renderer from crashing with "Cannot read properties of undefined (reading
+  // 'get')" when a render frame fires before the source is available.
+  if ("source" in layer && typeof layer.source === "string" && !map.getSource(layer.source)) return;
   try { map.addLayer(layer); } catch { /* style not ready */ }
 }
 
 function addLayerIfMissing(map: MaplibreMap, layer: import("maplibre-gl").AddLayerObject) {
   if (map.getLayer(layer.id)) return;
+  if ("source" in layer && typeof layer.source === "string" && !map.getSource(layer.source)) return;
   try {
     map.addLayer(layer);
   } catch {

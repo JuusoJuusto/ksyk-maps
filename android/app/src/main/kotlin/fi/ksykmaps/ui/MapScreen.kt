@@ -734,6 +734,13 @@ fun MapScreen() {
                     MapView(c).also { mv ->
                         MapViewHolder.view = mv
                         mapViewHolder.value = mv
+                        // The lifecycle observer fires synchronously during addObserver
+                        // when the Activity is already RESUMED, before this factory
+                        // runs. Call the full onCreate→onStart→onResume sequence here
+                        // so the GL thread initialises correctly on the very first load.
+                        try { mv.onCreate(null) } catch (_: Exception) {}
+                        try { mv.onStart() } catch (_: Exception) {}
+                        try { mv.onResume() } catch (_: Exception) {}
                         mv.getMapAsync { m ->
                             MapViewHolder.map = m
                             m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {

@@ -273,7 +273,7 @@ fun LunchScreen() {
         AlertDialog(
             onDismissRequest = { showFoodEgg = false },
             title = { Text("Salainen resepti") },
-            text = { Text("Huhu! Loydat piiloreseptin: yksi ruokalusikka motivaatiota, kaksi kupillista koodia ja sopiva maara kokkausaikaa. Hyvaa ruokahalua!") },
+            text = { Text("Huhu! Löydät piiloreseptin: yksi ruokalusikka motivaatiota, kaksi kupillista koodia ja sopiva määrä kokkausaikaa. Hyvää ruokahalua!") },
             confirmButton = {
                 TextButton(onClick = { showFoodEgg = false }) { Text("Herkullista!") }
             },
