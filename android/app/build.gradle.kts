@@ -44,6 +44,19 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+
+    // Rename output APKs to ksykmaps-<variant>-<versionName>.apk
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "ksykmaps-${variant.buildType.name}-${variant.versionName}.apk"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

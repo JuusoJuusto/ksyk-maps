@@ -1034,13 +1034,20 @@ fun MapScreen() {
 @SuppressLint("MissingPermission")
 private fun enableLocation(ctx: android.content.Context, map: MapLibreMap) {
     map.getStyle { style ->
-        val lc = map.locationComponent
-        lc.activateLocationComponent(
-            LocationComponentActivationOptions.builder(ctx, style).build()
-        )
-        lc.isLocationComponentEnabled = true
-        lc.cameraMode = CameraMode.TRACKING
-        lc.renderMode = RenderMode.COMPASS
+        try {
+            val lc = map.locationComponent
+            if (!lc.isLocationComponentActivated) {
+                lc.activateLocationComponent(
+                    LocationComponentActivationOptions.builder(ctx, style).build()
+                )
+            }
+            lc.isLocationComponentEnabled = true
+            lc.cameraMode = CameraMode.TRACKING
+            lc.renderMode = RenderMode.COMPASS
+        } catch (_: Exception) {
+            // Location component may already be in the wrong state;
+            // silently ignore — the user can retry by tapping My Location again.
+        }
     }
 }
 

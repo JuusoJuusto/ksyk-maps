@@ -10,9 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.12";
+export const APP_VERSION = "4.5.13";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.13",
+    date: "August 2026",
+    title: "Critical fixes: DB tables, navigation crash, duplicate lessons",
+    highlights: [
+      "Fixed: kv_settings and campus_pois tables auto-created on first request",
+      "Fixed: page_views FK violation — analytics no longer stores untrusted userIds",
+      "Fixed: Android navigation crash — LocationComponent exception now caught safely",
+      "Fixed: Duplicate lessons after Wilma import — deduplicate by weekday+time+subject",
+      "Fixed: OPEN TICKETS admin stat removed from student home screen",
+      "Improved: APK output named ksykmaps-debug/release-<version>.apk",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.12",
     date: "August 2026",
@@ -27,7 +41,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "New: Admin alias management — review unknown locations, add/approve aliases",
       "Privacy: Wilma URL stored only locally (localStorage / SharedPreferences), never logged server-side",
     ],
-    latest: true,
   },
   {
     version: "4.5.11",

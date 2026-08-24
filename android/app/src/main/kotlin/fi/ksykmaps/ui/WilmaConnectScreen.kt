@@ -69,9 +69,6 @@ fun WilmaConnectScreen(
                 val result = Api.post("/calendar/parse", body)
                 val obj = result.jsonObject
                 val eventsArr = obj["events"]?.jsonArray ?: JsonArray(emptyList())
-                val stats = obj["stats"]?.jsonObject
-                val total = stats?.get("total")?.jsonPrimitive?.intOrNull ?: eventsArr.size
-                val matched = stats?.get("matched")?.jsonPrimitive?.intOrNull ?: 0
 
                 val imported = eventsArr.mapNotNull { el ->
                     try {
@@ -93,16 +90,21 @@ fun WilmaConnectScreen(
                     } catch (_: Exception) { null }
                 }
 
+                // Deduplicate by (dayOfWeek, startHhmm, endHhmm, subject) —
+                // RRULE expansion produces one entry per occurrence, but for
+                // the weekly timetable we only need one per unique pattern.
+                val deduped = imported
+                    .distinctBy { Triple(it.dayOfWeek, it.startHhmm + it.endHhmm, it.subject) }
                 // Keep manually added entries, replace all wilma_ ones
                 val existing = loadEntries(ctx)
                 val manual = existing.filter { !it.id.startsWith("wilma_") }
-                saveEntries(ctx, manual + imported)
+                saveEntries(ctx, manual + deduped)
                 saveWilmaUrl(ctx, trimmed)
 
                 withContext(Dispatchers.Main) {
                     storedUrl = trimmed
                     url = trimmed
-                    successStats = Pair(total, matched)
+                    successStats = Pair(deduped.size, deduped.count { it.roomId.isNotBlank() })
                     syncing = false
                     onImported()
                 }

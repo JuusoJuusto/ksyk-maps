@@ -42,6 +42,10 @@ function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: st
   return payload;
 }
 
+// Run once per cold start — creates kv_settings, campus_pois, room_aliases,
+// unknown_locations tables if they don't exist yet (safe no-op otherwise).
+import('../server/initDb.js').then(m => m.ensureSchema()).catch(() => {});
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Correlation / request ID — echoed back so callers can include it in bug reports.
   const requestId = (req.headers['x-request-id'] as string) ||
@@ -618,11 +622,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { pageViews } = await import('../shared/schema.js');
-        const { page, sessionId, userId, referrer } = req.body || {};
+        const { page, sessionId, referrer } = req.body || {};
         await pgDb.insert(pageViews).values({
           url: (page || '/').toString().slice(0, 200),
           sessionId: (sessionId || 'anon').toString().slice(0, 60),
-          userId: (userId || null) as any,
+          userId: null,
           referrer: (referrer || '').toString().slice(0, 200),
           userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
         }).catch(() => {});
@@ -2323,11 +2327,14 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { pageViews } = await import('../shared/schema.js');
-        const { page, sessionId, userId, referrer } = req.body || {};
+        const { page, sessionId, referrer } = req.body || {};
+        // Never trust client-supplied userId — it can reference a user that
+        // doesn't exist in the DB, causing a FK violation. Anonymous page
+        // views always get userId=null; authenticated tracking lives in /auth.
         await pgDb.insert(pageViews).values({
           url: (page || '/').toString().slice(0, 200),
           sessionId: (sessionId || 'anon').toString().slice(0, 60),
-          userId: (userId || null) as any,
+          userId: null,
           referrer: (referrer || '').toString().slice(0, 200),
           userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
         }).catch(() => {});
