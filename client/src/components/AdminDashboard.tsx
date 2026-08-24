@@ -51,6 +51,10 @@ import {
   Home,
   Radio,
   TrendingUp,
+  Bell,
+  Send,
+  CheckCircle2,
+  Info,
 } from "lucide-react";
 
 interface Building {
@@ -113,7 +117,7 @@ const ADMIN_BASE = "/admin";
 // concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "tickets","logs","staff","announcements","beacons","2fa","settings",
+  "tickets","logs","staff","announcements","notifications","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -140,6 +144,187 @@ function resolveTab(s?: string): TabSlug | "overview" {
   if ((TAB_SLUGS as readonly string[]).includes(s)) return s as TabSlug;
   if (s in URL_TO_TAB) return URL_TO_TAB[s];
   return "overview";
+}
+
+function NotificationsPanel({
+  queryClient,
+  toast,
+  announcements,
+  navigate,
+}: {
+  queryClient: ReturnType<typeof useQueryClient>;
+  toast: ReturnType<typeof useToast>["toast"];
+  announcements: Announcement[];
+  navigate: (tab: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [sending, setSending] = useState(false);
+  const [lastSent, setLastSent] = useState<string | null>(null);
+
+  const active = announcements.filter((a) => a.isActive);
+
+  const send = async (isTest: boolean) => {
+    const t = isTest ? "[TEST] App notification test" : title.trim();
+    const b = isTest ? "This is a test notification from the KSYK Maps admin panel." : body.trim();
+    if (!t || !b) { toast({ title: "Fill in title and message", variant: "destructive" }); return; }
+    setSending(true);
+    try {
+      const { getAdminHeaders } = await import("@/lib/adminAuth");
+      const r = await fetch("/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        body: JSON.stringify({ title: t, content: b, priority, isActive: true }),
+      });
+      if (!r.ok) throw new Error("Failed");
+      queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      setLastSent(t);
+      if (!isTest) { setTitle(""); setBody(""); }
+      toast({ title: isTest ? "Test notification sent" : "Notification sent", description: t });
+    } catch {
+      toast({ title: "Failed to send", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold">Push Notifications</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Send in-app banners to all users. Messages appear in the Announcements screen immediately.
+        </p>
+      </div>
+
+      {/* Status row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
+          <CardContent className="p-4">
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Active</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{active.length}</p>
+            <p className="text-xs text-blue-500 mt-0.5">live announcements</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Total sent</p>
+            <p className="text-2xl font-bold">{announcements.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">all time</p>
+          </CardContent>
+        </Card>
+        {lastSent && (
+          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
+            <CardContent className="p-4 flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-green-600 font-semibold">Last sent</p>
+                <p className="text-xs text-green-700 dark:text-green-300 truncate">{lastSent}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Compose form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Send className="h-4 w-4" />
+            Send Notification
+          </CardTitle>
+          <CardDescription>
+            Creates a new announcement visible to all app users immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Title</label>
+            <Input
+              placeholder="e.g. School closed tomorrow"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={sending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Message</label>
+            <textarea
+              className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Write the full notification message here…"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              disabled={sending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Priority</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              disabled={sending}
+            >
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={() => send(false)} disabled={sending || !title.trim() || !body.trim()} className="gap-1.5">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send to all users
+            </Button>
+            <Button variant="outline" onClick={() => send(true)} disabled={sending} className="gap-1.5">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Info className="h-4 w-4" />}
+              Send test
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info card */}
+      <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+        <CardContent className="p-4 flex gap-3">
+          <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800 dark:text-amber-300">
+            <p className="font-semibold mb-1">How notifications work</p>
+            <p className="text-amber-700 dark:text-amber-400">
+              Notifications are in-app announcements — they appear in the Announcements tab when users open the app.
+              Device push notifications (FCM) are not yet configured. Manage all announcements from the{" "}
+              <button className="underline font-medium" onClick={() => navigate("announcements")}>Announcements tab</button>.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent notifications */}
+      {announcements.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent Notifications</CardTitle>
+          </CardHeader>
+          <CardContent className="divide-y divide-border">
+            {announcements.slice(0, 8).map((a) => (
+              <div key={a.id} className="py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{a.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{a.content}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(a.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <Badge variant={a.isActive ? "default" : "secondary"} className="shrink-0 text-xs">
+                  {a.isActive ? "Live" : "Expired"}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }
 
 export default function AdminDashboard({ section }: { section?: string }) {
@@ -419,6 +604,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // Analytics is now a tab inside Logs — no top-level sidebar entry.
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
+    { value: "notifications", label: "Notifications", Icon: Bell },
     ...(isOwner ? [{ value: "beacons", label: "Wi-Fi", Icon: Radio }] : []),
     ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
@@ -1651,6 +1837,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
 
         <TabsContent value="announcements" className="mt-0 space-y-6">
           <AnnouncementManager />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-0 space-y-6">
+          <NotificationsPanel queryClient={queryClient} toast={toast} announcements={announcements as Announcement[]} navigate={navigate} />
         </TabsContent>
 
         {isOwner && (
