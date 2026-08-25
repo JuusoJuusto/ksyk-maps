@@ -30,7 +30,7 @@ private const val TOTAL_EGGS = 3
 
 fun getAppLanguage(ctx: android.content.Context): String =
     ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
-        .getString(KEY_LANGUAGE, "en") ?: "en"
+        .getString(KEY_LANGUAGE, "fi") ?: "fi"
 
 object ThemeState {
     var mode by androidx.compose.runtime.mutableStateOf("system") // "system" | "dark" | "light"

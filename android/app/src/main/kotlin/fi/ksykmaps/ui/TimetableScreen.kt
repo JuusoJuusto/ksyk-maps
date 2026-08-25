@@ -163,6 +163,7 @@ fun TimetableScreen(
                     connected = wilmaConnected.value,
                     importedCount = wilmaCount.value,
                     onConnect = onOpenWilmaConnect,
+                    lang = lang,
                 )
             }
 
@@ -173,6 +174,7 @@ fun TimetableScreen(
                         jaksot = jaksot,
                         selected = selectedJaksoId,
                         onSelect = { selectedJaksoId = it },
+                        lang = lang,
                     )
                 }
             }
@@ -307,6 +309,7 @@ fun TimetableScreen(
             jaksot = jaksot,
             defaultJaksoId = selectedJaksoId,
             existing = editEntry,
+            lang = lang,
             onSave = { e ->
                 val updated = if (editEntry != null) {
                     entries.map { if (it.id == editEntry!!.id) e else it }
@@ -519,6 +522,7 @@ private fun JaksoSelector(
     jaksot: List<Jakso>,
     selected: String,
     onSelect: (String) -> Unit,
+    lang: String = "fi",
 ) {
     val today = remember { LocalDate.now().toString() }
     Row(
@@ -534,7 +538,7 @@ private fun JaksoSelector(
                 onClick = { onSelect(jakso.id) },
                 label = {
                     Text(
-                        if (isCurrent) "${jakso.name} (now)" else jakso.name,
+                        if (isCurrent) "${jakso.name} (${if (lang == "fi") "nyt" else "now"})" else jakso.name,
                         fontSize = 12.sp,
                     )
                 },
@@ -595,6 +599,7 @@ private fun WilmaBanner(
     connected: Boolean,
     importedCount: Int,
     onConnect: () -> Unit,
+    lang: String = "fi",
 ) {
     if (connected) {
         Row(
@@ -610,10 +615,15 @@ private fun WilmaBanner(
                 modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text("Wilma calendar connected", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (lang == "fi") "Wilma-kalenteri yhdistetty" else "Wilma calendar connected",
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                )
                 if (importedCount > 0) {
-                    Text("$importedCount lessons imported", fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (lang == "fi") "$importedCount tuntia tuotu" else "$importedCount lessons imported",
+                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             Icon(Icons.Outlined.ChevronRight, null,
@@ -630,9 +640,15 @@ private fun WilmaBanner(
                     modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Import from Wilma", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Auto-fill your timetable from your school calendar",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (lang == "fi") "Tuo Wilmasta" else "Import from Wilma",
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        if (lang == "fi") "Täytä lukujärjestys automaattisesti Wilma-kalenteristasi"
+                        else "Auto-fill your timetable from your school calendar",
+                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Icon(Icons.Outlined.ChevronRight, null,
                     modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -648,10 +664,12 @@ private fun AddEditDialog(
     jaksot: List<Jakso>,
     defaultJaksoId: String,
     existing: ScheduleEntry?,
+    lang: String = "fi",
     onSave: (ScheduleEntry) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val DAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri")
+    val DAYS = if (lang == "fi") listOf("Ma", "Ti", "Ke", "To", "Pe")
+               else listOf("Mon", "Tue", "Wed", "Thu", "Fri")
     var day by remember { mutableStateOf(existing?.dayOfWeek ?: todayDow().coerceIn(1, 5)) }
     var start by remember { mutableStateOf(existing?.startHhmm ?: "08:15") }
     var end by remember { mutableStateOf(existing?.endHhmm ?: "09:45") }
@@ -666,7 +684,7 @@ private fun AddEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing != null) "Edit lesson" else "Add lesson") },
+        title = { Text(if (existing != null) (if (lang == "fi") "Muokkaa tuntia" else "Edit lesson") else (if (lang == "fi") "Lisää tunti" else "Add lesson")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Day picker
@@ -684,7 +702,7 @@ private fun AddEditDialog(
                     OutlinedTextField(
                         value = start,
                         onValueChange = { start = it },
-                        label = { Text("Start") },
+                        label = { Text(if (lang == "fi") "Alkaa" else "Start") },
                         placeholder = { Text("08:15") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
@@ -692,7 +710,7 @@ private fun AddEditDialog(
                     OutlinedTextField(
                         value = end,
                         onValueChange = { end = it },
-                        label = { Text("End") },
+                        label = { Text(if (lang == "fi") "Loppuu" else "End") },
                         placeholder = { Text("09:45") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
@@ -701,21 +719,21 @@ private fun AddEditDialog(
                 OutlinedTextField(
                     value = subject,
                     onValueChange = { subject = it },
-                    label = { Text("Subject") },
-                    placeholder = { Text("Mathematics") },
+                    label = { Text(if (lang == "fi") "Aine" else "Subject") },
+                    placeholder = { Text(if (lang == "fi") "Matematiikka" else "Mathematics") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = teacher,
                     onValueChange = { teacher = it },
-                    label = { Text("Teacher (optional)") },
+                    label = { Text(if (lang == "fi") "Opettaja (valinnainen)" else "Teacher (optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 // Jakso picker
                 if (jaksot.isNotEmpty()) {
-                    Text("Period", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (lang == "fi") "Jakso" else "Period", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(
                         Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -723,7 +741,7 @@ private fun AddEditDialog(
                         FilterChip(
                             selected = jaksoId == "all",
                             onClick = { jaksoId = "all" },
-                            label = { Text("All periods", fontSize = 11.sp) },
+                            label = { Text(if (lang == "fi") "Kaikki jaksot" else "All periods", fontSize = 11.sp) },
                         )
                         jaksot.forEach { j ->
                             FilterChip(
@@ -749,8 +767,9 @@ private fun AddEditDialog(
                         val roomLabel = selectedRoom?.let {
                             val num = (it["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: ""
                             val name = (it["name"] as? JsonPrimitive)?.contentOrNull ?: ""
-                            if (num.isNotBlank()) "Room $num${if (name.isNotBlank()) " – $name" else ""}" else name
-                        } ?: "Pick a room (optional)"
+                            val roomWord = if (lang == "fi") "Luokka" else "Room"
+                            if (num.isNotBlank()) "$roomWord $num${if (name.isNotBlank()) " – $name" else ""}" else name
+                        } ?: if (lang == "fi") "Valitse luokka (valinnainen)" else "Pick a room (optional)"
                         Text(roomLabel, fontSize = 13.sp, color = if (selectedRoom == null)
                             MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
                     }
@@ -775,9 +794,9 @@ private fun AddEditDialog(
                         jaksoId = jaksoId,
                     )
                 )
-            }) { Text("Save") }
+            }) { Text(if (lang == "fi") "Tallenna" else "Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(if (lang == "fi") "Peruuta" else "Cancel") } },
     )
 
     if (roomSheet) {
@@ -791,12 +810,12 @@ private fun AddEditDialog(
         }
         ModalBottomSheet(onDismissRequest = { roomSheet = false }) {
             Column(Modifier.padding(horizontal = 16.dp)) {
-                Text("Pick a room", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text(if (lang == "fi") "Valitse luokka" else "Pick a room", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search") },
+                    placeholder = { Text(if (lang == "fi") "Hae" else "Search") },
                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -806,7 +825,7 @@ private fun AddEditDialog(
                 LazyColumn(Modifier.heightIn(max = 420.dp)) {
                     item {
                         ListItem(
-                            headlineContent = { Text("None") },
+                            headlineContent = { Text(if (lang == "fi") "Ei luokkaa" else "None") },
                             modifier = Modifier.clickable { selectedRoom = null; roomSheet = false },
                         )
                         HorizontalDivider()
@@ -816,9 +835,9 @@ private fun AddEditDialog(
                         val name = (r["name"] as? JsonPrimitive)?.contentOrNull ?: ""
                         val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull ?: "1"
                         ListItem(
-                            headlineContent = { Text("Room $num") },
+                            headlineContent = { Text("${if (lang == "fi") "Luokka" else "Room"} $num") },
                             supportingContent = { if (name.isNotBlank()) Text(name, fontSize = 12.sp) },
-                            trailingContent = { Text("F$floor", fontSize = 12.sp,
+                            trailingContent = { Text("${if (lang == "fi") "K" else "F"}$floor", fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             modifier = Modifier.clickable { selectedRoom = r; roomSheet = false },
                         )

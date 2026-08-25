@@ -48,6 +48,7 @@ fun WilmaConnectScreen(
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lang = remember { getAppLanguage(ctx) }
 
     var storedUrl by remember { mutableStateOf(getStoredWilmaUrl(ctx) ?: "") }
     var url by remember { mutableStateOf(storedUrl) }
@@ -60,8 +61,8 @@ fun WilmaConnectScreen(
 
     fun connect(targetUrl: String = url) {
         val trimmed = targetUrl.trim()
-        if (trimmed.isBlank()) { error = "Please paste your Wilma iCalendar URL."; return }
-        if (!trimmed.startsWith("http")) { error = "The URL must start with https://"; return }
+        if (trimmed.isBlank()) { error = if (lang == "fi") "Liitä Wilma iCalendar -URL alle." else "Please paste your Wilma iCalendar URL."; return }
+        if (!trimmed.startsWith("http")) { error = if (lang == "fi") "URL:n täytyy alkaa https://" else "The URL must start with https://"; return }
         error = null
         syncing = true
         scope.launch(Dispatchers.IO) {
@@ -120,7 +121,16 @@ fun WilmaConnectScreen(
                     onImported()
                 }
             } catch (e: Exception) {
-                val msg = when {
+                val msg = if (lang == "fi") when {
+                    e is ApiException && e.status == 0 -> "Verkkovirhe — tarkista yhteytesi."
+                    e.message?.contains("FETCH_ERROR", ignoreCase = true) == true ->
+                        "Kalenterin URL:iin ei saatu yhteyttä. Varmista, että se on oikein."
+                    e.message?.contains("NOT_CALENDAR", ignoreCase = true) == true ->
+                        "URL ei osoita kalenteritiedostoon."
+                    e.message?.contains("TIMEOUT", ignoreCase = true) == true ->
+                        "Kalenteripalvelin vastasi liian hitaasti."
+                    else -> e.message ?: "Synkronointi epäonnistui"
+                } else when {
                     e is ApiException && e.status == 0 -> "Network error — check your connection."
                     e.message?.contains("FETCH_ERROR", ignoreCase = true) == true ->
                         "Could not reach the calendar URL. Make sure it is correct and accessible."
@@ -154,7 +164,7 @@ fun WilmaConnectScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wilma Calendar", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (lang == "fi") "Wilma-kalenteri" else "Wilma Calendar", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
@@ -182,9 +192,10 @@ fun WilmaConnectScreen(
                         )
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text("Import from Wilma", fontWeight = FontWeight.Bold)
+                            Text(if (lang == "fi") "Tuo Wilmasta" else "Import from Wilma", fontWeight = FontWeight.Bold)
                             Text(
-                                "Sync your timetable automatically — no password needed.",
+                                if (lang == "fi") "Synkronoi lukujärjestys automaattisesti — ei salasanaa tarvita."
+                                else "Sync your timetable automatically — no password needed.",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -211,11 +222,12 @@ fun WilmaConnectScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Calendar connected", fontWeight = FontWeight.SemiBold)
+                                Text(if (lang == "fi") "Kalenteri yhdistetty" else "Calendar connected", fontWeight = FontWeight.SemiBold)
                             }
                             successStats?.let { (total, matched) ->
                                 Text(
-                                    "$total lessons imported · $matched rooms matched",
+                                    if (lang == "fi") "$total tuntia tuotu · $matched luokkaa tunnistettu"
+                                    else "$total lessons imported · $matched rooms matched",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -226,7 +238,7 @@ fun WilmaConnectScreen(
                                     enabled = !syncing,
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    Text(if (syncing) "Syncing…" else "Sync now", fontSize = 13.sp)
+                                    Text(if (syncing) (if (lang == "fi") "Synkronoidaan…" else "Syncing…") else (if (lang == "fi") "Synkronoi nyt" else "Sync now"), fontSize = 13.sp)
                                 }
                                 Button(
                                     onClick = ::disconnect,
@@ -235,7 +247,7 @@ fun WilmaConnectScreen(
                                     ),
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    Text("Disconnect", fontSize = 13.sp)
+                                    Text(if (lang == "fi") "Poista yhteys" else "Disconnect", fontSize = 13.sp)
                                 }
                             }
                         }
@@ -248,7 +260,7 @@ fun WilmaConnectScreen(
                 item {
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("How to find your iCalendar URL", fontWeight = FontWeight.SemiBold)
+                            Text(if (lang == "fi") "Kuinka löydät iCalendar-URL:n" else "How to find your iCalendar URL", fontWeight = FontWeight.SemiBold)
 
                             InstructionList(
                                 label = "English",
@@ -290,7 +302,9 @@ fun WilmaConnectScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        "This URL is personal — treat it like a password. " +
+                                        if (lang == "fi") "Tämä URL on henkilökohtainen — käsittele sitä kuten salasanaa. " +
+                                            "KSYK Maps tallentaa sen vain tälle laitteelle, ei koskaan palvelimelle."
+                                        else "This URL is personal — treat it like a password. " +
                                             "KSYK Maps stores it only on this device, never on a server.",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -326,7 +340,7 @@ fun WilmaConnectScreen(
                             onClick = { showInstructions = true },
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Text("Where do I find this URL?", fontSize = 12.sp)
+                            Text(if (lang == "fi") "Mistä löydän tämän URL:n?" else "Where do I find this URL?", fontSize = 12.sp)
                         }
                     }
                 }
@@ -348,16 +362,22 @@ fun WilmaConnectScreen(
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                             )
                             Text(
-                                "Troubleshooting:",
+                                if (lang == "fi") "Vianetsintä:" else "Troubleshooting:",
                                 fontWeight = FontWeight.Medium, fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                             )
-                            listOf(
+                            val tips = if (lang == "fi") listOf(
+                                "Varmista, että URL alkaa https://",
+                                "URL on saattanut vanhentua — luo uusi Wilmassa",
+                                "Kokeile avata URL selaimessa varmistaaksesi, että se toimii",
+                                "Varmista, että kopioit koko URL:n (ei rivinvaihtoja)",
+                            ) else listOf(
                                 "Make sure the URL starts with https://",
                                 "The URL may have expired — generate a new one in Wilma",
                                 "Try opening the URL in a browser to confirm it works",
                                 "Make sure you copied the full URL (no line breaks)",
-                            ).forEach { s ->
+                            )
+                            tips.forEach { s ->
                                 Row {
                                     Text("• ", fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onErrorContainer)
@@ -389,9 +409,9 @@ fun WilmaConnectScreen(
                         }
                         Text(
                             when {
-                                syncing -> "Connecting…"
-                                connected -> "Reconnect"
-                                else -> "Connect calendar"
+                                syncing -> if (lang == "fi") "Yhdistetään…" else "Connecting…"
+                                connected -> if (lang == "fi") "Yhdistä uudelleen" else "Reconnect"
+                                else -> if (lang == "fi") "Yhdistä kalenteri" else "Connect calendar"
                             },
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -402,7 +422,8 @@ fun WilmaConnectScreen(
             // Privacy footer
             item {
                 Text(
-                    "Your calendar URL is stored only on this device. It is never shared or logged.",
+                    if (lang == "fi") "Kalenteri-URL tallennetaan vain tälle laitteelle. Sitä ei jaeta eikä kirjata lokiin."
+                    else "Your calendar URL is stored only on this device. It is never shared or logged.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),

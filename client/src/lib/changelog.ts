@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.25";
+export const APP_VERSION = "4.5.26";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.26",
+    date: "August 2026",
+    title: "Android map fixed (always-mounted), full Finnish localization",
+    titleFi: "Android-kartta korjattu (aina muistissa), täydellinen suomenkielinen käyttöliittymä",
+    highlights: [
+      "Map crash permanently fixed: MapScreen now stays in the composition tree at all times — GL context is never destroyed by tab switching",
+      "Bottom navigation tabs now show Finnish labels by default (Koti, Kartta, Lukujärjestys, Lounas, Asetukset)",
+      "Default language changed to Finnish — new users and users without a saved preference see the full Finnish UI",
+      "Timetable WilmaBanner, AddEditDialog, JaksoSelector and WilmaConnectScreen fully translated to Finnish",
+    ],
+    highlightsFi: [
+      "Kartan kaatuminen korjattu pysyvästi: MapScreen on nyt aina muistissa — GL-kontekstia ei tuhota välilehtien vaihdon yhteydessä",
+      "Navigointipalkki näyttää oletuksena suomenkieliset nimet (Koti, Kartta, Lukujärjestys, Lounas, Asetukset)",
+      "Oletuskieli vaihdettu suomeksi — uudet käyttäjät saavat suomenkielisen käyttöliittymän",
+      "Lukujärjestyksen WilmaBanner, lisäysdialogi, jaksonvalitsin ja Wilma-yhteysnäkymä käännetty suomeksi",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.25",
     date: "August 2026",
@@ -33,7 +52,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Admin-paneeli: telemetriadashboard näyttää oikeaa dataa",
       "Android-ilmoitukset: uudelleenkäynnistyksen jälkeen muistutukset palautuvat",
     ],
-    latest: true,
   },
   {
     version: "4.5.22",
