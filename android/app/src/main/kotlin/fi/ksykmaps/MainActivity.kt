@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -18,7 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import fi.ksykmaps.data.Api
@@ -50,16 +51,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        Session.load(this)
-        val savedTheme = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
-            .getString("dark_mode", "system") ?: "system"
-        ThemeState.mode = savedTheme
+        try { Session.load(this) } catch (_: Throwable) {}
+        try {
+            val savedTheme = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
+                .getString("dark_mode", "system") ?: "system"
+            ThemeState.mode = savedTheme
+        } catch (_: Throwable) {}
         handleDeepLink(intent)
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val entries = loadEntries(this@MainActivity)
                 if (entries.isNotEmpty()) LessonReminderScheduler.schedule(this@MainActivity, entries)
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
         }
         setContent {
             val systemDark = isSystemInDarkTheme()
@@ -96,14 +99,23 @@ private fun AppShell() {
     var onboardingDone by remember { mutableStateOf(isOnboardingDone(ctx)) }
     var showLoading by remember { mutableStateOf(true) }
 
-    // Tab state — replaces NavHost for the main 5 tabs so MapScreen is
-    // never removed from composition, keeping the GL context alive.
     var selectedTab by rememberSaveable { mutableStateOf("home") }
-    // Sub-screen pushed on top of the tab (rooms / news / wilmaConnect).
     var subScreen by rememberSaveable { mutableStateOf<String?>(null) }
+    // Only mount MapScreen once the user has actually opened the map tab.
+    // Keeps app startup cheap and prevents the map's OpenGL initialisation
+    // from blocking the very first launch. Once mounted, the composable
+    // stays in the tree (hidden with graphicsLayer alpha) so the GL context
+    // is never torn down by subsequent tab switches.
+    var mapMounted by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (MapNavIntent.pendingRoomId != null) selectedTab = "map"
+        if (MapNavIntent.pendingRoomId != null) {
+            selectedTab = "map"
+            mapMounted = true
+        }
+    }
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == "map") mapMounted = true
     }
 
     if (!onboardingDone) {
@@ -119,6 +131,8 @@ private fun AppShell() {
 
     BackHandler(enabled = subScreen != null) { subScreen = null }
 
+    val showingMap = selectedTab == "map" && subScreen == null
+
     Scaffold(
         bottomBar = {
             if (subScreen == null) {
@@ -130,53 +144,64 @@ private fun AppShell() {
         }
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
-            // MapScreen is ALWAYS in the composition tree so the MapLibre
-            // GL context (and its native render thread) is never destroyed
-            // by tab switching. alpha(0f) makes it invisible but keeps
-            // the view attached and the GL surface alive.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .alpha(if (selectedTab == "map" && subScreen == null) 1f else 0f)
-            ) {
-                MapScreen()
+            if (mapMounted) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        // graphicsLayer alpha uses a hardware layer, so it
+                        // correctly hides MapLibre's underlying SurfaceView.
+                        // Modifier.alpha alone would not affect the surface.
+                        .graphicsLayer { alpha = if (showingMap) 1f else 0f }
+                ) {
+                    MapScreen()
+                }
             }
 
-            val showingMap = selectedTab == "map" && subScreen == null
             if (!showingMap) {
-                when {
-                    subScreen == "rooms" -> RoomFinderScreen(onOpenOnMap = { roomId ->
-                        MapNavIntent.pendingRoomId = roomId
-                        subScreen = null
-                        selectedTab = "map"
-                    })
-                    subScreen == "news" -> AnnouncementsScreen()
-                    subScreen == "wilmaConnect" -> WilmaConnectScreen(
-                        onBack     = { subScreen = null },
-                        onImported = { subScreen = null },
-                    )
-                    selectedTab == "home" -> HomeScreen(
-                        onOpenRooms         = { subScreen = "rooms" },
-                        onOpenBeacons       = {},
-                        onOpenAnnouncements = { subScreen = "news" },
-                        onOpenAccount       = { selectedTab = "settings"; subScreen = null },
-                        onOpenTimetable     = { selectedTab = "timetable"; subScreen = null },
-                        onOpenBuildings     = { selectedTab = "map"; subScreen = null },
-                        onOpenLunch         = { selectedTab = "lunch"; subScreen = null },
-                    )
-                    selectedTab == "timetable" -> TimetableScreen(
-                        onNavigateToRoom   = { roomId ->
+                // Opaque background layer above the (possibly mounted) map
+                // so the hidden map surface never bleeds through even if the
+                // hardware layer alpha is delayed a frame on some devices.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    when {
+                        subScreen == "rooms" -> RoomFinderScreen(onOpenOnMap = { roomId ->
                             MapNavIntent.pendingRoomId = roomId
-                            selectedTab = "map"
                             subScreen = null
-                        },
-                        onOpenWilmaConnect = { subScreen = "wilmaConnect" },
-                    )
-                    selectedTab == "lunch" -> LunchScreen()
-                    selectedTab == "settings" -> SettingsScreen(
-                        onSignOut = { Session.clear(ctx); loggedIn = false },
-                        onSignIn  = { showLogin = true },
-                    )
+                            selectedTab = "map"
+                            mapMounted = true
+                        })
+                        subScreen == "news" -> AnnouncementsScreen()
+                        subScreen == "wilmaConnect" -> WilmaConnectScreen(
+                            onBack     = { subScreen = null },
+                            onImported = { subScreen = null },
+                        )
+                        selectedTab == "home" -> HomeScreen(
+                            onOpenRooms         = { subScreen = "rooms" },
+                            onOpenBeacons       = {},
+                            onOpenAnnouncements = { subScreen = "news" },
+                            onOpenAccount       = { selectedTab = "settings"; subScreen = null },
+                            onOpenTimetable     = { selectedTab = "timetable"; subScreen = null },
+                            onOpenBuildings     = { selectedTab = "map"; subScreen = null; mapMounted = true },
+                            onOpenLunch         = { selectedTab = "lunch"; subScreen = null },
+                        )
+                        selectedTab == "timetable" -> TimetableScreen(
+                            onNavigateToRoom   = { roomId ->
+                                MapNavIntent.pendingRoomId = roomId
+                                selectedTab = "map"
+                                subScreen = null
+                                mapMounted = true
+                            },
+                            onOpenWilmaConnect = { subScreen = "wilmaConnect" },
+                        )
+                        selectedTab == "lunch" -> LunchScreen()
+                        selectedTab == "settings" -> SettingsScreen(
+                            onSignOut = { Session.clear(ctx); loggedIn = false },
+                            onSignIn  = { showLogin = true },
+                        )
+                    }
                 }
             }
         }

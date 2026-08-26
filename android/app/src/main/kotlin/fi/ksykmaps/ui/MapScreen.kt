@@ -189,9 +189,23 @@ fun MapScreen() {
     // MapLibre demands a one-time init before any MapView is inflated.
     // Empty apiKey is fine — CARTO/OSM tiles are open. We just need the
     // init call so the native layer wires up its OkHttp cache dir etc.
+    // Wrapped so a native-init failure (missing .so on this ABI, GL init
+    // error, etc.) never propagates up and kills the whole app.
+    var initFailed by remember { mutableStateOf(false) }
     DisposableEffect(Unit) {
-        MapLibre.getInstance(ctx.applicationContext, "", org.maplibre.android.WellKnownTileServer.MapLibre)
+        try {
+            MapLibre.getInstance(ctx.applicationContext, "", org.maplibre.android.WellKnownTileServer.MapLibre)
+        } catch (e: Throwable) {
+            initFailed = true
+            try { Analytics.trackError("MapScreen", "MapLibre.getInstance: ${e.message}") } catch (_: Throwable) {}
+        }
         onDispose { }
+    }
+    if (initFailed) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Karttaa ei voitu ladata tällä laitteella.")
+        }
+        return
     }
     var buildings by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
@@ -744,43 +758,48 @@ fun MapScreen() {
                     try { existing.onResume() } catch (_: Exception) {}
                     existing
                 } else {
-                    MapView(c).also { mv ->
-                        MapViewHolder.view = mv
-                        mapViewHolder.value = mv
-                        // The lifecycle observer fires synchronously during addObserver
-                        // when the Activity is already RESUMED, before this factory
-                        // runs. Call the full onCreate→onStart→onResume sequence here
-                        // so the GL thread initialises correctly on the very first load.
-                        try { mv.onCreate(null) } catch (_: Exception) {}
-                        try { mv.onStart() } catch (_: Exception) {}
-                        try { mv.onResume() } catch (_: Exception) {}
-                        mv.getMapAsync { m ->
-                            MapViewHolder.map = m
-                            m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
-                                val restored = loadPersistedCamera(c)
-                                val cam = CameraPosition.Builder()
-                                    .target(restored?.target ?: KSYK_CENTER)
-                                    .zoom(restored?.zoom ?: KSYK_ZOOM)
-                                    .bearing(restored?.bearing ?: 0.0)
-                                    .tilt(restored?.tilt ?: 0.0)
-                                    .build()
-                                m.cameraPosition = cam
-                                m.uiSettings.apply {
-                                    isCompassEnabled = true
-                                    isRotateGesturesEnabled = true
-                                    isTiltGesturesEnabled = true
-                                    isAttributionEnabled = true
-                                    isLogoEnabled = false
-                                    setAttributionMargins(16, 0, 0, 24)
+                    try {
+                        MapView(c).also { mv ->
+                            MapViewHolder.view = mv
+                            mapViewHolder.value = mv
+                            try { mv.onCreate(null) } catch (_: Exception) {}
+                            try { mv.onStart() } catch (_: Exception) {}
+                            try { mv.onResume() } catch (_: Exception) {}
+                            mv.getMapAsync { m ->
+                                MapViewHolder.map = m
+                                try {
+                                    m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
+                                        val restored = loadPersistedCamera(c)
+                                        val cam = CameraPosition.Builder()
+                                            .target(restored?.target ?: KSYK_CENTER)
+                                            .zoom(restored?.zoom ?: KSYK_ZOOM)
+                                            .bearing(restored?.bearing ?: 0.0)
+                                            .tilt(restored?.tilt ?: 0.0)
+                                            .build()
+                                        m.cameraPosition = cam
+                                        m.uiSettings.apply {
+                                            isCompassEnabled = true
+                                            isRotateGesturesEnabled = true
+                                            isTiltGesturesEnabled = true
+                                            isAttributionEnabled = true
+                                            isLogoEnabled = false
+                                            setAttributionMargins(16, 0, 0, 24)
+                                        }
+                                        m.addOnMapClickListener { latLng -> mapClickDelegate(latLng) }
+                                        m.addOnCameraIdleListener { cameraIdleDelegate() }
+                                        m.addOnCameraMoveListener { cameraMovedDelegate() }
+                                        mapRef = m
+                                    }
+                                } catch (e: Throwable) {
+                                    try { Analytics.trackError("MapScreen", "setStyle: ${e.message}") } catch (_: Throwable) {}
                                 }
-                                // Delegate to file-level vars so re-entry recompositions
-                                // update the handlers without re-registering listeners.
-                                m.addOnMapClickListener { latLng -> mapClickDelegate(latLng) }
-                                m.addOnCameraIdleListener { cameraIdleDelegate() }
-                                m.addOnCameraMoveListener { cameraMovedDelegate() }
-                                mapRef = m
                             }
                         }
+                    } catch (e: Throwable) {
+                        try { Analytics.trackError("MapScreen", "MapView init: ${e.message}") } catch (_: Throwable) {}
+                        // Return an empty placeholder View so AndroidView has
+                        // something to attach; avoids a subsequent NPE crash.
+                        android.view.View(c)
                     }
                 }
             },

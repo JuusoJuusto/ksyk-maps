@@ -10,9 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.26";
+export const APP_VERSION = "4.5.27";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.27",
+    date: "August 2026",
+    title: "Android crash hardening: lazy map mount, crash logger, defensive init",
+    titleFi: "Android-kaatumissuojaus: kartta ladataan vasta tarvittaessa, vikailmoitusloki",
+    highlights: [
+      "MapScreen no longer initialised at app startup — only mounts once the user opens the Map tab. Prevents any MapLibre init issue from crashing the whole app.",
+      "MapLibre.getInstance() and MapView construction both wrapped in try/catch. A GL init failure now shows a placeholder inside the map tab instead of force-closing the process.",
+      "New uncaught-exception handler writes crashes to filesDir/last_crash.txt.",
+      "Settings screen shows a new 'Crash report' card when a crash file exists, with a share button so the log can be sent to the developer.",
+      "MainActivity startup wrapped in try/catch — a corrupted SharedPreferences read no longer prevents the app from launching.",
+      "graphicsLayer alpha replaces Modifier.alpha for the map hide/show so MapLibre's SurfaceView is properly hidden on other tabs.",
+    ],
+    highlightsFi: [
+      "Karttaa ei enää alusteta sovelluksen käynnistyessä — ladataan vasta kun avaat kartan välilehden. Estää kartan alustusvirheitä kaatamasta koko sovellusta.",
+      "MapLibre-alustus ja MapView-luonti käärittiin try/catchiin. GL-alustusvirhe näyttää nyt paikkamerkin kartan välilehdellä sovelluksen kaatumisen sijaan.",
+      "Uusi kaatumiskäsittelijä tallentaa virheet tiedostoon filesDir/last_crash.txt.",
+      "Asetukset-näyttö näyttää uuden 'Vikailmoitus'-kortin, kun kaatumistiedosto on olemassa. Jaa-nappi lähettää lokin kehittäjälle.",
+      "MainActivityn käynnistys käärittiin try/catchiin — vioittunut SharedPreferences ei enää estä sovelluksen käynnistymistä.",
+      "graphicsLayer alpha korvaa Modifier.alphan kartan piilotukseen, jolloin MapLibren SurfaceView piilotetaan oikein muilla välilehdillä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.26",
     date: "August 2026",
@@ -30,7 +53,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Oletuskieli vaihdettu suomeksi — uudet käyttäjät saavat suomenkielisen käyttöliittymän",
       "Lukujärjestyksen WilmaBanner, lisäysdialogi, jaksonvalitsin ja Wilma-yhteysnäkymä käännetty suomeksi",
     ],
-    latest: true,
   },
   {
     version: "4.5.25",

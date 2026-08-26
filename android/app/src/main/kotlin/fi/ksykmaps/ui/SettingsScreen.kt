@@ -52,7 +52,7 @@ fun SettingsScreen(
     var activeEgg by remember { mutableStateOf<String?>(null) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
-    var language by remember { mutableStateOf(prefs.getString(KEY_LANGUAGE, "en") ?: "en") }
+    var language by remember { mutableStateOf(prefs.getString(KEY_LANGUAGE, "fi") ?: "fi") }
     var userName by remember { mutableStateOf(getUserName(ctx)) }
     var editingName by remember { mutableStateOf(false) }
     var themeMode by remember { mutableStateOf(ThemeState.mode) }
@@ -252,6 +252,61 @@ fun SettingsScreen(
                                    else "Optional — required only for admin features",
                         onClick = onSignIn,
                     )
+                }
+            }
+
+            // Crash log — only shown if a crash file exists
+            item {
+                val crashFile = remember { java.io.File(ctx.filesDir, "last_crash.txt") }
+                if (crashFile.exists()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SectionTitle(if (isFi) "Vikailmoitus" else "Crash report")
+                        Card(
+                            Modifier.fillMaxWidth().clickable {
+                                try {
+                                    val text = crashFile.readText()
+                                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(android.content.Intent.EXTRA_SUBJECT, "KSYK Maps crash log")
+                                        putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                    }
+                                    ctx.startActivity(android.content.Intent.createChooser(send,
+                                        if (isFi) "Jaa vikailmoitus" else "Share crash log"))
+                                } catch (_: Throwable) {}
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        ) {
+                            Row(
+                                Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(Icons.Outlined.BugReport, null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        if (isFi) "Sovellus kaatui viimeksi" else "The app crashed last time",
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                    Text(
+                                        if (isFi) "Napauta jakaaksesi lokin" else "Tap to share the log",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                                TextButton(onClick = {
+                                    try { crashFile.delete() } catch (_: Throwable) {}
+                                }) {
+                                    Text(
+                                        if (isFi) "Poista" else "Delete",
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
