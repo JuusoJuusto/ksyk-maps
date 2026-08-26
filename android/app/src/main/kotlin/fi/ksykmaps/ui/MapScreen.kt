@@ -138,21 +138,22 @@ private const val LAYER_WIFI_POS_HALO = "wifi-position-halo"
 private const val LAYER_WIFI_POS_DOT = "wifi-position-dot"
 private const val WALKING_MPS = 1.35
 
-// CARTO Voyager @2x — matches CampusMap.tsx's TILE_URLS.light so the
-// two platforms share basemap identity.
+// OpenStreetMap standard tiles — free, no API key, no paid CDN.
+// Rate-limited by tile.openstreetmap.org so acceptable for a
+// school-scoped audience. Attribution is mandatory:
+// https://www.openstreetmap.org/copyright
 private const val STYLE_JSON_LIGHT = """{
   "version": 8,
   "sources": {
     "osm-raster": {
       "type": "raster",
       "tiles": [
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ],
       "tileSize": 256,
-      "attribution": "© OpenStreetMap · © CARTO",
+      "attribution": "© OpenStreetMap contributors",
       "maxzoom": 19
     }
   },
@@ -201,7 +202,7 @@ fun MapScreen() {
         }
         onDispose { }
     }
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     if (initFailed) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -293,10 +294,26 @@ fun MapScreen() {
     }
 
     LaunchedEffect(Unit) {
-        // Refresh admin-set camera defaults (mobile home, rotation, pitch)
-        // for the NEXT cold open. Doesn't affect the current session,
-        // which already used loadServerMapDefaults from cache above.
+        // Refresh admin-set camera defaults (mobile home, rotation, pitch).
+        // If the user hasn't panned/rotated the map yet in this install
+        // (no persisted camera), snap to the fresh server-set position
+        // *now* so the "default rotation" configured in the builder is
+        // applied on the first cold open, not only from the second.
         withContext(Dispatchers.IO) { refreshServerMapDefaults(ctx) }
+        val hadPersisted = loadPersistedCamera(ctx) != null
+        if (!hadPersisted) {
+            loadServerMapDefaults(ctx)?.let { d ->
+                mapRef?.animateCamera(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder()
+                            .target(d.target).zoom(d.zoom)
+                            .bearing(d.bearing).tilt(d.tilt)
+                            .build()
+                    ),
+                    600,
+                )
+            }
+        }
         // Buildings first — they're usually smaller and the map should
         // frame the campus even if the rooms fetch is slow.
         try {

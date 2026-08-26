@@ -50,7 +50,7 @@ import kotlinx.serialization.json.jsonArray
 @Composable
 fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
     val ctx = LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -319,7 +319,7 @@ private fun RoomCard(r: JsonObject, onClick: () -> Unit) {
 @Composable
 private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: () -> Unit) {
     val ctx = LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
     val name = (r["name"] as? JsonPrimitive)?.contentOrNull ?: ""

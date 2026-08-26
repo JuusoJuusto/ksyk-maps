@@ -917,6 +917,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Announcements endpoints
     if (apiPath.startsWith('/announcements')) {
+      // Whitelist matches the announcements table in shared/schema.ts.
+      // Unknown fields (e.g. legacy `publishedAt`, `type`, `body`) are
+      // dropped so an outdated client can't crash the insert.
+      const ANNOUNCEMENT_COLUMNS = new Set([
+        'title', 'titleEn', 'titleFi',
+        'content', 'contentEn', 'contentFi',
+        'priority', 'authorId', 'expiresAt', 'isActive',
+      ]);
+      const filterAnnouncement = (raw: any): any => {
+        const body = (raw ?? {}) as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+        for (const k of Object.keys(body)) {
+          if (!ANNOUNCEMENT_COLUMNS.has(k)) continue;
+          const v = body[k];
+          // Empty string timestamps break Drizzle; force null.
+          if ((k === 'expiresAt') && (v === '' || v === undefined)) continue;
+          out[k] = v;
+        }
+        // authorId references staff(id). A dummy string like
+        // 'owner-admin-user' is not a real staff row, so PostgreSQL
+        // rejects the insert with a FK violation. Drop it — the schema
+        // allows null.
+        if (out.authorId && typeof out.authorId === 'string' &&
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(out.authorId)) {
+          delete out.authorId;
+        }
+        return out;
+      };
+
       if (req.method === 'GET') {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
         try {
@@ -930,15 +959,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'POST') {
         const admin = requireAdminAuth(req, res);
         if (!admin) return;
-        const announcement = await storage.createAnnouncement(req.body);
-        return res.status(201).json(announcement);
+        try {
+          const announcement = await storage.createAnnouncement(filterAnnouncement(req.body));
+          return res.status(201).json(announcement);
+        } catch (e: any) {
+          console.error('POST /api/announcements failed:', e?.message);
+          return res.status(400).json({ message: 'Create announcement failed', error: e?.message });
+        }
       }
-      
+
       // Handle /announcements/:id routes
       const idMatch = apiPath.match(/^\/announcements\/([^\/]+)$/);
       if (idMatch) {
         const id = idMatch[1];
-        
+
         if (req.method === 'GET') {
           const announcement = await storage.getAnnouncement(id);
           if (!announcement) {
@@ -946,12 +980,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           return res.status(200).json(announcement);
         }
-        
+
         if (req.method === 'PUT' || req.method === 'PATCH') {
-          const announcement = await storage.updateAnnouncement(id, req.body);
-          return res.status(200).json(announcement);
+          try {
+            const announcement = await storage.updateAnnouncement(id, filterAnnouncement(req.body));
+            return res.status(200).json(announcement);
+          } catch (e: any) {
+            console.error(`PATCH /api/announcements/${id} failed:`, e?.message);
+            return res.status(400).json({ message: 'Update failed', error: e?.message });
+          }
         }
-        
+
         if (req.method === 'DELETE') {
           await storage.deleteAnnouncement(id);
           return res.status(204).send('');
@@ -2715,29 +2754,37 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         let matched = 0, unmatched = 0;
         const unknownSet = new Set<string>();
 
-        const events = expanded.map((ev: any) => {
-          const result = matchRoom(ev.location, matchableRooms, matchableAliases);
-          if (result.confidence >= 70) {
-            matched++;
-          } else {
-            unmatched++;
-            if (ev.location) unknownSet.add(ev.location);
-          }
-          return {
-            uid: ev.uid,
-            summary: ev.summary,
-            location: ev.location,
-            teacher: ev.teacher,
-            date: ev.date,
-            startHhmm: ev.startHhmm,
-            endHhmm: ev.endHhmm,
-            dayOfWeek: ev.dayOfWeek,
-            matchedRoomId: result.confidence >= 70 ? result.roomId : null,
-            matchedRoomNumber: result.confidence >= 70 ? result.roomNumber : null,
-            matchConfidence: result.confidence,
-            matchMethod: result.method,
-          };
-        });
+        // Only real lessons go into the timetable. Reservations
+        // (Lounas etc.) still round-trip so admins can see them, but
+        // are excluded from matched-room stats.
+        const events = expanded
+          .filter((ev: any) => ev.type !== 'reservation')
+          .map((ev: any) => {
+            const result = matchRoom(ev.location, matchableRooms, matchableAliases);
+            if (result.confidence >= 70) {
+              matched++;
+            } else {
+              unmatched++;
+              if (ev.location) unknownSet.add(ev.location);
+            }
+            return {
+              uid: ev.uid,
+              occurrenceId: ev.occurrenceId,
+              summary: ev.summary,
+              location: ev.location,
+              teacher: ev.teacher,
+              date: ev.date,
+              localDate: ev.localDate,
+              startHhmm: ev.startHhmm,
+              endHhmm: ev.endHhmm,
+              dayOfWeek: ev.dayOfWeek,
+              type: ev.type,
+              matchedRoomId: result.confidence >= 70 ? result.roomId : null,
+              matchedRoomNumber: result.confidence >= 70 ? result.roomNumber : null,
+              matchConfidence: result.confidence,
+              matchMethod: result.method,
+            };
+          });
 
         // Record unknown locations for admin review (best-effort, non-blocking)
         if (unknownSet.size > 0) {

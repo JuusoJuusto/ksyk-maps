@@ -39,7 +39,7 @@ import java.time.format.DateTimeParseException
 @Composable
 fun AnnouncementsScreen() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }

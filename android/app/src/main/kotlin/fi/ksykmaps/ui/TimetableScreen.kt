@@ -138,7 +138,7 @@ fun TimetableScreen(
     val currentRemaining: Int? = currentEntry?.let { e -> (hhmm(e.endHhmm) - nowMins).coerceAtLeast(0) }
     val minutesUntilNext: Int? = nextEntry?.let { e -> (hhmm(e.startHhmm) - nowMins).coerceAtLeast(0) }
 
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val dayName = DayOfWeek.of(if (selectedDow in 1..7) selectedDow else 1)
         .getDisplayName(TextStyle.FULL, if (lang == "fi") Locale("fi") else Locale.ENGLISH)
 

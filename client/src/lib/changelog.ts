@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.31";
+export const APP_VERSION = "4.5.32";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.32",
+    date: "August 2026",
+    title: "Announcements fixed, reactive language, free OSM tiles, real Wilma iCal recurrence",
+    titleFi: "Tiedotteet toimivat, kieli reagoi, ilmainen kartta, oikea Wilma-parsinta",
+    highlights: [
+      "POST/PATCH /api/announcements now whitelist real columns (title, titleEn, titleFi, content, contentEn, contentFi, priority, expiresAt, isActive, authorId). Fixes the 500 caused by client sending `publishedAt` (not a column), empty `expiresAt:''` (invalid timestamp), and bogus `authorId:'owner-admin-user'` (foreign-key violation).",
+      "Android v1.27.0: LanguageState is now an observable Compose state. Bottom nav labels, screen titles, everything recomposes instantly when the user picks EN/FI in Settings — no restart needed.",
+      "Android: MapLibre basemap switched from CARTO Voyager to tile.openstreetmap.org standard tiles. Free, no API key, no third-party CDN charge.",
+      "Android: mobile map default rotation now applies on the FIRST cold open. After settings refresh, if there's no persisted camera, the map animateCamera's to the admin-set mobileCenterLat/Lng/RotationDeg/PitchDeg.",
+      "Server: rewrote server/icalParser.ts to properly honour RRULE UNTIL/COUNT, apply EXDATE exclusions, keep TZID=Europe/Helsinki wall-clock time correct regardless of the Vercel server timezone, and emit occurrenceId=`UID:startTimestamp` so overlapping jaksot series don't collapse into one lesson.",
+      "Server: iCal events now classified type=lesson/reservation/other via CATEGORIES. Lounas reservations no longer show up as classroom lessons.",
+      "Web: /api/announcements returns a 400 with a diagnostic message on failure instead of a bare 500.",
+    ],
+    highlightsFi: [
+      "POST/PATCH /api/announcements suodattaa vain tunnetut sarakkeet. 500-virhe korjattu — asiakas lähetti `publishedAt`-kentän jota ei ole olemassa, tyhjän `expiresAt`-arvon (virheellinen aikaleima) ja väärän `authorId`-arvon.",
+      "Android v1.27.0: LanguageState on nyt reaktiivinen Compose-tila. Navigointipalkki ja kaikki näytöt vaihtavat kielen välittömästi, kun valitset EN/FI Asetuksista — ei uudelleenkäynnistystä.",
+      "Android: MapLibre vaihdettu CARTO Voyager -kartoista OpenStreetMap-standardilaattoihin. Ilmainen, ei API-avainta.",
+      "Android: mobiilikartan oletusrotaatio otetaan käyttöön jo ensimmäisellä avauksella. Kartta zoomaa admin-asetettuun sijaintiin/kulmaan/kaltevuuteen kun palvelinasetukset päivittyvät.",
+      "Palvelin: server/icalParser.ts uudelleenkirjoitettu — kunnioittaa RRULE UNTIL/COUNTia, soveltaa EXDATE-poikkeuksia, säilyttää Europe/Helsinki-ajan oikeana Vercelin UTC-palvelimella, käyttää occurrenceId=`UID:startTimestamp` tunnistetta jotta jaksojen tunnit eivät sekoitu.",
+      "Palvelin: iCal-tapahtumat luokitellaan type=lesson/reservation/other CATEGORIES-kentän perusteella. Lounaat eivät enää näy oppitunteina.",
+      "Web: /api/announcements palauttaa 400-virheen kuvauksella 500-kaadon sijaan.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.31",
     date: "August 2026",
@@ -30,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Palvelin: GET /api/rooms käyttää Cache-Control: no-store -otsaketta. Uudet luokat näkyvät builderissa heti POST:n jälkeen.",
       "Palvelin: PATCH /api/rooms/:id palauttaa 400-virheen viestin kanssa 500-kaadon sijaan.",
     ],
-    latest: true,
   },
   {
     version: "4.5.30",

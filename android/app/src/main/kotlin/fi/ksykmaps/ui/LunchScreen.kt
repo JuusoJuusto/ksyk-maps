@@ -42,7 +42,7 @@ private data class LunchDay(
 @Composable
 fun LunchScreen() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
     var days by remember { mutableStateOf<List<LunchDay>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }

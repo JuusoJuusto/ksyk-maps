@@ -40,6 +40,7 @@ import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
+import fi.ksykmaps.ui.LanguageState
 import fi.ksykmaps.ui.ThemeState
 import fi.ksykmaps.ui.getAppLanguage
 import fi.ksykmaps.ui.isOnboardingDone
@@ -176,7 +177,11 @@ private fun AppShell() {
         return
     }
 
-    val lang = remember { getAppLanguage(ctx) }
+    // Read from LanguageState (reactive) so the nav bar recomposes when
+    // the user switches language in Settings. getAppLanguage() call is
+    // still needed to seed LanguageState.current from SharedPreferences.
+    LanguageState.init(ctx)
+    val lang = LanguageState.current ?: "fi"
 
     BackHandler(enabled = subScreen != null) { subScreen = null }
 

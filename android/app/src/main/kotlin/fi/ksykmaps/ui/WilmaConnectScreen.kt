@@ -48,7 +48,7 @@ fun WilmaConnectScreen(
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
 
     var storedUrl by remember { mutableStateOf(getStoredWilmaUrl(ctx) ?: "") }
     var url by remember { mutableStateOf(storedUrl) }

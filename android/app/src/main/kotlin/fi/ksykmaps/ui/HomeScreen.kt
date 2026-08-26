@@ -71,7 +71,7 @@ fun HomeScreen(
     onOpenLunch: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
@@ -694,7 +694,7 @@ private fun QuickTile(
 @Composable
 private fun AnnouncementPreview(a: JsonObject, onOpenAll: () -> Unit) {
     val ctx = LocalContext.current
-    val lang = remember { getAppLanguage(ctx) }
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val title = (a["title"] as? JsonPrimitive)?.contentOrNull
         ?: (if (lang == "fi") "Ilmoitus" else "Announcement")
     val body = (a["content"] as? JsonPrimitive)?.contentOrNull

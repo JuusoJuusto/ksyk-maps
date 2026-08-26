@@ -28,9 +28,30 @@ private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
 private const val KEY_EGGS_FOUND = "easter_eggs_found"
 private const val TOTAL_EGGS = 3
 
-fun getAppLanguage(ctx: android.content.Context): String =
-    ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
-        .getString(KEY_LANGUAGE, "fi") ?: "fi"
+/** Observable language state. Any composable reading LanguageState.current
+ *  recomposes when the user switches language in Settings. Initialised
+ *  lazily from SharedPreferences on first access. */
+object LanguageState {
+    var current by androidx.compose.runtime.mutableStateOf<String?>(null)
+
+    fun init(ctx: android.content.Context) {
+        if (current == null) {
+            current = ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
+                .getString(KEY_LANGUAGE, "fi") ?: "fi"
+        }
+    }
+
+    fun set(ctx: android.content.Context, lang: String) {
+        current = lang
+        ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE)
+            .edit().putString(KEY_LANGUAGE, lang).apply()
+    }
+}
+
+fun getAppLanguage(ctx: android.content.Context): String {
+    LanguageState.init(ctx)
+    return LanguageState.current ?: "fi"
+}
 
 object ThemeState {
     var mode by androidx.compose.runtime.mutableStateOf("system") // "system" | "dark" | "light"
@@ -160,11 +181,11 @@ fun SettingsScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             LangChip(label = "EN", selected = !isFi, onClick = {
                                 language = "en"
-                                prefs.edit().putString(KEY_LANGUAGE, "en").apply()
+                                LanguageState.set(ctx, "en")
                             })
                             LangChip(label = "FI", selected = isFi, onClick = {
                                 language = "fi"
-                                prefs.edit().putString(KEY_LANGUAGE, "fi").apply()
+                                LanguageState.set(ctx, "fi")
                             })
                         }
                     }
