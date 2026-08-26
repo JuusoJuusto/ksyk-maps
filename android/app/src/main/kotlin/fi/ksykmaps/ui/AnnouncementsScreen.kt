@@ -38,6 +38,8 @@ import java.time.format.DateTimeParseException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnnouncementsScreen() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -60,10 +62,18 @@ fun AnnouncementsScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Announcements", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        if (lang == "fi") "Tiedotteet" else "Announcements",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 actions = {
                     IconButton(onClick = { reload() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Reload")
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = if (lang == "fi") "Päivitä" else "Reload",
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -108,7 +118,9 @@ fun AnnouncementsScreen() {
                         Column(Modifier.padding(14.dp)) {
                             Text(it, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(6.dp))
-                            TextButton(onClick = { reload() }) { Text("Try again") }
+                            TextButton(onClick = { reload() }) {
+                                Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
+                            }
                         }
                     }
                 }
@@ -116,8 +128,11 @@ fun AnnouncementsScreen() {
                 if (items.isEmpty() && !loading && error == null) {
                     EmptyState(
                         icon = Icons.Outlined.Campaign,
-                        title = "No announcements",
-                        message = "When the school posts news, it'll show up here.",
+                        title = if (lang == "fi") "Ei tiedotteita" else "No announcements",
+                        message = if (lang == "fi")
+                            "Kun koulu julkaisee uutisia, ne näkyvät täällä."
+                        else
+                            "When the school posts news, it'll show up here.",
                     )
                 }
 
@@ -162,7 +177,7 @@ private fun AnnouncementCard(a: JsonObject, onClick: () -> Unit) {
             Column(Modifier.padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        title.ifBlank { "Untitled" },
+                        title.ifBlank { "—" },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
                         modifier = Modifier.weight(1f),

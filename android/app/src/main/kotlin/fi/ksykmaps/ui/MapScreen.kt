@@ -201,21 +201,28 @@ fun MapScreen() {
         }
         onDispose { }
     }
+    val lang = remember { getAppLanguage(ctx) }
     if (initFailed) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Outlined.LocationOn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
                      modifier = Modifier.size(48.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("Karttaa ei voitu ladata tällä laitteella.",
-                     fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (lang == "fi") "Karttaa ei voitu ladata tällä laitteella."
+                    else "The map could not be loaded on this device.",
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Spacer(Modifier.height(4.dp))
-                Text("Käynnistä sovellus uudelleen tai päivitä laitteesi käyttöjärjestelmä.",
-                     fontSize = 12.sp,
-                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (lang == "fi") "Käynnistä sovellus uudelleen tai päivitä laitteesi käyttöjärjestelmä."
+                    else "Restart the app or update your device operating system.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(onClick = { initFailed = false }) {
-                    Text("Yritä uudelleen")
+                    Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
                 }
             }
         }
@@ -923,6 +930,7 @@ fun MapScreen() {
                 searchQuery = ""
                 searchFocused = false
             },
+            lang = lang,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1014,6 +1022,7 @@ fun MapScreen() {
                 WifiPositionChip(
                     position = pos,
                     apCount = wifiApCount,
+                    lang = lang,
                     onTap = {
                         // Centre map on the WiFi estimated position.
                         val lat = pos.lat ?: return@WifiPositionChip
@@ -1057,7 +1066,7 @@ fun MapScreen() {
     }
 
     selected?.let { b ->
-        BuildingSheet(building = b, onDismiss = { selected = null }) {
+        BuildingSheet(building = b, lang = lang, onDismiss = { selected = null }) {
             val id = (b["id"] as? JsonPrimitive)?.contentOrNull
             if (id != null) {
                 val centroid = centroidOf(b)
@@ -1077,6 +1086,7 @@ fun MapScreen() {
     selectedRoom?.let { r ->
         RoomSheet(
             room = r,
+            lang = lang,
             onDismiss = { selectedRoom = null },
             onFocus = {
                 val centroid = centroidOf(r)
@@ -1123,7 +1133,9 @@ fun MapScreen() {
                     distanceMeters = distMeters,
                     walkSeconds = walkSec,
                     destinationLabel = labelOf(curDest),
-                    originLabel = if (originIsMyLocation) "Oma sijainti" else labelOf(curOrigin!!),
+                    originLabel = if (originIsMyLocation)
+                        (if (lang == "fi") "Oma sijainti" else "My location")
+                    else labelOf(curOrigin!!),
                     onClear = {
                         destination = null
                         origin = null
@@ -1174,6 +1186,7 @@ fun MapScreen() {
                     showStartPicker = false
                     destination = null
                 },
+                lang = lang,
             )
         }
     }
@@ -1275,6 +1288,7 @@ private fun SearchOverlay(
     results: List<SearchHit>,
     onPickRoom: (JsonObject) -> Unit,
     onPickBuilding: (JsonObject) -> Unit,
+    lang: String = "fi",
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -1298,7 +1312,8 @@ private fun SearchOverlay(
                      modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Valitse lähtöpaikka — Choose starting point",
+                    if (lang == "fi") "Valitse lähtöpaikka"
+                    else "Choose starting point",
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1319,8 +1334,10 @@ private fun SearchOverlay(
                 value = query,
                 onValueChange = { onQueryChange(it); if (!focused && it.isNotBlank()) onFocusChange(true) },
                 placeholder = { Text(
-                    if (mode == SearchMode.ORIGIN) "Search a room to start from…"
-                    else "Search rooms, buildings…",
+                    if (mode == SearchMode.ORIGIN)
+                        (if (lang == "fi") "Etsi lähtöhuone…" else "Search a room to start from…")
+                    else
+                        (if (lang == "fi") "Etsi huoneita, rakennuksia…" else "Search rooms, buildings…"),
                     fontSize = 14.sp,
                 ) },
                 singleLine = true,
@@ -1354,8 +1371,8 @@ private fun SearchOverlay(
             ) {
                 items(results) { hit ->
                     when (hit) {
-                        is SearchHit.RoomHit -> SearchRoomRow(hit.room) { onPickRoom(hit.room) }
-                        is SearchHit.BuildingHit -> SearchBuildingRow(hit.building) { onPickBuilding(hit.building) }
+                        is SearchHit.RoomHit -> SearchRoomRow(hit.room, lang) { onPickRoom(hit.room) }
+                        is SearchHit.BuildingHit -> SearchBuildingRow(hit.building, lang) { onPickBuilding(hit.building) }
                     }
                 }
             }
@@ -1371,7 +1388,7 @@ private fun SearchOverlay(
 }
 
 @Composable
-private fun SearchRoomRow(r: JsonObject, onClick: () -> Unit) {
+private fun SearchRoomRow(r: JsonObject, lang: String = "fi", onClick: () -> Unit) {
     val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
     val name = (r["name"] as? JsonPrimitive)?.contentOrNull ?: ""
     val floor = (r["floor"] as? JsonPrimitive)?.contentOrNull ?: ""
@@ -1405,17 +1422,21 @@ private fun SearchRoomRow(r: JsonObject, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             ) {
-                Text("F$floor", fontSize = 10.sp,
-                     fontWeight = FontWeight.SemiBold,
-                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "${if (lang == "fi") "K" else "F"}$floor",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SearchBuildingRow(b: JsonObject, onClick: () -> Unit) {
-    val name = (b["name"] as? JsonPrimitive)?.contentOrNull ?: "Building"
+private fun SearchBuildingRow(b: JsonObject, lang: String = "fi", onClick: () -> Unit) {
+    val name = (b["name"] as? JsonPrimitive)?.contentOrNull
+        ?: (if (lang == "fi") "Rakennus" else "Building")
     val floors = (b["floors"] as? JsonPrimitive)?.contentOrNull ?: ""
     Row(
         Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -1435,12 +1456,18 @@ private fun SearchBuildingRow(b: JsonObject, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Text("Building", fontSize = 11.sp,
-                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (lang == "fi") "Rakennus" else "Building",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (floors.isNotBlank()) {
-            Text("$floors floors", fontSize = 11.sp,
-                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (lang == "fi") "$floors kerrosta" else "$floors floors",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -1571,7 +1598,12 @@ private fun OfflineBanner(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BuildingSheet(building: JsonObject, onDismiss: () -> Unit, onFocus: () -> Unit) {
+private fun BuildingSheet(
+    building: JsonObject,
+    lang: String = "fi",
+    onDismiss: () -> Unit,
+    onFocus: () -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val name = (building["name"] as? JsonPrimitive)?.contentOrNull ?: "Building"
     val floors = (building["floors"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
@@ -1610,7 +1642,10 @@ private fun BuildingSheet(building: JsonObject, onDismiss: () -> Unit, onFocus: 
             }
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("$floors floor${if (floors == 1) "" else "s"}")
+                Chip(
+                    if (lang == "fi") "$floors kerros${if (floors == 1) "" else "ta"}"
+                    else "$floors floor${if (floors == 1) "" else "s"}"
+                )
             }
             Spacer(Modifier.height(20.dp))
             Button(
@@ -1620,7 +1655,10 @@ private fun BuildingSheet(building: JsonObject, onDismiss: () -> Unit, onFocus: 
             ) {
                 Icon(Icons.Outlined.MyLocation, null)
                 Spacer(Modifier.width(6.dp))
-                Text("Focus on map", fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (lang == "fi") "Keskitä karttaan" else "Focus on map",
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -1631,6 +1669,7 @@ private fun BuildingSheet(building: JsonObject, onDismiss: () -> Unit, onFocus: 
 @Composable
 private fun RoomSheet(
     room: JsonObject,
+    lang: String = "fi",
     onDismiss: () -> Unit,
     onFocus: () -> Unit,
     onSwitchFloor: (Int) -> Unit,
@@ -1664,7 +1703,11 @@ private fun RoomSheet(
                 }
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text("Room $number", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text(
+                        "${if (lang == "fi") "Luokka" else "Room"} $number",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                    )
                     if (name.isNotBlank()) {
                         Text(
                             name,
@@ -1676,9 +1719,10 @@ private fun RoomSheet(
             }
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("Floor $floor")
+                Chip("${if (lang == "fi") "Kerros" else "Floor"} $floor")
                 if (type.isNotBlank()) Chip(type)
-                if (capacity != null && capacity > 0) Chip("Seats $capacity")
+                if (capacity != null && capacity > 0)
+                    Chip("${if (lang == "fi") "Paikkoja" else "Seats"} $capacity")
             }
             Spacer(Modifier.height(20.dp))
             // Primary action — MazeMap always foregrounds Directions.
@@ -1695,7 +1739,10 @@ private fun RoomSheet(
             ) {
                 Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Suunnista tänne", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(
+                    if (lang == "fi") "Suunnista tänne" else "Directions here",
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                )
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1706,7 +1753,10 @@ private fun RoomSheet(
                 ) {
                     Icon(Icons.Outlined.MyLocation, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Focus", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(
+                        if (lang == "fi") "Keskitä" else "Focus",
+                        fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                    )
                 }
                 OutlinedButton(
                     onClick = { onSwitchFloor(floor); onDismiss() },
@@ -1715,7 +1765,10 @@ private fun RoomSheet(
                 ) {
                     Icon(Icons.Outlined.Layers, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Isolate floor", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(
+                        if (lang == "fi") "Rajaa kerros" else "Isolate floor",
+                        fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                    )
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -1762,9 +1815,12 @@ private fun RouteInfoChip(
                  fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(8.dp))
             IconButton(onClick = onClear, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Outlined.Close, "Clear route",
-                     modifier = Modifier.size(16.dp),
-                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    Icons.Outlined.Close,
+                    null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1794,6 +1850,7 @@ private fun BoxScope.StartPickerCard(
     onMyLocation: () -> Unit,
     onSearchRoom: () -> Unit,
     onCancel: () -> Unit,
+    lang: String = "fi",
 ) {
     Column(
         Modifier
@@ -1809,7 +1866,10 @@ private fun BoxScope.StartPickerCard(
                  tint = Color(0xFF2563EB), modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text("Lähtöpaikka", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(
+                    if (lang == "fi") "Lähtöpaikka" else "Start from",
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                )
                 Text(
                     "→ $destinationLabel",
                     fontSize = 12.sp,
@@ -1817,8 +1877,11 @@ private fun BoxScope.StartPickerCard(
                 )
             }
             IconButton(onClick = onCancel) {
-                Icon(Icons.Outlined.Close, "Cancel",
-                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    Icons.Outlined.Close,
+                    if (lang == "fi") "Peruuta" else "Cancel",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -1829,7 +1892,10 @@ private fun BoxScope.StartPickerCard(
         ) {
             Icon(Icons.Outlined.MyLocation, null)
             Spacer(Modifier.width(8.dp))
-            Text("Oma sijainti — My location", fontWeight = FontWeight.SemiBold)
+            Text(
+                if (lang == "fi") "Oma sijainti" else "My location",
+                fontWeight = FontWeight.SemiBold,
+            )
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
@@ -1839,7 +1905,10 @@ private fun BoxScope.StartPickerCard(
         ) {
             Icon(Icons.Outlined.Search, null)
             Spacer(Modifier.width(8.dp))
-            Text("Etsi lähtöhuone — Search a room", fontWeight = FontWeight.SemiBold)
+            Text(
+                if (lang == "fi") "Etsi lähtöhuone" else "Search a room",
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -1862,13 +1931,17 @@ private fun Chip(text: String) {
 private fun WifiPositionChip(
     position: WifiPosition,
     apCount: Int,
+    lang: String = "fi",
     onTap: () -> Unit,
 ) {
-    val floorSuffix = position.floor?.let { " · F$it" } ?: ""
+    val floorSuffix = position.floor?.let {
+        if (lang == "fi") " · K$it" else " · F$it"
+    } ?: ""
     val (dotColor, label) = when (position.confidence) {
         WifiPosition.Confidence.HIGH   -> Color(0xFF16A34A) to "~${position.positionLabel}$floorSuffix"
         WifiPosition.Confidence.MEDIUM -> Color(0xFFF59E0B) to "~${position.positionLabel}$floorSuffix"
-        else                           -> Color(0xFF94A3B8) to "Searching…"
+        else                           -> Color(0xFF94A3B8) to
+            (if (lang == "fi") "Etsitään…" else "Searching…")
     }
     Row(
         Modifier

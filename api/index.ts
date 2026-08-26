@@ -772,24 +772,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Rooms endpoints
     if (apiPath.startsWith('/rooms')) {
+      // Whitelist matches the actual `rooms` table in shared/schema.ts.
+      // Anything else in the body is dropped BEFORE we hand it to Drizzle
+      // so an obsolete client field (e.g. legacy `tags` / `hours`) can
+      // never blow up the update with a schema error.
+      const ROOM_COLUMNS = new Set([
+        'buildingId', 'roomNumber', 'name', 'nameEn', 'nameFi',
+        'floor', 'capacity', 'type', 'subType',
+        'equipment', 'features',
+        'mapPositionX', 'mapPositionY', 'width', 'height', 'colorCode',
+        'emergencyInfo', 'accessibilityInfo', 'maintenanceNotes', 'lastInspected',
+        'isPublic', 'isAccessible', 'isActive',
+        'isBookable', 'bookingDuration', 'maxOccupancy', 'amenities',
+        'currentStatus', 'nextAvailableAt',
+        'photos', 'virtualTourUrl', 'bookingRules', 'requiresApproval',
+        'description', 'points', 'rotationDeg',
+        'department', 'teacher',
+        'scheduleUrl', 'scheduleLabel', 'photoUrl',
+        'coordinates', 'metadata',
+      ]);
+      const filterBody = (raw: any): any => {
+        const body = (raw ?? {}) as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+        for (const k of Object.keys(body)) {
+          if (ROOM_COLUMNS.has(k)) out[k] = body[k];
+        }
+        return out;
+      };
+
       if (req.method !== 'GET' && !requireAdminAuth(req, res)) return;
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
-        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+        // No edge-cache — the builder relies on fresh reads after a
+        // POST/PATCH. The old s-maxage=30 was why "rooms don't load
+        // immediately after building": Vercel served a 30-second-stale
+        // list even though the DB already had the new row.
+        res.setHeader('Cache-Control', 'no-store');
         return res.status(200).json(rooms);
       }
-      
+
       if (req.method === 'POST' && apiPath === '/rooms') {
-        const room = await storage.createRoom(req.body);
-        return res.status(201).json(room);
+        try {
+          const room = await storage.createRoom(filterBody(req.body));
+          return res.status(201).json(room);
+        } catch (e: any) {
+          console.error('POST /api/rooms failed:', e?.message);
+          return res.status(400).json({ message: 'Create room failed', error: e?.message });
+        }
       }
-      
+
       // Handle /rooms/:id routes
       const idMatch = apiPath.match(/^\/rooms\/([^\/]+)$/);
       if (idMatch) {
         const id = idMatch[1];
-        
+
         if (req.method === 'GET') {
           const room = await storage.getRoom(id);
           if (!room) {
@@ -797,12 +834,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           return res.status(200).json(room);
         }
-        
+
         if (req.method === 'PUT' || req.method === 'PATCH') {
-          const room = await storage.updateRoom(id, req.body);
-          return res.status(200).json(room);
+          try {
+            const room = await storage.updateRoom(id, filterBody(req.body));
+            return res.status(200).json(room);
+          } catch (e: any) {
+            console.error(`PATCH /api/rooms/${id} failed:`, e?.message);
+            return res.status(400).json({ message: 'Save failed', error: e?.message });
+          }
         }
-        
+
         if (req.method === 'DELETE') {
           await storage.deleteRoom(id);
           return res.status(204).send('');

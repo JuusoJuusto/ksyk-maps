@@ -41,6 +41,8 @@ private data class LunchDay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LunchScreen() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
     val scope = rememberCoroutineScope()
     var days by remember { mutableStateOf<List<LunchDay>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -75,12 +77,20 @@ fun LunchScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lounas", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        if (lang == "fi") "Lounas" else "Lunch",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 actions = {
                     if (!loading) {
                         IconButton(onClick = { doFetch() }) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "Päivitä")
+                            Icon(
+                                Icons.Outlined.Refresh,
+                                contentDescription = if (lang == "fi") "Päivitä" else "Reload",
+                            )
                         }
                     }
                     TextButton(onClick = {
@@ -106,7 +116,7 @@ fun LunchScreen() {
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            "Ladataan ruokalistaa…",
+                            if (lang == "fi") "Ladataan ruokalistaa…" else "Loading menu…",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -124,7 +134,11 @@ fun LunchScreen() {
                             Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         )
-                        Text("Ruokalistaa ei voitu ladata", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (lang == "fi") "Ruokalistaa ei voitu ladata"
+                            else "Could not load the menu",
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         Text(
                             error!!,
                             fontSize = 12.sp,
@@ -133,7 +147,7 @@ fun LunchScreen() {
                         FilledTonalButton(onClick = { doFetch() }) {
                             Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Yritä uudelleen")
+                            Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
                         }
                     }
                 }
@@ -149,7 +163,10 @@ fun LunchScreen() {
                             Modifier.size(40.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         )
-                        Text("Ei ruokalistaa tälle viikolle")
+                        Text(
+                            if (lang == "fi") "Ei ruokalistaa tälle viikolle"
+                            else "No menu available for this week"
+                        )
                     }
                 }
             }
@@ -165,7 +182,10 @@ fun LunchScreen() {
                             java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear().getFrom(it).toInt()
                         }
                         Text(
-                            if (weekNum != null) "Viikko $weekNum" else "Tällä viikolla",
+                            if (weekNum != null)
+                                (if (lang == "fi") "Viikko $weekNum" else "Week $weekNum")
+                            else
+                                (if (lang == "fi") "Tällä viikolla" else "This week"),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -181,8 +201,14 @@ fun LunchScreen() {
                             days.forEachIndexed { i, day ->
                                 val isToday = day.date == today
                                 val abbrev = when (day.date?.dayOfWeek?.value) {
-                                    1 -> "Ma"; 2 -> "Ti"; 3 -> "Ke"; 4 -> "To"; 5 -> "Pe"
-                                    6 -> "La"; 7 -> "Su"; else -> day.label.take(2)
+                                    1 -> if (lang == "fi") "Ma" else "Mon"
+                                    2 -> if (lang == "fi") "Ti" else "Tue"
+                                    3 -> if (lang == "fi") "Ke" else "Wed"
+                                    4 -> if (lang == "fi") "To" else "Thu"
+                                    5 -> if (lang == "fi") "Pe" else "Fri"
+                                    6 -> if (lang == "fi") "La" else "Sat"
+                                    7 -> if (lang == "fi") "Su" else "Sun"
+                                    else -> day.label.take(2)
                                 }
                                 val chipLabel = buildString {
                                     append(abbrev)

@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.30";
+export const APP_VERSION = "4.5.31";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.31",
+    date: "August 2026",
+    title: "Full mobile i18n, builder room save whitelist, fresh /api/rooms reads",
+    titleFi: "Mobiili täysin kaksikielinen, luokkien tallennuskorjaus, tuoreet luokkatiedot",
+    highlights: [
+      "Android v1.26.0: MapScreen, HomeScreen, AnnouncementsScreen, RoomFinderScreen, LunchScreen fully localised — every visible label, button, placeholder, and error message switches between Finnish and English based on getAppLanguage(ctx).",
+      "Server: POST/PATCH /api/rooms now whitelist known columns (buildingId, roomNumber, name, nameEn, nameFi, floor, capacity, type, subType, photoUrl, scheduleUrl, scheduleLabel, metadata, etc.) before Drizzle sees the body. Unknown fields (obsolete client `tags`/`hours`) are dropped instead of blowing up the query — this is why Property Panel edits were silently failing.",
+      "Server: GET /api/rooms now sends Cache-Control: no-store instead of s-maxage=30. New rooms show up in the builder immediately after POST — previously Vercel's edge cache served a 30-second-stale list.",
+      "Server: PATCH /api/rooms/:id returns a 400 with an error message on failure instead of the raw 500 that gave no diagnostic info.",
+    ],
+    highlightsFi: [
+      "Android v1.26.0: Kartta, Etusivu, Tiedotteet, Luokkahaku ja Lounas käännetty täysin — kaikki näkyvät tekstit, napit ja virheviestit vaihtuvat suomen ja englannin välillä getAppLanguage(ctx):n mukaan.",
+      "Palvelin: POST/PATCH /api/rooms suodattaa vain tunnetut sarakkeet Drizzlelle. Tuntemattomat kentät (vanhentuneet `tags`/`hours`) hylätään — tästä syystä muokkaukset epäonnistuivat aiemmin.",
+      "Palvelin: GET /api/rooms käyttää Cache-Control: no-store -otsaketta. Uudet luokat näkyvät builderissa heti POST:n jälkeen.",
+      "Palvelin: PATCH /api/rooms/:id palauttaa 400-virheen viestin kanssa 500-kaadon sijaan.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.30",
     date: "August 2026",
@@ -36,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Web: /assets/(.*) suljetaan SPA-uudelleenreitityksestä. Puuttuvat CSS/JS-tiedostot palauttavat oikean 404:n index.htmlin sijaan.",
       "Web: /assets/(.*) tarjoillaan Cache-Control: immutable -otsakkeella niin että selain välimuistittaa ne pysyvästi.",
     ],
-    latest: true,
   },
   {
     version: "4.5.29",

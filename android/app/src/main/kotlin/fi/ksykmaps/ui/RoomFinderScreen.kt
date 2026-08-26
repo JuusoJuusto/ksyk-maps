@@ -50,6 +50,7 @@ import kotlinx.serialization.json.jsonArray
 @Composable
 fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
     val ctx = LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -95,10 +96,18 @@ fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Find a room", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        if (lang == "fi") "Etsi luokka" else "Find a room",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 actions = {
                     IconButton(onClick = { reload() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Reload")
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = if (lang == "fi") "Päivitä" else "Reload",
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -116,7 +125,12 @@ fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search by number, name or type") },
+                    placeholder = {
+                        Text(
+                            if (lang == "fi") "Etsi numerolla, nimellä tai tyypillä"
+                            else "Search by number, name or type",
+                        )
+                    },
                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,7 +151,7 @@ fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
                         FilterChip(
                             selected = typeFilter == null,
                             onClick = { typeFilter = null },
-                            label = { Text("All") },
+                            label = { Text(if (lang == "fi") "Kaikki" else "All") },
                         )
                         availableTypes.forEach { t ->
                             FilterChip(
@@ -169,7 +183,9 @@ fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
                         Column(Modifier.padding(14.dp)) {
                             Text(it, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(6.dp))
-                            TextButton(onClick = { reload() }) { Text("Try again") }
+                            TextButton(onClick = { reload() }) {
+                                Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
+                            }
                         }
                     }
                 }
@@ -303,6 +319,7 @@ private fun RoomCard(r: JsonObject, onClick: () -> Unit) {
 @Composable
 private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: () -> Unit) {
     val ctx = LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: "—"
     val name = (r["name"] as? JsonPrimitive)?.contentOrNull ?: ""
@@ -329,7 +346,10 @@ private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: (
                 }
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text("Room $num", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text(
+                        "${if (lang == "fi") "Luokka" else "Room"} $num",
+                        fontWeight = FontWeight.Bold, fontSize = 22.sp,
+                    )
                     if (name.isNotBlank()) {
                         Text(
                             name,
@@ -342,7 +362,7 @@ private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: (
 
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (floor.isNotBlank()) InfoChip("Floor $floor")
+                if (floor.isNotBlank()) InfoChip("${if (lang == "fi") "Kerros" else "Floor"} $floor")
                 if (type.isNotBlank()) InfoChip(type)
                 if (status.isNotBlank() && status != "unknown") StatusDot(status)
             }
@@ -356,20 +376,32 @@ private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: (
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.OpenInNew, null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Open on map", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (lang == "fi") "Avaa kartalla" else "Open on map",
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
                 OutlinedButton(
                     onClick = {
                         val share = Intent(Intent.ACTION_SEND).apply {
                             setType("text/plain")
-                            putExtra(Intent.EXTRA_TEXT, "Room $num · https://ksykmaps.fi/?room=$id")
+                            val roomLabel = if (lang == "fi") "Luokka" else "Room"
+                            putExtra(Intent.EXTRA_TEXT, "$roomLabel $num · https://ksykmaps.fi/?room=$id")
                         }
-                        try { ctx.startActivity(Intent.createChooser(share, "Share room")) } catch (_: Exception) { }
+                        try {
+                            ctx.startActivity(Intent.createChooser(
+                                share,
+                                if (lang == "fi") "Jaa luokka" else "Share room",
+                            ))
+                        } catch (_: Exception) { }
                     },
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Icon(Icons.Outlined.Share, contentDescription = "Share")
+                    Icon(
+                        Icons.Outlined.Share,
+                        contentDescription = if (lang == "fi") "Jaa" else "Share",
+                    )
                 }
             }
             Spacer(Modifier.height(28.dp))

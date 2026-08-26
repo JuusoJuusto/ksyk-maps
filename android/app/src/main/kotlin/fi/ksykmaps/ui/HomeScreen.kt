@@ -71,6 +71,7 @@ fun HomeScreen(
     onOpenLunch: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
     val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
@@ -155,7 +156,10 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(onClick = { refreshing = true; reload() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Päivitä")
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = if (lang == "fi") "Päivitä" else "Reload",
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -187,7 +191,7 @@ fun HomeScreen(
                 }
 
                 // ── Hero greeting ──────────────────────────────────────────────
-                item { HeroCard(apiOk = apiOk) }
+                item { HeroCard(apiOk = apiOk, lang = lang) }
 
                 // ── Current / next lesson ──────────────────────────────────────
                 item {
@@ -195,6 +199,7 @@ fun HomeScreen(
                         current = currentLesson,
                         next = nextLesson,
                         hasWilmaSetup = hasWilmaSetup,
+                        lang = lang,
                         onOpenTimetable = onOpenTimetable,
                         onNavigate = { lesson ->
                             if (lesson.roomId.isNotBlank()) {
@@ -211,6 +216,7 @@ fun HomeScreen(
                         ScheduleStrip(
                             lessons = upcoming.take(5),
                             currentSubject = currentLesson?.subject,
+                            lang = lang,
                             onOpenTimetable = onOpenTimetable,
                         )
                     }
@@ -223,7 +229,7 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.MeetingRoom,
                             value = rooms.toString(),
-                            label = "Luokat",
+                            label = if (lang == "fi") "Luokat" else "Rooms",
                             accent = Color(0xFF3B82F6),
                             onClick = onOpenRooms,
                         )
@@ -231,7 +237,7 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Business,
                             value = buildings.toString(),
-                            label = "Rakennukset",
+                            label = if (lang == "fi") "Rakennukset" else "Buildings",
                             accent = Color(0xFF8B5CF6),
                             onClick = onOpenBuildings,
                         )
@@ -239,7 +245,7 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Campaign,
                             value = announcementCount.toString(),
-                            label = "Uutiset",
+                            label = if (lang == "fi") "Uutiset" else "News",
                             accent = Color(0xFF10B981),
                             onClick = onOpenAnnouncements,
                         )
@@ -249,7 +255,7 @@ fun HomeScreen(
                 // ── Quick actions ──────────────────────────────────────────────
                 item {
                     Text(
-                        "Pikavalinnat",
+                        if (lang == "fi") "Pikavalinnat" else "Quick actions",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -258,14 +264,22 @@ fun HomeScreen(
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Place, "Kartta", Color(0xFF2563EB), onOpenRooms)
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.CalendarMonth, "Lukujärjestys", Color(0xFF8B5CF6), onOpenTimetable)
+                        QuickTile(Modifier.weight(1f), Icons.Outlined.Place,
+                            if (lang == "fi") "Kartta" else "Map",
+                            Color(0xFF2563EB), onOpenRooms)
+                        QuickTile(Modifier.weight(1f), Icons.Outlined.CalendarMonth,
+                            if (lang == "fi") "Lukujärjestys" else "Timetable",
+                            Color(0xFF8B5CF6), onOpenTimetable)
                     }
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Restaurant, "Lounas", Color(0xFFEA580C), onOpenLunch)
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Campaign, "Ilmoitukset", Color(0xFF10B981), onOpenAnnouncements)
+                        QuickTile(Modifier.weight(1f), Icons.Outlined.Restaurant,
+                            if (lang == "fi") "Lounas" else "Lunch",
+                            Color(0xFFEA580C), onOpenLunch)
+                        QuickTile(Modifier.weight(1f), Icons.Outlined.Campaign,
+                            if (lang == "fi") "Ilmoitukset" else "News",
+                            Color(0xFF10B981), onOpenAnnouncements)
                     }
                 }
 
@@ -273,7 +287,7 @@ fun HomeScreen(
                 if (recentAnnouncements.isNotEmpty()) {
                     item {
                         Text(
-                            "Viimeisimmät uutiset",
+                            if (lang == "fi") "Viimeisimmät uutiset" else "Latest news",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -292,12 +306,16 @@ fun HomeScreen(
 // ── Composables ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun HeroCard(apiOk: Boolean) {
+private fun HeroCard(apiOk: Boolean, lang: String = "fi") {
     val now = remember { LocalDateTime.now() }
-    val dateLine = remember {
-        val day = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("fi"))
-            .replaceFirstChar { it.uppercaseChar() }
-        val dm = "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, Locale("fi")).lowercase()} ${now.year}"
+    val locale = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
+    val dateLine = remember(locale) {
+        val day = now.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+            .replaceFirstChar { it.uppercase(locale) }
+        val dm = if (lang == "fi")
+            "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, locale).lowercase()} ${now.year}"
+        else
+            "${now.month.getDisplayName(TextStyle.FULL, locale)} ${now.dayOfMonth}, ${now.year}"
         "$day, $dm"
     }
     Box(
@@ -342,7 +360,10 @@ private fun HeroCard(apiOk: Boolean) {
                 )
                 Spacer(Modifier.width(7.dp))
                 Text(
-                    if (apiOk) "Yhteys kunnossa · ksykmaps.fi" else "Palvelin ei vastaa",
+                    if (apiOk)
+                        (if (lang == "fi") "Yhteys kunnossa · ksykmaps.fi" else "Connected · ksykmaps.fi")
+                    else
+                        (if (lang == "fi") "Palvelin ei vastaa" else "Server not responding"),
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                 )
@@ -356,6 +377,7 @@ private fun LessonStatusCard(
     current: HomeTimetableLesson?,
     next: HomeTimetableLesson?,
     hasWilmaSetup: Boolean,
+    lang: String = "fi",
     onOpenTimetable: () -> Unit,
     onNavigate: (HomeTimetableLesson) -> Unit,
 ) {
@@ -382,9 +404,16 @@ private fun LessonStatusCard(
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Tuo lukujärjestys", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text("Avaa Lukujärjestys ja tuo Wilma-kalenteri", fontSize = 12.sp,
-                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (lang == "fi") "Tuo lukujärjestys" else "Import your timetable",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                        )
+                        Text(
+                            if (lang == "fi") "Avaa Lukujärjestys ja tuo Wilma-kalenteri"
+                            else "Open Timetable and import your Wilma calendar",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     Icon(Icons.Outlined.ChevronRight, null,
                          tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
@@ -400,9 +429,15 @@ private fun LessonStatusCard(
                     Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("Ei tunteja juuri nyt", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Nauti vapaa-ajastasi!", fontSize = 12.sp,
-                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (lang == "fi") "Ei tunteja juuri nyt" else "No lessons right now",
+                            fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                        )
+                        Text(
+                            if (lang == "fi") "Nauti vapaa-ajastasi!" else "Enjoy your free time!",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -431,15 +466,22 @@ private fun LessonStatusCard(
                                 .background(subColor)
                                 .padding(horizontal = 8.dp, vertical = 3.dp),
                         ) {
-                            Text("NYT", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (lang == "fi") "NYT" else "NOW",
+                                color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                            )
                         }
                         Spacer(Modifier.width(10.dp))
                         Text(current.subject, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     if (current.roomId.isNotBlank()) {
                         IconButton(onClick = { onNavigate(current) }, modifier = Modifier.size(34.dp)) {
-                            Icon(Icons.Outlined.Navigation, "Navigoi", Modifier.size(18.dp),
-                                 tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Outlined.Navigation,
+                                if (lang == "fi") "Navigoi" else "Navigate",
+                                Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }
@@ -450,8 +492,11 @@ private fun LessonStatusCard(
                     Text("${current.startHhmm}–${current.endHhmm}", fontSize = 13.sp,
                          color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (current.roomNumber.isNotBlank()) {
-                        Text("  ·  Luokka ${current.roomNumber}", fontSize = 13.sp,
-                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "  ·  ${if (lang == "fi") "Luokka" else "Room"} ${current.roomNumber}",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 // Progress bar — how far through the lesson we are
@@ -480,8 +525,11 @@ private fun LessonStatusCard(
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
-                        Text("SEURAAVA", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                             fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            if (lang == "fi") "SEURAAVA" else "NEXT",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        )
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(next.subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
@@ -501,6 +549,7 @@ private fun LessonStatusCard(
 private fun ScheduleStrip(
     lessons: List<HomeTimetableLesson>,
     currentSubject: String?,
+    lang: String = "fi",
     onOpenTimetable: () -> Unit,
 ) {
     Card(
@@ -514,9 +563,15 @@ private fun ScheduleStrip(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Tänään", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text("${lessons.size} tuntia", fontSize = 11.sp,
-                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (lang == "fi") "Tänään" else "Today",
+                    fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                )
+                Text(
+                    if (lang == "fi") "${lessons.size} tuntia" else "${lessons.size} lessons",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             lessons.forEach { lesson ->
                 val isCurrent = lesson.subject == currentSubject
@@ -550,8 +605,11 @@ private fun ScheduleStrip(
                             fontSize = 13.sp,
                         )
                         if (lesson.roomNumber.isNotBlank()) {
-                            Text("Luokka ${lesson.roomNumber}", fontSize = 10.sp,
-                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "${if (lang == "fi") "Luokka" else "Room"} ${lesson.roomNumber}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                     if (isCurrent) {
@@ -561,7 +619,10 @@ private fun ScheduleStrip(
                                 .background(subColor)
                                 .padding(horizontal = 5.dp, vertical = 2.dp),
                         ) {
-                            Text("NYT", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (lang == "fi") "NYT" else "NOW",
+                                color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }
@@ -632,7 +693,10 @@ private fun QuickTile(
 
 @Composable
 private fun AnnouncementPreview(a: JsonObject, onOpenAll: () -> Unit) {
-    val title = (a["title"] as? JsonPrimitive)?.contentOrNull ?: "Ilmoitus"
+    val ctx = LocalContext.current
+    val lang = remember { getAppLanguage(ctx) }
+    val title = (a["title"] as? JsonPrimitive)?.contentOrNull
+        ?: (if (lang == "fi") "Ilmoitus" else "Announcement")
     val body = (a["content"] as? JsonPrimitive)?.contentOrNull
         ?: (a["body"] as? JsonPrimitive)?.contentOrNull ?: ""
     val type = (a["type"] as? JsonPrimitive)?.contentOrNull ?: "info"
