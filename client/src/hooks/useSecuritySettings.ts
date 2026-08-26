@@ -33,19 +33,22 @@ if (typeof window !== "undefined") {
 /** Load admin-set security from server. Falls back silently if offline.
  *  Server is authoritative — local edits that haven't been saved get
  *  overwritten on the next pull. This is intentional: it's how admin
- *  changes propagate to every device. */
+ *  changes propagate to every device.
+ *
+ *  Skips the request entirely when the browser reports offline so we
+ *  don't flood the console with ERR_NAME_NOT_RESOLVED / ERR_NETWORK_IO_
+ *  SUSPENDED failures on unstable connections. */
 export async function loadSecurityFromServer(): Promise<void> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   try {
     const r = await fetch("/api/security-settings", { credentials: "include" });
     if (!r.ok) return;
     const data = await r.json();
     if (data && typeof data === "object") {
-      // Server doc wins. Defaults fill in any new keys the server doc
-      // doesn't know about yet (forward-compat with schema growth).
       setSnapshot({ ...DEFAULT_SECURITY_SETTINGS, ...data });
     }
   } catch {
-    /* silent */
+    /* silent — DNS failure, connection reset, timeout, all no-op */
   }
 }
 
@@ -66,18 +69,21 @@ export function useSecuritySettings() {
     () => snapshot,
   );
 
-  // Pull on mount + every 60 s so admin-saved changes propagate without a
-  // hard refresh on every device. Errors stay silent (offline-friendly).
+  // Pull on mount, on tab-visible, and on network-reconnect. The old
+  // 60-second interval flooded the console with retries on offline/DNS
+  // errors; visibility + online events cover the "admin just changed
+  // settings on another tab" use case without the polling noise.
   useEffect(() => {
     loadSecurityFromServer();
-    const id = setInterval(loadSecurityFromServer, 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") loadSecurityFromServer();
     };
+    const onOnline = () => loadSecurityFromServer();
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("online", onOnline);
     return () => {
-      clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("online", onOnline);
     };
   }, []);
 

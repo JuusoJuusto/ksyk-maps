@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.27";
+export const APP_VERSION = "4.5.28";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.28",
+    date: "August 2026",
+    title: "Admin settings hardening: maintenance mode, /api/settings never 500, quieter security-settings polling",
+    titleFi: "Admin-asetusten vakautus: huoltotila, /api/settings ei enää kaadu, hiljaisempi taustapäivitys",
+    highlights: [
+      "GET /api/settings now returns default settings instead of 500 when the DB is unavailable or schema drifts. Maintenance-mode toggle in App.tsx can never break the public map again.",
+      "PUT /api/settings whitelists incoming fields to known columns before writing — a rogue field in the body no longer crashes the Drizzle insert.",
+      "useSecuritySettings: removed the 60-second polling loop that spammed the console with ERR_NAME_NOT_RESOLVED / ERR_NETWORK_IO_SUSPENDED on offline devices. Now only refreshes on tab-visible + network-reconnect.",
+      "loadSecurityFromServer skips the fetch entirely when navigator.onLine is false.",
+      "Maintenance mode admin toggle already works (Admin → Settings → Maintenance tab). Confirmed end-to-end.",
+    ],
+    highlightsFi: [
+      "GET /api/settings palauttaa nyt oletusasetukset 500-virheen sijaan, jos tietokanta ei ole saatavilla. App.tsx:n huoltotila ei voi enää rikkoa julkista karttaa.",
+      "PUT /api/settings suodattaa tulevat kentät tunnettuihin sarakkeisiin ennen kirjoitusta — outo kenttä pyynnössä ei enää kaada tallennusta.",
+      "useSecuritySettings: poistettu 60 sekunnin taustapäivityssilmukka, joka roskasi konsolia verkkovirheillä. Päivittää nyt vain kun välilehti tulee näkyviin tai verkkoyhteys palautuu.",
+      "loadSecurityFromServer ohittaa haun kokonaan, jos navigator.onLine on false.",
+      "Huoltotilan admin-kytkin toimii (Admin → Settings → Maintenance). Vahvistettu päästä päähän.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.27",
     date: "August 2026",
@@ -34,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "MainActivityn käynnistys käärittiin try/catchiin — vioittunut SharedPreferences ei enää estä sovelluksen käynnistymistä.",
       "graphicsLayer alpha korvaa Modifier.alphan kartan piilotukseen, jolloin MapLibren SurfaceView piilotetaan oikein muilla välilehdillä.",
     ],
-    latest: true,
   },
   {
     version: "4.5.26",

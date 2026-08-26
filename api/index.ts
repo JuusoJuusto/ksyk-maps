@@ -1166,14 +1166,69 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     
     // Settings endpoints
     if (apiPath === '/settings') {
+      // Whitelist — only known column names are forwarded to the DB.
+      // Prevents a rogue field in req.body from crashing the insert with
+      // a Drizzle schema error (which was returning 500 to the client).
+      const SETTINGS_COLUMNS = new Set([
+        'appName', 'appNameEn', 'appNameFi', 'logoUrl',
+        'primaryColor', 'secondaryColor', 'successColor', 'warningColor',
+        'theme', 'headerTitle', 'headerTitleEn', 'headerTitleFi',
+        'footerText', 'footerTextEn', 'footerTextFi',
+        'contactEmail', 'contactPhone',
+        'showStats', 'showAnnouncements', 'enableSearch', 'enableAnimations',
+        'enableAutoSave', 'compactMode', 'defaultLanguage', 'aiSensitivity',
+        'enableSmartSnap', 'enableRoomAutoCreation',
+        'cacheMinutes', 'maxImageSizeMB',
+        'enablePreloadImages', 'enableLazyLoading', 'defaultZoomLevel',
+        'enableEasterEgg', 'enableEvents', 'enableTicketSystem', 'enableVersionInfo',
+        'maintenanceMode', 'maintenanceMessage',
+        'enableDarkModeToggle', 'enableNotifications', 'enableOfflineMode', 'enableAnalytics',
+        'enableAccessibilityMode', 'enableKeyboardShortcuts', 'enableAdvancedSearch',
+        'enableRoomBooking', 'enableQRCodeScanning', 'enableARMode', 'enable3DView',
+        'enableVoiceCommands', 'enableMultiLanguage', 'enableExportData',
+      ]);
+      const DEFAULT_SETTINGS = {
+        id: 'default',
+        appName: 'KSYK Maps',
+        appNameEn: 'KSYK Maps',
+        appNameFi: 'KSYK Kartat',
+        logoUrl: '/ksykmaps_logo_new_new.png',
+        primaryColor: '#000000',
+        secondaryColor: '#FF0066',
+        theme: 'light',
+        defaultLanguage: 'fi',
+        maintenanceMode: false,
+        maintenanceMessage: null as string | null,
+        showStats: true,
+        showAnnouncements: true,
+        enableSearch: true,
+      };
+
       if (req.method === 'GET') {
-        const settings = await storage.getAppSettings();
-        return res.status(200).json(settings);
+        try {
+          const settings = await storage.getAppSettings();
+          return res.status(200).json(settings ?? DEFAULT_SETTINGS);
+        } catch (e: any) {
+          console.error('GET /api/settings failed:', e?.message);
+          // Never 500 on GET — the public app needs maintenanceMode
+          // reliably. Return defaults so the map stays live.
+          return res.status(200).json(DEFAULT_SETTINGS);
+        }
       }
       if ((req.method === 'PUT' || req.method === 'PATCH') && !requireAdminAuth(req, res)) return;
       if (req.method === 'PUT' || req.method === 'PATCH') {
-        const settings = await storage.updateAppSettings(req.body);
-        return res.status(200).json(settings);
+        try {
+          const body = (req.body ?? {}) as Record<string, unknown>;
+          const filtered: Record<string, unknown> = {};
+          for (const k of Object.keys(body)) {
+            if (SETTINGS_COLUMNS.has(k)) filtered[k] = body[k];
+          }
+          const settings = await storage.updateAppSettings(filtered as any);
+          return res.status(200).json(settings);
+        } catch (e: any) {
+          console.error('PUT /api/settings failed:', e?.message);
+          return res.status(400).json({ message: 'Save failed', error: e?.message });
+        }
       }
     }
     
