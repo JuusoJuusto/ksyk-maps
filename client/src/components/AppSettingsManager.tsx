@@ -162,17 +162,25 @@ export default function AppSettingsManager() {
       )}
 
       <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-3 h-9">
+        <TabsList className="grid w-full grid-cols-4 h-9">
           <TabsTrigger value="general" className="gap-1.5 text-xs">
             <Globe className="h-3.5 w-3.5" />General
           </TabsTrigger>
           <TabsTrigger value="content" className="gap-1.5 text-xs">
             <Bell className="h-3.5 w-3.5" />Content
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5 text-xs">
+            <Wrench className="h-3.5 w-3.5" />Schedule
+          </TabsTrigger>
           <TabsTrigger value="maintenance" className="gap-1.5 text-xs">
             <Wrench className="h-3.5 w-3.5" />Maintenance
           </TabsTrigger>
         </TabsList>
+
+        {/* ── Schedule (jaksot editor) ────────────────────── */}
+        <TabsContent value="schedule" className="mt-4 space-y-4">
+          <JaksotEditor />
+        </TabsContent>
 
         {/* ── General ─────────────────────────────────────── */}
         <TabsContent value="general" className="mt-4 space-y-4">
@@ -380,5 +388,129 @@ export default function AppSettingsManager() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ── Jaksot editor ────────────────────────────────────────────
+// School-period date ranges. Stored server-side in KV so both the
+// web timetable and the mobile Wilma import agree on which jakso
+// a given date belongs to. Falls back to reasonable defaults when
+// the KV doc is empty.
+interface Jakso {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
+function JaksotEditor() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: server, isLoading } = useQuery<Jakso[]>({
+    queryKey: ['jaksot'],
+    queryFn: async () => {
+      const r = await fetch('/api/jaksot');
+      if (!r.ok) throw new Error('fetch failed');
+      return r.json();
+    },
+  });
+  const [rows, setRows] = useState<Jakso[]>([]);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (server) { setRows(server); setDirty(false); }
+  }, [server]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const r = await fetch('/api/jaksot', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+        body: JSON.stringify(rows),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['jaksot'] });
+      setDirty(false);
+      toast({ title: 'Jaksot saved', description: 'The mobile app will pick them up on next refresh.' });
+    },
+    onError: (e: any) => toast({ title: 'Save failed', description: e?.message, variant: 'destructive' }),
+  });
+
+  const update = (idx: number, patch: Partial<Jakso>) => {
+    setRows((rs) => rs.map((r, i) => i === idx ? { ...r, ...patch } : r));
+    setDirty(true);
+  };
+
+  const invalid = rows.some((r) => !/^\d{4}-\d{2}-\d{2}$/.test(r.startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(r.endDate) || r.startDate > r.endDate);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />Loading jaksot…
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">School periods (jaksot)</CardTitle>
+        <CardDescription>
+          Date ranges that group weekly lessons. Both the website timetable and
+          the mobile app read this. Wilma import uses the ranges to tag every
+          imported lesson with the correct period.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.map((row, i) => (
+          <div key={row.id} className="grid grid-cols-[70px_1fr_1fr_1fr] gap-2 items-end">
+            <div>
+              <Label className="text-xs mb-1 block">ID</Label>
+              <Input value={row.id} disabled className="h-9 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Name</Label>
+              <Input
+                value={row.name}
+                onChange={(e) => update(i, { name: e.target.value })}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Start (YYYY-MM-DD)</Label>
+              <Input
+                value={row.startDate}
+                onChange={(e) => update(i, { startDate: e.target.value })}
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">End (YYYY-MM-DD)</Label>
+              <Input
+                value={row.endDate}
+                onChange={(e) => update(i, { endDate: e.target.value })}
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+          </div>
+        ))}
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-muted-foreground">
+            {invalid ? 'Fix invalid rows before saving.' : `${rows.length} periods loaded.`}
+          </p>
+          <Button
+            size="sm"
+            disabled={!dirty || save.isPending || invalid}
+            onClick={() => save.mutate()}
+            className="gap-2"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {save.isPending ? 'Saving…' : 'Save jaksot'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

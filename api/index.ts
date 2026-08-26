@@ -1244,6 +1244,54 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
       }
     }
+
+    // Jaksot (school periods) — small KV-backed doc so admins can edit
+    // the period date ranges without a schema migration. The mobile
+    // app reads the same doc via GET /api/jaksot to compute which
+    // lesson templates apply to today.
+    if (apiPath === '/jaksot') {
+      const { kvGet, kvSet } = await import('../server/kvStorage.js');
+      const DEFAULT_JAKSOT = [
+        { id: 'j1', name: '1. jakso', startDate: '2026-08-12', endDate: '2026-10-05' },
+        { id: 'j2', name: '2. jakso', startDate: '2026-10-06', endDate: '2026-12-01' },
+        { id: 'j3', name: '3. jakso', startDate: '2026-12-02', endDate: '2027-02-08' },
+        { id: 'j4', name: '4. jakso', startDate: '2027-02-09', endDate: '2027-04-12' },
+        { id: 'j5', name: '5. jakso', startDate: '2027-04-13', endDate: '2027-06-05' },
+      ];
+      if (req.method === 'GET') {
+        try {
+          const stored = await kvGet('jaksot');
+          if (Array.isArray(stored) && stored.length > 0) {
+            return res.status(200).json(stored);
+          }
+        } catch {}
+        return res.status(200).json(DEFAULT_JAKSOT);
+      }
+      if (req.method === 'PUT' || req.method === 'POST') {
+        if (!requireAdminAuth(req, res)) return;
+        const body = req.body;
+        if (!Array.isArray(body)) {
+          return res.status(400).json({ message: 'body must be an array of jakso objects' });
+        }
+        const sanitised: any[] = [];
+        const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+        for (const j of body) {
+          if (!j || typeof j !== 'object') continue;
+          const id = String((j as any).id ?? '').slice(0, 16);
+          const name = String((j as any).name ?? '').slice(0, 80);
+          const startDate = String((j as any).startDate ?? '');
+          const endDate = String((j as any).endDate ?? '');
+          if (!id || !name || !isoDate.test(startDate) || !isoDate.test(endDate)) continue;
+          if (startDate > endDate) continue;
+          sanitised.push({ id, name, startDate, endDate });
+        }
+        if (sanitised.length === 0) {
+          return res.status(400).json({ message: 'no valid jakso rows' });
+        }
+        await kvSet('jaksot', sanitised);
+        return res.status(200).json(sanitised);
+      }
+    }
     
     // Settings endpoints
     if (apiPath === '/settings') {

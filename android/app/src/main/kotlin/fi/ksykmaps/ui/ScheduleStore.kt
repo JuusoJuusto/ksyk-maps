@@ -12,6 +12,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -42,16 +44,28 @@ private val DEFAULT_JAKSOT = listOf(
 )
 
 internal suspend fun loadJaksot(ctx: Context): List<Jakso> {
+    // Prefer live server-configured jaksot (admin editable). Fall back
+    // to the DataStore cache when offline, then to hardcoded defaults.
+    try {
+        val json = fi.ksykmaps.data.Api.get("/jaksot")
+        val fresh = json.jsonArray.mapNotNull { el ->
+            val o = el as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+            val id = (o["id"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+            val name = (o["name"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: id
+            val start = (o["startDate"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+            val end = (o["endDate"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+            Jakso(id, name, start, end)
+        }
+        if (fresh.isNotEmpty()) {
+            saveJaksot(ctx, fresh)
+            return fresh.sortedBy { it.startDate }
+        }
+    } catch (_: Throwable) { /* offline — fall through */ }
     val pref = ctx.scheduleStore.data.first()[JAKSO_KEY]
     val stored = if (pref != null) {
         try { scheduleJson.decodeFromString<List<Jakso>>(pref) } catch (_: Exception) { emptyList() }
     } else { emptyList() }
-    // Use stored only if it contains exactly the same IDs as defaults (i.e.
-    // admin edits). Any other stored set (legacy data from older builds) is
-    // discarded in favour of the authoritative DEFAULT_JAKSOT.
-    val defaultIds = DEFAULT_JAKSOT.map { it.id }.toSet()
-    val storedIds  = stored.map { it.id }.toSet()
-    if (stored.isNotEmpty() && storedIds == defaultIds) return stored.sortedBy { it.startDate }
+    if (stored.isNotEmpty()) return stored.sortedBy { it.startDate }
     return DEFAULT_JAKSOT
 }
 

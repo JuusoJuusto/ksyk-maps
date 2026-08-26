@@ -10,9 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.32";
+export const APP_VERSION = "4.5.33";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.33",
+    date: "August 2026",
+    title: "Real Wilma jakso fix, jaksot admin, map rotation + rooms + floor count fixed, Apple-style controls",
+    titleFi: "Wilman jaksot toimivat, jaksot muokattavissa administa, kartan rotaatio, kerrokset ja huoneet korjattu",
+    highlights: [
+      "**The Wilma bug that was still in production**: WilmaConnectScreen called LocalDate.parse(ev.date) but the API's `date` field serialises to full ISO ('2026-10-06T00:00:00.000Z') — the parse threw silently, jaksoId defaulted to 'all', every lesson showed in every period. Fixed: read `ev.localDate` (YYYY-MM-DD) instead, with a defensive .take(10)+regex fallback. Diagnostic test in server/__diag__/wilmaDebug.ts proves the parser output is correct.",
+      "Mobile ScheduleEntry.id now includes jaksoId so two templates from the same Wilma VEVENT spanning multiple jaksos don't collide on save.",
+      "Server: new /api/jaksot GET/PUT endpoints (KV-backed) so the 5 jakso date ranges are editable from the admin panel. Mobile ScheduleStore.loadJaksot now fetches these live, caches for offline, falls back to defaults.",
+      "Admin AppSettingsManager: new Schedule tab with a JaksotEditor — edit each jakso's name and start/end dates, save with one click.",
+      "Mobile map default rotation: previous fix ran in LaunchedEffect(Unit) BEFORE mv.getMapAsync resolved, so mapRef?.animateCamera was null?.animateCamera (silent no-op). Now keyed on LaunchedEffect(mapRef) so it fires once the GL map is actually ready.",
+      "Mobile map rooms: auto-pick the floor with the most drawn rooms once /api/rooms comes back. Previously hardcoded to floor 1 which was empty for many campuses.",
+      "Mobile map floors: floorsFromBuildings now prefers explicit floorMax when set (fixes '3 floors shown instead of 4' when floors=3 but floorMax=4).",
+      "Mobile map UI: FloorRail switched to MazeMap-style squircle chips with soft shadow, opaque white card. MapChipButton (Focus/3D/Search) redesigned as Apple-Maps-style 44dp circular controls with elevation.",
+    ],
+    highlightsFi: [
+      "**Wilman tuotantovirhe korjattu**: WilmaConnectScreen kutsui LocalDate.parse(ev.date), mutta APIn `date`-kenttä sarjallistetaan ISO-muodossa ('2026-10-06T00:00:00.000Z'). Jäsennys heitti hiljaa poikkeuksen, jaksoId palasi 'all'-arvoon, ja jokainen tunti näkyi joka jaksossa. Korjattu: luetaan `ev.localDate` (YYYY-MM-DD).",
+      "Mobiili ScheduleEntry.id sisältää nyt jaksoId:n — sama Wilma-tunti eri jaksoissa ei törmää tallennuksessa.",
+      "Palvelin: uudet /api/jaksot GET/PUT -endpointit (KV-tallennus). Mobiili hakee jaksot livenä, cachettaa offline-käyttöä varten.",
+      "Admin AppSettingsManager: uusi Schedule-välilehti, jossa voi muokata jokaisen jakson nimen ja päivämäärät.",
+      "Mobiilikartan oletusrotaatio: aiempi korjaus ajoi ennen kuin karttaobjekti oli valmis. Nyt LaunchedEffect(mapRef) laukeaa vasta kun kartta on ladattu.",
+      "Mobiilikartan huoneet: valitaan automaattisesti kerros, jolla on eniten piirrettyjä huoneita.",
+      "Mobiilikartan kerrokset: floorsFromBuildings suosii nyt floorMax-kenttää (korjaa '3 kerrosta 4 sijaan' kun floors=3 mutta floorMax=4).",
+      "Mobiilikartan UI: FloorRail muutettu MazeMap-tyylisiksi valkoisiksi lapuiksi. MapChipButton (Fokus/3D/Haku) Apple Maps -tyylinen pyöreä 44dp-kontrolli kelluvalla varjostuksella.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.32",
     date: "August 2026",
@@ -36,7 +63,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Palvelin: iCal-tapahtumat luokitellaan type=lesson/reservation/other CATEGORIES-kentän perusteella. Lounaat eivät enää näy oppitunteina.",
       "Web: /api/announcements palauttaa 400-virheen kuvauksella 500-kaadon sijaan.",
     ],
-    latest: true,
   },
   {
     version: "4.5.31",

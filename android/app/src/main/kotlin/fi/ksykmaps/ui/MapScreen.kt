@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -233,11 +234,21 @@ fun MapScreen() {
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var doors by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var hallways by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
-    // Default to floor 1 (main entry level) so rooms show up on first
-    // open without the user needing to pick a floor. selectedFloor = null
-    // means "all floors visible", which visually stacks every level on
-    // top of itself and looks broken from a top-down view.
+    // Default to floor 1 initially; auto-switch to whichever floor has
+    // the most drawn rooms once /api/rooms comes back (some campuses
+    // start numbering at 0 or 2, and hardcoding 1 leaves the map empty).
     var selectedFloor by remember { mutableStateOf<Int?>(1) }
+    var floorAutoPicked by remember { mutableStateOf(false) }
+    LaunchedEffect(rooms) {
+        if (!floorAutoPicked && rooms.isNotEmpty()) {
+            val counts = rooms
+                .mapNotNull { (it["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }
+                .groupingBy { it }.eachCount()
+            val bestFloor = counts.maxByOrNull { it.value }?.key
+            if (bestFloor != null) selectedFloor = bestFloor
+            floorAutoPicked = true
+        }
+    }
     var selected by remember { mutableStateOf<JsonObject?>(null) }
     var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
     var offlineMode by remember { mutableStateOf(false) }
@@ -293,17 +304,19 @@ fun MapScreen() {
         }
     }
 
-    LaunchedEffect(Unit) {
-        // Refresh admin-set camera defaults (mobile home, rotation, pitch).
-        // If the user hasn't panned/rotated the map yet in this install
-        // (no persisted camera), snap to the fresh server-set position
-        // *now* so the "default rotation" configured in the builder is
-        // applied on the first cold open, not only from the second.
+    // Apply admin-set default rotation/position AFTER the map is ready.
+    // The previous version tried this in LaunchedEffect(Unit) but mapRef
+    // was still null because mv.getMapAsync hadn't fired yet, so the
+    // animateCamera silently no-op'd. Keying on mapRef fixes the race.
+    var appliedServerDefaults by remember { mutableStateOf(false) }
+    LaunchedEffect(mapRef) {
+        val m = mapRef ?: return@LaunchedEffect
+        if (appliedServerDefaults) return@LaunchedEffect
         withContext(Dispatchers.IO) { refreshServerMapDefaults(ctx) }
         val hadPersisted = loadPersistedCamera(ctx) != null
         if (!hadPersisted) {
             loadServerMapDefaults(ctx)?.let { d ->
-                mapRef?.animateCamera(
+                m.animateCamera(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
                             .target(d.target).zoom(d.zoom)
@@ -314,6 +327,10 @@ fun MapScreen() {
                 )
             }
         }
+        appliedServerDefaults = true
+    }
+
+    LaunchedEffect(Unit) {
         // Buildings first — they're usually smaller and the map should
         // frame the campus even if the rooms fetch is slow.
         try {
@@ -1496,18 +1513,21 @@ private fun MapChipButton(
     highlighted: Boolean = false,
     onClick: () -> Unit,
 ) {
+    // Apple Maps-style circular control: opaque white, soft drop shadow,
+    // primary-blue fill when active. 44dp is the iOS-standard tap target.
     val bg = if (highlighted) MaterialTheme.colorScheme.primary
-             else MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+             else MaterialTheme.colorScheme.surface
     val fg = if (highlighted) Color.White else MaterialTheme.colorScheme.onSurface
     Box(
         Modifier
-            .size(46.dp)
+            .size(44.dp)
+            .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .background(bg)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -1559,33 +1579,34 @@ private fun FloorRail(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // MazeMap-style pill floor selector: opaque white card with soft
+    // shadow, highest floor at the top, each floor a squircle chip.
     Column(
         modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-            .padding(vertical = 6.dp, horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(28.dp), clip = false)
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(vertical = 8.dp, horizontal = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            Icons.Outlined.Layers, null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp).padding(top = 2.dp),
-        )
         floors.reversed().forEach { f ->
             val isSel = selected == f
             Box(
                 Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .size(width = 40.dp, height = 34.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isSel) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surface
+                    )
                     .clickable { onSelect(f) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     f.toString(),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -2011,8 +2032,18 @@ private fun WifiPositionChip(
 
 private fun floorsFromBuildings(buildings: List<JsonObject>): List<Int> {
     if (buildings.isEmpty()) return emptyList()
-    val max = buildings.mapNotNull { (it["floors"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }.maxOrNull() ?: 0
-    val min = buildings.mapNotNull { (it["floorMin"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }.minOrNull() ?: 1
+    // Prefer explicit floorMax when the admin has set it — a building may
+    // have floors=3 but floorMax=4 if there's a mezzanine/rooftop level
+    // that isn't counted in the standard floor count. Falling back to
+    // `floors` matches the older schema.
+    val maxCandidates = buildings.mapNotNull {
+        (it["floorMax"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+            ?: (it["floors"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+    }
+    val max = maxCandidates.maxOrNull() ?: 0
+    val min = buildings.mapNotNull {
+        (it["floorMin"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+    }.minOrNull() ?: 1
     if (max <= 0) return emptyList()
     return (min..max).toList()
 }

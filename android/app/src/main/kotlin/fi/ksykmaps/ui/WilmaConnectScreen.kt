@@ -80,16 +80,28 @@ fun WilmaConnectScreen(
                         val start = ev["startHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                         val end = ev["endHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                         val summary = ev["summary"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        val dateStr = ev["date"]?.jsonPrimitive?.contentOrNull
-                        val jaksoId = if (dateStr != null) {
+                        // Prefer server-provided localDate (YYYY-MM-DD, already
+                        // in Europe/Helsinki). Fall back to date if server is
+                        // an older version — but strip the time portion first
+                        // because the JS Date field serialises to full ISO
+                        // ("2026-10-06T00:00:00.000Z") which LocalDate.parse
+                        // rejects. That silent parse failure was why every
+                        // lesson used to end up with jaksoId="all" and show
+                        // in every period.
+                        val rawDate = (ev["localDate"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+                            ?: (ev["date"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
+                        val dateStr = rawDate?.take(10)
+                        val jaksoId = if (dateStr != null && dateStr.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
                             try {
-                                val d = LocalDate.parse(dateStr)
-                                val ds = d.toString()
-                                jaksot.firstOrNull { j -> j.startDate <= ds && ds <= j.endDate }?.id ?: "all"
+                                jaksot.firstOrNull { j -> j.startDate <= dateStr && dateStr <= j.endDate }?.id ?: "all"
                             } catch (_: Exception) { "all" }
                         } else "all"
+                        // Include jaksoId in the id so two templates from
+                        // the same Wilma VEVENT (spanning multiple jaksos)
+                        // don't collide on save/lookup.
+                        val uidStr = ev["uid"]?.jsonPrimitive?.contentOrNull ?: UUID.randomUUID().toString()
                         ScheduleEntry(
-                            id = "wilma_${ev["uid"]?.jsonPrimitive?.contentOrNull ?: UUID.randomUUID()}",
+                            id = "wilma_${uidStr}_${jaksoId}",
                             dayOfWeek = dow,
                             startHhmm = start,
                             endHhmm = end,
