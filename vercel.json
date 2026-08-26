@@ -31,6 +31,10 @@
       "destination": "/security.txt"
     },
     {
+      "source": "/assets/:file*",
+      "destination": "/assets/:file*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -123,6 +127,15 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     }

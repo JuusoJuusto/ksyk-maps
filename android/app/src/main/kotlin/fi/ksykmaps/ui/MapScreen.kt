@@ -225,7 +225,11 @@ fun MapScreen() {
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var doors by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var hallways by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
-    var selectedFloor by remember { mutableStateOf<Int?>(null) }
+    // Default to floor 1 (main entry level) so rooms show up on first
+    // open without the user needing to pick a floor. selectedFloor = null
+    // means "all floors visible", which visually stacks every level on
+    // top of itself and looks broken from a top-down view.
+    var selectedFloor by remember { mutableStateOf<Int?>(1) }
     var selected by remember { mutableStateOf<JsonObject?>(null) }
     var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
     var offlineMode by remember { mutableStateOf(false) }
@@ -282,6 +286,10 @@ fun MapScreen() {
     }
 
     LaunchedEffect(Unit) {
+        // Refresh admin-set camera defaults (mobile home, rotation, pitch)
+        // for the NEXT cold open. Doesn't affect the current session,
+        // which already used loadServerMapDefaults from cache above.
+        withContext(Dispatchers.IO) { refreshServerMapDefaults(ctx) }
         // Buildings first — they're usually smaller and the map should
         // frame the campus even if the rooms fetch is slow.
         try {
@@ -784,11 +792,20 @@ fun MapScreen() {
                                 try {
                                     m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
                                         val restored = loadPersistedCamera(c)
+                                        val serverDefaults = loadServerMapDefaults(c)
                                         val cam = CameraPosition.Builder()
-                                            .target(restored?.target ?: KSYK_CENTER)
-                                            .zoom(restored?.zoom ?: KSYK_ZOOM)
-                                            .bearing(restored?.bearing ?: 0.0)
-                                            .tilt(restored?.tilt ?: 0.0)
+                                            .target(restored?.target
+                                                ?: serverDefaults?.target
+                                                ?: KSYK_CENTER)
+                                            .zoom(restored?.zoom
+                                                ?: serverDefaults?.zoom
+                                                ?: KSYK_ZOOM)
+                                            .bearing(restored?.bearing
+                                                ?: serverDefaults?.bearing
+                                                ?: 0.0)
+                                            .tilt(restored?.tilt
+                                                ?: serverDefaults?.tilt
+                                                ?: 0.0)
                                             .build()
                                         m.cameraPosition = cam
                                         m.uiSettings.apply {
@@ -2275,4 +2292,52 @@ private fun savePersistedCamera(
         .putFloat("bearing", bearing.toFloat())
         .putFloat("tilt", tilt.toFloat())
         .apply()
+}
+
+/**
+ * Admin-set mobile camera defaults, cached locally.
+ *
+ * The admin panel exposes mobileCenterLat/Lng/Zoom/RotationDeg/PitchDeg
+ * on /api/settings so the web + native map agree on "where should this
+ * campus open." We cache the last successful fetch under CAM_PREFS with
+ * a "server_" prefix so the very first cold open still gets sensible
+ * values, and refresh in the background on each map open.
+ */
+private const val SERVER_CAM_PREFS = "ksyk_server_map"
+
+fun loadServerMapDefaults(ctx: android.content.Context): PersistedCamera? {
+    val sp = ctx.getSharedPreferences(SERVER_CAM_PREFS, android.content.Context.MODE_PRIVATE)
+    if (!sp.contains("lat")) return null
+    val lat = sp.getFloat("lat", Float.NaN).toDouble()
+    val lng = sp.getFloat("lng", Float.NaN).toDouble()
+    val zoom = sp.getFloat("zoom", Float.NaN).toDouble()
+    val bearing = sp.getFloat("bearing", 0f).toDouble()
+    val tilt = sp.getFloat("tilt", 0f).toDouble()
+    if (lat.isNaN() || lng.isNaN() || zoom.isNaN()) return null
+    if (Math.abs(lat) > 85 || Math.abs(lng) > 180) return null
+    if (zoom < 0 || zoom > 24) return null
+    return PersistedCamera(LatLng(lat, lng), zoom, bearing, tilt)
+}
+
+suspend fun refreshServerMapDefaults(ctx: android.content.Context) {
+    try {
+        val json = fi.ksykmaps.data.Api.get("/settings")
+        val obj = json.jsonObject
+        fun n(k: String): Double? = (obj[k] as? JsonPrimitive)?.doubleOrNull
+            ?: (obj[k] as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()
+        val lat = n("mobileCenterLat") ?: n("osmCenterLat") ?: return
+        val lng = n("mobileCenterLng") ?: n("osmCenterLng") ?: return
+        val zoom = n("mobileDefaultZoom") ?: n("osmDefaultZoom") ?: 17.5
+        val bearing = n("mobileRotationDeg") ?: n("osmRotationDeg") ?: 0.0
+        val tilt = n("mobilePitchDeg") ?: n("osmPitchDeg") ?: 0.0
+        if (Math.abs(lat) > 85 || Math.abs(lng) > 180) return
+        ctx.getSharedPreferences(SERVER_CAM_PREFS, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putFloat("lat", lat.toFloat())
+            .putFloat("lng", lng.toFloat())
+            .putFloat("zoom", zoom.toFloat())
+            .putFloat("bearing", bearing.toFloat())
+            .putFloat("tilt", tilt.toFloat())
+            .apply()
+    } catch (_: Throwable) { /* offline / API error — keep cached values */ }
 }

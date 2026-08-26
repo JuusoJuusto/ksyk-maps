@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.29";
+export const APP_VERSION = "4.5.30";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.30",
+    date: "August 2026",
+    title: "Android v1.25.0 UI polish: server-driven map defaults, current-jakso banner, keyboard fix; web asset MIME fix",
+    titleFi: "Android v1.25.0 UI-parannukset: kartan asetukset palvelimelta, jaksobanneri, näppäimistön korjaus; web CSS MIME -korjaus",
+    highlights: [
+      "Android: mobile map now pulls admin-set defaults (mobileCenterLat/Lng/Zoom/RotationDeg/PitchDeg) from /api/settings. Home position and rotation on mobile now match what the admin configured for mobile in the builder.",
+      "Android: keyboard no longer pops up on the map page — windowSoftInputMode=stateAlwaysHidden|adjustResize.",
+      "Android: rooms visible on first open — selectedFloor defaults to 1 instead of null (which previously stacked every floor's polygons on top of each other).",
+      "Android: timetable header now shows the day name + full date (e.g. 'Tiistai · 26. elokuuta'), not just the day.",
+      "Android: new subtle banner above the day chips showing the currently active jakso ('Nyt käynnissä: 1. jakso · 12.8.–5.10.').",
+      "Web: /assets/(.*) is now excluded from the SPA catch-all rewrite. Missing hashed CSS/JS files return proper 404 instead of index.html — no more MIME-refuse errors on Ctrl+F5.",
+      "Web: /assets/(.*) served with Cache-Control: public, max-age=31536000, immutable so the browser caches hashed bundles indefinitely and stops re-downloading them on every navigation.",
+    ],
+    highlightsFi: [
+      "Android: mobiilikartta hakee admin-asetukset (mobileCenterLat/Lng/Zoom/RotationDeg/PitchDeg) osoitteesta /api/settings. Kotisijainti ja rotaatio täsmäävät mobiilin admin-asetusten kanssa.",
+      "Android: näppäimistö ei enää ponnahda esiin kartalla — windowSoftInputMode=stateAlwaysHidden.",
+      "Android: huoneet näkyvät ensimmäisellä avauksella — oletuskerros on nyt 1 (aiemmin kaikki kerrokset piirtyivät päällekkäin).",
+      "Android: lukujärjestyksen otsikko näyttää päivän nimen + koko päivämäärän (esim. 'Tiistai · 26. elokuuta').",
+      "Android: uusi banneri päivävalinnan yläpuolella näyttää voimassa olevan jakson ('Nyt käynnissä: 1. jakso · 12.8.–5.10.').",
+      "Web: /assets/(.*) suljetaan SPA-uudelleenreitityksestä. Puuttuvat CSS/JS-tiedostot palauttavat oikean 404:n index.htmlin sijaan.",
+      "Web: /assets/(.*) tarjoillaan Cache-Control: immutable -otsakkeella niin että selain välimuistittaa ne pysyvästi.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.29",
     date: "August 2026",
@@ -40,7 +65,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Kartta: MapLibren natiivialustus tehdään taustalla sovelluksen käynnistyessä — ensimmäinen kartan avaaminen tuntuu välittömältä.",
       "Kartan virheruutu päivitetty kunnolliseksi kortiksi 'Yritä uudelleen' -napilla.",
     ],
-    latest: true,
   },
   {
     version: "4.5.28",

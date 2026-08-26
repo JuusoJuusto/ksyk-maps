@@ -61,6 +61,14 @@ private fun subjectColor(subject: String): Color {
 
 private fun nowHhmm(): String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
 
+private fun formatJaksoDate(iso: String, lang: String): String {
+    return try {
+        val d = LocalDate.parse(iso)
+        val loc = if (lang == "fi") Locale("fi") else Locale.ENGLISH
+        d.format(DateTimeFormatter.ofPattern("d.M.", loc))
+    } catch (_: Exception) { iso }
+}
+
 private fun hhmm(s: String): Int {
     val parts = s.split(":").mapNotNull { it.toIntOrNull() }
     return if (parts.size == 2) parts[0] * 60 + parts[1] else 0
@@ -167,8 +175,46 @@ fun TimetableScreen(
                 )
             }
 
-            // Jakso (period) selector
+            // Jakso (period) selector — plus a subtle banner showing the
+            // date-active jakso so it's always obvious which period the
+            // schedule filter is anchored to.
             if (jaksot.isNotEmpty()) {
+                item {
+                    val activeId = remember(jaksot) { activeJaksoId(jaksot) }
+                    val active = jaksot.firstOrNull { it.id == activeId }
+                    if (active != null) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Outlined.EventAvailable,
+                                null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (lang == "fi")
+                                    "Nyt käynnissä: ${active.name}"
+                                else
+                                    "Currently in ${active.name}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                "${formatJaksoDate(active.startDate, lang)} – ${formatJaksoDate(active.endDate, lang)}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
                 item {
                     JaksoSelector(
                         jaksot = jaksot,
@@ -190,26 +236,37 @@ fun TimetableScreen(
                 )
             }
 
-            // Day header
+            // Day header — shows dayname + full date (e.g. "Tiistai · 26. elokuuta")
             item {
+                val loc = if (lang == "fi") Locale("fi") else Locale.ENGLISH
+                // Compute the actual calendar date the selected dow refers to
+                // *for this week*, so the header always agrees with the day
+                // chip the user picked.
+                val today = LocalDate.now()
+                val diff = selectedDow - todayDow
+                val selectedDate = today.plusDays(diff.toLong())
+                val monthDay = selectedDate.format(
+                    DateTimeFormatter.ofPattern(
+                        if (lang == "fi") "d. MMMM" else "MMMM d",
+                        loc,
+                    ),
+                )
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            dayName,
+                            dayName.replaceFirstChar { it.titlecase(loc) },
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        if (isToday) {
-                            Text(
-                                nowHhmm(),
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        Text(
+                            if (isToday) "$monthDay · ${nowHhmm()}" else monthDay,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     if (selectedDow != todayDow) {
                         TextButton(onClick = { selectedDow = todayDow }) {
