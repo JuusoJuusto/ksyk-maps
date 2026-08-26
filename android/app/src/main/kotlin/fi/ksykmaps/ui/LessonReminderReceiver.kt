@@ -12,6 +12,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import fi.ksykmaps.KsykApp
 import fi.ksykmaps.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class LessonReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -20,37 +23,62 @@ class LessonReminderReceiver : BroadcastReceiver() {
         val roomNumber = intent.getStringExtra("roomNumber") ?: ""
         val teacher = intent.getStringExtra("teacher") ?: ""
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
+        val lang = getAppLanguage(context)
 
-        val tapPi = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            },
-            PendingIntent.FLAG_IMMUTABLE,
-        )
+        // Silent fail on missing perm (Android 13+) — checkSelfPermission
+        // is safe on older SDKs (always returns granted).
+        val permOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED)
 
-        val body = buildString {
-            append(subject)
-            if (startHhmm.isNotBlank()) append(" at $startHhmm")
-            if (roomNumber.isNotBlank()) append(" · Room $roomNumber")
-            if (teacher.isNotBlank()) append(" · $teacher")
+        if (permOk) {
+            val tapPi = PendingIntent.getActivity(
+                context, 0,
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("open_tab", "timetable")
+                },
+                PendingIntent.FLAG_IMMUTABLE,
+            )
+
+            val roomWord = if (lang == "fi") "Luokka" else "Room"
+            val body = buildString {
+                append(subject)
+                if (startHhmm.isNotBlank())
+                    append(if (lang == "fi") " klo $startHhmm" else " at $startHhmm")
+                if (roomNumber.isNotBlank()) append(" · $roomWord $roomNumber")
+                if (teacher.isNotBlank()) append(" · $teacher")
+            }
+            val title = if (lang == "fi")
+                "Tunti alkaa ${LessonReminderScheduler.REMINDER_MINUTES} minuutin päästä"
+            else
+                "Lesson in ${LessonReminderScheduler.REMINDER_MINUTES} min"
+
+            val notif = NotificationCompat.Builder(context, KsykApp.CHANNEL_TIMETABLE)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(tapPi)
+                .setAutoCancel(true)
+                .build()
+
+            NotificationManagerCompat.from(context).notify(NOTIF_ID, notif)
         }
 
-        val notif = NotificationCompat.Builder(context, KsykApp.CHANNEL_TIMETABLE)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Lesson in ${LessonReminderScheduler.REMINDER_MINUTES} min")
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(tapPi)
-            .setAutoCancel(true)
-            .build()
-
-        NotificationManagerCompat.from(context).notify(NOTIF_ID, notif)
+        // Chain the next alarm — AlarmManager only fires once, so unless
+        // we reschedule here the user gets exactly one reminder per app
+        // launch. This makes reminders keep firing all day without
+        // requiring the user to open the app.
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val entries = loadEntries(context)
+                if (entries.isNotEmpty()) LessonReminderScheduler.schedule(context, entries)
+            } catch (_: Throwable) { /* silent */ }
+            finally { pendingResult.finish() }
+        }
     }
 
     companion object {

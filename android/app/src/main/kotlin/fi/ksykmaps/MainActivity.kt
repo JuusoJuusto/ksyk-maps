@@ -5,7 +5,9 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -24,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
+import fi.ksykmaps.ui.AnnouncementPollWorker
 import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LessonReminderScheduler
@@ -58,6 +61,20 @@ class MainActivity : ComponentActivity() {
             ThemeState.mode = savedTheme
         } catch (_: Throwable) {}
         handleDeepLink(intent)
+        // Start periodic announcement polling — replaces FCM. Idempotent
+        // via KEEP policy, so calling this on every cold start is fine.
+        try { AnnouncementPollWorker.enqueue(this) } catch (_: Throwable) {}
+        // Preload MapLibre native init off the main thread so the first
+        // Map tab open doesn't stall on getInstance(). Safe to call more
+        // than once; MapLibre no-ops after the first init.
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                org.maplibre.android.MapLibre.getInstance(
+                    applicationContext, "",
+                    org.maplibre.android.WellKnownTileServer.MapLibre,
+                )
+            } catch (_: Throwable) {}
+        }
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val entries = loadEntries(this@MainActivity)
@@ -82,10 +99,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleDeepLink(intent: Intent?) {
-        val data: Uri = intent?.data ?: return
+        if (intent == null) return
+        // Notification taps drop a target tab hint into intent extras.
+        intent.getStringExtra("open_tab")?.let { NotifNavIntent.pendingTab = it }
+        val data: Uri = intent.data ?: return
         val roomId = data.getQueryParameter("room") ?: return
         if (roomId.isNotBlank()) MapNavIntent.pendingRoomId = roomId
     }
+}
+
+/** Cross-composition signal from a notification tap. Cleared once read. */
+object NotifNavIntent {
+    var pendingTab: String? = null
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -101,6 +126,21 @@ private fun AppShell() {
 
     var selectedTab by rememberSaveable { mutableStateOf("home") }
     var subScreen by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Ask for POST_NOTIFICATIONS on Android 13+ once per install. Without
+    // this the lesson-reminder and announcement notifications are dropped
+    // silently by the OS — which is what caused "notifications don't work".
+    val notifPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* result ignored — retried automatically next launch if declined */ }
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
+                ctx, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     // Only mount MapScreen once the user has actually opened the map tab.
     // Keeps app startup cheap and prevents the map's OpenGL initialisation
     // from blocking the very first launch. Once mounted, the composable
@@ -112,6 +152,15 @@ private fun AppShell() {
         if (MapNavIntent.pendingRoomId != null) {
             selectedTab = "map"
             mapMounted = true
+        }
+        NotifNavIntent.pendingTab?.let { tab ->
+            NotifNavIntent.pendingTab = null
+            when (tab) {
+                "news"      -> subScreen = "news"
+                "timetable" -> { selectedTab = "timetable"; subScreen = null }
+                "map"       -> { selectedTab = "map"; subScreen = null; mapMounted = true }
+                "home"      -> { selectedTab = "home"; subScreen = null }
+            }
         }
     }
     LaunchedEffect(selectedTab) {

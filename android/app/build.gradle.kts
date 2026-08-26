@@ -12,8 +12,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 25
-        versionName = "1.23.0"
+        versionCode = 26
+        versionName = "1.24.0"
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -102,6 +102,11 @@ dependencies {
     // Ships prebuilt .so binaries for arm64-v8a, armeabi-v7a, x86, x86_64.
     implementation("org.maplibre.gl:android-sdk:11.5.2")
     implementation("org.maplibre.gl:android-plugin-annotation-v9:3.0.1")
+
+    // Background work — periodic announcement poll for push-style
+    // notifications (no FCM). WorkManager handles Doze / battery
+    // optimisation for us.
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Storage
     implementation("androidx.datastore:datastore-preferences:1.0.0")

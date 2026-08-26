@@ -202,8 +202,22 @@ fun MapScreen() {
         onDispose { }
     }
     if (initFailed) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Karttaa ei voitu ladata tällä laitteella.")
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Outlined.LocationOn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                     modifier = Modifier.size(48.dp))
+                Spacer(Modifier.height(12.dp))
+                Text("Karttaa ei voitu ladata tällä laitteella.",
+                     fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text("Käynnistä sovellus uudelleen tai päivitä laitteesi käyttöjärjestelmä.",
+                     fontSize = 12.sp,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(16.dp))
+                FilledTonalButton(onClick = { initFailed = false }) {
+                    Text("Yritä uudelleen")
+                }
+            }
         }
         return
     }

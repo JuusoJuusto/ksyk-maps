@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -20,31 +21,46 @@ object LessonReminderScheduler {
     const val REMINDER_MINUTES = 5L
     private const val REQUEST_CODE = 42_001
 
+    /**
+     * Schedule an alarm for the next lesson reminder — looks at today
+     * first, then rolls forward day by day up to 7 days out so that a
+     * Friday evening still lines up a Monday morning reminder. The
+     * receiver calls back into schedule() after firing, giving us a
+     * self-sustaining chain without any polling.
+     */
     fun schedule(context: Context, entries: List<ScheduleEntry>) {
         cancel(context)
 
-        val today = LocalDate.now()
+        if (entries.isEmpty()) return
         val now = LocalDateTime.now()
+        val today = LocalDate.now()
 
-        val nextEntry = entries
-            .filter { it.dayOfWeek == today.dayOfWeek.value }
-            .sortedBy { hhmm(it.startHhmm) }
-            .firstOrNull { entry ->
-                val parts = entry.startHhmm.split(":")
-                if (parts.size != 2) return@firstOrNull false
-                val lessonStart = LocalTime.of(parts[0].toInt(), parts[1].toInt())
-                val reminderTime = LocalDateTime.of(today, lessonStart)
-                    .minusMinutes(REMINDER_MINUTES)
-                reminderTime.isAfter(now)
-            } ?: return
+        // Look ahead up to 7 days for the very next reminder that hasn't
+        // already passed (accounting for the 5-min lead time).
+        val next = (0..7)
+            .asSequence()
+            .flatMap { offset ->
+                val day = today.plusDays(offset.toLong())
+                val dow = day.dayOfWeek.value
+                entries
+                    .filter { it.dayOfWeek == dow }
+                    .sortedBy { hhmm(it.startHhmm) }
+                    .mapNotNull { entry ->
+                        val parts = entry.startHhmm.split(":")
+                        if (parts.size != 2) return@mapNotNull null
+                        val h = parts[0].toIntOrNull() ?: return@mapNotNull null
+                        val m = parts[1].toIntOrNull() ?: return@mapNotNull null
+                        val reminderTime = LocalDateTime.of(day, LocalTime.of(h, m))
+                            .minusMinutes(REMINDER_MINUTES)
+                        if (reminderTime.isAfter(now)) Pair(entry, reminderTime) else null
+                    }
+                    .asSequence()
+            }
+            .firstOrNull() ?: return
 
-        val parts = nextEntry.startHhmm.split(":")
-        val lessonStart = LocalTime.of(parts[0].toInt(), parts[1].toInt())
-        val triggerMs = LocalDateTime.of(today, lessonStart)
-            .minusMinutes(REMINDER_MINUTES)
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+        val nextEntry = next.first
+        val reminderTime = next.second
+        val triggerMs = reminderTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
         val pi = buildPendingIntent(context, nextEntry)
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

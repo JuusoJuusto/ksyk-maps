@@ -10,9 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.28";
+export const APP_VERSION = "4.5.29";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.29",
+    date: "August 2026",
+    title: "Android v1.24.0 — real notifications: permission ask, announcement push, test button, map preload",
+    titleFi: "Android v1.24.0 — oikeat ilmoitukset: lupakysely, tiedotepush, testinappi, kartan esilataus",
+    highlights: [
+      "MainActivity now requests POST_NOTIFICATIONS on Android 13+ on first launch. Previously the app silently dropped every notification because the runtime permission was never asked.",
+      "New AnnouncementPollWorker (WorkManager, 15 min period) polls /api/announcements and fires a system notification whenever a new admin-posted announcement appears. This replaces FCM — no Google Services dependency.",
+      "LessonReminderReceiver now reschedules the next reminder from goAsync(), so reminders keep firing all week without requiring the user to open the app.",
+      "LessonReminderScheduler looks up to 7 days ahead — Friday evening lines up Monday morning's first reminder automatically.",
+      "Notification taps carry an 'open_tab' extra; MainActivity routes to Announcements / Timetable / Map accordingly.",
+      "New 'Send test notification' row in Settings so you can prove the pipeline works. Falls silent if the OS permission is denied.",
+      "Notification content localized (Finnish/English) via getAppLanguage(ctx).",
+      "Map: MapLibre.getInstance() is now preloaded in the background at app startup — the first Map tab open feels instant.",
+      "Map init-failed screen upgraded from a bare label to a proper error card with a 'Yritä uudelleen' retry button.",
+    ],
+    highlightsFi: [
+      "MainActivity kysyy nyt POST_NOTIFICATIONS-luvan Android 13+ ensimmäisellä käynnistyksellä. Aiemmin ilmoitukset katosivat hiljaa, koska lupaa ei koskaan kysytty.",
+      "Uusi AnnouncementPollWorker (WorkManager, 15 min) hakee /api/announcements ja lähettää järjestelmän ilmoituksen, kun uusi admin-tiedote ilmestyy. Korvaa FCM:n — ei Google Services -riippuvuutta.",
+      "LessonReminderReceiver uusii seuraavan muistutuksen goAsync():stä, joten muistutukset toimivat koko viikon ilman sovelluksen avaamista.",
+      "LessonReminderScheduler katsoo jopa 7 päivää eteenpäin — perjantai-ilta ajoittaa maanantaiaamun ensimmäisen muistutuksen automaattisesti.",
+      "Ilmoituksen napautus vie oikealle välilehdelle (Tiedotteet / Lukujärjestys / Kartta).",
+      "Uusi 'Testaa ilmoitus' -rivi Asetuksissa varmistaa, että ilmoitusputki toimii.",
+      "Ilmoitukset käännetty suomeksi ja englanniksi getAppLanguage(ctx):n mukaan.",
+      "Kartta: MapLibren natiivialustus tehdään taustalla sovelluksen käynnistyessä — ensimmäinen kartan avaaminen tuntuu välittömältä.",
+      "Kartan virheruutu päivitetty kunnolliseksi kortiksi 'Yritä uudelleen' -napilla.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.28",
     date: "August 2026",
@@ -32,7 +61,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "loadSecurityFromServer ohittaa haun kokonaan, jos navigator.onLine on false.",
       "Huoltotilan admin-kytkin toimii (Admin → Settings → Maintenance). Vahvistettu päästä päähän.",
     ],
-    latest: true,
   },
   {
     version: "4.5.27",

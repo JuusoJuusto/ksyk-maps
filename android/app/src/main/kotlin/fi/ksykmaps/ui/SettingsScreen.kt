@@ -182,6 +182,25 @@ fun SettingsScreen(
                     onCheckedChange = { notificationsEnabled = it },
                 )
             }
+            // Test notification button — proves the whole pipeline works
+            // (permission granted, channel created, receiver wired). If
+            // this doesn't appear on the lock screen, notifications are
+            // disabled at the OS level, and no in-app fix will help.
+            item {
+                SettingRow(
+                    icon = Icons.Outlined.NotificationsActive,
+                    title = if (isFi) "Testaa ilmoitus" else "Send test notification",
+                    subtitle = if (isFi) "Varmista että ilmoitukset toimivat"
+                               else "Verify notifications are working",
+                    trailing = {
+                        TextButton(onClick = {
+                            sendTestNotification(ctx, isFi)
+                        }) {
+                            Text(if (isFi) "Lähetä" else "Send")
+                        }
+                    },
+                )
+            }
             item {
                 ToggleRow(
                     icon = Icons.Outlined.ColorLens,
@@ -423,6 +442,28 @@ private fun LangChip(label: String, selected: Boolean, onClick: () -> Unit) {
         label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
         modifier = Modifier.height(32.dp),
     )
+}
+
+private fun sendTestNotification(ctx: android.content.Context, isFi: Boolean) {
+    // If perm is missing on Android 13+, silently no-op — the permission
+    // launcher in MainActivity handles the ask on cold start.
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
+            ctx, android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return
+    }
+    val notif = androidx.core.app.NotificationCompat.Builder(ctx, fi.ksykmaps.KsykApp.CHANNEL_GENERAL)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle(if (isFi) "Testi-ilmoitus" else "Test notification")
+        .setContentText(
+            if (isFi) "Ilmoitukset toimivat! Näet tunnit ja tiedotteet tästä eteenpäin."
+            else "Notifications are working! You'll see lessons and announcements from now on."
+        )
+        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+        .setAutoCancel(true)
+        .build()
+    androidx.core.app.NotificationManagerCompat.from(ctx).notify(9999, notif)
 }
 
 @Composable
