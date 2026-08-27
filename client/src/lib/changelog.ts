@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.37";
+export const APP_VERSION = "4.5.38";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.38",
+    date: "August 2026",
+    title: "Map: switched to standard OpenStreetMap tiles; email ticket confirmation: fixed garbled characters",
+    titleFi: "Kartta: vaihdettu OpenStreetMap-ruutuihin; tikettisähköposti: korjattu vääristyneet merkit",
+    highlights: [
+      "**Map now uses standard OpenStreetMap tiles** — no third-party tile provider, purely free OSM tiles. Dark mode applies brightness/saturation adjustments to produce a dark appearance from the same tiles.",
+      "**Ticket confirmation emails no longer contain garbled characters** — bullet points and separator lines in the email body were corrupted (mojibake) due to a file encoding issue; replaced with plain ASCII equivalents that render correctly in all email clients.",
+    ],
+    highlightsFi: [
+      "**Kartta käyttää nyt OpenStreetMapin vakioruutuja** — ei kolmannen osapuolen ruututarjoajaa, pelkästään ilmaiset OSM-ruudut. Tumma tila käyttää kirkkaus- ja kylläisyyssäätöjä.",
+      "**Tikettivahvistussähköpostit eivät enää sisällä vääristyneitä merkkejä** — luettelomerkit ja erottimet olivat korruptoineet (mojibake) tiedoston koodausvirheen vuoksi.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.37",
     date: "August 2026",
@@ -28,7 +43,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Widgetit noudattavat sovelluksen kieliasetusta** — suomen- ja englanninkieliset tekstit vaihtuvat automaattisesti sovelluksen kielivalinnan mukaan.",
       "**Tämän päivän aikataulu -widgetin päivän nimi** on nyt kielitietoinen (Ma/Ti vs Mon/Tue).",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.36",

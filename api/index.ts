@@ -1124,7 +1124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const ownerEmailBody = `NEW SUPPORT TICKET RECEIVED
 
 Ticket Details:
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+----------------------------------------
 Type: ${ticketData.type.toUpperCase()}
 Title: ${ticketData.title}
 Status: PENDING
@@ -1133,7 +1133,7 @@ Description:
 ${ticketData.description}
 
 Contact Information:
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+----------------------------------------
 Name: ${ticketData.name || 'Anonymous'}
 Email: ${ticketData.email}
 
@@ -1159,10 +1159,10 @@ Your Issue:
 ${ticketData.title}
 
 What happens next?
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-â€¢ Our support team will review your ticket
-â€¢ You'll receive email updates when the status changes
-â€¢ We aim to respond within 24-48 hours
+----------------------------------------
+- Our support team will review your ticket
+- You'll receive email updates when the status changes
+- We aim to respond within 24-48 hours
 
 Keep your ticket ID safe for future reference.
 

@@ -21,27 +21,20 @@ import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings"
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
-// Raster tile providers — the light theme uses CARTO's Voyager style
-// (crisp @2x retina tiles, MazeMap-adjacent palette). Falls back to
-// classic OSM only when Voyager can't serve a tile. Dark mode swaps in
-// Carto Dark Matter which reads well as a background under the KSYK
-// blue building overlays. Both providers are free + no-API-key.
+// Standard OpenStreetMap raster tiles — free, no API key required.
+// OSM policy allows reasonable use; school-scale traffic is fine.
+// Dark mode uses the same tiles with MapLibre brightness/saturation
+// paint adjustments to produce a dark appearance without a separate provider.
 const TILE_URLS = {
   light: [
-    // CARTO Voyager @2x — retina detail at zoom 19+, cleaner labels,
-    // MazeMap-style muted palette so the KSYK overlays pop on top.
-    "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-    "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-    "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-    "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
   ],
   dark: [
-    // Retina dark tiles too — matches the light-mode DPR so switching
-    // themes doesn't visibly change tile crispness.
-    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-    "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-    "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-    "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
   ],
 } as const;
 
@@ -153,8 +146,8 @@ function scheduleWriteUrlCamera(c: PersistedCamera): void {
 }
 
 const TILE_ATTRIBUTIONS = {
-  light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
-  dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+  light: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  dark:  '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 } as const;
 
 /** Build a MapLibre style spec for the given theme. */
@@ -195,6 +188,13 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
           "raster-opacity": 1.0,
           "raster-resampling": "linear",
           "raster-fade-duration": 200,
+          // Darken OSM standard tiles in dark mode since we no longer use
+          // a separate dark tile provider (CARTO Dark Matter).
+          ...(mode === "dark" && {
+            "raster-brightness-max": 0.22,
+            "raster-saturation": -0.4,
+            "raster-contrast": 0.2,
+          }),
         },
       },
     ],
