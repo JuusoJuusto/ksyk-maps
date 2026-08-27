@@ -824,7 +824,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const buildings = await storage.getBuildings();
       res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
-      res.json(Array.isArray(buildings) ? buildings : []);
+      const list = Array.isArray(buildings) ? buildings : [];
+      const withCoords = list.map((b: any) => {
+        if (b.coordinates || !Array.isArray(b.points) || b.points.length < 3) return b;
+        const pts = b.points as { lat: number; lng: number }[];
+        const lat = pts.reduce((s: number, p: any) => s + (Number(p.lat) || 0), 0) / pts.length;
+        const lng = pts.reduce((s: number, p: any) => s + (Number(p.lng) || 0), 0) / pts.length;
+        return { ...b, coordinates: { lat, lng } };
+      });
+      res.json(withCoords);
     } catch (error) {
       await logError(error, 'GET /api/buildings');
       res.set('X-Read-Soft-Fail', '1').json([]);
@@ -989,7 +997,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const buildingId = req.query.buildingId as string;
       const rooms = await storage.getRooms(buildingId);
       res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
-      res.json(Array.isArray(rooms) ? rooms : []);
+      const list = Array.isArray(rooms) ? rooms : [];
+      const withCoords = list.map((r: any) => {
+        if (r.coordinates || !Array.isArray(r.points) || r.points.length < 3) return r;
+        const pts = r.points as { lat: number; lng: number }[];
+        const lat = pts.reduce((s: number, p: any) => s + (Number(p.lat) || 0), 0) / pts.length;
+        const lng = pts.reduce((s: number, p: any) => s + (Number(p.lng) || 0), 0) / pts.length;
+        return { ...r, coordinates: { lat, lng } };
+      });
+      res.json(withCoords);
     } catch (error) {
       await logError(error, 'GET /api/rooms', { buildingId: req.query.buildingId });
       res.set('X-Read-Soft-Fail', '1').json([]);

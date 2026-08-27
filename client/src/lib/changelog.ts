@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.38";
+export const APP_VERSION = "4.5.39";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.39",
+    date: "August 2026",
+    title: "Mobile map: buildings and rooms now load and render reliably; map data pre-cached on app start",
+    titleFi: "Mobiilikartta: rakennukset ja huoneet latautuvat nyt luotettavasti; karttadata esitallennetaan käynnistyksessä",
+    highlights: [
+      "**Buildings and rooms now render on the mobile map** — fixed a bug where polygon buildings drawn in the admin builder lacked a centroid coordinate, causing Focus and navigation to fail. The server now computes the centroid automatically.",
+      "**Map data loads ~4× faster** — buildings, rooms, doors and hallways are now fetched in parallel instead of sequentially.",
+      "**Map data is pre-cached on app startup** — buildings, rooms, hallways and doors are fetched in the background when the app launches, so the Map tab renders instantly even on first open.",
+      "**'Focus' button on building/room sheets now works for all entities** — the centroid lookup correctly falls back to the stored coordinate pin when no polygon points are present.",
+    ],
+    highlightsFi: [
+      "**Rakennukset ja huoneet renderöityvät nyt mobiilikarttaan** — korjattu virhe, jossa polygonirakennuksilla ei ollut keskeiskoordinaattia; palvelin laskee sen nyt automaattisesti.",
+      "**Karttadata latautuu ~4× nopeammin** — rakennukset, huoneet, ovet ja käytävät haetaan nyt rinnakkain peräkkäin sijaan.",
+      "**Karttadata esitallennetaan sovelluksen käynnistyksessä** — Kartta-välilehti renderöityy heti ensimmäiselläkin avauksella.",
+      "**'Tarkenna'-nappi toimii nyt kaikille kohteille** — keskeiskoordinaattihaku käyttää varakoordinaattia oikein, kun polygonipisteitä ei ole.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.38",
     date: "August 2026",
@@ -26,7 +45,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Kartta käyttää nyt OpenStreetMapin vakioruutuja** — ei kolmannen osapuolen ruututarjoajaa, pelkästään ilmaiset OSM-ruudut. Tumma tila käyttää kirkkaus- ja kylläisyyssäätöjä.",
       "**Tikettivahvistussähköpostit eivät enää sisällä vääristyneitä merkkejä** — luettelomerkit ja erottimet olivat korruptoineet (mojibake) tiedoston koodausvirheen vuoksi.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.37",

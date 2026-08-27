@@ -53,6 +53,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -356,44 +357,43 @@ fun MapScreen() {
     }
 
     LaunchedEffect(Unit) {
-        // Buildings first — they're usually smaller and the map should
-        // frame the campus even if the rooms fetch is slow.
-        try {
-            val json = withContext(Dispatchers.IO) { Api.get("/buildings") }
+        // All four map data sources fetched in parallel so the map renders
+        // in ~1 round-trip instead of 4 sequential round-trips.
+        val bldDeferred  = async(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
+        val roomsDeferred = async(Dispatchers.IO) { runCatching { Api.get("/rooms") } }
+        val doorsDeferred = async(Dispatchers.IO) { runCatching { Api.get("/doors") } }
+        val hwDeferred   = async(Dispatchers.IO) { runCatching { Api.get("/hallways") } }
+
+        bldDeferred.await().onSuccess { json ->
             buildings = json.jsonArray.mapNotNull { it as? JsonObject }
             offlineMode = false
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Analytics.trackError("MapScreen", "buildings: ${e.message ?: "unknown"}")
-            val cached = Api.getOffline("/buildings")
-            if (cached != null) {
-                buildings = cached.jsonArray.mapNotNull { it as? JsonObject }
+            Api.getOffline("/buildings")?.let {
+                buildings = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject }
                 offlineMode = true
             }
         }
-        try {
-            val json = withContext(Dispatchers.IO) { Api.get("/rooms") }
+
+        roomsDeferred.await().onSuccess { json ->
             rooms = json.jsonArray.mapNotNull { it as? JsonObject }
-        } catch (_: Exception) {
-            val cached = Api.getOffline("/rooms")
-            if (cached != null) {
-                rooms = cached.jsonArray.mapNotNull { it as? JsonObject }
+        }.onFailure {
+            Api.getOffline("/rooms")?.let {
+                rooms = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject }
                 offlineMode = true
             }
         }
-        // v1.7.0 — doors + hallways/walls
-        try {
-            val json = withContext(Dispatchers.IO) { Api.get("/doors") }
+
+        doorsDeferred.await().onSuccess { json ->
             doors = json.jsonArray.mapNotNull { it as? JsonObject }
-        } catch (_: Exception) {
-            val cached = Api.getOffline("/doors")
-            if (cached != null) doors = cached.jsonArray.mapNotNull { it as? JsonObject }
+        }.onFailure {
+            Api.getOffline("/doors")?.let { doors = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject } }
         }
-        try {
-            val json = withContext(Dispatchers.IO) { Api.get("/hallways") }
+
+        hwDeferred.await().onSuccess { json ->
             hallways = json.jsonArray.mapNotNull { it as? JsonObject }
-        } catch (_: Exception) {
-            val cached = Api.getOffline("/hallways")
-            if (cached != null) hallways = cached.jsonArray.mapNotNull { it as? JsonObject }
+        }.onFailure {
+            Api.getOffline("/hallways")?.let { hallways = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject } }
         }
     }
 
@@ -2513,16 +2513,22 @@ private fun pointInPolygon(pt: LatLng, poly: List<LatLng>): Boolean {
 }
 
 private fun centroidOf(b: JsonObject): Pair<Double, Double>? {
-    val ptsArr = (b["points"] as? JsonArray) ?: return null
-    var lat = 0.0; var lng = 0.0; var n = 0
-    for (p in ptsArr) {
-        val po = p as? JsonObject ?: continue
-        val la = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: continue
-        val ln = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: continue
-        lat += la; lng += ln; n++
+    val ptsArr = b["points"] as? JsonArray
+    if (ptsArr != null && ptsArr.size >= 3) {
+        var lat = 0.0; var lng = 0.0; var n = 0
+        for (p in ptsArr) {
+            val po = p as? JsonObject ?: continue
+            val la = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: continue
+            val ln = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: continue
+            lat += la; lng += ln; n++
+        }
+        if (n > 0) return lat / n to lng / n
     }
-    if (n == 0) return null
-    return lat / n to lng / n
+    val coordObj = b["coordinates"] as? JsonObject
+    val lat = (coordObj?.get("lat") as? JsonPrimitive)?.doubleOrNull
+    val lng = (coordObj?.get("lng") as? JsonPrimitive)?.doubleOrNull
+    if (lat != null && lng != null) return lat to lng
+    return null
 }
 
 /** Best display name for a building or room. Falls back through

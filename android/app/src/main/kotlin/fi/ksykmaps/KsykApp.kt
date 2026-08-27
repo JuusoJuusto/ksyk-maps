@@ -4,6 +4,11 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import fi.ksykmaps.data.Api
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -22,11 +27,23 @@ import java.util.Locale
  *   CHANNEL_GENERAL — announcements and general alerts
  */
 class KsykApp : Application() {
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override fun onCreate() {
         super.onCreate()
         instance = this
         installCrashHandler()
         createNotificationChannels()
+        prefetchMapData()
+    }
+
+    private fun prefetchMapData() {
+        val paths = listOf("/buildings", "/rooms", "/hallways", "/doors")
+        paths.forEach { path ->
+            appScope.launch(Dispatchers.IO) {
+                try { Api.get(path) } catch (_: Exception) {}
+            }
+        }
     }
 
     /**
@@ -43,7 +60,7 @@ class KsykApp : Application() {
                 pw.println("=== KSYK crash ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ===")
                 pw.println("Thread: ${thread.name}")
                 pw.println("Android: ${Build.VERSION.SDK_INT} ${Build.MANUFACTURER} ${Build.MODEL}")
-                pw.println("App version: 1.33.0 (35)")
+                pw.println("App version: 1.34.0 (36)")
                 pw.println()
                 throwable.printStackTrace(pw)
                 pw.flush()
