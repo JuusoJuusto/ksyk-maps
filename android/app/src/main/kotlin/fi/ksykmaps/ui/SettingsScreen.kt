@@ -2,8 +2,11 @@ package fi.ksykmaps.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -11,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -20,8 +25,6 @@ import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
-import fi.ksykmaps.data.Session
-import androidx.compose.foundation.clickable
 
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
@@ -64,6 +67,7 @@ fun SettingsScreen(
     onSignIn: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
 
     var notificationsEnabled by remember { mutableStateOf(false) }
@@ -73,16 +77,21 @@ fun SettingsScreen(
     var activeEgg by remember { mutableStateOf<String?>(null) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
-    var language by remember { mutableStateOf(prefs.getString(KEY_LANGUAGE, "fi") ?: "fi") }
     var userName by remember { mutableStateOf(getUserName(ctx)) }
     var editingName by remember { mutableStateOf(false) }
     var themeMode by remember { mutableStateOf(ThemeState.mode) }
-    val isFi = language == "fi"
+    val isFi = lang == "fi"
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text(if (isFi) "Asetukset" else "Settings", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        if (isFi) "Asetukset" else "Settings",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
@@ -91,318 +100,196 @@ fun SettingsScreen(
     ) { pad ->
         LazyColumn(
             Modifier.fillMaxSize().padding(pad),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // Profile
-            item { SectionTitle(if (isFi) "Profiili" else "Profile") }
+            // ── Profile ────────────────────────────────────────────
             item {
-                SettingRow(
-                    icon = Icons.Outlined.Person,
-                    title = if (isFi) "Nimesi" else "Your name",
-                    subtitle = if (userName.isNotBlank()) userName
-                               else if (isFi) "Aseta nimi" else "Tap to set your name",
-                    trailing = {
-                        TextButton(onClick = { editingName = true }) {
-                            Text(if (isFi) "Muuta" else "Edit")
-                        }
-                    },
+                ProfileHeader(
+                    userName = userName,
+                    email = Api.sessionEmail,
+                    isFi = isFi,
+                    onEditName = { editingName = true },
                 )
             }
 
-            // Theme
-            item { SectionTitle(if (isFi) "Teema" else "Theme") }
+            // ── Appearance ─────────────────────────────────────────
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                ) {
-                    Row(
-                        Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(Icons.Outlined.Palette, null, tint = MaterialTheme.colorScheme.primary)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                if (isFi) "Väriteema" else "Colour theme",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            mapOf(
-                                "system" to if (isFi) "Auto" else "Auto",
-                                "light"  to if (isFi) "Vaalea" else "Light",
-                                "dark"   to if (isFi) "Tumma" else "Dark",
-                            ).forEach { (mode, label) ->
-                                FilterChip(
-                                    selected = themeMode == mode,
-                                    onClick = {
-                                        themeMode = mode
-                                        ThemeState.mode = mode
-                                        prefs.edit().putString(KEY_DARK_MODE, mode).apply()
-                                    },
-                                    label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-                                    modifier = Modifier.height(32.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item { SectionTitle(if (isFi) "Kieli" else "Language") }
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                ) {
-                    Row(
-                        Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(Icons.Outlined.Language, null, tint = MaterialTheme.colorScheme.primary)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                if (isFi) "Kieli / Language" else "Language / Kieli",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                            )
-                            Text(
-                                if (isFi) "Tällä hetkellä: Suomi" else "Currently: English",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            LangChip(label = "EN", selected = !isFi, onClick = {
-                                language = "en"
-                                LanguageState.set(ctx, "en")
-                            })
-                            LangChip(label = "FI", selected = isFi, onClick = {
-                                language = "fi"
-                                LanguageState.set(ctx, "fi")
-                            })
-                        }
-                    }
-                }
-            }
-
-            item { SectionTitle(if (isFi) "Asetukset" else "Preferences") }
-            item {
-                ToggleRow(
-                    icon = Icons.Outlined.Notifications,
-                    title = if (isFi) "Ilmoitukset" else "Notifications",
-                    subtitle = if (isFi) "Kuulutukset ja uudet tiedotteet"
-                               else "Announcements + school news",
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it },
-                )
-            }
-            // Test notification button — proves the whole pipeline works
-            // (permission granted, channel created, receiver wired). If
-            // this doesn't appear on the lock screen, notifications are
-            // disabled at the OS level, and no in-app fix will help.
-            item {
-                SettingRow(
-                    icon = Icons.Outlined.NotificationsActive,
-                    title = if (isFi) "Testaa ilmoitus" else "Send test notification",
-                    subtitle = if (isFi) "Varmista että ilmoitukset toimivat"
-                               else "Verify notifications are working",
-                    trailing = {
-                        TextButton(onClick = {
-                            sendTestNotification(ctx, isFi)
-                        }) {
-                            Text(if (isFi) "Lähetä" else "Send")
-                        }
-                    },
-                )
-            }
-            item {
-                ToggleRow(
-                    icon = Icons.Outlined.ColorLens,
-                    title = if (isFi) "Dynaaminen väri" else "Dynamic colour",
-                    subtitle = if (isFi) "Tapetsista johdettu väripaletti (Android 12+)"
-                               else "Match your wallpaper on Android 12+",
-                    checked = dynamicColour,
-                    onCheckedChange = { dynamicColour = it },
-                )
-            }
-
-            item { SectionTitle(if (isFi) "KSYK Maps muualla" else "KSYK Maps everywhere") }
-            item {
-                LinkRow(
-                    icon = Icons.Outlined.Public,
-                    title = if (isFi) "Avaa verkkosivusto" else "Open the website",
-                    subtitle = "ksykmaps.fi",
-                    onClick = {
-                        try {
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi")))
-                        } catch (_: Exception) { }
-                    },
-                )
-            }
-
-            item { SectionTitle(if (isFi) "Offline-data" else "Offline data") }
-            item {
-                SettingRow(
-                    icon = Icons.Outlined.CloudDone,
-                    title = if (isFi) "Välimuistissa" else "Cached responses",
-                    subtitle = formatBytes(cacheBytes) + if (isFi) " · rakennukset, luokat, tiedotteet"
-                               else " · buildings, rooms, announcements",
-                    trailing = {
-                        TextButton(
-                            onClick = {
-                                clearing = true
-                                DiskCache.clear()
-                                cacheBytes = 0L
-                                clearing = false
-                            },
-                            enabled = !clearing && cacheBytes > 0L,
-                        ) {
-                            Text(
-                                when {
-                                    clearing -> if (isFi) "Tyhjennetään…" else "Clearing…"
-                                    else -> if (isFi) "Tyhjennä" else "Clear"
-                                }
-                            )
-                        }
-                    },
-                )
-            }
-
-            item { SectionTitle(if (isFi) "Tili" else "Account") }
-            item {
-                if (Api.sessionEmail != null) {
-                    LinkRow(
-                        icon = Icons.Outlined.AccountCircle,
-                        title = Api.sessionEmail!!,
-                        subtitle = if (isFi) "Napauta kirjautuaksesi ulos" else "Tap to sign out",
-                        onClick = onSignOut,
+                SettingsGroup(title = if (isFi) "Ulkoasu" else "Appearance") {
+                    ThemeRow(
+                        themeMode = themeMode,
+                        isFi = isFi,
+                        onChange = {
+                            themeMode = it
+                            ThemeState.mode = it
+                            prefs.edit().putString(KEY_DARK_MODE, it).apply()
+                        },
                     )
-                } else {
-                    LinkRow(
-                        icon = Icons.Outlined.Login,
-                        title = if (isFi) "Kirjaudu sisään" else "Sign in",
-                        subtitle = if (isFi) "Valinnainen — tarvitaan vain hallintapaneeliin"
-                                   else "Optional — required only for admin features",
-                        onClick = onSignIn,
+                    RowDivider()
+                    LanguageRow(
+                        isFi = isFi,
+                        onSelect = { newLang ->
+                            LanguageState.set(ctx, newLang)
+                        },
+                    )
+                    RowDivider()
+                    ToggleGroupRow(
+                        icon = Icons.Outlined.ColorLens,
+                        iconTint = Color(0xFFEC4899),
+                        title = if (isFi) "Dynaaminen väri" else "Dynamic colour",
+                        subtitle = if (isFi) "Käytä tapetin väripalettia (Android 12+)"
+                                   else "Match your wallpaper (Android 12+)",
+                        checked = dynamicColour,
+                        onCheckedChange = { dynamicColour = it },
                     )
                 }
             }
 
-            // Crash log — only shown if a crash file exists
+            // ── Notifications ──────────────────────────────────────
+            item {
+                SettingsGroup(title = if (isFi) "Ilmoitukset" else "Notifications") {
+                    ToggleGroupRow(
+                        icon = Icons.Outlined.Notifications,
+                        iconTint = Color(0xFFF59E0B),
+                        title = if (isFi) "Ilmoitukset" else "Notifications",
+                        subtitle = if (isFi) "Kuulutukset ja koulun uutiset"
+                                   else "Announcements and school news",
+                        checked = notificationsEnabled,
+                        onCheckedChange = { notificationsEnabled = it },
+                    )
+                    RowDivider()
+                    ActionGroupRow(
+                        icon = Icons.Outlined.NotificationsActive,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = if (isFi) "Testaa ilmoitus" else "Send test notification",
+                        subtitle = if (isFi) "Varmista että ilmoitukset toimivat"
+                                   else "Verify notifications work",
+                        actionLabel = if (isFi) "Lähetä" else "Send",
+                        onAction = { sendTestNotification(ctx, isFi) },
+                    )
+                }
+            }
+
+            // ── KSYK Maps everywhere ──────────────────────────────
+            item {
+                SettingsGroup(title = if (isFi) "KSYK Maps muualla" else "KSYK Maps everywhere") {
+                    LinkGroupRow(
+                        icon = Icons.Outlined.Public,
+                        iconTint = Color(0xFF06B6D4),
+                        title = if (isFi) "Avaa verkkosivusto" else "Open the website",
+                        subtitle = "ksykmaps.fi",
+                        onClick = {
+                            try {
+                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi")))
+                            } catch (_: Exception) {}
+                        },
+                    )
+                }
+            }
+
+            // ── Storage ────────────────────────────────────────────
+            item {
+                SettingsGroup(title = if (isFi) "Tallennustila" else "Storage") {
+                    ActionGroupRow(
+                        icon = Icons.Outlined.CloudDone,
+                        iconTint = Color(0xFF10B981),
+                        title = if (isFi) "Välimuisti" else "Cached data",
+                        subtitle = formatBytes(cacheBytes) +
+                                   if (isFi) " · rakennukset, luokat, uutiset"
+                                   else " · buildings, rooms, news",
+                        actionLabel = when {
+                            clearing -> if (isFi) "Tyhjennetään" else "Clearing"
+                            else -> if (isFi) "Tyhjennä" else "Clear"
+                        },
+                        actionEnabled = !clearing && cacheBytes > 0L,
+                        onAction = {
+                            clearing = true
+                            DiskCache.clear()
+                            cacheBytes = 0L
+                            clearing = false
+                        },
+                    )
+                }
+            }
+
+            // ── Account ────────────────────────────────────────────
+            item {
+                SettingsGroup(title = if (isFi) "Tili" else "Account") {
+                    if (Api.sessionEmail != null) {
+                        LinkGroupRow(
+                            icon = Icons.Outlined.AccountCircle,
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = Api.sessionEmail!!,
+                            subtitle = if (isFi) "Kirjaudu ulos" else "Sign out",
+                            onClick = onSignOut,
+                        )
+                    } else {
+                        LinkGroupRow(
+                            icon = Icons.Outlined.Login,
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = if (isFi) "Kirjaudu sisään" else "Sign in",
+                            subtitle = if (isFi) "Valinnainen — vain hallintapaneeliin"
+                                       else "Optional — for admin features only",
+                            onClick = onSignIn,
+                        )
+                    }
+                }
+            }
+
+            // ── Crash report ───────────────────────────────────────
             item {
                 val crashFile = remember { java.io.File(ctx.filesDir, "last_crash.txt") }
                 if (crashFile.exists()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SectionTitle(if (isFi) "Vikailmoitus" else "Crash report")
-                        Card(
-                            Modifier.fillMaxWidth().clickable {
-                                try {
-                                    val text = crashFile.readText()
-                                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(android.content.Intent.EXTRA_SUBJECT, "KSYK Maps crash log")
-                                        putExtra(android.content.Intent.EXTRA_TEXT, text)
-                                    }
-                                    ctx.startActivity(android.content.Intent.createChooser(send,
-                                        if (isFi) "Jaa vikailmoitus" else "Share crash log"))
-                                } catch (_: Throwable) {}
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        ) {
-                            Row(
-                                Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Icon(Icons.Outlined.BugReport, null,
-                                    tint = MaterialTheme.colorScheme.onErrorContainer)
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        if (isFi) "Sovellus kaatui viimeksi" else "The app crashed last time",
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                    Text(
-                                        if (isFi) "Napauta jakaaksesi lokin" else "Tap to share the log",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
+                    CrashCard(
+                        isFi = isFi,
+                        onShare = {
+                            try {
+                                val text = crashFile.readText()
+                                val send = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps crash log")
+                                    putExtra(Intent.EXTRA_TEXT, text)
                                 }
-                                TextButton(onClick = {
-                                    try { crashFile.delete() } catch (_: Throwable) {}
-                                }) {
-                                    Text(
-                                        if (isFi) "Poista" else "Delete",
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                                ctx.startActivity(Intent.createChooser(send,
+                                    if (isFi) "Jaa vikailmoitus" else "Share crash log"))
+                            } catch (_: Throwable) {}
+                        },
+                        onDelete = { try { crashFile.delete() } catch (_: Throwable) {} },
+                    )
                 }
             }
 
-            item { SectionTitle(if (isFi) "Tietoja" else "About") }
+            // ── About ──────────────────────────────────────────────
             item {
-                // Easter egg #1: tap the version row 7 times
-                Card(
-                    Modifier.fillMaxWidth().clickable {
-                        eggTaps++
-                        if (eggTaps >= 7) {
-                            eggTaps = 0
-                            if (eggsFound < TOTAL_EGGS) {
-                                eggsFound++
-                                prefs.edit().putInt(KEY_EGGS_FOUND, eggsFound).apply()
+                SettingsGroup(title = if (isFi) "Tietoja" else "About") {
+                    AboutRow(
+                        eggsFound = eggsFound,
+                        isFi = isFi,
+                        onTap = {
+                            eggTaps++
+                            if (eggTaps >= 7) {
+                                eggTaps = 0
+                                if (eggsFound < TOTAL_EGGS) {
+                                    eggsFound++
+                                    prefs.edit().putInt(KEY_EGGS_FOUND, eggsFound).apply()
+                                }
+                                Analytics.trackEasterEgg("version_tap_7")
+                                activeEgg = "version_tap"
                             }
-                            Analytics.trackEasterEgg("version_tap_7")
-                            activeEgg = "version_tap"
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                ) {
-                    Row(
-                        Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary)
-                        Column(Modifier.weight(1f)) {
-                            Text("KSYK Maps Mobile", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text(
-                                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · © 2026 Nordbyte Studio",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (eggsFound > 0) {
-                                Text(
-                                    if (isFi) "$eggsFound/$TOTAL_EGGS salaisuutta loydetty"
-                                    else "$eggsFound/$TOTAL_EGGS secrets found",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
-                                )
-                            }
-                        }
-                    }
+                        },
+                    )
                 }
             }
 
-            item { Spacer(Modifier.height(8.dp)) }
+            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 
     if (activeEgg != null) {
         AlertDialog(
             onDismissRequest = { activeEgg = null },
-            title = { Text(if (isFi) "Salainen paikkio!" else "Secret unlocked!") },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text(if (isFi) "Salainen paikkio!" else "Secret unlocked!", fontWeight = FontWeight.SemiBold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -430,7 +317,8 @@ fun SettingsScreen(
         var nameDraft by remember { mutableStateOf(userName) }
         AlertDialog(
             onDismissRequest = { editingName = false },
-            title = { Text(if (isFi) "Muuta nimi" else "Change name") },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text(if (isFi) "Muuta nimi" else "Change name", fontWeight = FontWeight.SemiBold) },
             text = {
                 OutlinedTextField(
                     value = nameDraft,
@@ -438,6 +326,7 @@ fun SettingsScreen(
                     label = { Text(if (isFi) "Etunimesi" else "Your first name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
                 )
             },
             confirmButton = {
@@ -448,26 +337,423 @@ fun SettingsScreen(
                 }) { Text(if (isFi) "Tallenna" else "Save") }
             },
             dismissButton = {
-                TextButton(onClick = { editingName = false }) { Text(if (isFi) "Peruuta" else "Cancel") }
+                TextButton(onClick = { editingName = false }) {
+                    Text(if (isFi) "Peruuta" else "Cancel")
+                }
             },
         )
     }
+}
 
+// ── Groups & rows ──────────────────────────────────────────────────
+
+/** iOS-Settings-style grouped card: rounded corners, dividers inside. */
+@Composable
+private fun SettingsGroup(
+    title: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column {
+        if (title != null) {
+            Text(
+                title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            )
+        }
+        Card(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Column(content = content)
+        }
+    }
 }
 
 @Composable
-private fun LangChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-        modifier = Modifier.height(32.dp),
+private fun RowDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 60.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
     )
 }
 
+@Composable
+private fun ProfileHeader(
+    userName: String,
+    email: String?,
+    isFi: Boolean,
+    onEditName: () -> Unit,
+) {
+    Card(
+        Modifier.fillMaxWidth().clickable { onEditName() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                val initial = userName.trim().firstOrNull()?.uppercase()
+                    ?: email?.trim()?.firstOrNull()?.uppercase()
+                    ?: "?"
+                Text(
+                    initial,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (userName.isNotBlank()) userName
+                    else if (isFi) "Aseta nimesi" else "Set your name",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    email ?: if (isFi) "Napauta muokataksesi" else "Tap to edit",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Outlined.ChevronRight, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeRow(themeMode: String, isFi: Boolean, onChange: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = Icons.Outlined.Palette, tint = Color(0xFF8B5CF6))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (isFi) "Väriteema" else "Colour theme",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        SegmentedThemePicker(
+            selected = themeMode,
+            isFi = isFi,
+            onSelect = onChange,
+        )
+    }
+}
+
+@Composable
+private fun SegmentedThemePicker(selected: String, isFi: Boolean, onSelect: (String) -> Unit) {
+    val options = listOf(
+        "system" to if (isFi) "Auto" else "Auto",
+        "light"  to if (isFi) "Vaalea" else "Light",
+        "dark"   to if (isFi) "Tumma" else "Dark",
+    )
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        options.forEach { (mode, label) ->
+            val isSelected = selected == mode
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.surface
+                        else Color.Transparent
+                    )
+                    .clickable { onSelect(mode) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageRow(isFi: Boolean, onSelect: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = Icons.Outlined.Language, tint = Color(0xFF3B82F6))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (isFi) "Kieli" else "Language",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                if (isFi) "Suomi" else "English",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            listOf("FI" to true, "EN" to false).forEach { (label, wantsFi) ->
+                val isSelected = wantsFi == isFi
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.surface
+                            else Color.Transparent
+                        )
+                        .clickable { onSelect(if (wantsFi) "fi" else "en") }
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        label,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IconBubble(icon: ImageVector, tint: Color) {
+    Box(
+        Modifier
+            .size(32.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(tint.copy(alpha = 0.15f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun ToggleGroupRow(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = icon, tint = iconTint)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                subtitle,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun ActionGroupRow(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    actionLabel: String,
+    actionEnabled: Boolean = true,
+    onAction: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = icon, tint = iconTint)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                subtitle,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onAction, enabled = actionEnabled) {
+            Text(actionLabel, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun LinkGroupRow(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = icon, tint = iconTint)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                subtitle,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            Icons.Outlined.ChevronRight, null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+private fun CrashCard(isFi: Boolean, onShare: () -> Unit, onDelete: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth().clickable { onShare() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconBubble(icon = Icons.Outlined.BugReport, tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (isFi) "Sovellus kaatui viimeksi" else "The app crashed last time",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    if (isFi) "Napauta jakaaksesi lokin" else "Tap to share the log",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                )
+            }
+            TextButton(onClick = onDelete) {
+                Text(
+                    if (isFi) "Poista" else "Delete",
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutRow(eggsFound: Int, isFi: Boolean, onTap: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onTap() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = Icons.Outlined.Info, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                "KSYK Maps",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · © 2026 Nordbyte Studio",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (eggsFound > 0) {
+                Text(
+                    if (isFi) "$eggsFound/$TOTAL_EGGS salaisuutta löydetty"
+                    else "$eggsFound/$TOTAL_EGGS secrets found",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                )
+            }
+        }
+    }
+}
+
 private fun sendTestNotification(ctx: android.content.Context, isFi: Boolean) {
-    // If perm is missing on Android 13+, silently no-op — the permission
-    // launcher in MainActivity handles the ask on cold start.
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
             ctx, android.Manifest.permission.POST_NOTIFICATIONS
@@ -485,87 +771,6 @@ private fun sendTestNotification(ctx: android.content.Context, isFi: Boolean) {
         .setAutoCancel(true)
         .build()
     androidx.core.app.NotificationManagerCompat.from(ctx).notify(9999, notif)
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text.uppercase(),
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-    )
-}
-
-@Composable
-private fun SettingRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    trailing: @Composable () -> Unit = {},
-) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            trailing()
-        }
-    }
-}
-
-@Composable
-private fun ToggleRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    SettingRow(
-        icon = icon,
-        title = title,
-        subtitle = subtitle,
-        trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
-    )
-}
-
-@Composable
-private fun LinkRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Card(
-        Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Outlined.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
 }
 
 private fun formatBytes(bytes: Long): String {

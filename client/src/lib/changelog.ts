@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.33";
+export const APP_VERSION = "4.5.34";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.34",
+    date: "August 2026",
+    title: "Google/Apple/MazeMap-style UI overhaul + map building outlines on all floors + admin rotation always applied",
+    titleFi: "Google/Apple/MazeMap-tyylinen UI-uudistus + kartan rakennukset kaikilla kerroksilla + admin-rotaatio aina käytössä",
+    highlights: [
+      "**Home / Timetable / Lunch / Settings redesigned** to feel like Google Maps, Apple Maps, and MazeMap — clean spacing, iOS-style grouped cards, subtle shadows, rounded shapes throughout. Google-Maps-style greeting on Home; Apple-Calendar-style day view on Timetable; iOS-Settings-style grouped rows in Settings.",
+      "Building outlines now show on EVERY floor (previously only floor 1). Root cause: buildBuildingsFeatureCollection was filtering buildings whose `floors` field was 1 out of every other floor's view.",
+      "Mobile map default rotation FINALLY applied on every cold open. Root cause: cameraIdleDelegate saved bearing=0 on every map idle event, so persisted bearing always won over admin's mobileRotationDeg. Fix: on every cold open, bearing + tilt come from admin defaults; only target + zoom respect persisted camera.",
+      "FloorRail now shows a dimmed number on floors with zero drawn rooms — makes it obvious whether the issue is 'wrong floor picked' vs 'campus data empty'.",
+      "Auto-floor-pick now only considers rooms with actual points >= 3, so it can never pick an empty floor.",
+    ],
+    highlightsFi: [
+      "**Etusivu / Lukujärjestys / Lounas / Asetukset uudistettu** Google Maps / Apple Maps / MazeMap -tyyliin — puhtaammat välit, iOS-tyyliset ryhmitellyt kortit, hienovaraiset varjot.",
+      "Rakennusten ääriviivat näkyvät nyt JOKAISELLA kerroksella (aiemmin vain kerroksella 1). Syy: buildBuildingsFeatureCollection suodatti pois rakennukset joiden `floors=1` kun käyttäjä valitsi muun kerroksen.",
+      "Mobiilikartan oletusrotaatio otetaan käyttöön joka kylmäkäynnistyksellä. Syy: cameraIdleDelegate tallensi bearing=0 aina karttalevätessä, joten pysyvä bearing voitti aina admin-asetetun mobileRotationDeg:n. Korjaus: kylmäkäynnistyksellä bearing + tilt tulevat admin-oletuksista; vain target + zoom kunnioittavat pysyvää kameraa.",
+      "FloorRail näyttää nyt himmennetyn numeron kerroksilla joilla ei ole piirrettyjä huoneita — kertoo onko ongelma 'väärä kerros valittu' vai 'kampus tyhjä'.",
+      "Automaattinen kerrosvalinta huomioi vain huoneet joilla on vähintään 3 pisteen polygoni — ei voi valita tyhjää kerrosta.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.33",
     date: "August 2026",
@@ -38,7 +59,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Mobiilikartan kerrokset: floorsFromBuildings suosii nyt floorMax-kenttää (korjaa '3 kerrosta 4 sijaan' kun floors=3 mutta floorMax=4).",
       "Mobiilikartan UI: FloorRail muutettu MazeMap-tyylisiksi valkoisiksi lapuiksi. MapChipButton (Fokus/3D/Haku) Apple Maps -tyylinen pyöreä 44dp-kontrolli kelluvalla varjostuksella.",
     ],
-    latest: true,
   },
   {
     version: "4.5.32",

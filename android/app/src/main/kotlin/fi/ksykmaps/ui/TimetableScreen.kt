@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,29 +131,34 @@ fun TimetableScreen(
     val nextEntry = if (isToday) dayEntries.firstOrNull { e ->
         hhmm(e.startHhmm) > nowMins
     } else null
-    val currentProgress: Float = currentEntry?.let { e ->
-        val start = hhmm(e.startHhmm)
-        val end = hhmm(e.endHhmm)
-        val duration = (end - start).coerceAtLeast(1)
-        ((nowMins - start).toFloat() / duration).coerceIn(0f, 1f)
-    } ?: 0f
-    val currentRemaining: Int? = currentEntry?.let { e -> (hhmm(e.endHhmm) - nowMins).coerceAtLeast(0) }
-    val minutesUntilNext: Int? = nextEntry?.let { e -> (hhmm(e.startHhmm) - nowMins).coerceAtLeast(0) }
 
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
+    val loc = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
     val dayName = DayOfWeek.of(if (selectedDow in 1..7) selectedDow else 1)
-        .getDisplayName(TextStyle.FULL, if (lang == "fi") Locale("fi") else Locale.ENGLISH)
+        .getDisplayName(TextStyle.FULL, loc)
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { Text(if (lang == "fi") "Lukujärjestys" else "Timetable", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        if (lang == "fi") "Lukujärjestys" else "Timetable",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 actions = {
                     IconButton(onClick = onOpenWilmaConnect) {
-                        Icon(Icons.Outlined.CalendarMonth, "Wilma calendar")
+                        Icon(
+                            Icons.Outlined.CalendarMonth,
+                            contentDescription = if (lang == "fi") "Wilma-kalenteri" else "Wilma calendar",
+                        )
                     }
                     IconButton(onClick = { showAdd = true }) {
-                        Icon(Icons.Outlined.Add, "Add lesson")
+                        Icon(
+                            Icons.Outlined.Add,
+                            contentDescription = if (lang == "fi") "Lisää tunti" else "Add lesson",
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -160,88 +167,22 @@ fun TimetableScreen(
             )
         },
     ) { pad ->
+        // Hoisted composable state (LazyListScope is not composable)
+        val activeJaksoIdComputed = remember(jaksot) { activeJaksoId(jaksot) }
         LazyColumn(
             Modifier.fillMaxSize().padding(pad),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Wilma calendar banner
-            item {
-                WilmaBanner(
-                    connected = wilmaConnected.value,
-                    importedCount = wilmaCount.value,
-                    onConnect = onOpenWilmaConnect,
-                    lang = lang,
-                )
+            // Wilma calendar banner — compact, only when relevant
+            if (!wilmaConnected.value) {
+                item { WilmaConnectBanner(onConnect = onOpenWilmaConnect, lang = lang) }
+            } else if (wilmaCount.value > 0) {
+                item { WilmaLinkedChip(count = wilmaCount.value, onOpen = onOpenWilmaConnect, lang = lang) }
             }
 
-            // Jakso (period) selector — plus a subtle banner showing the
-            // date-active jakso so it's always obvious which period the
-            // schedule filter is anchored to.
-            if (jaksot.isNotEmpty()) {
-                item {
-                    val activeId = remember(jaksot) { activeJaksoId(jaksot) }
-                    val active = jaksot.firstOrNull { it.id == activeId }
-                    if (active != null) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Outlined.EventAvailable,
-                                null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (lang == "fi")
-                                    "Nyt käynnissä: ${active.name}"
-                                else
-                                    "Currently in ${active.name}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(Modifier.weight(1f))
-                            Text(
-                                "${formatJaksoDate(active.startDate, lang)} – ${formatJaksoDate(active.endDate, lang)}",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                item {
-                    JaksoSelector(
-                        jaksot = jaksot,
-                        selected = selectedJaksoId,
-                        onSelect = { selectedJaksoId = it },
-                        lang = lang,
-                    )
-                }
-            }
-
-            // Day selector
+            // Large date header — Apple Calendar style
             item {
-                DaySelector(
-                    selected = selectedDow,
-                    today = todayDow,
-                    onSelect = { selectedDow = it },
-                    countByDow = countByDow,
-                    lang = lang,
-                )
-            }
-
-            // Day header — shows dayname + full date (e.g. "Tiistai · 26. elokuuta")
-            item {
-                val loc = if (lang == "fi") Locale("fi") else Locale.ENGLISH
-                // Compute the actual calendar date the selected dow refers to
-                // *for this week*, so the header always agrees with the day
-                // chip the user picked.
                 val today = LocalDate.now()
                 val diff = selectedDow - todayDow
                 val selectedDate = today.plusDays(diff.toLong())
@@ -252,59 +193,86 @@ fun TimetableScreen(
                     ),
                 )
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().padding(top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             dayName.replaceFirstChar { it.titlecase(loc) },
-                            fontSize = 22.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 36.sp,
                         )
                         Text(
-                            if (isToday) "$monthDay · ${nowHhmm()}" else monthDay,
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            monthDay,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isToday) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (selectedDow != todayDow) {
-                        TextButton(onClick = { selectedDow = todayDow }) {
-                            Text(if (lang == "fi") "Tänään" else "Today")
+                    if (!isToday) {
+                        FilledTonalButton(
+                            onClick = { selectedDow = todayDow },
+                            shape = RoundedCornerShape(24.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                if (lang == "fi") "Tänään" else "Today",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                 }
             }
 
-            // Current lesson card (today only)
-            if (isToday && selectedDow in 1..5) {
+            // Day selector — pill row
+            item {
+                DaySelector(
+                    selected = selectedDow,
+                    today = todayDow,
+                    onSelect = { selectedDow = it },
+                    countByDow = countByDow,
+                    lang = lang,
+                )
+            }
+
+            // Jakso (period) selector — pill row underneath, if any exist
+            if (jaksot.isNotEmpty()) {
                 item {
-                    LessonCard(
-                        label = if (lang == "fi") "NYT" else "NOW",
-                        entry = currentEntry,
-                        emptyText = if (nowMins < hhmm("08:00"))
-                            if (lang == "fi") "Koulu ei ole vielä alkanut" else "School hasn't started yet"
-                        else
-                            if (lang == "fi") "Ei oppituntia juuri nyt" else "No lesson right now",
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        progress = currentProgress,
-                        remaining = currentRemaining,
-                        countdown = null,
+                    JaksoSelector(
+                        jaksot = jaksot,
+                        selected = selectedJaksoId,
+                        onSelect = { selectedJaksoId = it },
                         lang = lang,
-                        onNavigate = { entry ->
-                            if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
-                        },
                     )
                 }
+                val activeId = activeJaksoIdComputed
+                val active = jaksot.firstOrNull { it.id == activeId }
+                if (active != null) {
+                    item {
+                        Text(
+                            if (lang == "fi")
+                                "Nyt käynnissä: ${active.name} · ${formatJaksoDate(active.startDate, lang)} – ${formatJaksoDate(active.endDate, lang)}"
+                            else
+                                "Currently: ${active.name} · ${formatJaksoDate(active.startDate, lang)} – ${formatJaksoDate(active.endDate, lang)}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 2.dp),
+                        )
+                    }
+                }
+            }
+
+            // Today at a glance — combined NOW/NEXT summary
+            if (isToday && selectedDow in 1..5 && (currentEntry != null || nextEntry != null)) {
                 item {
-                    LessonCard(
-                        label = if (lang == "fi") "SEURAAVA" else "NEXT",
-                        entry = nextEntry,
-                        emptyText = if (lang == "fi") "Ei enää oppitunteja tänään" else "No more lessons today",
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        progress = null,
-                        remaining = null,
-                        countdown = minutesUntilNext,
+                    TodayGlanceCard(
+                        current = currentEntry,
+                        next = nextEntry,
+                        nowMins = nowMins,
                         lang = lang,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
@@ -313,20 +281,20 @@ fun TimetableScreen(
                 }
             }
 
-            // Selected day's full schedule
+            // Timeline — Apple Calendar's day view: time on left, coloured event bar on right
             if (dayEntries.isNotEmpty()) {
                 item {
                     Text(
-                        if (isToday) (if (lang == "fi") "Tämän päivän tunnit" else "Today's schedule")
-                        else (if (lang == "fi") "Kaikki tunnit" else "All lessons"),
+                        if (isToday) (if (lang == "fi") "Aikataulu" else "Schedule")
+                        else (if (lang == "fi") "Päivän tunnit" else "Day schedule"),
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 4.dp, start = 2.dp),
                     )
                 }
                 items(dayEntries) { entry ->
-                    EntryRow(
+                    TimelineRow(
                         entry = entry,
                         isCurrent = entry == currentEntry,
                         lang = lang,
@@ -338,6 +306,7 @@ fun TimetableScreen(
                         onNavigate = {
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
+                        onEdit = { editEntry = entry },
                     )
                 }
             } else if (selectedDow in 1..5) {
@@ -346,17 +315,33 @@ fun TimetableScreen(
                 item {
                     Card(
                         Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     ) {
-                        Box(Modifier.padding(20.dp)) {
+                        Row(
+                            Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Outlined.WbSunny, null,
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(Modifier.width(14.dp))
                             Text(
-                                if (lang == "fi") "Viikonloppu — nauti siitä!" else "It's the weekend — enjoy!",
+                                if (lang == "fi") "Viikonloppu — nauti siitä" else "Weekend — enjoy it",
                                 fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
                             )
                         }
                     }
                 }
             }
+
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 
@@ -383,193 +368,320 @@ fun TimetableScreen(
 }
 
 @Composable
-private fun LessonCard(
-    label: String,
-    entry: ScheduleEntry?,
-    emptyText: String,
-    accentColor: Color,
-    progress: Float?,         // 0..1 for NOW card, null for NEXT
-    remaining: Int?,          // minutes remaining for NOW card
-    countdown: Int?,          // minutes until start for NEXT card
-    lang: String = "en",
+private fun TodayGlanceCard(
+    current: ScheduleEntry?,
+    next: ScheduleEntry?,
+    nowMins: Int,
+    lang: String,
     onNavigate: (ScheduleEntry) -> Unit,
 ) {
-    ElevatedCard(
+    Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(16.dp)) {
-            // Label row with countdown badge
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp,
-                    color = accentColor,
-                    modifier = Modifier.weight(1f),
-                )
-                if (entry != null) {
-                    val badge = when {
-                        remaining != null && remaining > 0 ->
-                            if (lang == "fi") "$remaining min jäljellä" else "$remaining min left"
-                        countdown != null && countdown > 0 -> {
-                            val h = countdown / 60; val m = countdown % 60
-                            if (lang == "fi")
-                                if (h > 0) "${h}h${if (m > 0) " ${m}m" else ""} päästä" else "${m}m päästä"
-                            else
-                                if (h > 0) "in ${h}h${if (m > 0) " ${m}m" else ""}" else "in ${m}m"
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (current != null) {
+                val subColor = subjectColor(current.subject)
+                val remaining = (hhmm(current.endHhmm) - nowMins).coerceAtLeast(0)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(subColor)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (lang == "fi") "Nyt käynnissä" else "In progress",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = subColor,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (lang == "fi") "$remaining min jäljellä" else "$remaining min left",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        countdown == 0 -> if (lang == "fi") "alkaa nyt" else "starting now"
-                        else -> null
-                    }
-                    if (badge != null) {
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            badge,
-                            fontSize = 11.sp,
-                            color = accentColor.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Medium,
+                            current.subject,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            buildString {
+                                append("${current.startHhmm}–${current.endHhmm}")
+                                if (current.roomNumber.isNotBlank())
+                                    append("  ·  ${if (lang == "fi") "Luokka" else "Room"} ${current.roomNumber}")
+                                if (current.teacher.isNotBlank())
+                                    append("  ·  ${current.teacher}")
+                            },
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    if (current.roomId.isNotBlank()) {
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable { onNavigate(current) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Outlined.Navigation, null,
+                                Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
                 }
+                val progress: Float = run {
+                    val total = (hhmm(current.endHhmm) - hhmm(current.startHhmm)).coerceAtLeast(1)
+                    val elapsed = (nowMins - hhmm(current.startHhmm)).coerceAtLeast(0)
+                    (elapsed.toFloat() / total).coerceIn(0f, 1f)
+                }
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    color = subColor,
+                    trackColor = subColor.copy(alpha = 0.12f),
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            if (entry != null) {
-                Text(entry.subject, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (entry.roomNumber.isNotBlank()) {
-                        InfoChip(Icons.Outlined.MeetingRoom, "${if (lang == "fi") "Luokka" else "Room"} ${entry.roomNumber}")
-                    }
-                    InfoChip(Icons.Outlined.Schedule, "${entry.startHhmm}–${entry.endHhmm}")
-                    if (entry.teacher.isNotBlank()) {
-                        InfoChip(Icons.Outlined.Person, entry.teacher)
+            if (next != null) {
+                if (current != null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                }
+                val countdown = (hhmm(next.startHhmm) - nowMins).coerceAtLeast(0)
+                val countdownStr = when {
+                    countdown == 0 -> if (lang == "fi") "alkaa nyt" else "starting now"
+                    countdown < 60 -> if (lang == "fi") "${countdown} min päästä" else "in ${countdown} min"
+                    else -> {
+                        val h = countdown / 60; val m = countdown % 60
+                        if (lang == "fi")
+                            "${h}h${if (m > 0) " ${m}m" else ""} päästä"
+                        else
+                            "in ${h}h${if (m > 0) " ${m}m" else ""}"
                     }
                 }
-                // Progress bar for NOW card
-                if (progress != null) {
-                    Spacer(Modifier.height(10.dp))
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
-                        color = accentColor,
-                        trackColor = accentColor.copy(alpha = 0.15f),
-                    )
-                }
-                if (entry.roomId.isNotBlank()) {
-                    Spacer(Modifier.height(10.dp))
-                    FilledTonalButton(
-                        onClick = { onNavigate(entry) },
-                        modifier = Modifier.height(36.dp),
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Outlined.Navigation, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (lang == "fi") "Navigoi" else "Navigate", fontSize = 13.sp)
+                        Icon(
+                            Icons.Outlined.Schedule, null,
+                            Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (lang == "fi") "Seuraavaksi · $countdownStr" else "Up next · $countdownStr",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            next.subject,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            next.startHhmm,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        if (next.roomNumber.isNotBlank()) {
+                            Text(
+                                next.roomNumber,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
-            } else {
-                Text(emptyText, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-private fun InfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.width(3.dp))
-        Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun EntryRow(
+private fun TimelineRow(
     entry: ScheduleEntry,
     isCurrent: Boolean,
-    lang: String = "en",
+    lang: String,
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
+    onEdit: () -> Unit,
 ) {
+    val sColor = subjectColor(entry.subject)
     Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isCurrent) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-        verticalAlignment = Alignment.CenterVertically,
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
     ) {
-        // Left color strip — subject color always, brighter when current
-        val sColor = subjectColor(entry.subject)
-        Box(
-            Modifier
-                .width(4.dp)
-                .height(56.dp)
-                .background(
-                    if (isCurrent) sColor else sColor.copy(alpha = 0.5f),
-                    RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
-                )
-        )
+        // Time column — Apple Calendar style, small and dim on the left
         Column(
-            Modifier
-                .weight(1f)
-                .padding(start = if (isCurrent) 10.dp else 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)
+            Modifier.width(56.dp).padding(top = 14.dp),
+            horizontalAlignment = Alignment.End,
         ) {
             Text(
-                entry.subject,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer
+                entry.startHhmm,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isCurrent) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "${entry.startHhmm}–${entry.endHhmm}" +
-                    (if (entry.roomNumber.isNotBlank()) " · ${if (lang == "fi") "Luokka" else "Room"} ${entry.roomNumber}" else "") +
-                    (if (entry.teacher.isNotBlank()) " · ${entry.teacher}" else ""),
-                fontSize = 12.sp,
-                color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                entry.endHhmm,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (entry.roomId.isNotBlank()) {
-            IconButton(onClick = onNavigate, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Outlined.Navigation, "Navigate", modifier = Modifier.size(18.dp),
-                     tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(14.dp))
+        // Event card
+        Card(
+            Modifier
+                .weight(1f)
+                .clickable { onEdit() },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isCurrent) sColor.copy(alpha = 0.12f)
+                                 else MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Row(
+                Modifier.padding(14.dp).height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Left color rail
+                Box(
+                    Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(sColor)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        entry.subject,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Row(
+                        Modifier.padding(top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (entry.roomNumber.isNotBlank()) {
+                            Icon(
+                                Icons.Outlined.MeetingRoom, null,
+                                Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(3.dp))
+                            Text(
+                                entry.roomNumber,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (entry.teacher.isNotBlank()) {
+                            if (entry.roomNumber.isNotBlank()) {
+                                Text(
+                                    " · ",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text(
+                                entry.teacher,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (entry.roomId.isNotBlank()) {
+                    IconButton(
+                        onClick = onNavigate,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Navigation,
+                            contentDescription = if (lang == "fi") "Navigoi" else "Navigate",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = if (lang == "fi") "Poista" else "Delete",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-        }
-        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Outlined.Delete, "Delete", modifier = Modifier.size(18.dp),
-                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun EmptyState(lang: String = "en") {
+private fun EmptyState(lang: String) {
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 24.dp),
+        Modifier.fillMaxWidth().padding(vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            Icons.Outlined.CalendarToday,
-            null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-        )
-        Spacer(Modifier.height(8.dp))
+        Box(
+            Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.CalendarToday, null,
+                modifier = Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Text(
-            if (lang == "fi") "Ei oppitunteja tälle päivälle" else "No lessons added for today",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (lang == "fi") "Ei tunteja tälle päivälle" else "No lessons for this day",
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
         )
         Text(
             if (lang == "fi") "Tuo Wilmasta tai paina + lisätäksesi käsin"
             else "Import from Wilma or tap + to add manually",
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -579,35 +691,42 @@ private fun JaksoSelector(
     jaksot: List<Jakso>,
     selected: String,
     onSelect: (String) -> Unit,
-    lang: String = "fi",
+    lang: String,
 ) {
     val today = remember { LocalDate.now().toString() }
     Row(
         Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         jaksot.forEach { jakso ->
             val isCurrent = jakso.startDate <= today && today <= jakso.endDate
-            FilterChip(
-                selected = selected == jakso.id,
-                onClick = { onSelect(jakso.id) },
-                label = {
-                    Text(
-                        if (isCurrent) "${jakso.name} (${if (lang == "fi") "nyt" else "now"})" else jakso.name,
-                        fontSize = 12.sp,
+            val isSelected = selected == jakso.id
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        when {
+                            isSelected && isCurrent -> MaterialTheme.colorScheme.primary
+                            isSelected -> MaterialTheme.colorScheme.secondaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                        }
                     )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = if (isCurrent)
-                        MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.secondary,
-                    selectedLabelColor = if (isCurrent)
-                        MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSecondary,
-                ),
-            )
+                    .clickable { onSelect(jakso.id) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    if (isCurrent) "${jakso.name} · ${if (lang == "fi") "nyt" else "now"}" else jakso.name,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = when {
+                        isSelected && isCurrent -> MaterialTheme.colorScheme.onPrimary
+                        isSelected -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
         }
     }
 }
@@ -617,100 +736,156 @@ private fun DaySelector(
     selected: Int,
     today: Int,
     onSelect: (Int) -> Unit,
-    countByDow: Map<Int, Int> = emptyMap(),
-    lang: String = "en",
+    countByDow: Map<Int, Int>,
+    lang: String,
 ) {
-    val days = if (lang == "fi")
+    val labels = if (lang == "fi")
         listOf("Ma", "Ti", "Ke", "To", "Pe", "La", "Su")
     else
         listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val todayDate = remember { LocalDate.now() }
     Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        days.forEachIndexed { i, label ->
+        labels.forEachIndexed { i, label ->
             val dow = i + 1
+            val diff = dow - todayDate.dayOfWeek.value
+            val date = todayDate.plusDays(diff.toLong())
             val count = countByDow[dow] ?: 0
-            val chipLabel = buildString {
-                append(label)
-                if (dow == today) append(" ·")
-                if (count > 0) append(" $count")
+            val isSelected = selected == dow
+            val isToday = dow == today
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        when {
+                            isSelected -> MaterialTheme.colorScheme.primary
+                            isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                            else -> Color.Transparent
+                        }
+                    )
+                    .clickable { onSelect(dow) }
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    label,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = when {
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Text(
+                    date.dayOfMonth.toString(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                )
+                Box(
+                    Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (count > 0)
+                                (if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                 else MaterialTheme.colorScheme.primary).copy(alpha = 0.6f)
+                            else Color.Transparent
+                        )
+                )
             }
-            FilterChip(
-                selected = selected == dow,
-                onClick = { onSelect(dow) },
-                label = { Text(chipLabel, fontSize = 12.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+        }
+    }
+}
+
+@Composable
+private fun WilmaConnectBanner(onConnect: () -> Unit, lang: String) {
+    Card(
+        onClick = onConnect,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.CalendarMonth, null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (lang == "fi") "Tuo Wilmasta" else "Import from Wilma",
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    if (lang == "fi") "Täytä lukujärjestys automaattisesti"
+                    else "Auto-fill your timetable",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Outlined.ChevronRight, null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 @Composable
-private fun WilmaBanner(
-    connected: Boolean,
-    importedCount: Int,
-    onConnect: () -> Unit,
-    lang: String = "fi",
-) {
-    if (connected) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                .clickable(onClick = onConnect)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Outlined.CalendarMonth, null,
-                modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if (lang == "fi") "Wilma-kalenteri yhdistetty" else "Wilma calendar connected",
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                )
-                if (importedCount > 0) {
-                    Text(
-                        if (lang == "fi") "$importedCount tuntia tuotu" else "$importedCount lessons imported",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Icon(Icons.Outlined.ChevronRight, null,
-                modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    } else {
-        OutlinedCard(
-            onClick = onConnect,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.CalendarMonth, null,
-                    modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (lang == "fi") "Tuo Wilmasta" else "Import from Wilma",
-                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        if (lang == "fi") "Täytä lukujärjestys automaattisesti Wilma-kalenteristasi"
-                        else "Auto-fill your timetable from your school calendar",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(Icons.Outlined.ChevronRight, null,
-                    modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+private fun WilmaLinkedChip(count: Int, onOpen: () -> Unit, lang: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onOpen() }
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.CheckCircle, null,
+            modifier = Modifier.size(14.dp),
+            tint = Color(0xFF10B981),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            if (lang == "fi") "Wilma yhdistetty · $count tuntia"
+            else "Wilma linked · $count lessons",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.weight(1f))
+        Icon(
+            Icons.Outlined.ChevronRight, null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        )
     }
 }
 
@@ -721,7 +896,7 @@ private fun AddEditDialog(
     jaksot: List<Jakso>,
     defaultJaksoId: String,
     existing: ScheduleEntry?,
-    lang: String = "fi",
+    lang: String,
     onSave: (ScheduleEntry) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -741,9 +916,16 @@ private fun AddEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing != null) (if (lang == "fi") "Muokkaa tuntia" else "Edit lesson") else (if (lang == "fi") "Lisää tunti" else "Add lesson")) },
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Text(
+                if (existing != null) (if (lang == "fi") "Muokkaa tuntia" else "Edit lesson")
+                else (if (lang == "fi") "Lisää tunti" else "Add lesson"),
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Day picker
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     DAYS.forEachIndexed { idx, label ->
@@ -752,6 +934,7 @@ private fun AddEditDialog(
                             selected = day == d,
                             onClick = { day = d },
                             label = { Text(label, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(12.dp),
                         )
                     }
                 }
@@ -763,6 +946,7 @@ private fun AddEditDialog(
                         placeholder = { Text("08:15") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                     )
                     OutlinedTextField(
                         value = end,
@@ -771,6 +955,7 @@ private fun AddEditDialog(
                         placeholder = { Text("09:45") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                     )
                 }
                 OutlinedTextField(
@@ -780,6 +965,7 @@ private fun AddEditDialog(
                     placeholder = { Text(if (lang == "fi") "Matematiikka" else "Mathematics") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                 )
                 OutlinedTextField(
                     value = teacher,
@@ -787,10 +973,15 @@ private fun AddEditDialog(
                     label = { Text(if (lang == "fi") "Opettaja (valinnainen)" else "Teacher (optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                 )
-                // Jakso picker
                 if (jaksot.isNotEmpty()) {
-                    Text(if (lang == "fi") "Jakso" else "Period", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (lang == "fi") "Jakso" else "Period",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Row(
                         Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -798,62 +989,75 @@ private fun AddEditDialog(
                         FilterChip(
                             selected = jaksoId == "all",
                             onClick = { jaksoId = "all" },
-                            label = { Text(if (lang == "fi") "Kaikki jaksot" else "All periods", fontSize = 11.sp) },
+                            label = { Text(if (lang == "fi") "Kaikki" else "All", fontSize = 11.sp) },
+                            shape = RoundedCornerShape(12.dp),
                         )
                         jaksot.forEach { j ->
                             FilterChip(
                                 selected = jaksoId == j.id,
                                 onClick = { jaksoId = j.id },
                                 label = { Text(j.name, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(12.dp),
                             )
                         }
                     }
                 }
-                // Room picker button
                 OutlinedCard(
                     onClick = { roomSheet = true },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        Modifier.padding(12.dp),
+                        Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Outlined.MeetingRoom, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(10.dp))
                         val roomLabel = selectedRoom?.let {
                             val num = (it["roomNumber"] as? JsonPrimitive)?.contentOrNull ?: ""
                             val name = (it["name"] as? JsonPrimitive)?.contentOrNull ?: ""
                             val roomWord = if (lang == "fi") "Luokka" else "Room"
                             if (num.isNotBlank()) "$roomWord $num${if (name.isNotBlank()) " – $name" else ""}" else name
                         } ?: if (lang == "fi") "Valitse luokka (valinnainen)" else "Pick a room (optional)"
-                        Text(roomLabel, fontSize = 13.sp, color = if (selectedRoom == null)
-                            MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            roomLabel,
+                            fontSize = 13.sp,
+                            color = if (selectedRoom == null)
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (subject.isBlank() || start.isBlank() || end.isBlank()) return@Button
-                val roomId = (selectedRoom?.get("id") as? JsonPrimitive)?.contentOrNull ?: existing?.roomId ?: ""
-                val roomNum = (selectedRoom?.get("roomNumber") as? JsonPrimitive)?.contentOrNull ?: existing?.roomNumber ?: ""
-                onSave(
-                    ScheduleEntry(
-                        id = existing?.id ?: UUID.randomUUID().toString(),
-                        dayOfWeek = day,
-                        startHhmm = start,
-                        endHhmm = end,
-                        subject = subject.trim(),
-                        roomId = roomId,
-                        roomNumber = roomNum,
-                        teacher = teacher.trim(),
-                        jaksoId = jaksoId,
+            Button(
+                onClick = {
+                    if (subject.isBlank() || start.isBlank() || end.isBlank()) return@Button
+                    val roomId = (selectedRoom?.get("id") as? JsonPrimitive)?.contentOrNull ?: existing?.roomId ?: ""
+                    val roomNum = (selectedRoom?.get("roomNumber") as? JsonPrimitive)?.contentOrNull ?: existing?.roomNumber ?: ""
+                    onSave(
+                        ScheduleEntry(
+                            id = existing?.id ?: UUID.randomUUID().toString(),
+                            dayOfWeek = day,
+                            startHhmm = start,
+                            endHhmm = end,
+                            subject = subject.trim(),
+                            roomId = roomId,
+                            roomNumber = roomNum,
+                            teacher = teacher.trim(),
+                            jaksoId = jaksoId,
+                        )
                     )
-                )
-            }) { Text(if (lang == "fi") "Tallenna" else "Save") }
+                },
+                shape = RoundedCornerShape(24.dp),
+            ) { Text(if (lang == "fi") "Tallenna" else "Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(if (lang == "fi") "Peruuta" else "Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (lang == "fi") "Peruuta" else "Cancel")
+            }
+        },
     )
 
     if (roomSheet) {
@@ -866,9 +1070,13 @@ private fun AddEditDialog(
             }
         }
         ModalBottomSheet(onDismissRequest = { roomSheet = false }) {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text(if (lang == "fi") "Valitse luokka" else "Pick a room", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Spacer(Modifier.height(8.dp))
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    if (lang == "fi") "Valitse luokka" else "Pick a room",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp,
+                )
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -876,9 +1084,9 @@ private fun AddEditDialog(
                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
                 LazyColumn(Modifier.heightIn(max = 420.dp)) {
                     item {
                         ListItem(
@@ -894,8 +1102,13 @@ private fun AddEditDialog(
                         ListItem(
                             headlineContent = { Text("${if (lang == "fi") "Luokka" else "Room"} $num") },
                             supportingContent = { if (name.isNotBlank()) Text(name, fontSize = 12.sp) },
-                            trailingContent = { Text("${if (lang == "fi") "K" else "F"}$floor", fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            trailingContent = {
+                                Text(
+                                    "${if (lang == "fi") "K" else "F"}$floor",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
                             modifier = Modifier.clickable { selectedRoom = r; roomSheet = false },
                         )
                         HorizontalDivider()

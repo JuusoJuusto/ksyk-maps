@@ -235,13 +235,26 @@ fun MapScreen() {
     var doors by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var hallways by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     // Default to floor 1 initially; auto-switch to whichever floor has
-    // the most drawn rooms once /api/rooms comes back (some campuses
-    // start numbering at 0 or 2, and hardcoding 1 leaves the map empty).
+    // the most drawn rooms once /api/rooms comes back. If NO room has
+    // a drawn polygon (empty campus), we drop to null which shows every
+    // floor's rooms rather than leaving the map visually empty.
     var selectedFloor by remember { mutableStateOf<Int?>(1) }
     var floorAutoPicked by remember { mutableStateOf(false) }
     LaunchedEffect(rooms) {
         if (!floorAutoPicked && rooms.isNotEmpty()) {
-            val counts = rooms
+            // Only count rooms that actually have a drawn polygon.
+            val roomsWithPolys = rooms.filter { r ->
+                val pts = r["points"] as? JsonArray
+                pts != null && pts.size >= 3
+            }
+            if (roomsWithPolys.isEmpty()) {
+                // No polygons drawn anywhere — leave floor 1 selected so
+                // the "empty campus" is at least consistent, and mark the
+                // pick as done so we don't retry.
+                floorAutoPicked = true
+                return@LaunchedEffect
+            }
+            val counts = roomsWithPolys
                 .mapNotNull { (it["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }
                 .groupingBy { it }.eachCount()
             val bestFloor = counts.maxByOrNull { it.value }?.key
@@ -304,28 +317,32 @@ fun MapScreen() {
         }
     }
 
-    // Apply admin-set default rotation/position AFTER the map is ready.
-    // The previous version tried this in LaunchedEffect(Unit) but mapRef
-    // was still null because mv.getMapAsync hadn't fired yet, so the
-    // animateCamera silently no-op'd. Keying on mapRef fixes the race.
+    // Apply admin-set default rotation/pitch on every cold open of the
+    // map. Previously we only did this when there was no persisted
+    // camera, but cameraIdleDelegate saves bearing=0 on every idle
+    // event, so the persisted bearing always won and the admin's
+    // configured rotation never took effect. We keep the user's last
+    // target+zoom (feels natural to reopen where you were) but ALWAYS
+    // reset bearing + tilt to the admin defaults.
     var appliedServerDefaults by remember { mutableStateOf(false) }
     LaunchedEffect(mapRef) {
         val m = mapRef ?: return@LaunchedEffect
         if (appliedServerDefaults) return@LaunchedEffect
         withContext(Dispatchers.IO) { refreshServerMapDefaults(ctx) }
-        val hadPersisted = loadPersistedCamera(ctx) != null
-        if (!hadPersisted) {
-            loadServerMapDefaults(ctx)?.let { d ->
-                m.animateCamera(
-                    CameraUpdateFactory.newCameraPosition(
-                        CameraPosition.Builder()
-                            .target(d.target).zoom(d.zoom)
-                            .bearing(d.bearing).tilt(d.tilt)
-                            .build()
-                    ),
-                    600,
-                )
-            }
+        val serverDefaults = loadServerMapDefaults(ctx)
+        val persisted = loadPersistedCamera(ctx)
+        if (serverDefaults != null) {
+            m.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(persisted?.target ?: serverDefaults.target)
+                        .zoom(persisted?.zoom ?: serverDefaults.zoom)
+                        .bearing(serverDefaults.bearing)  // ALWAYS admin default
+                        .tilt(serverDefaults.tilt)        // ALWAYS admin default
+                        .build()
+                ),
+                600,
+            )
         }
         appliedServerDefaults = true
     }
@@ -972,10 +989,22 @@ fun MapScreen() {
 
         // ── Floor switcher (right side, vertical) ──────────────────
         val floors = remember(buildings) { floorsFromBuildings(buildings) }
+        // Room count per floor, computed once when rooms load. Shown as
+        // a small badge on each floor chip so it's obvious which floors
+        // actually have drawn rooms — helps diagnose "no rooms showing"
+        // (empty campus) vs "wrong floor picked" (data on other level).
+        val roomCountByFloor = remember(rooms) {
+            rooms.filter { r ->
+                val pts = r["points"] as? JsonArray
+                pts != null && pts.size >= 3
+            }.mapNotNull { (it["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }
+                .groupingBy { it }.eachCount()
+        }
         if (floors.isNotEmpty()) {
             FloorRail(
                 floors = floors,
                 selected = selectedFloor,
+                roomCountByFloor = roomCountByFloor,
                 onSelect = { selectedFloor = if (selectedFloor == it) null else it },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -1576,11 +1605,15 @@ private fun CompassChip(bearingDeg: Double, onReset: () -> Unit) {
 private fun FloorRail(
     floors: List<Int>,
     selected: Int?,
+    roomCountByFloor: Map<Int, Int> = emptyMap(),
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // MazeMap-style pill floor selector: opaque white card with soft
     // shadow, highest floor at the top, each floor a squircle chip.
+    // Floors with zero drawn rooms show a dimmed number so the user
+    // can see there's no data on that level (rather than assuming
+    // the app is broken).
     Column(
         modifier
             .shadow(elevation = 6.dp, shape = RoundedCornerShape(28.dp), clip = false)
@@ -1592,6 +1625,8 @@ private fun FloorRail(
     ) {
         floors.reversed().forEach { f ->
             val isSel = selected == f
+            val count = roomCountByFloor[f] ?: 0
+            val hasData = count > 0
             Box(
                 Modifier
                     .size(width = 40.dp, height = 34.dp)
@@ -1607,7 +1642,11 @@ private fun FloorRail(
                     f.toString(),
                     fontSize = 14.sp,
                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
+                    color = when {
+                        isSel -> Color.White
+                        hasData -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    },
                 )
             }
         }
@@ -2240,18 +2279,16 @@ private fun pickRoomAt(rooms: List<JsonObject>, at: LatLng, activeFloor: Int?): 
     return null
 }
 
-/** Build a GeoJSON FeatureCollection string of building polygons. */
-private fun buildBuildingsFeatureCollection(buildings: List<JsonObject>, floor: Int?): String {
+/** Build a GeoJSON FeatureCollection string of building polygons.
+ *  We intentionally do NOT filter buildings by floor — a building's
+ *  outline is the same shape on every level. The previous filter
+ *  hid buildings whose `floors` was set to 1 (the schema default)
+ *  whenever the user picked floor 2/3/4, which is why "only floor 1
+ *  shows building outlines". Rooms remain floor-filtered elsewhere. */
+private fun buildBuildingsFeatureCollection(buildings: List<JsonObject>, @Suppress("UNUSED_PARAMETER") floor: Int?): String {
     val features = StringBuilder()
     var first = true
     for (b in buildings) {
-        // If a floor is selected, only include buildings whose range covers it.
-        if (floor != null) {
-            val floorsCount = (b["floors"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
-            val fMin = (b["floorMin"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
-            val fMax = (b["floorMax"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: floorsCount
-            if (floor < minOf(fMin, fMax) || floor > maxOf(fMin, fMax)) continue
-        }
         val ptsArr = (b["points"] as? JsonArray) ?: continue
         if (ptsArr.size < 3) continue
         val coords = StringBuilder("[")

@@ -2,11 +2,11 @@ package fi.ksykmaps.ui
 
 import android.util.Xml
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +28,9 @@ import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 private const val MENU_URL =
     "https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi"
@@ -75,6 +79,7 @@ fun LunchScreen() {
     LaunchedEffect(Unit) { doFetch() }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
@@ -83,7 +88,9 @@ fun LunchScreen() {
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
                 actions = {
                     if (!loading) {
                         IconButton(onClick = { doFetch() }) {
@@ -93,203 +100,171 @@ fun LunchScreen() {
                             )
                         }
                     }
-                    TextButton(onClick = {
-                        refreshTaps++
-                        if (refreshTaps >= 5) {
-                            refreshTaps = 0
-                            Analytics.trackEasterEgg("compass_group_tap")
-                            showFoodEgg = true
-                        }
-                    }) {
-                        Text("Compass Group", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
                 },
             )
         },
     ) { pad ->
         when {
-            loading -> {
-                Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        CircularProgressIndicator()
-                        Text(
-                            if (lang == "fi") "Ladataan ruokalistaa…" else "Loading menu…",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-            error != null -> {
-                Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.CloudOff, null,
-                            Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Text(
-                            if (lang == "fi") "Ruokalistaa ei voitu ladata"
-                            else "Could not load the menu",
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            error!!,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        FilledTonalButton(onClick = { doFetch() }) {
-                            Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
-                        }
-                    }
-                }
-            }
-            days.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.RestaurantMenu, null,
-                            Modifier.size(40.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Text(
-                            if (lang == "fi") "Ei ruokalistaa tälle viikolle"
-                            else "No menu available for this week"
-                        )
-                    }
-                }
-            }
+            loading -> LoadingBox(pad, lang)
+            error != null -> ErrorBox(pad, error!!, lang) { doFetch() }
+            days.isEmpty() -> EmptyMenuBox(pad, lang)
             else -> {
+                val loc = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
                 LazyColumn(
                     Modifier.fillMaxSize().padding(pad),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    // Week info header
-                    item {
-                        val weekNum = days.firstOrNull()?.date?.let {
-                            java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear().getFrom(it).toInt()
-                        }
-                        Text(
-                            if (weekNum != null)
-                                (if (lang == "fi") "Viikko $weekNum" else "Week $weekNum")
-                            else
-                                (if (lang == "fi") "Tällä viikolla" else "This week"),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
-                    // Day chips — show "Ma 24.8" style labels
-                    item {
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            days.forEachIndexed { i, day ->
-                                val isToday = day.date == today
-                                val abbrev = when (day.date?.dayOfWeek?.value) {
-                                    1 -> if (lang == "fi") "Ma" else "Mon"
-                                    2 -> if (lang == "fi") "Ti" else "Tue"
-                                    3 -> if (lang == "fi") "Ke" else "Wed"
-                                    4 -> if (lang == "fi") "To" else "Thu"
-                                    5 -> if (lang == "fi") "Pe" else "Fri"
-                                    6 -> if (lang == "fi") "La" else "Sat"
-                                    7 -> if (lang == "fi") "Su" else "Sun"
-                                    else -> day.label.take(2)
-                                }
-                                val chipLabel = buildString {
-                                    append(abbrev)
-                                    day.date?.let { d -> append(" ${d.dayOfMonth}.${d.monthValue}.") }
-                                    if (isToday) append(" ·")
-                                }
-                                FilterChip(
-                                    selected = selectedIdx == i,
-                                    onClick = { selectedIdx = i },
-                                    label = { Text(chipLabel, fontSize = 12.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = if (isToday)
-                                            MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.secondaryContainer,
-                                        selectedLabelColor = if (isToday)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSecondaryContainer,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    // Selected day header + dishes
+                    // Selected day header — big + subtle
                     val day = days.getOrNull(selectedIdx)
                     if (day != null) {
                         item {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            val isToday = day.date == today
+                            Column(Modifier.padding(top = 8.dp)) {
                                 Text(
-                                    day.label,
-                                    fontSize = 22.sp,
+                                    day.date?.dayOfWeek?.getDisplayName(TextStyle.FULL, loc)
+                                        ?.replaceFirstChar { it.titlecase(loc) }
+                                        ?: day.label,
+                                    fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = 36.sp,
                                 )
-                                if (day.date == today) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "Tänään",
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        day.date?.format(
+                                            DateTimeFormatter.ofPattern(
+                                                if (lang == "fi") "d. MMMM" else "MMMM d",
+                                                loc,
+                                            )
+                                        ) ?: day.label,
+                                        fontSize = 15.sp,
                                         fontWeight = FontWeight.Medium,
+                                        color = if (isToday) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
-                                } else if (day.date != null) {
-                                    Text(
-                                        "${day.date.dayOfMonth}.${day.date.monthValue}.${day.date.year}",
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    if (isToday) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Box(
+                                            Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        ) {
+                                            Text(
+                                                if (lang == "fi") "Tänään" else "Today",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
+                    }
 
+                    // Day selector — one row of day pills like a mini-calendar
+                    item {
+                        DayPillRow(
+                            days = days,
+                            selectedIdx = selectedIdx,
+                            today = today,
+                            onSelect = { selectedIdx = it },
+                            lang = lang,
+                        )
+                    }
+
+                    if (day != null) {
                         if (day.dishes.isEmpty()) {
                             item {
                                 Box(
                                     Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                        .padding(20.dp),
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                        .padding(32.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Text(
-                                        "Ei ruokalistaa",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.RestaurantMenu, null,
+                                            modifier = Modifier.size(32.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            if (lang == "fi") "Ei ruokalistaa"
+                                            else "No menu",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                    }
                                 }
                             }
                         } else {
                             val dishCount = day.dishes.count { !it.isCategory }
                             item {
-                                Text(
-                                    "$dishCount ruokalajia",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                Row(
+                                    Modifier.padding(start = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        if (lang == "fi") "$dishCount ruokalajia" else "$dishCount dishes",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    val weekNum = days.firstOrNull()?.date?.let {
+                                        java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear().getFrom(it).toInt()
+                                    }
+                                    if (weekNum != null) {
+                                        Text(
+                                            if (lang == "fi") "  ·  Viikko $weekNum" else "  ·  Week $weekNum",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
                             }
-                            items(day.dishes) { dish ->
-                                if (dish.isCategory) CategoryLabel(dish.text)
-                                else DishRow(dish.text)
+                            // Group dishes under their categories so the visual
+                            // structure is a card per category, dish rows inside.
+                            val groups = groupByCategory(day.dishes)
+                            items(groups) { group ->
+                                DishGroup(group, lang, onEasterTap = {
+                                    refreshTaps++
+                                    if (refreshTaps >= 5) {
+                                        refreshTaps = 0
+                                        Analytics.trackEasterEgg("compass_group_tap")
+                                        showFoodEgg = true
+                                    }
+                                })
+                            }
+                            item {
+                                Text(
+                                    "Compass Group",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            refreshTaps++
+                                            if (refreshTaps >= 5) {
+                                                refreshTaps = 0
+                                                Analytics.trackEasterEgg("compass_group_tap")
+                                                showFoodEgg = true
+                                            }
+                                        }
+                                        .padding(top = 12.dp, bottom = 4.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
                             }
                         }
                     }
+
+                    item { Spacer(Modifier.height(16.dp)) }
                 }
             }
         }
@@ -298,7 +273,8 @@ fun LunchScreen() {
     if (showFoodEgg) {
         AlertDialog(
             onDismissRequest = { showFoodEgg = false },
-            title = { Text("Salainen resepti") },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("Salainen resepti", fontWeight = FontWeight.SemiBold) },
             text = { Text("Huhu! Löydät piiloreseptin: yksi ruokalusikka motivaatiota, kaksi kupillista koodia ja sopiva määrä kokkausaikaa. Hyvää ruokahalua!") },
             confirmButton = {
                 TextButton(onClick = { showFoodEgg = false }) { Text("Herkullista!") }
@@ -308,35 +284,225 @@ fun LunchScreen() {
 }
 
 @Composable
-private fun CategoryLabel(text: String) {
-    Text(
-        text,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        letterSpacing = 0.8.sp,
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp, start = 2.dp),
-    )
+private fun LoadingBox(pad: PaddingValues, lang: String) {
+    Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            CircularProgressIndicator(strokeWidth = 3.dp)
+            Text(
+                if (lang == "fi") "Ladataan ruokalistaa" else "Loading menu",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable
-private fun DishRow(dish: String) {
+private fun ErrorBox(pad: PaddingValues, msg: String, lang: String, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize().padding(pad).padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.CloudOff, null,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+            Text(
+                if (lang == "fi") "Ruokalistaa ei voitu ladata" else "Could not load the menu",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+            )
+            Text(
+                msg,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            FilledTonalButton(
+                onClick = onRetry,
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (lang == "fi") "Yritä uudelleen" else "Try again")
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyMenuBox(pad: PaddingValues, lang: String) {
+    Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.RestaurantMenu, null,
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                if (lang == "fi") "Ei ruokalistaa tälle viikolle"
+                else "No menu available for this week",
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayPillRow(
+    days: List<LunchDay>,
+    selectedIdx: Int,
+    today: LocalDate,
+    onSelect: (Int) -> Unit,
+    lang: String,
+) {
     Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            Modifier
-                .size(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
-        )
-        Spacer(Modifier.width(12.dp))
-        Text(dish, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        days.forEachIndexed { i, day ->
+            val isSelected = selectedIdx == i
+            val isToday = day.date == today
+            val abbrev = when (day.date?.dayOfWeek?.value) {
+                1 -> if (lang == "fi") "Ma" else "Mon"
+                2 -> if (lang == "fi") "Ti" else "Tue"
+                3 -> if (lang == "fi") "Ke" else "Wed"
+                4 -> if (lang == "fi") "To" else "Thu"
+                5 -> if (lang == "fi") "Pe" else "Fri"
+                6 -> if (lang == "fi") "La" else "Sat"
+                7 -> if (lang == "fi") "Su" else "Sun"
+                else -> day.label.take(2)
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        when {
+                            isSelected -> MaterialTheme.colorScheme.primary
+                            isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                            else -> Color.Transparent
+                        }
+                    )
+                    .clickable { onSelect(i) }
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    abbrev,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = when {
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Text(
+                    day.date?.dayOfMonth?.toString() ?: "·",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+        }
+    }
+}
+
+private data class DishGroup(val category: String?, val dishes: List<String>)
+
+private fun groupByCategory(dishes: List<Dish>): List<DishGroup> {
+    if (dishes.isEmpty()) return emptyList()
+    val groups = mutableListOf<DishGroup>()
+    var currentCat: String? = null
+    var currentDishes = mutableListOf<String>()
+    dishes.forEach { d ->
+        if (d.isCategory) {
+            if (currentDishes.isNotEmpty()) {
+                groups += DishGroup(currentCat, currentDishes.toList())
+                currentDishes.clear()
+            }
+            currentCat = d.text
+        } else {
+            currentDishes += d.text
+        }
+    }
+    if (currentDishes.isNotEmpty()) groups += DishGroup(currentCat, currentDishes.toList())
+    return groups
+}
+
+@Composable
+private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (!group.category.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        group.category,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.4.sp,
+                    )
+                }
+            }
+            group.dishes.forEachIndexed { i, text ->
+                if (i > 0) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                    )
+                }
+                Text(
+                    text,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 20.sp,
+                )
+            }
+        }
     }
 }
 

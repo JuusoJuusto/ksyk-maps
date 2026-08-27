@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
 import fi.ksykmaps.ui.AnnouncementPollWorker
@@ -269,7 +271,7 @@ private fun BottomBar(selectedTab: String, lang: String, onTabSelected: (String)
     val tabs = if (lang == "fi") listOf(
         Tab("home",      "Koti",          Icons.Outlined.Home),
         Tab("map",       "Kartta",        Icons.Outlined.Map),
-        Tab("timetable", "Lukujärjestys", Icons.Outlined.CalendarMonth),
+        Tab("timetable", "Tunnit",        Icons.Outlined.CalendarMonth),
         Tab("lunch",     "Lounas",        Icons.Outlined.Restaurant),
         Tab("settings",  "Asetukset",     Icons.Outlined.Settings),
     ) else listOf(
@@ -279,13 +281,38 @@ private fun BottomBar(selectedTab: String, lang: String, onTabSelected: (String)
         Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant),
         Tab("settings",  "Settings",  Icons.Outlined.Settings),
     )
-    NavigationBar {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        modifier = Modifier.height(72.dp),
+    ) {
         tabs.forEach { tab ->
             NavigationBarItem(
                 selected  = selectedTab == tab.route,
                 onClick   = { onTabSelected(tab.route) },
-                icon      = { Icon(tab.icon, contentDescription = tab.label) },
-                label     = { Text(tab.label) },
+                icon      = {
+                    Icon(
+                        tab.icon,
+                        contentDescription = tab.label,
+                        modifier = Modifier.size(22.dp),
+                    )
+                },
+                label     = {
+                    androidx.compose.material3.Text(
+                        tab.label,
+                        fontSize = 11.sp,
+                        fontWeight = if (selectedTab == tab.route)
+                            androidx.compose.ui.text.font.FontWeight.SemiBold
+                        else androidx.compose.ui.text.font.FontWeight.Medium,
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             )
         }
     }

@@ -17,7 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -141,30 +141,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) { reload() }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ksykmaps_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text("KSYK Maps", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { refreshing = true; reload() }) {
-                        Icon(
-                            Icons.Outlined.Refresh,
-                            contentDescription = if (lang == "fi") "Päivitä" else "Reload",
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) { pad ->
         // Hoist composable-only state above LazyColumn (LazyListScope is not composable).
         val timeFmt = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -183,17 +160,34 @@ fun HomeScreen(
         ) {
             LazyColumn(
                 Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Greeting header — Google Maps style: soft, big, personal
+                item { GreetingHeader(apiOk = apiOk, lang = lang, onReload = { refreshing = true; reload() }) }
+
                 if (loading) {
-                    item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    item {
+                        LinearProgressIndicator(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)),
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        )
+                    }
                 }
 
-                // ── Hero greeting ──────────────────────────────────────────────
-                item { HeroCard(apiOk = apiOk, lang = lang) }
+                // Quick action chip row — horizontal, Google Maps "explore" style
+                item {
+                    QuickChipRow(
+                        lang = lang,
+                        onOpenRooms = onOpenRooms,
+                        onOpenBuildings = onOpenBuildings,
+                        onOpenTimetable = onOpenTimetable,
+                        onOpenLunch = onOpenLunch,
+                        onOpenAnnouncements = onOpenAnnouncements,
+                    )
+                }
 
-                // ── Current / next lesson ──────────────────────────────────────
+                // Current / next lesson — the "ongoing" card, mirrors Google Maps' active-trip card
                 item {
                     LessonStatusCard(
                         current = currentLesson,
@@ -210,8 +204,9 @@ fun HomeScreen(
                     )
                 }
 
-                // ── Today's remaining schedule (compact timeline) ──────────────
+                // Today's remaining schedule (compact timeline)
                 if (upcoming.size > 1) {
+                    item { SectionLabel(if (lang == "fi") "Loput tunnit" else "Rest of your day") }
                     item {
                         ScheduleStrip(
                             lessons = upcoming.take(5),
@@ -222,82 +217,61 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Stats row ──────────────────────────────────────────────────
+                // Campus overview stat pills — tightened, less loud
+                item { SectionLabel(if (lang == "fi") "Kampus" else "Campus") }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        CompactStatCard(
+                        StatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.MeetingRoom,
                             value = rooms.toString(),
                             label = if (lang == "fi") "Luokat" else "Rooms",
-                            accent = Color(0xFF3B82F6),
                             onClick = onOpenRooms,
                         )
-                        CompactStatCard(
+                        StatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Business,
                             value = buildings.toString(),
                             label = if (lang == "fi") "Rakennukset" else "Buildings",
-                            accent = Color(0xFF8B5CF6),
                             onClick = onOpenBuildings,
                         )
-                        CompactStatCard(
+                        StatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Campaign,
                             value = announcementCount.toString(),
                             label = if (lang == "fi") "Uutiset" else "News",
-                            accent = Color(0xFF10B981),
                             onClick = onOpenAnnouncements,
                         )
                     }
                 }
 
-                // ── Quick actions ──────────────────────────────────────────────
-                item {
-                    Text(
-                        if (lang == "fi") "Pikavalinnat" else "Quick actions",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
-                    )
-                }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Place,
-                            if (lang == "fi") "Kartta" else "Map",
-                            Color(0xFF2563EB), onOpenRooms)
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.CalendarMonth,
-                            if (lang == "fi") "Lukujärjestys" else "Timetable",
-                            Color(0xFF8B5CF6), onOpenTimetable)
-                    }
-                }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Restaurant,
-                            if (lang == "fi") "Lounas" else "Lunch",
-                            Color(0xFFEA580C), onOpenLunch)
-                        QuickTile(Modifier.weight(1f), Icons.Outlined.Campaign,
-                            if (lang == "fi") "Ilmoitukset" else "News",
-                            Color(0xFF10B981), onOpenAnnouncements)
-                    }
-                }
-
-                // ── Recent announcements ───────────────────────────────────────
+                // Recent announcements
                 if (recentAnnouncements.isNotEmpty()) {
                     item {
-                        Text(
-                            if (lang == "fi") "Viimeisimmät uutiset" else "Latest news",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
-                        )
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            SectionLabel(
+                                if (lang == "fi") "Uusimmat uutiset" else "Latest news",
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(
+                                onClick = onOpenAnnouncements,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    if (lang == "fi") "Näytä kaikki" else "See all",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
                     }
                     items(recentAnnouncements) { a -> AnnouncementPreview(a, onOpenAnnouncements) }
                 }
 
-                item { Spacer(Modifier.height(16.dp)) }
+                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
@@ -306,70 +280,177 @@ fun HomeScreen(
 // ── Composables ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun HeroCard(apiOk: Boolean, lang: String = "fi") {
+private fun GreetingHeader(apiOk: Boolean, lang: String, onReload: () -> Unit) {
     val now = remember { LocalDateTime.now() }
     val locale = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
+    val greeting = remember(lang, now.hour) {
+        val h = now.hour
+        if (lang == "fi") when {
+            h < 5  -> "Hyvää yötä"
+            h < 11 -> "Hyvää huomenta"
+            h < 17 -> "Hei"
+            h < 22 -> "Hyvää iltaa"
+            else   -> "Hyvää yötä"
+        } else when {
+            h < 5  -> "Good night"
+            h < 12 -> "Good morning"
+            h < 17 -> "Hello"
+            h < 22 -> "Good evening"
+            else   -> "Good night"
+        }
+    }
     val dateLine = remember(locale) {
         val day = now.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
             .replaceFirstChar { it.uppercase(locale) }
         val dm = if (lang == "fi")
-            "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, locale).lowercase()} ${now.year}"
+            "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, locale).lowercase()}"
         else
-            "${now.month.getDisplayName(TextStyle.FULL, locale)} ${now.dayOfMonth}, ${now.year}"
-        "$day, $dm"
+            "${now.month.getDisplayName(TextStyle.FULL, locale)} ${now.dayOfMonth}"
+        "$day · $dm"
     }
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(listOf(Color(0xFF0F172A), Color(0xFF1E3A8A), Color(0xFF2563EB)))
-            )
-            .padding(20.dp),
+    Row(
+        Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
+        Column(Modifier.weight(1f)) {
+            Text(
+                greeting,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 32.sp,
+            )
+            Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ksykmaps_logo),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                Text(
+                    dateLine,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!apiOk) {
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF59E0B))
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (lang == "fi") "Ei yhteyttä" else "Offline",
+                        fontSize = 12.sp,
+                        color = Color(0xFFF59E0B),
+                        fontWeight = FontWeight.Medium,
                     )
                 }
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Text("KSYK Maps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 19.sp)
-                    Text("Kulosaaren yhteiskoulu", color = Color.White.copy(alpha = 0.65f), fontSize = 11.sp)
-                }
-            }
-            Spacer(Modifier.height(18.dp))
-            Text(dateLine, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (apiOk) Color(0xFF34D399) else Color(0xFFF59E0B))
-                )
-                Spacer(Modifier.width(7.dp))
-                Text(
-                    if (apiOk)
-                        (if (lang == "fi") "Yhteys kunnossa · ksykmaps.fi" else "Connected · ksykmaps.fi")
-                    else
-                        (if (lang == "fi") "Palvelin ei vastaa" else "Server not responding"),
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 12.sp,
-                )
             }
         }
+        // Circle logo/reload — Google Maps has an account avatar here
+        Box(
+            Modifier
+                .size(44.dp)
+                .shadow(elevation = 2.dp, shape = CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .clickable { onReload() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ksykmaps_logo),
+                contentDescription = null,
+                modifier = Modifier.size(26.dp),
+            )
+        }
     }
+}
+
+@Composable
+private fun QuickChipRow(
+    lang: String,
+    onOpenRooms: () -> Unit,
+    onOpenBuildings: () -> Unit,
+    onOpenTimetable: () -> Unit,
+    onOpenLunch: () -> Unit,
+    onOpenAnnouncements: () -> Unit,
+) {
+    // Two-row 4x2 quick tile grid — Google Maps' explore chip row + shortcut grid combined
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ShortcutTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.Place,
+                label = if (lang == "fi") "Kartta" else "Map",
+                accent = MaterialTheme.colorScheme.primary,
+                onClick = onOpenBuildings,
+            )
+            ShortcutTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.CalendarMonth,
+                label = if (lang == "fi") "Tunnit" else "Timetable",
+                accent = Color(0xFF8B5CF6),
+                onClick = onOpenTimetable,
+            )
+            ShortcutTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.Restaurant,
+                label = if (lang == "fi") "Lounas" else "Lunch",
+                accent = Color(0xFFEA580C),
+                onClick = onOpenLunch,
+            )
+            ShortcutTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Outlined.Campaign,
+                label = if (lang == "fi") "Uutiset" else "News",
+                accent = Color(0xFF10B981),
+                onClick = onOpenAnnouncements,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShortcutTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    label: String,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, null, tint = accent, modifier = Modifier.size(24.dp))
+        }
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        modifier = modifier.padding(top = 8.dp, bottom = 2.dp, start = 2.dp),
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
@@ -385,56 +466,78 @@ private fun LessonStatusCard(
         if (!hasWilmaSetup) {
             Card(
                 Modifier.fillMaxWidth().clickable { onOpenTimetable() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
                 Row(
-                    Modifier.padding(16.dp),
+                    Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Outlined.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary,
-                             modifier = Modifier.size(22.dp))
+                        Icon(
+                            Icons.Outlined.CalendarMonth, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             if (lang == "fi") "Tuo lukujärjestys" else "Import your timetable",
-                            fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
                         )
                         Text(
-                            if (lang == "fi") "Avaa Lukujärjestys ja tuo Wilma-kalenteri"
-                            else "Open Timetable and import your Wilma calendar",
+                            if (lang == "fi") "Yhdistä Wilma-kalenteriin"
+                            else "Connect your Wilma calendar",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Icon(Icons.Outlined.ChevronRight, null,
-                         tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Outlined.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
         } else {
             Card(
                 Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(28.dp))
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.CheckCircle, null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                     Spacer(Modifier.width(14.dp))
                     Column {
                         Text(
                             if (lang == "fi") "Ei tunteja juuri nyt" else "No lessons right now",
-                            fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
                         )
                         Text(
-                            if (lang == "fi") "Nauti vapaa-ajastasi!" else "Enjoy your free time!",
+                            if (lang == "fi") "Nauti vapaa-ajastasi" else "Enjoy your free time",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -448,58 +551,73 @@ private fun LessonStatusCard(
     val fmt = DateTimeFormatter.ofPattern("HH:mm")
     Card(
         Modifier.fillMaxWidth().clickable { onOpenTimetable() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (current != null) {
                 val subColor = homeSubjectColor(current.subject)
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(subColor)
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                        ) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(subColor)
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
-                                if (lang == "fi") "NYT" else "NOW",
-                                color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                                if (lang == "fi") "Nyt käynnissä" else "Now",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = subColor,
                             )
                         }
-                        Spacer(Modifier.width(10.dp))
-                        Text(current.subject, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    if (current.roomId.isNotBlank()) {
-                        IconButton(onClick = { onNavigate(current) }, modifier = Modifier.size(34.dp)) {
-                            Icon(
-                                Icons.Outlined.Navigation,
-                                if (lang == "fi") "Navigoi" else "Navigate",
-                                Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp),
-                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.width(4.dp))
-                    Text("${current.startHhmm}–${current.endHhmm}", fontSize = 13.sp,
-                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (current.roomNumber.isNotBlank()) {
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            "  ·  ${if (lang == "fi") "Luokka" else "Room"} ${current.roomNumber}",
+                            current.subject,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            buildString {
+                                append("${current.startHhmm}–${current.endHhmm}")
+                                if (current.roomNumber.isNotBlank()) {
+                                    append("  ·  ${if (lang == "fi") "Luokka" else "Room"} ${current.roomNumber}")
+                                }
+                            },
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    if (current.roomId.isNotBlank()) {
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable { onNavigate(current) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Outlined.Navigation,
+                                if (lang == "fi") "Navigoi" else "Navigate",
+                                Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
                 }
-                // Progress bar — how far through the lesson we are
+                // Progress bar
                 val progress = remember(current.startHhmm, current.endHhmm) {
                     try {
                         val s = LocalTime.parse(current.startHhmm, fmt)
@@ -511,33 +629,58 @@ private fun LessonStatusCard(
                 }
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     color = subColor,
-                    trackColor = subColor.copy(alpha = 0.15f),
+                    trackColor = subColor.copy(alpha = 0.12f),
                 )
             }
             if (next != null) {
-                if (current != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                if (current != null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            if (lang == "fi") "SEURAAVA" else "NEXT",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        Icon(
+                            Icons.Outlined.Schedule, null,
+                            Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Text(next.subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                         modifier = Modifier.weight(1f))
-                    Text(next.startHhmm, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (next.roomNumber.isNotBlank()) {
-                        Text(" · ${next.roomNumber}", fontSize = 12.sp,
-                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (lang == "fi") "Seuraavaksi" else "Up next",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            next.subject,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            next.startHhmm,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (next.roomNumber.isNotBlank()) {
+                            Text(
+                                next.roomNumber,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -554,60 +697,49 @@ private fun ScheduleStrip(
 ) {
     Card(
         Modifier.fillMaxWidth().clickable { onOpenTimetable() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (lang == "fi") "Tänään" else "Today",
-                    fontWeight = FontWeight.Bold, fontSize = 13.sp,
-                )
-                Text(
-                    if (lang == "fi") "${lessons.size} tuntia" else "${lessons.size} lessons",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            lessons.forEach { lesson ->
+        Column(Modifier.padding(vertical = 12.dp, horizontal = 8.dp)) {
+            lessons.forEachIndexed { i, lesson ->
                 val isCurrent = lesson.subject == currentSubject
                 val subColor = homeSubjectColor(lesson.subject)
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isCurrent) subColor.copy(alpha = 0.1f) else Color.Transparent)
-                        .padding(horizontal = 6.dp, vertical = 5.dp),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isCurrent) subColor.copy(alpha = 0.08f) else Color.Transparent)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // Time on the left, Apple-Calendar style
+                    Text(
+                        lesson.startHhmm,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(48.dp),
+                    )
+                    // Color rail
                     Box(
                         Modifier
-                            .size(width = 3.dp, height = 28.dp)
+                            .size(width = 3.dp, height = 32.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(subColor)
                     )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        lesson.startHhmm,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(36.dp),
-                    )
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             lesson.subject,
                             fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         if (lesson.roomNumber.isNotBlank()) {
                             Text(
                                 "${if (lang == "fi") "Luokka" else "Room"} ${lesson.roomNumber}",
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -615,16 +747,17 @@ private fun ScheduleStrip(
                     if (isCurrent) {
                         Box(
                             Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .size(8.dp)
+                                .clip(CircleShape)
                                 .background(subColor)
-                                .padding(horizontal = 5.dp, vertical = 2.dp),
-                        ) {
-                            Text(
-                                if (lang == "fi") "NYT" else "NOW",
-                                color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold,
-                            )
-                        }
+                        )
                     }
+                }
+                if (i < lessons.lastIndex) {
+                    HorizontalDivider(
+                        Modifier.padding(start = 72.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                    )
                 }
             }
         }
@@ -632,61 +765,42 @@ private fun ScheduleStrip(
 }
 
 @Composable
-private fun CompactStatCard(
+private fun StatPill(
     modifier: Modifier,
     icon: ImageVector,
     value: String,
     label: String,
-    accent: Color,
     onClick: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .height(88.dp),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(
-            Modifier.fillMaxSize().padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Icon(icon, null, tint = accent, modifier = Modifier.size(18.dp))
-            Column {
-                Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = accent)
-                Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold,
-                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickTile(
-    modifier: Modifier,
-    icon: ImageVector,
-    label: String,
-    accent: Color,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = modifier.clickable { onClick() }.height(64.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.1f)),
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Row(
-            Modifier.fillMaxSize().padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                Modifier.size(32.dp).clip(CircleShape).background(accent.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, null, tint = accent, modifier = Modifier.size(17.dp))
-            }
-            Text(label, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Icon(
+                icon, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -704,26 +818,54 @@ private fun AnnouncementPreview(a: JsonObject, onOpenAll: () -> Unit) {
         "urgent"  -> Color(0xFFDC2626)
         "warning" -> Color(0xFFF59E0B)
         "event"   -> Color(0xFF8B5CF6)
-        else      -> Color(0xFF2563EB)
+        else      -> MaterialTheme.colorScheme.primary
     }
     Card(
         Modifier.fillMaxWidth().clickable { onOpenAll() },
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Row(Modifier.height(IntrinsicSize.Min)) {
-            Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
-            Column(Modifier.padding(12.dp)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Campaign, null,
+                    tint = accent,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 if (body.isNotBlank()) {
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        body.take(120) + if (body.length > 120) "…" else "",
+                        body.take(80) + if (body.length > 80) "…" else "",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
                     )
                 }
             }
+            Icon(
+                Icons.Outlined.ChevronRight, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
