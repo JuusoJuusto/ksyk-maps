@@ -173,7 +173,7 @@ private const val STYLE_JSON_LIGHT = """{
 // KSYK campus starting camera — matches the site default. Real
 // coordinates are read from the first building fetched, but this is
 // the fallback until data arrives.
-private val KSYK_CENTER = LatLng(60.192059, 25.006670)
+private val KSYK_CENTER = LatLng(60.18717, 25.00358)
 private const val KSYK_ZOOM = 17.5
 
 // Singleton holder — keeps the MapView (and its GL context) alive across
@@ -182,6 +182,7 @@ private const val KSYK_ZOOM = 17.5
 private object MapViewHolder {
     var view: MapView? = null
     var map: MapLibreMap? = null
+    var sessionAutoFitDone: Boolean = false
 }
 // Delegating callbacks — updated by SideEffect on every recomposition so
 // the singleton click/camera listeners always read current Compose state.
@@ -290,9 +291,8 @@ fun MapScreen() {
     // Off → flat top-down, extrusions hidden, only fill layers show.
     var is3D by remember { mutableStateOf(false) }
     // v1.6.0 — first-run detection so we only auto-fit to buildings
-    // on the very first data load per session. Otherwise the fit
-    // would fight the restored persisted camera / user's pans.
-    var hasAutoFitOnce by remember { mutableStateOf(loadPersistedCamera(ctx) != null) }
+    // on the very first data load per session. Stored in MapViewHolder so
+    // it survives tab switches (Composable recreated) but resets on app restart.
     // v1.8.0 — track current map bearing for the compass chip. Camera-
     // idle updates this so the compass arrow visibly rotates as the
     // user drags the map with two fingers.
@@ -590,13 +590,13 @@ fun MapScreen() {
                 style.addSource(GeoJsonSource(SRC_BUILDINGS, buildingsGeoJson))
                 style.addLayer(
                     FillLayer(LAYER_FILL, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.fillColor(Expression.get("color")),
+                        PropertyFactory.fillColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.fillOpacity(0.52f),
                     )
                 )
                 style.addLayer(
                     FillExtrusionLayer(LAYER_BUILDING_EXTRUSION, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.fillExtrusionColor(Expression.get("color")),
+                        PropertyFactory.fillExtrusionColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.fillExtrusionHeight(Expression.get("height")),
                         PropertyFactory.fillExtrusionBase(0f),
                         PropertyFactory.fillExtrusionOpacity(0.80f),
@@ -606,7 +606,7 @@ fun MapScreen() {
                 )
                 style.addLayer(
                     LineLayer(LAYER_OUTLINE, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.lineColor(Expression.get("color")),
+                        PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.lineWidth(3f),
                         PropertyFactory.lineOpacity(1.0f),
                     )
@@ -642,7 +642,7 @@ fun MapScreen() {
                                 Expression.stop(20f, 36f),
                             )
                         ),
-                        PropertyFactory.circleColor(Expression.get("color")),
+                        PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.circleOpacity(0.85f),
                         PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
                         PropertyFactory.circleStrokeWidth(2.5f),
@@ -670,13 +670,13 @@ fun MapScreen() {
                 style.addSource(GeoJsonSource(SRC_ROOMS, roomsGeoJson))
                 style.addLayer(
                     FillLayer(LAYER_ROOM_FILL, SRC_ROOMS).withProperties(
-                        PropertyFactory.fillColor(Expression.get("color")),
+                        PropertyFactory.fillColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.fillOpacity(0.78f),
                     )
                 )
                 style.addLayer(
                     FillExtrusionLayer(LAYER_ROOM_EXTRUSION, SRC_ROOMS).withProperties(
-                        PropertyFactory.fillExtrusionColor(Expression.get("color")),
+                        PropertyFactory.fillExtrusionColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.fillExtrusionBase(Expression.get("base")),
                         PropertyFactory.fillExtrusionHeight(Expression.get("top")),
                         PropertyFactory.fillExtrusionOpacity(0.95f),
@@ -726,7 +726,7 @@ fun MapScreen() {
                                 Expression.stop(20f, 14f),
                             )
                         ),
-                        PropertyFactory.circleColor(Expression.get("color")),
+                        PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
                         PropertyFactory.circleOpacity(0.9f),
                         PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
                         PropertyFactory.circleStrokeWidth(1.5f),
@@ -734,9 +734,9 @@ fun MapScreen() {
                 )
             }
         }
-        if (!hasAutoFitOnce && buildings.isNotEmpty()) {
+        if (!MapViewHolder.sessionAutoFitDone && buildings.isNotEmpty()) {
             centerOnBuildings(map, buildings)
-            hasAutoFitOnce = true
+            MapViewHolder.sessionAutoFitDone = true
         }
     }
 
@@ -855,6 +855,7 @@ fun MapScreen() {
                     if (reallyGone) {
                         mapRef = null
                         MapViewHolder.map = null
+                        MapViewHolder.sessionAutoFitDone = false
                         try { mv.onDestroy() } catch (e: Exception) {
                             Analytics.trackError("MapScreen", "onDestroy: ${e.message}")
                         }

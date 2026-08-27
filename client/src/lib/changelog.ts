@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.40";
+export const APP_VERSION = "4.5.41";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.41",
+    date: "August 2026",
+    title: "Mobile map: buildings and rooms now render correctly",
+    titleFi: "Mobiilikartta: rakennukset ja huoneet renderöityvät nyt oikein",
+    highlights: [
+      "**Buildings and rooms are now visible on the mobile map** — fixed two silent rendering failures: (1) data-driven color expressions now use explicit `to-color` conversion so hex color strings are correctly applied as fill/circle/line colors in MapLibre-Android; (2) auto-fit to buildings now always runs once per session regardless of any previously persisted camera position.",
+      "**Camera starts at the correct campus location** — the default fallback position was ~600 m off from the actual buildings; corrected to the true campus centroid.",
+    ],
+    highlightsFi: [
+      "**Rakennukset ja huoneet näkyvät nyt mobiilikarttaan** — korjattu kaksi hiljaista renderöintivirhettä: (1) väri-ilmaisut käyttävät nyt eksplisiittistä `to-color`-muunnosta, joten hex-värijonot toimivat MapLibre-Androidilla; (2) automaattinen kartan sovitus rakennuksiin tapahtuu nyt aina kerran per istunto.",
+      "**Kamera alkaa oikeasta kampuksen sijainnista** — oletusfallback-sijainti oli ~600 m väärässä paikassa; korjattu todelliseen kampuksen keskipisteeseen.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.40",
     date: "August 2026",
@@ -28,7 +43,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Rakensin toimii huoltotilassa** — /builder-polku ei enää ohjaa huoltotilasivulle.",
       "**Rakennusten ja huoneiden keskeiskoordinaatit lasketaan automaattisesti** — API laskee koordinaatit polygonipisteistä.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.39",
