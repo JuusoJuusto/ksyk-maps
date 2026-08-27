@@ -11,7 +11,6 @@ import android.view.View
 import android.widget.RemoteViews
 import fi.ksykmaps.R
 import org.json.JSONArray
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.TextStyle
@@ -54,16 +53,19 @@ class TodayScheduleWidget : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, id: Int) {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val raw = prefs.getString("entries_json", null)
+            val activeJakso = prefs.getString("active_jakso", "").takeIf { it?.isNotBlank() == true }
+            val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_today_schedule)
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
             val pi = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widget_root, pi)
             val today = LocalDate.now()
             val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
-            val dayName = today.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-            views.setTextViewText(R.id.widget_day, dayName.uppercase())
+            val locale = if (lang == "fi") Locale("fi") else Locale.ENGLISH
+            val dayName = today.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+            views.setTextViewText(R.id.widget_day, dayName.uppercase(locale))
 
-            val lessons = if (raw != null) todayLessons(raw, nowMins) else emptyList()
+            val lessons = if (raw != null) todayLessons(raw, nowMins, activeJakso) else emptyList()
 
             if (lessons.isEmpty()) {
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
@@ -73,7 +75,6 @@ class TodayScheduleWidget : AppWidgetProvider() {
                 lessons.take(4).forEachIndexed { i, lesson ->
                     views.setViewVisibility(rowIds[i], View.VISIBLE)
 
-                    // Current lesson: brighter colors; past/future: dimmer
                     val timeColor = if (lesson.isCurrent) Color.parseColor("#EEFFFFFF") else Color.parseColor("#88FFFFFF")
                     val subjectColor = if (lesson.isCurrent) Color.WHITE else Color.parseColor("#CCFFFFFF")
                     val roomColor = if (lesson.isCurrent) Color.parseColor("#AAFFFFFF") else Color.parseColor("#55FFFFFF")
@@ -86,7 +87,6 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextViewText(roomIds[i], lesson.room)
                     views.setTextColor(roomIds[i], roomColor)
                 }
-                // Hide unused rows
                 for (i in lessons.size until 4) {
                     views.setViewVisibility(rowIds[i], View.GONE)
                 }
@@ -95,13 +95,18 @@ class TodayScheduleWidget : AppWidgetProvider() {
             manager.updateAppWidget(id, views)
         }
 
-        private fun todayLessons(raw: String, nowMins: Int): List<Lesson> {
+        private fun todayLessons(raw: String, nowMins: Int, activeJakso: String?): List<Lesson> {
             return try {
                 val arr = JSONArray(raw)
                 val today = LocalDate.now().dayOfWeek.value
                 (0 until arr.length())
                     .map { arr.getJSONObject(it) }
                     .filter { it.optInt("dayOfWeek") == today }
+                    .filter { obj ->
+                        if (activeJakso == null) return@filter true
+                        val ej = obj.optString("jaksoId", "all").ifBlank { "all" }
+                        ej == "all" || ej == activeJakso
+                    }
                     .mapNotNull { obj ->
                         val start = obj.optString("startHhmm").takeIf { it.isNotBlank() } ?: return@mapNotNull null
                         val end = obj.optString("endHhmm", "")
@@ -112,8 +117,8 @@ class TodayScheduleWidget : AppWidgetProvider() {
                         Lesson(
                             startHhmm = start,
                             endHhmm = end,
-                            subject = obj.optString("subject", "—").ifBlank { "—" },
-                            room = obj.optString("roomNumber", "").let { if (it.isNotBlank()) it else "" },
+                            subject = obj.optString("subject", "?").ifBlank { "?" },
+                            room = obj.optString("roomNumber", ""),
                             isCurrent = isCurrent,
                         )
                     }

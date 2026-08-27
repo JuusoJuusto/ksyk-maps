@@ -95,12 +95,16 @@ internal suspend fun loadEntries(ctx: Context): List<ScheduleEntry> {
 internal suspend fun saveEntries(ctx: Context, entries: List<ScheduleEntry>) {
     val encoded = scheduleJson.encodeToString(entries)
     ctx.scheduleStore.edit { prefs -> prefs[SCHEDULE_KEY] = encoded }
-    // Filter to active jakso before scheduling so reminders only fire for
-    // lessons in the current school period, not every jakso at once.
     val activeJakso = try {
         val jaksot = loadJaksot(ctx)
         activeJaksoId(jaksot)
     } catch (_: Exception) { null }
+    // Cache the active jakso ID in SharedPreferences so AppWidgetProviders
+    // can read it synchronously (they can't call suspend functions).
+    ctx.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
+        .edit()
+        .putString("active_jakso", activeJakso ?: "")
+        .apply()
     val forAlarm = if (activeJakso != null) {
         entries.filter { e ->
             val ej = e.jaksoId.ifBlank { "all" }

@@ -12,8 +12,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 34
-        versionName = "1.32.0"
+        versionCode = 35
+        versionName = "1.33.0"
     }
 
     buildFeatures { compose = true; buildConfig = true }

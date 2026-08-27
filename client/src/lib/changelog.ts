@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.36";
+export const APP_VERSION = "4.5.37";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.37",
+    date: "August 2026",
+    title: "Widgets: jakso filtering + bilingual Finnish/English support for all three home screen widgets",
+    titleFi: "Widgetit: jakso-suodatus ja kaksikielisyys (FI/EN) kaikissa kolmessa kotiruudun widgetissä",
+    highlights: [
+      "**All three widgets (Next Lesson, Current Lesson, Today's Schedule) now filter by active jakso** — only lessons from the current school period appear; lessons from other jaksot are hidden.",
+      "**Widgets respect the app language setting** — Finnish and English text (labels, countdown, 'now in class', day names) switch automatically with the in-app language toggle.",
+      "**Today's Schedule widget day name** is now locale-aware (Mon/Tue vs Ma/Ti etc).",
+    ],
+    highlightsFi: [
+      "**Kaikki kolme widgetiä (seuraava tunti, nykyinen tunti, tämän päivän aikataulu) suodattavat nyt aktiivisen jakson mukaan** — muiden jaksot tunnit piilotetaan.",
+      "**Widgetit noudattavat sovelluksen kieliasetusta** — suomen- ja englanninkieliset tekstit vaihtuvat automaattisesti sovelluksen kielivalinnan mukaan.",
+      "**Tämän päivän aikataulu -widgetin päivän nimi** on nyt kielitietoinen (Ma/Ti vs Mon/Tue).",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.36",
     date: "August 2026",
@@ -30,7 +47,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Kameran automaattinen sovitus toimii** vaikka polygoneja ei ole — käyttää `coordinates`-keskipisteitä kampuksen kehystämiseen ensimmäisellä latauksella.",
       "**Favicon päivitetty** uuteen läpinäkyvään 1024×1024 logoon, generoitu kaikille ko'oille.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.35",

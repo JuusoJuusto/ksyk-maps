@@ -41,14 +41,17 @@ class CurrentLessonWidget : AppWidgetProvider() {
         private fun updateWidget(context: Context, manager: AppWidgetManager, id: Int) {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val raw = prefs.getString("entries_json", null)
+            val activeJakso = prefs.getString("active_jakso", "").takeIf { it?.isNotBlank() == true }
+            val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_current_lesson)
             views.setOnClickPendingIntent(R.id.widget_root, launchPendingIntent(context))
             val now = LocalTime.now()
             val nowMins = now.hour * 60 + now.minute
-            val current = if (raw != null) findCurrent(raw, nowMins) else null
+            val current = if (raw != null) findCurrent(raw, nowMins, activeJakso) else null
+            val roomWord = if (lang == "fi") "Luokka" else "Room"
 
             if (current != null) {
-                val subject = current.optString("subject", "—").ifBlank { "—" }
+                val subject = current.optString("subject", "").ifBlank { "?" }
                 val start = current.optString("startHhmm", "")
                 val end = current.optString("endHhmm", "")
                 val room = current.optString("roomNumber", "")
@@ -62,26 +65,31 @@ class CurrentLessonWidget : AppWidgetProvider() {
 
                 val details = buildString {
                     if (start.isNotBlank() && end.isNotBlank()) append("$start–$end")
-                    if (room.isNotBlank()) append("  ·  Room $room")
+                    if (room.isNotBlank()) append("  ·  $roomWord $room")
                 }
 
                 views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background_active)
-                views.setTextViewText(R.id.widget_label, "NOW IN CLASS")
+                views.setTextViewText(R.id.widget_label, if (lang == "fi") "NYT TUNNILLA" else "NOW IN CLASS")
                 views.setTextViewText(R.id.widget_subject, subject)
                 views.setTextViewText(R.id.widget_details, details)
                 views.setProgressBar(R.id.widget_progress, 100, progressPct, false)
                 views.setTextViewText(
                     R.id.widget_until,
-                    if (end.isNotBlank()) "until $end" else ""
+                    if (end.isNotBlank()) (if (lang == "fi") "asti $end" else "until $end") else ""
                 )
                 views.setTextViewText(
                     R.id.widget_remaining,
-                    if (remainingMins > 0) "$remainingMins min remaining" else ""
+                    if (remainingMins > 0)
+                        (if (lang == "fi") "$remainingMins min jäljellä" else "$remainingMins min remaining")
+                    else ""
                 )
             } else {
                 views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background)
-                views.setTextViewText(R.id.widget_label, "NOW IN CLASS")
-                views.setTextViewText(R.id.widget_subject, "No lesson right now")
+                views.setTextViewText(R.id.widget_label, if (lang == "fi") "NYT TUNNILLA" else "NOW IN CLASS")
+                views.setTextViewText(
+                    R.id.widget_subject,
+                    if (lang == "fi") "Ei tuntia juuri nyt" else "No lesson right now"
+                )
                 views.setTextViewText(R.id.widget_details, "")
                 views.setProgressBar(R.id.widget_progress, 100, 0, false)
                 views.setTextViewText(R.id.widget_until, "")
@@ -95,13 +103,18 @@ class CurrentLessonWidget : AppWidgetProvider() {
             return if (parts.size == 2) (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0) else 0
         }
 
-        private fun findCurrent(raw: String, nowMins: Int): org.json.JSONObject? {
+        private fun findCurrent(raw: String, nowMins: Int, activeJakso: String?): org.json.JSONObject? {
             return try {
                 val arr = JSONArray(raw)
                 val today = LocalDate.now().dayOfWeek.value
                 (0 until arr.length())
                     .map { arr.getJSONObject(it) }
                     .filter { it.optInt("dayOfWeek") == today }
+                    .filter { obj ->
+                        if (activeJakso == null) return@filter true
+                        val ej = obj.optString("jaksoId", "all").ifBlank { "all" }
+                        ej == "all" || ej == activeJakso
+                    }
                     .firstOrNull { obj ->
                         val startMins = toMins(obj.optString("startHhmm"))
                         val endMins = toMins(obj.optString("endHhmm"))
