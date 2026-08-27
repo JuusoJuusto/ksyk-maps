@@ -736,7 +736,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method !== 'GET' && !requireAdminAuth(req, res)) return;
       if (req.method === 'GET' && apiPath === '/buildings') {
         const buildings = await storage.getBuildings();
-        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+        res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
         const list = Array.isArray(buildings) ? buildings : [];
         const withCoords = list.map((b: any) => {
           if (b.coordinates || !Array.isArray(b.points) || b.points.length < 3) return b;
@@ -812,12 +812,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
-        // s-maxage=30 is required so Vercel's CDN serves this from cache
-        // without running bot-detection, which blocks the mobile OkHttp
-        // client. The 30 s staleness is acceptable for the read-only
-        // mobile map. The builder handles staleness by appending a
-        // cache-busting ?t= param after mutations.
-        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+        res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
         const list = Array.isArray(rooms) ? rooms : [];
         const withCoords = list.map((r: any) => {
           if (r.coordinates || !Array.isArray(r.points) || r.points.length < 3) return r;

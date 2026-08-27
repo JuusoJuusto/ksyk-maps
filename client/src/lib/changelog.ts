@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.41";
+export const APP_VERSION = "4.5.42";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.42",
+    date: "August 2026",
+    title: "Mobile map: fix Vercel bot-protection blocking API + long CDN cache",
+    titleFi: "Mobiilikartta: Vercel bot-suojaus korjattu + pitkä CDN-välimuisti",
+    highlights: [
+      "**API CDN caching fixed** — vercel.json's global `no-cache, no-store` rule was overriding the function-set `s-maxage` header, so the CDN never cached API responses. API routes now have their own rule listed first (s-maxage=1800, 30 minutes) so the CDN cache stays warm for half an hour after any browser visit.",
+      "**Android falls back to disk cache on 429** — when Vercel's bot-protection challenge blocks OkHttp (HTTP 429), the app now uses the last successfully cached response from disk instead of showing an empty map.",
+    ],
+    highlightsFi: [
+      "**API CDN-välimuisti korjattu** — vercel.json:n globaali no-cache-sääntö kumosi funktion asettaman s-maxage-otsikon; CDN ei koskaan tallentanut API-vastauksia. API-reiteillä on nyt oma sääntö (s-maxage=1800) ensimmäisenä.",
+      "**Android käyttää levyvälimuistia 429-virheen sattuessa** — kun Vercel:n bot-suojaus estää OkHttp:n (HTTP 429), sovellus käyttää viimeksi onnistuneesti tallennettua vastausta.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.41",
     date: "August 2026",
@@ -26,7 +41,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Rakennukset ja huoneet näkyvät nyt mobiilikarttaan** — korjattu kaksi hiljaista renderöintivirhettä: (1) väri-ilmaisut käyttävät nyt eksplisiittistä `to-color`-muunnosta, joten hex-värijonot toimivat MapLibre-Androidilla; (2) automaattinen kartan sovitus rakennuksiin tapahtuu nyt aina kerran per istunto.",
       "**Kamera alkaa oikeasta kampuksen sijainnista** — oletusfallback-sijainti oli ~600 m väärässä paikassa; korjattu todelliseen kampuksen keskipisteeseen.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.40",

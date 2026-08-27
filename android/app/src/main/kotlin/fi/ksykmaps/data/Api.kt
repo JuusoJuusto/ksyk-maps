@@ -50,13 +50,14 @@ object Api {
             DiskCache.write(path, fresh)   // mirror every success so we can serve offline next time
             fresh
         } catch (e: ApiException) {
-            // Network unreachable → fall back to the last-good copy on
-            // disk. Application errors (401, 404, 5xx) still surface —
-            // they usually mean the caller needs to change behavior,
-            // not that we should hand back stale data pretending to be
-            // fresh. Only status == 0 (IO / no connection) triggers the
-            // fallback so a real 404 doesn't quietly serve deleted rooms.
-            if (e.status == 0) {
+            // Fall back to last-good disk copy for:
+            //   status == 0   → no network / IO error
+            //   status == 429 → Vercel bot-protection challenge (OkHttp can't solve JS challenge;
+            //                   once the CDN cache is warm from a browser visit the 429 stops)
+            //   status >= 500 → transient server error
+            // Real auth/not-found errors (401, 403, 404) still surface so
+            // callers can change behavior appropriately.
+            if (e.status == 0 || e.status == 429 || e.status >= 500) {
                 val cached = DiskCache.read(path)
                 if (cached != null) return cached
             }
