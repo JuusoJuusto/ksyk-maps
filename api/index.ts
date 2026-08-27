@@ -737,7 +737,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/buildings') {
         const buildings = await storage.getBuildings();
         res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
-        return res.status(200).json(buildings);
+        const list = Array.isArray(buildings) ? buildings : [];
+        const withCoords = list.map((b: any) => {
+          if (b.coordinates || !Array.isArray(b.points) || b.points.length < 3) return b;
+          const pts = b.points as { lat: number; lng: number }[];
+          const lat = pts.reduce((s: number, p: any) => s + (Number(p.lat) || 0), 0) / pts.length;
+          const lng = pts.reduce((s: number, p: any) => s + (Number(p.lng) || 0), 0) / pts.length;
+          return { ...b, coordinates: { lat, lng } };
+        });
+        return res.status(200).json(withCoords);
       }
       
       if (req.method === 'POST' && apiPath === '/buildings') {
@@ -804,12 +812,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
-        // No edge-cache — the builder relies on fresh reads after a
-        // POST/PATCH. The old s-maxage=30 was why "rooms don't load
-        // immediately after building": Vercel served a 30-second-stale
-        // list even though the DB already had the new row.
-        res.setHeader('Cache-Control', 'no-store');
-        return res.status(200).json(rooms);
+        // s-maxage=30 is required so Vercel's CDN serves this from cache
+        // without running bot-detection, which blocks the mobile OkHttp
+        // client. The 30 s staleness is acceptable for the read-only
+        // mobile map. The builder handles staleness by appending a
+        // cache-busting ?t= param after mutations.
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+        const list = Array.isArray(rooms) ? rooms : [];
+        const withCoords = list.map((r: any) => {
+          if (r.coordinates || !Array.isArray(r.points) || r.points.length < 3) return r;
+          const pts = r.points as { lat: number; lng: number }[];
+          const lat = pts.reduce((s: number, p: any) => s + (Number(p.lat) || 0), 0) / pts.length;
+          const lng = pts.reduce((s: number, p: any) => s + (Number(p.lng) || 0), 0) / pts.length;
+          return { ...r, coordinates: { lat, lng } };
+        });
+        return res.status(200).json(withCoords);
       }
 
       if (req.method === 'POST' && apiPath === '/rooms') {

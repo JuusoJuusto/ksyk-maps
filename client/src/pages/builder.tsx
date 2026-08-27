@@ -439,7 +439,7 @@ function BuilderWorkspace() {
   // ── Live data for validation + autosave (deduped by React Query) ────
   // All queryFn's go through fetchList which guarantees T[] back — so
   // a 404 or auth redirect can't corrupt validateMap / buildRoomSearchIndex.
-  const roomsQ = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms") });
+  const roomsQ = useQuery<Room[]>({ queryKey: ["/api/rooms"], queryFn: () => fetchList<Room>("/api/rooms?t=" + Date.now()) });
   const hallwaysQ = useQuery<Hallway[]>({ queryKey: ["/api/hallways"], queryFn: () => fetchList<Hallway>("/api/hallways") });
   const floorsQ = useQuery<Floor[]>({ queryKey: ["/api/floors"], queryFn: () => fetchList<Floor>("/api/floors") });
   const doorsQ = useQuery<Door[]>({ queryKey: ["/api/doors"], queryFn: () => fetchList<Door>("/api/doors") });

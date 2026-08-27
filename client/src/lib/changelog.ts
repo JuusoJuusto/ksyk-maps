@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.39";
+export const APP_VERSION = "4.5.40";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.40",
+    date: "August 2026",
+    title: "Map: rooms now load on mobile; builder works in maintenance mode",
+    titleFi: "Kartta: huoneet latautuvat mobiiliin; rakennin toimii huoltotilassa",
+    highlights: [
+      "**Rooms now load on the mobile map** — the rooms API was using no-store cache headers, causing Vercel's edge to run bot-detection on every request and block the mobile OkHttp client. Restored CDN caching (30 s) so rooms are served directly from the edge.",
+      "**Builder works when maintenance mode is active** — /builder path was incorrectly included in the maintenance-mode redirect. Only public pages ('/') are now blocked; /admin and /builder always bypass.",
+      "**Buildings and rooms auto-compute centroid** — API now injects coordinates from polygon points so the Focus button and navigation work for all entities (fix applied to the production API handler).",
+    ],
+    highlightsFi: [
+      "**Huoneet latautuvat nyt mobiilikarttaan** — huoneiden API käytti no-store-välimuistiotsikoita, jolloin Vercel ajoi bot-tunnistuksen jokaisella pyynöllä ja esti mobiilin OkHttp-asiakasohjelman. Palautettu CDN-välimuisti (30 s).",
+      "**Rakensin toimii huoltotilassa** — /builder-polku ei enää ohjaa huoltotilasivulle.",
+      "**Rakennusten ja huoneiden keskeiskoordinaatit lasketaan automaattisesti** — API laskee koordinaatit polygonipisteistä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.39",
     date: "August 2026",
@@ -30,7 +47,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Karttadata esitallennetaan sovelluksen käynnistyksessä** — Kartta-välilehti renderöityy heti ensimmäiselläkin avauksella.",
       "**'Tarkenna'-nappi toimii nyt kaikille kohteille** — keskeiskoordinaattihaku käyttää varakoordinaattia oikein, kun polygonipisteitä ei ole.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.38",

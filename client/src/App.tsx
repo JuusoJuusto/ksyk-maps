@@ -107,7 +107,8 @@ function Router() {
 
   // Maintenance mode hides the public app — but admins still need to
   // get in to switch it off, so /admin* always bypasses.
-  const isAdminPath = window.location.pathname.startsWith("/admin");
+  const isAdminPath = window.location.pathname.startsWith("/admin") ||
+                      window.location.pathname.startsWith("/builder");
   if (appSettings?.maintenanceMode && !isAdminPath) {
     return <MaintenanceMode message={appSettings.maintenanceMessage} />;
   }
