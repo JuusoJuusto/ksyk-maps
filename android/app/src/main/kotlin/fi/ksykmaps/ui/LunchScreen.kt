@@ -62,11 +62,17 @@ fun LunchScreen() {
             try {
                 val result = withContext(Dispatchers.IO) { fetchMenu() }
                 days = result
+                // Pick today's row if the menu has it. Otherwise show
+                // the closest upcoming day (weekend → Monday), which is
+                // more useful than defaulting to Monday every time.
                 val todayIdx = result.indexOfFirst { it.date == today }
-                if (todayIdx >= 0) {
-                    selectedIdx = todayIdx
-                    Analytics.trackLunchView(result.getOrNull(todayIdx)?.label ?: "today")
+                val bestIdx = when {
+                    todayIdx >= 0 -> todayIdx
+                    else -> result.indexOfFirst { it.date != null && it.date >= today }
+                        .takeIf { it >= 0 } ?: 0
                 }
+                selectedIdx = bestIdx
+                Analytics.trackLunchView(result.getOrNull(bestIdx)?.label ?: "today")
             } catch (e: Exception) {
                 error = e.localizedMessage ?: "Ruokalistaa ei voitu ladata"
                 Analytics.trackError("LunchScreen", e.localizedMessage ?: "fetch failed")

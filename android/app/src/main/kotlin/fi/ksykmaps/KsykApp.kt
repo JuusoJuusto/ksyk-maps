@@ -43,7 +43,7 @@ class KsykApp : Application() {
                 pw.println("=== KSYK crash ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ===")
                 pw.println("Thread: ${thread.name}")
                 pw.println("Android: ${Build.VERSION.SDK_INT} ${Build.MANUFACTURER} ${Build.MODEL}")
-                pw.println("App version: 1.29.0 (31)")
+                pw.println("App version: 1.31.0 (33)")
                 pw.println()
                 throwable.printStackTrace(pw)
                 pw.flush()
@@ -60,7 +60,7 @@ class KsykApp : Application() {
         nm.createNotificationChannel(NotificationChannel(
             CHANNEL_TIMETABLE,
             "Lukujärjestys",
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
         ).apply { description = "Muistutukset tulevista tunneista" })
 
         nm.createNotificationChannel(NotificationChannel(

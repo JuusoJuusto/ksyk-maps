@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.34";
+export const APP_VERSION = "4.5.35";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.35",
+    date: "August 2026",
+    title: "Notifications: jakso-filtered reminders + HIGH priority; buildings and rooms more visible on map; lunch shows current day; dashboard jakso filter",
+    titleFi: "Ilmoitukset: jakso-suodatus + korkea prioriteetti; rakennukset ja huoneet näkyvämpiä kartalla; lounas näyttää tämän päivän; kojelauta jakso-suodatus",
+    highlights: [
+      "**Lesson reminders now only fire for the active jakso** — previously all jaksot's lessons were in the alarm pool so the reminder could fire for a lesson from a different school period. Both saveEntries and the self-chaining receiver now filter to activeJaksoId before scheduling.",
+      "**Notification channel upgraded to IMPORTANCE_HIGH** so reminders break through Doze mode and arrive on time instead of being delayed by up to 2 hours by battery optimization.",
+      "**Buildings now clearly visible on the map** — fill opacity raised from 0.24 → 0.52, outline width 2 → 3px, fully opaque. Rooms fill opacity raised from 0.55 → 0.78, outline 0.8 → 1.2px.",
+      "**Lunch page auto-selects today's menu** — opens on the current day's lunch; falls back to the next upcoming day if today has no menu entry.",
+      "**Dashboard now filters lessons by active jakso** — same jaksoId logic as TimetableScreen so jakso-2 lessons no longer appear on the home dashboard during jakso-1.",
+    ],
+    highlightsFi: [
+      "**Tuntimuistutukset toimivat nyt vain aktiiviselle jaksolle** — aiemmin kaikki jaksot olivat mukana hälytyksessä, joten muistutus saattoi tulla väärän jakson tunnista.",
+      "**Ilmoituskanava päivitetty IMPORTANCE_HIGH-tasolle** jotta muistutukset läpäisevät Doze-tilan eivätkä viivästy tunteja.",
+      "**Rakennukset näkyvät nyt selvästi kartalla** — täyttöläpinäkyvyys 0.24 → 0.52, ääriviiva 2 → 3px. Huoneiden täyttöläpinäkyvyys 0.55 → 0.78.",
+      "**Lounassivu avautuu tämän päivän kohdalle** — valitsee automaattisesti tämän päivän tai seuraavan päivän jolla on ruoka.",
+      "**Kojelauta suodattaa tunnit aktiivisen jakson mukaan** — jakso-2 tunnit eivät enää näy kojelaudalla jakso-1:n aikana.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.34",
     date: "August 2026",
@@ -32,7 +53,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "FloorRail näyttää nyt himmennetyn numeron kerroksilla joilla ei ole piirrettyjä huoneita — kertoo onko ongelma 'väärä kerros valittu' vai 'kampus tyhjä'.",
       "Automaattinen kerrosvalinta huomioi vain huoneet joilla on vähintään 3 pisteen polygoni — ei voi valita tyhjää kerrosta.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.33",

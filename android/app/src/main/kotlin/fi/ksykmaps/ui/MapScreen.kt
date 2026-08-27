@@ -581,19 +581,15 @@ fun MapScreen() {
                 style.addLayer(
                     FillLayer(LAYER_FILL, SRC_BUILDINGS).withProperties(
                         PropertyFactory.fillColor(Expression.get("color")),
-                        PropertyFactory.fillOpacity(0.24f),
+                        PropertyFactory.fillOpacity(0.52f),
                     )
                 )
-                // 3D extrusion — floors * METERS_PER_FLOOR high, tinted
-                // by colorCode. Vertical gradient shading makes the
-                // volume read as sunlit vs shadowed sides. Hidden by
-                // default; the 3D toggle flips visibility.
                 style.addLayer(
                     FillExtrusionLayer(LAYER_BUILDING_EXTRUSION, SRC_BUILDINGS).withProperties(
                         PropertyFactory.fillExtrusionColor(Expression.get("color")),
                         PropertyFactory.fillExtrusionHeight(Expression.get("height")),
                         PropertyFactory.fillExtrusionBase(0f),
-                        PropertyFactory.fillExtrusionOpacity(0.72f),
+                        PropertyFactory.fillExtrusionOpacity(0.80f),
                         PropertyFactory.fillExtrusionVerticalGradient(true),
                         PropertyFactory.visibility(Property.NONE),
                     )
@@ -601,18 +597,19 @@ fun MapScreen() {
                 style.addLayer(
                     LineLayer(LAYER_OUTLINE, SRC_BUILDINGS).withProperties(
                         PropertyFactory.lineColor(Expression.get("color")),
-                        PropertyFactory.lineWidth(2f),
-                        PropertyFactory.lineOpacity(0.9f),
+                        PropertyFactory.lineWidth(3f),
+                        PropertyFactory.lineOpacity(1.0f),
                     )
                 )
                 style.addLayer(
                     SymbolLayer(LAYER_LABEL, SRC_BUILDINGS).withProperties(
                         PropertyFactory.textField(Expression.get("name")),
-                        PropertyFactory.textSize(12f),
+                        PropertyFactory.textSize(13f),
                         PropertyFactory.textColor(AndroidColor.parseColor("#0F172A")),
                         PropertyFactory.textHaloColor(AndroidColor.WHITE),
-                        PropertyFactory.textHaloWidth(1.5f),
+                        PropertyFactory.textHaloWidth(2.5f),
                         PropertyFactory.textAllowOverlap(false),
+                        PropertyFactory.textIgnorePlacement(false),
                     )
                 )
             }
@@ -628,20 +625,15 @@ fun MapScreen() {
                 style.addLayer(
                     FillLayer(LAYER_ROOM_FILL, SRC_ROOMS).withProperties(
                         PropertyFactory.fillColor(Expression.get("color")),
-                        PropertyFactory.fillOpacity(0.55f),
+                        PropertyFactory.fillOpacity(0.78f),
                     )
                 )
-                // Raised room slab in 3D — sits ON TOP of the building's
-                // floor plate for the room's floor. Base = floor idx *
-                // 3 m + 0.08 (floor slab thickness); height adds
-                // ROOM_SLAB (0.35 m) so it reads as a raised platform
-                // inside the building shell.
                 style.addLayer(
                     FillExtrusionLayer(LAYER_ROOM_EXTRUSION, SRC_ROOMS).withProperties(
                         PropertyFactory.fillExtrusionColor(Expression.get("color")),
                         PropertyFactory.fillExtrusionBase(Expression.get("base")),
                         PropertyFactory.fillExtrusionHeight(Expression.get("top")),
-                        PropertyFactory.fillExtrusionOpacity(0.92f),
+                        PropertyFactory.fillExtrusionOpacity(0.95f),
                         PropertyFactory.fillExtrusionVerticalGradient(true),
                         PropertyFactory.visibility(Property.NONE),
                     )
@@ -649,20 +641,18 @@ fun MapScreen() {
                 style.addLayer(
                     LineLayer(LAYER_ROOM_OUTLINE, SRC_ROOMS).withProperties(
                         PropertyFactory.lineColor(AndroidColor.parseColor("#0F172A")),
-                        PropertyFactory.lineWidth(0.8f),
-                        PropertyFactory.lineOpacity(0.35f),
+                        PropertyFactory.lineWidth(1.2f),
+                        PropertyFactory.lineOpacity(0.65f),
                     )
                 )
                 style.addLayer(
                     SymbolLayer(LAYER_ROOM_LABEL, SRC_ROOMS).withProperties(
                         PropertyFactory.textField(Expression.get("label")),
-                        PropertyFactory.textSize(10f),
+                        PropertyFactory.textSize(11f),
                         PropertyFactory.textColor(AndroidColor.parseColor("#111827")),
                         PropertyFactory.textHaloColor(AndroidColor.WHITE),
-                        PropertyFactory.textHaloWidth(1.2f),
+                        PropertyFactory.textHaloWidth(1.8f),
                         PropertyFactory.textAllowOverlap(false),
-                        // Only paint labels once we're close enough to
-                        // read them without a magnifying glass.
                         PropertyFactory.textOpacity(
                             Expression.interpolate(
                                 Expression.linear(), Expression.zoom(),
@@ -1097,10 +1087,24 @@ fun MapScreen() {
                     },
                 )
             }
+            // Diagnostic pill: opaque, prominent, tells the user
+            // exactly what data is loaded and which floor is active.
+            // If the current floor has 0 rooms but other floors have
+            // some, we suggest switching floors instead of just
+            // showing a silent empty state.
+            val totalRoomsWithPolys = remember(rooms) {
+                rooms.count { r ->
+                    val pts = r["points"] as? JsonArray
+                    pts != null && pts.size >= 3
+                }
+            }
+            val roomWord = if (lang == "fi") "huonetta" else "rooms"
+            val floorWord = if (lang == "fi") "Kerros" else "Floor"
             Row(
                 Modifier
+                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp), clip = false)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1111,16 +1115,45 @@ fun MapScreen() {
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "${buildings.size} · $visibleRoomCount rooms",
+                    "${buildings.size} · $visibleRoomCount $roomWord",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 if (selectedFloor != null) {
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "· Floor $selectedFloor",
+                        "· $floorWord $selectedFloor",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            // "No rooms on this floor" hint. Only shown when we
+            // actually have room data (total > 0) but the current
+            // floor has none — so the user knows a different floor
+            // will fix it.
+            if (selectedFloor != null && visibleRoomCount == 0 && totalRoomsWithPolys > 0) {
+                Row(
+                    Modifier
+                        .shadow(elevation = 4.dp, shape = RoundedCornerShape(20.dp), clip = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .clickable { selectedFloor = null }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.Layers, null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        if (lang == "fi") "Ei huoneita tällä kerroksella — näytä kaikki"
+                        else "No rooms on this floor — show all",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }

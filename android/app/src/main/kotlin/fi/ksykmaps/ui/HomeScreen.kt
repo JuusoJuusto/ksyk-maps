@@ -107,18 +107,31 @@ fun HomeScreen(
                     val fmt = DateTimeFormatter.ofPattern("HH:mm")
                     val now = LocalTime.now()
                     val todayDow = LocalDate.now().dayOfWeek.value
+                    // Determine the currently active jakso. Only entries
+                    // whose jaksoId matches (or "all") should appear on
+                    // the dashboard — otherwise we'd stack lessons from
+                    // every period on today, which is what the user was
+                    // seeing when jakso-2 lessons showed up in jakso 1.
+                    val jaksot = try { loadJaksot(ctx) } catch (_: Exception) { emptyList() }
+                    val activeJakso = try { activeJaksoId(jaksot) } catch (_: Exception) { null }
                     val allToday = (0 until arr.length()).mapNotNull { i ->
                         val o = arr.getJSONObject(i)
-                        if (o.optInt("dayOfWeek") == todayDow) {
-                            HomeTimetableLesson(
-                                o.optString("subject"),
-                                o.optString("startHhmm"),
-                                o.optString("endHhmm"),
-                                o.optString("roomNumber"),
-                                o.optString("roomId"),
-                                o.optString("teacher"),
-                            )
-                        } else null
+                        if (o.optInt("dayOfWeek") != todayDow) return@mapNotNull null
+                        val entryJakso = o.optString("jaksoId", "all").ifBlank { "all" }
+                        val jaksoOk = when {
+                            entryJakso == "all" -> true
+                            activeJakso == null -> true // no jakso configured → show everything
+                            else -> entryJakso == activeJakso
+                        }
+                        if (!jaksoOk) return@mapNotNull null
+                        HomeTimetableLesson(
+                            o.optString("subject"),
+                            o.optString("startHhmm"),
+                            o.optString("endHhmm"),
+                            o.optString("roomNumber"),
+                            o.optString("roomId"),
+                            o.optString("teacher"),
+                        )
                     }.sortedBy { it.startHhmm }
                     hasWilmaSetup = arr.length() > 0
                     todaySchedule = allToday

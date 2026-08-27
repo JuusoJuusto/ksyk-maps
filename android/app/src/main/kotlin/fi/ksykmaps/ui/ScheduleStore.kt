@@ -95,11 +95,23 @@ internal suspend fun loadEntries(ctx: Context): List<ScheduleEntry> {
 internal suspend fun saveEntries(ctx: Context, entries: List<ScheduleEntry>) {
     val encoded = scheduleJson.encodeToString(entries)
     ctx.scheduleStore.edit { prefs -> prefs[SCHEDULE_KEY] = encoded }
+    // Filter to active jakso before scheduling so reminders only fire for
+    // lessons in the current school period, not every jakso at once.
+    val activeJakso = try {
+        val jaksot = loadJaksot(ctx)
+        activeJaksoId(jaksot)
+    } catch (_: Exception) { null }
+    val forAlarm = if (activeJakso != null) {
+        entries.filter { e ->
+            val ej = e.jaksoId.ifBlank { "all" }
+            ej == "all" || ej == activeJakso
+        }
+    } else entries
     withContext(Dispatchers.Main) {
         val widgetJson = buildWidgetJson(entries)
         NextLessonWidget.saveEntriesForWidget(ctx, widgetJson)
         NextLessonWidget.notifyTimetableChanged(ctx)
-        LessonReminderScheduler.schedule(ctx, entries)
+        LessonReminderScheduler.schedule(ctx, forAlarm)
     }
 }
 
@@ -112,7 +124,12 @@ internal fun buildWidgetJson(entries: List<ScheduleEntry>): String {
             put("endHhmm", e.endHhmm)
             put("subject", e.subject)
             put("roomNumber", e.roomNumber)
+            put("roomId", e.roomId)
             put("teacher", e.teacher)
+            // jaksoId is critical: without it the Home dashboard and
+            // widget can't filter to the currently active period, so
+            // they'd show lessons from every jakso stacked together.
+            put("jaksoId", e.jaksoId)
         })
     }
     return arr.toString()
