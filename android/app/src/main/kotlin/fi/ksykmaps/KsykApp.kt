@@ -43,7 +43,7 @@ class KsykApp : Application() {
                 pw.println("=== KSYK crash ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ===")
                 pw.println("Thread: ${thread.name}")
                 pw.println("Android: ${Build.VERSION.SDK_INT} ${Build.MANUFACTURER} ${Build.MODEL}")
-                pw.println("App version: 1.31.0 (33)")
+                pw.println("App version: 1.32.0 (34)")
                 pw.println()
                 throwable.printStackTrace(pw)
                 pw.flush()

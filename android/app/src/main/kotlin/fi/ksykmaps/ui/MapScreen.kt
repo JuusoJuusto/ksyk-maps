@@ -102,15 +102,21 @@ private const val SRC_BUILDINGS = "campus-buildings"
 private const val LAYER_FILL = "campus-buildings-fill"
 private const val LAYER_OUTLINE = "campus-buildings-outline"
 private const val LAYER_LABEL = "campus-buildings-label"
-// Extrusion — 3D block per building footprint. Height derives from
-// `floors * METERS_PER_FLOOR` (3 m per floor, MazeMap-adjacent) so
-// buildings read as real volumes once pitch > 0.
 private const val LAYER_BUILDING_EXTRUSION = "campus-buildings-extrusion"
+// Fallback pins — shown for buildings that have no drawn polygon points.
+// Uses the building's `coordinates` center lat/lng so SOMETHING is always
+// visible even before any polygon has been painted in the builder.
+private const val SRC_BUILDING_PINS = "campus-building-pins"
+private const val LAYER_BUILDING_PIN = "campus-building-pin"
+private const val LAYER_BUILDING_PIN_LABEL = "campus-building-pin-label"
 
 private const val SRC_ROOMS = "campus-rooms"
 private const val LAYER_ROOM_FILL = "campus-rooms-fill"
 private const val LAYER_ROOM_OUTLINE = "campus-rooms-outline"
 private const val LAYER_ROOM_LABEL = "campus-rooms-label"
+// Fallback pins for rooms without polygon points.
+private const val SRC_ROOM_PINS = "campus-room-pins"
+private const val LAYER_ROOM_PIN = "campus-room-pin"
 // Extrusion — raised room slab, per floor. Base = floor * 3 m, height
 // = base + 0.35 m (ROOM_SLAB). Reads as MazeMap-style raised platforms.
 private const val LAYER_ROOM_EXTRUSION = "campus-rooms-extrusion"
@@ -196,7 +202,9 @@ fun MapScreen() {
     var initFailed by remember { mutableStateOf(false) }
     DisposableEffect(Unit) {
         try {
-            MapLibre.getInstance(ctx.applicationContext, "", org.maplibre.android.WellKnownTileServer.MapLibre)
+            // Empty string triggers an API-key warning in the MapLibre SDK
+            // even when using open tile sources. Any non-empty string silences it.
+            MapLibre.getInstance(ctx.applicationContext, "not-needed", org.maplibre.android.WellKnownTileServer.MapLibre)
         } catch (e: Throwable) {
             initFailed = true
             try { Analytics.trackError("MapScreen", "MapLibre.getInstance: ${e.message}") } catch (_: Throwable) {}
@@ -569,10 +577,12 @@ fun MapScreen() {
     LaunchedEffect(buildings, rooms, selectedFloor, mapRef) {
         val map = mapRef ?: return@LaunchedEffect
         val buildingsGeoJson = buildBuildingsFeatureCollection(buildings, selectedFloor)
+        val buildingPinsGeoJson = buildBuildingPinsFeatureCollection(buildings)
         val roomsGeoJson = buildRoomsFeatureCollection(rooms, selectedFloor)
+        val roomPinsGeoJson = buildRoomPinsFeatureCollection(rooms, selectedFloor)
 
         map.getStyle { style ->
-            // ── Buildings ──
+            // ── Buildings (polygon layer) ──
             val existingB = style.getSourceAs<GeoJsonSource>(SRC_BUILDINGS)
             if (existingB != null) {
                 existingB.setGeoJson(buildingsGeoJson)
@@ -614,9 +624,45 @@ fun MapScreen() {
                 )
             }
 
-            // ── Rooms — drawn ON TOP of building fill so they read as
-            // interior slabs, MazeMap-style. Only visible when zoomed
-            // in past 17.5 (below that they'd be sub-pixel noise). ──
+            // ── Building pins — fallback markers for buildings that have
+            // a `coordinates` center but no drawn polygon. Shows SOMETHING
+            // on screen even when no polygon has been painted in the builder. ──
+            val existingBP = style.getSourceAs<GeoJsonSource>(SRC_BUILDING_PINS)
+            if (existingBP != null) {
+                existingBP.setGeoJson(buildingPinsGeoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_BUILDING_PINS, buildingPinsGeoJson))
+                style.addLayer(
+                    org.maplibre.android.style.layers.CircleLayer(LAYER_BUILDING_PIN, SRC_BUILDING_PINS).withProperties(
+                        PropertyFactory.circleRadius(
+                            Expression.interpolate(
+                                Expression.linear(), Expression.zoom(),
+                                Expression.stop(13f, 8f),
+                                Expression.stop(17f, 22f),
+                                Expression.stop(20f, 36f),
+                            )
+                        ),
+                        PropertyFactory.circleColor(Expression.get("color")),
+                        PropertyFactory.circleOpacity(0.85f),
+                        PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
+                        PropertyFactory.circleStrokeWidth(2.5f),
+                    )
+                )
+                style.addLayer(
+                    SymbolLayer(LAYER_BUILDING_PIN_LABEL, SRC_BUILDING_PINS).withProperties(
+                        PropertyFactory.textField(Expression.get("name")),
+                        PropertyFactory.textSize(12f),
+                        PropertyFactory.textColor(AndroidColor.parseColor("#0F172A")),
+                        PropertyFactory.textHaloColor(AndroidColor.WHITE),
+                        PropertyFactory.textHaloWidth(2f),
+                        PropertyFactory.textOffset(arrayOf(0f, 2f)),
+                        PropertyFactory.textAnchor("top"),
+                        PropertyFactory.textAllowOverlap(false),
+                    )
+                )
+            }
+
+            // ── Rooms (polygon layer) ──
             val existingR = style.getSourceAs<GeoJsonSource>(SRC_ROOMS)
             if (existingR != null) {
                 existingR.setGeoJson(roomsGeoJson)
@@ -663,11 +709,31 @@ fun MapScreen() {
                     )
                 )
             }
+
+            // ── Room pins — fallback dots for rooms without polygon data ──
+            val existingRP = style.getSourceAs<GeoJsonSource>(SRC_ROOM_PINS)
+            if (existingRP != null) {
+                existingRP.setGeoJson(roomPinsGeoJson)
+            } else {
+                style.addSource(GeoJsonSource(SRC_ROOM_PINS, roomPinsGeoJson))
+                style.addLayer(
+                    org.maplibre.android.style.layers.CircleLayer(LAYER_ROOM_PIN, SRC_ROOM_PINS).withProperties(
+                        PropertyFactory.circleRadius(
+                            Expression.interpolate(
+                                Expression.linear(), Expression.zoom(),
+                                Expression.stop(16f, 4f),
+                                Expression.stop(18f, 8f),
+                                Expression.stop(20f, 14f),
+                            )
+                        ),
+                        PropertyFactory.circleColor(Expression.get("color")),
+                        PropertyFactory.circleOpacity(0.9f),
+                        PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
+                        PropertyFactory.circleStrokeWidth(1.5f),
+                    )
+                )
+            }
         }
-        // v1.6.0 — only auto-fit on the very first data load per
-        // session, and only when no persisted camera was restored.
-        // Later data-refetch cycles must NOT snap the map back to
-        // campus bounds — that would fight the user's pans.
         if (!hasAutoFitOnce && buildings.isNotEmpty()) {
             centerOnBuildings(map, buildings)
             hasAutoFitOnce = true
@@ -2120,6 +2186,62 @@ private fun floorsFromBuildings(buildings: List<JsonObject>): List<Int> {
     return (min..max).toList()
 }
 
+/**
+ * Fallback Point markers for buildings that have no drawn polygon.
+ * Uses `coordinates.lat`/`coordinates.lng` from the server response.
+ * Shows a colored circle on screen even when nothing has been drawn
+ * in the campus builder yet.
+ */
+private fun buildBuildingPinsFeatureCollection(buildings: List<JsonObject>): String {
+    val features = StringBuilder()
+    var first = true
+    for (b in buildings) {
+        // Skip if already has a polygon — polygon rendering takes priority.
+        val pts = b["points"] as? JsonArray
+        if (pts != null && pts.size >= 3) continue
+        // Prefer `coordinates` field, fall back to mapPositionY/X (canvas integers, not geo).
+        val coordObj = b["coordinates"] as? JsonObject
+        val lat = (coordObj?.get("lat") as? JsonPrimitive)?.doubleOrNull ?: continue
+        val lng = (coordObj?.get("lng") as? JsonPrimitive)?.doubleOrNull ?: continue
+        val name = (b["name"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "Building"
+        val color = (b["colorCode"] as? JsonPrimitive)?.contentOrNull?.escape() ?: "#2563eb"
+        val id = (b["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        if (!first) features.append(",")
+        features.append(
+            """{"type":"Feature","id":"$id","geometry":{"type":"Point","coordinates":[$lng,$lat]},"properties":{"name":"$name","color":"$color","id":"$id"}}"""
+        )
+        first = false
+    }
+    return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
+/**
+ * Fallback Point markers for rooms that have no drawn polygon on the active floor.
+ */
+private fun buildRoomPinsFeatureCollection(rooms: List<JsonObject>, floor: Int?): String {
+    val features = StringBuilder()
+    var first = true
+    for (r in rooms) {
+        val roomFloor = (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
+        if (floor != null && roomFloor != floor) continue
+        val pts = r["points"] as? JsonArray
+        if (pts != null && pts.size >= 3) continue
+        val coordObj = r["coordinates"] as? JsonObject
+        val lat = (coordObj?.get("lat") as? JsonPrimitive)?.doubleOrNull ?: continue
+        val lng = (coordObj?.get("lng") as? JsonPrimitive)?.doubleOrNull ?: continue
+        val explicitColor = (r["colorCode"] as? JsonPrimitive)?.contentOrNull
+        val roomType = (r["type"] as? JsonPrimitive)?.contentOrNull
+        val color = (explicitColor ?: colorForRoomType(roomType) ?: "#059669").escape()
+        val id = (r["id"] as? JsonPrimitive)?.contentOrNull?.escape() ?: ""
+        if (!first) features.append(",")
+        features.append(
+            """{"type":"Feature","id":"$id","geometry":{"type":"Point","coordinates":[$lng,$lat]},"properties":{"color":"$color","id":"$id","floor":$roomFloor}}"""
+        )
+        first = false
+    }
+    return """{"type":"FeatureCollection","features":[$features]}"""
+}
+
 /** Build a GeoJSON FeatureCollection string of room polygons for the active floor. */
 private fun buildRoomsFeatureCollection(rooms: List<JsonObject>, floor: Int?): String {
     val features = StringBuilder()
@@ -2428,17 +2550,26 @@ private fun haversineMeters(a: LatLng, b: LatLng): Double {
 private fun centerOnBuildings(map: MapLibreMap, buildings: List<JsonObject>) {
     if (buildings.isEmpty()) return
     val allPoints = buildings.flatMap { b ->
-        (b["points"] as? JsonArray)?.mapNotNull { p ->
+        val pts = (b["points"] as? JsonArray)?.mapNotNull { p ->
             val po = p as? JsonObject ?: return@mapNotNull null
             val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
             val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
             LatLng(lat, lng)
         } ?: emptyList()
+        if (pts.isNotEmpty()) pts
+        else {
+            val c = b["coordinates"] as? JsonObject
+            val lat = (c?.get("lat") as? JsonPrimitive)?.doubleOrNull
+            val lng = (c?.get("lng") as? JsonPrimitive)?.doubleOrNull
+            if (lat != null && lng != null) listOf(LatLng(lat, lng)) else emptyList()
+        }
     }
-    if (allPoints.size < 2) return
+    if (allPoints.isEmpty()) return
+    if (allPoints.size == 1) {
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(allPoints[0], KSYK_ZOOM), 600)
+        return
+    }
     val bounds = LatLngBounds.Builder().apply { allPoints.forEach { include(it) } }.build()
-    // Only fit-to-bounds on the very first data load — later we let the
-    // user pan freely without being snapped back to campus.
     map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 80), 600)
 }
 

@@ -10,12 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.35";
+export const APP_VERSION = "4.5.36";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.5.36",
+    date: "August 2026",
+    title: "Map: API key fix + building/room fallback pins + favicon updated to new transparent logo",
+    titleFi: "Kartta: API-avain korjattu + rakennusten/huoneiden varapinnit + favicon päivitetty uuteen läpinäkyvään logoon",
+    highlights: [
+      "**MapLibre 'no API key' warning fixed** — was passing empty string; now passes 'not-needed' which silences the SDK warning without requiring an account.",
+      "**Buildings and rooms now ALWAYS visible** even if no polygon has been drawn in the builder. Any building/room with a `coordinates` center point now shows a colored circle pin on the map as a fallback. Polygon rendering still takes priority when available.",
+      "**Camera auto-fit now works** even when no polygons are drawn — falls back to `coordinates` center points to frame the campus on first load.",
+      "**Favicon updated** to the new transparent 1024×1024 logo, regenerated for all sizes (16/32/48/64/128/192/512px).",
+    ],
+    highlightsFi: [
+      "**MapLibre 'ei API-avainta' -varoitus korjattu** — aiemmin välitettiin tyhjä merkkijono; nyt 'not-needed' hiljentää SDK-varoituksen ilman tiliä.",
+      "**Rakennukset ja huoneet näkyvät NYT AINA** vaikka yhtään polygonia ei olisi piirretty builderissa. Kaikki rakennus/huone joilla on `coordinates`-koordinaatit näyttää värillisen ympyrän kartalla varana. Polygonirendering on etusijalla kun se on saatavilla.",
+      "**Kameran automaattinen sovitus toimii** vaikka polygoneja ei ole — käyttää `coordinates`-keskipisteitä kampuksen kehystämiseen ensimmäisellä latauksella.",
+      "**Favicon päivitetty** uuteen läpinäkyvään 1024×1024 logoon, generoitu kaikille ko'oille.",
+    ],
+    latest: true,
+  },
+  {
     version: "4.5.35",
     date: "August 2026",
+    latest: false,
     title: "Notifications: jakso-filtered reminders + HIGH priority; buildings and rooms more visible on map; lunch shows current day; dashboard jakso filter",
     titleFi: "Ilmoitukset: jakso-suodatus + korkea prioriteetti; rakennukset ja huoneet näkyvämpiä kartalla; lounas näyttää tämän päivän; kojelauta jakso-suodatus",
     highlights: [
