@@ -12,6 +12,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
@@ -28,8 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
+import fi.ksykmaps.ui.AdminPanelScreen
 import fi.ksykmaps.ui.AnnouncementPollWorker
 import fi.ksykmaps.ui.AnnouncementsScreen
+import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LessonReminderScheduler
 import fi.ksykmaps.ui.LoginScreen
@@ -122,7 +125,8 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 @Composable
 private fun AppShell() {
     val ctx = LocalContext.current
-    var loggedIn by remember { mutableStateOf(Api.sessionEmail != null) }
+    val signedIn by Session.signedInState
+    val isAdmin by Session.adminState
     var showLogin by remember { mutableStateOf(false) }
     var onboardingDone by remember { mutableStateOf(isOnboardingDone(ctx)) }
     var showLoading by remember { mutableStateOf(true) }
@@ -175,7 +179,12 @@ private fun AppShell() {
         return
     }
     if (showLogin) {
-        LoginScreen(onLoggedIn = { loggedIn = true; showLogin = false })
+        LoginScreen(onLoggedIn = {
+            showLogin = false
+            // Session already flipped signedInState + adminState in
+            // saveToDataStore; auto-jump admins straight to the panel.
+            if (Session.isAdmin) selectedTab = "admin"
+        })
         return
     }
 
@@ -189,10 +198,15 @@ private fun AppShell() {
 
     val showingMap = selectedTab == "map" && subScreen == null
 
+    // If the user signed out while on the admin tab, kick back to home.
+    LaunchedEffect(isAdmin, selectedTab) {
+        if (!isAdmin && selectedTab == "admin") selectedTab = "home"
+    }
+
     Scaffold(
         bottomBar = {
             if (subScreen == null) {
-                BottomBar(selectedTab, lang) { tab ->
+                BottomBar(selectedTab, lang, isAdmin) { tab ->
                     selectedTab = tab
                     subScreen = null
                 }
@@ -234,6 +248,7 @@ private fun AppShell() {
                             onBack     = { subScreen = null },
                             onImported = { subScreen = null },
                         )
+                        subScreen == "beaconCapture" -> BeaconScreen()
                         selectedTab == "home" -> HomeScreen(
                             onOpenRooms         = { subScreen = "rooms" },
                             onOpenBeacons       = {},
@@ -253,8 +268,12 @@ private fun AppShell() {
                             onOpenWilmaConnect = { subScreen = "wilmaConnect" },
                         )
                         selectedTab == "lunch" -> LunchScreen()
+                        selectedTab == "admin" && isAdmin -> AdminPanelScreen(
+                            onSignOut = { Session.clear(ctx); selectedTab = "home" },
+                            onOpenBeaconCapture = { subScreen = "beaconCapture" },
+                        )
                         selectedTab == "settings" -> SettingsScreen(
-                            onSignOut = { Session.clear(ctx); loggedIn = false },
+                            onSignOut = { Session.clear(ctx) },
                             onSignIn  = { showLogin = true },
                         )
                     }
@@ -267,20 +286,38 @@ private fun AppShell() {
 }
 
 @Composable
-private fun BottomBar(selectedTab: String, lang: String, onTabSelected: (String) -> Unit) {
-    val tabs = if (lang == "fi") listOf(
+private fun BottomBar(
+    selectedTab: String,
+    lang: String,
+    isAdmin: Boolean,
+    onTabSelected: (String) -> Unit,
+) {
+    // When signed in as admin, a fifth "Admin" tab appears between Lunch and
+    // Settings. Compressed labels (Timetable → Tunnit already short) keep the
+    // bar readable even at 6 items on narrow phones.
+    val baseFi = listOf(
         Tab("home",      "Koti",          Icons.Outlined.Home),
         Tab("map",       "Kartta",        Icons.Outlined.Map),
         Tab("timetable", "Tunnit",        Icons.Outlined.CalendarMonth),
         Tab("lunch",     "Lounas",        Icons.Outlined.Restaurant),
-        Tab("settings",  "Asetukset",     Icons.Outlined.Settings),
-    ) else listOf(
+    )
+    val baseEn = listOf(
         Tab("home",      "Home",      Icons.Outlined.Home),
         Tab("map",       "Map",       Icons.Outlined.Map),
         Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth),
         Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant),
+    )
+    val tail = if (lang == "fi") listOf(
+        Tab("settings",  "Asetukset",     Icons.Outlined.Settings),
+    ) else listOf(
         Tab("settings",  "Settings",  Icons.Outlined.Settings),
     )
+    val adminTab = if (isAdmin) listOf(
+        Tab("admin",
+            if (lang == "fi") "Hallinta" else "Admin",
+            Icons.Outlined.AdminPanelSettings)
+    ) else emptyList()
+    val tabs = (if (lang == "fi") baseFi else baseEn) + adminTab + tail
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,

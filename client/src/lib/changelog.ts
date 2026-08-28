@@ -10,13 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.43";
+export const APP_VERSION = "4.5.44";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.44",
+    date: "August 2026",
+    title: "Mobile: admin login + full admin panel with WiFi scanning, stats and cache control",
+    titleFi: "Mobiili: ylläpitäjän kirjautuminen ja täysi hallintapaneeli",
+    highlights: [
+      "**Admin panel added to the mobile app** — signing in with an admin account unlocks a new 'Admin' tab in the bottom nav. Four sections: Overview (buildings/rooms/doors/hallways/fingerprints/coverage stats), Wi-Fi (live scan of visible APs with signal strength), Live (current positioning engine output with room/floor/confidence), and Actions (open web builder, force-refresh cache, test notification, sign out).",
+      "**Session reactivity** — signed-in and admin state are now Compose-observable, so screens automatically recompose on login/logout without manual state juggling. Cached role in SharedPreferences means the Admin tab shows immediately on cold start.",
+      "**Login auto-jumps admins to the panel** — signing in as admin drops you straight into the panel instead of the previous screen.",
+      "**Fingerprint capture reachable from mobile** — the existing BeaconScreen (WiFi + GPS snapshot upload) is now reachable via 'Capture fingerprint' in the admin panel's Wi-Fi section, so admins can add room fingerprints from their phone without opening the desktop admin.",
+    ],
+    highlightsFi: [
+      "**Hallintapaneeli lisätty mobiilisovellukseen** — ylläpitäjänä kirjautuminen avaa uuden 'Hallinta'-välilehden. Neljä osiota: Yleiskatsaus (tilastot), Wi-Fi (live-skannaus), Sijainti (positiointimoottorin ulostulo), Toiminnot (rakennin, välimuisti, testi-ilmoitus, uloskirjautuminen).",
+      "**Istunto on nyt reaktiivinen** — kirjautumistila ja admin-tila ovat Compose-havainnoitavia, joten näytöt päivittyvät automaattisesti kirjautuessa.",
+      "**Kirjautuminen ohjaa ylläpitäjän suoraan paneeliin** — admin-tilillä kirjautuminen vie suoraan hallintapaneeliin.",
+      "**Sormenjälkien kaappaus mobiilista** — BeaconScreen on nyt tavoitettavissa hallintapaneelin Wi-Fi-osiosta.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.43",
     date: "August 2026",
     title: "Mobile: Apple-Maps-style controls; lunch defaults to today; loading + retry states",
+    latest: false,
     titleFi: "Mobiili: Apple Maps -tyyliset kontrollit; lounas näyttää tänään; latautuminen + yritä uudelleen",
     highlights: [
       "**Map controls redesigned in Apple Maps / MazeMap style** — zoom in/out and 3D toggle are now grouped in a single rounded pill with hairline dividers. Added a dedicated 'Fit campus' button that re-centers the map on the buildings when you've wandered off.",
@@ -30,7 +50,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Lounas-sivu avautuu aina tänään** — lisätty viikonpäivä-fallback, joten oikea päivä valitaan vaikka RSS-syöte ei sisällä päivämäärää.",
       "**vercel.json: API-välimuistisääntö siirretty loppuun** — Vercel soveltaa viimeksi täsmäävää sääntöä.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.42",

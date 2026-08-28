@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -215,12 +216,29 @@ fun SettingsScreen(
             // ── Account ────────────────────────────────────────────
             item {
                 SettingsGroup(title = if (isFi) "Tili" else "Account") {
+                    val isAdmin = fi.ksykmaps.data.Session.adminState.value
                     if (Api.sessionEmail != null) {
                         LinkGroupRow(
-                            icon = Icons.Outlined.AccountCircle,
-                            iconTint = MaterialTheme.colorScheme.primary,
+                            icon = if (isAdmin) Icons.Outlined.AdminPanelSettings
+                                   else Icons.Outlined.AccountCircle,
+                            iconTint = if (isAdmin) Color(0xFF10B981)
+                                       else MaterialTheme.colorScheme.primary,
                             title = Api.sessionEmail!!,
-                            subtitle = if (isFi) "Kirjaudu ulos" else "Sign out",
+                            subtitle = if (isAdmin)
+                                (if (isFi) "Kirjautunut ylläpitäjänä"
+                                 else "Signed in as admin")
+                            else
+                                (if (isFi) "Kirjautunut sisään"
+                                 else "Signed in"),
+                            onClick = { /* Non-destructive tap — sign-out has its own row */ },
+                        )
+                        RowDivider()
+                        LinkGroupRow(
+                            icon = Icons.AutoMirrored.Outlined.Logout,
+                            iconTint = MaterialTheme.colorScheme.error,
+                            title = if (isFi) "Kirjaudu ulos" else "Sign out",
+                            subtitle = if (isFi) "Poistu tililtä tältä laitteelta"
+                                       else "Remove account from this device",
                             onClick = onSignOut,
                         )
                     } else {
@@ -753,7 +771,7 @@ private fun AboutRow(eggsFound: Int, isFi: Boolean, onTap: () -> Unit) {
     }
 }
 
-private fun sendTestNotification(ctx: android.content.Context, isFi: Boolean) {
+internal fun sendTestNotification(ctx: android.content.Context, isFi: Boolean) {
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
             ctx, android.Manifest.permission.POST_NOTIFICATIONS
