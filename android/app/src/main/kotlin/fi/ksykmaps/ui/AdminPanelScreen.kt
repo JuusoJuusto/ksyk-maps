@@ -40,6 +40,7 @@ import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import java.time.Instant
@@ -380,6 +381,9 @@ private fun AdminWifiSection(
             ctx, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED)
     }
+    // "Where am I?" combined WiFi + GPS room detection
+    var whereAmI by remember { mutableStateOf<WhereAmIResult?>(null) }
+    var detecting by remember { mutableStateOf(false) }
 
     val permLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -406,6 +410,21 @@ private fun AdminWifiSection(
         }
     }
 
+    fun triggerWhereAmI() {
+        if (!hasPermission) {
+            permLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_WIFI_STATE,
+            ))
+            return
+        }
+        detecting = true
+        scope.launch {
+            whereAmI = withContext(Dispatchers.IO) { detectWhereAmI(ctx) }
+            detecting = false
+        }
+    }
+
     LaunchedEffect(Unit) { if (hasPermission) triggerScan() }
 
     LazyColumn(
@@ -413,6 +432,124 @@ private fun AdminWifiSection(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // ── Where am I? — combined WiFi + GPS room detection ──
+        item {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF06B6D4).copy(alpha = 0.12f))
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF06B6D4).copy(alpha = 0.25f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.GpsFixed, null,
+                            tint = Color(0xFF0891B2),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (isFi) "Missä olen?" else "Where am I?",
+                            fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
+                        )
+                        Text(
+                            if (isFi)
+                                "Tunnistaa nykyisen huoneesi Wi-Fi:n ja GPS:n perusteella"
+                            else
+                                "Detects your current room from Wi-Fi + GPS",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (detecting) {
+                        CircularProgressIndicator(
+                            Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color(0xFF0891B2),
+                        )
+                    }
+                }
+                whereAmI?.let { r ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (r.roomLabel != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.MeetingRoom, null,
+                                     tint = Color(0xFF0891B2), modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        r.roomLabel,
+                                        fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                                    )
+                                    if (r.floor != null) {
+                                        Text(
+                                            (if (isFi) "Kerros " else "Floor ") + r.floor +
+                                                    (if (r.confidence != null) " · ${r.confidence}%" else ""),
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                if (isFi) "Ei tunnistettu — tarvitaan lisää sormenjälkiä."
+                                else "Not identified — need more fingerprints.",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (r.lat != null && r.lng != null) {
+                            Text(
+                                "GPS: %.5f, %.5f".format(r.lat, r.lng) +
+                                        (r.accuracyM?.let { " · ±${it.toInt()} m" } ?: ""),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            "Wi-Fi: ${r.wifiApCount} APs" +
+                                    (r.matchedApCount?.let { " · matched $it" } ?: ""),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Button(
+                    onClick = { triggerWhereAmI() },
+                    enabled = !detecting,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0891B2)),
+                ) {
+                    Icon(Icons.Outlined.MyLocation, null, Modifier.size(18.dp), tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isFi) "Tunnista nykyinen huone" else "Detect current room",
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
+                }
+            }
+        }
+
         item {
             Column(
                 Modifier
@@ -1257,6 +1394,88 @@ private fun AdminUsersSection(isFi: Boolean) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
+
+data class WhereAmIResult(
+    val roomLabel: String?,
+    val floor: Int?,
+    val confidence: Int?,
+    val lat: Double?,
+    val lng: Double?,
+    val accuracyM: Double?,
+    val wifiApCount: Int,
+    val matchedApCount: Int?,
+)
+
+@SuppressLint("MissingPermission")
+private suspend fun detectWhereAmI(ctx: Context): WhereAmIResult {
+    // Step 1: WiFi scan
+    val readings = scanNowForAdmin(ctx)
+    val wifiApCount = readings.size
+
+    // Step 2: GPS fix (best-effort — non-blocking)
+    var lat: Double? = null; var lng: Double? = null; var acc: Double? = null
+    try {
+        val fused = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(ctx)
+        val loc: android.location.Location? = kotlinx.coroutines.withTimeoutOrNull(4000) {
+            fused.getCurrentLocation(
+                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                null,
+            ).await()
+        }
+        if (loc != null) { lat = loc.latitude; lng = loc.longitude; acc = loc.accuracy.toDouble() }
+    } catch (_: Exception) {}
+
+    // Step 3: Send to /api/wifi/locate for room match
+    var roomLabel: String? = null; var floor: Int? = null; var conf: Int? = null; var matched: Int? = null
+    try {
+        val body = buildJsonObject {
+            put("readings", JsonArray(readings.map { (ssid, bssid, rssi) ->
+                buildJsonObject {
+                    put("bssid", bssid)
+                    put("rssi", rssi)
+                    put("ssid", ssid)
+                }
+            }))
+            if (lat != null && lng != null) {
+                put("lat", lat!!)
+                put("lng", lng!!)
+            }
+        }
+        val resp = withContext(Dispatchers.IO) { Api.post("/wifi/locate", body) }
+        val obj = resp as? JsonObject
+        val posLabel = (obj?.get("positionLabel") as? JsonPrimitive)?.contentOrNull
+        val roomId = (obj?.get("roomId") as? JsonPrimitive)?.contentOrNull
+        val f = (obj?.get("floor") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+        val c = (obj?.get("confidenceScore") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+        val shared = (obj?.get("sharedApCount") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+        // Enrich with the room name/number from /api/rooms
+        val prettyName = if (roomId != null) {
+            try {
+                val rooms = withContext(Dispatchers.IO) { Api.get("/rooms") }.jsonArray
+                    .mapNotNull { it as? JsonObject }
+                val room = rooms.firstOrNull { (it["id"] as? JsonPrimitive)?.contentOrNull == roomId }
+                val num = (room?.get("roomNumber") as? JsonPrimitive)?.contentOrNull
+                val name = (room?.get("name") as? JsonPrimitive)?.contentOrNull
+                listOfNotNull(num, name).joinToString(" ").ifBlank { posLabel ?: roomId }
+            } catch (_: Exception) { posLabel ?: roomId }
+        } else posLabel
+        roomLabel = prettyName
+        floor = f
+        conf = c
+        matched = shared
+    } catch (_: Exception) {}
+
+    return WhereAmIResult(
+        roomLabel = roomLabel,
+        floor = floor,
+        confidence = conf,
+        lat = lat,
+        lng = lng,
+        accuracyM = acc,
+        wifiApCount = wifiApCount,
+        matchedApCount = matched,
+    )
+}
 
 @SuppressLint("MissingPermission")
 private fun scanNowForAdmin(ctx: Context): List<Triple<String, String, Int>> {

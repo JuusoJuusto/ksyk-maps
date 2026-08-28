@@ -10,13 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.46";
+export const APP_VERSION = "4.5.47";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.47",
+    date: "August 2026",
+    title: "Mobile map ALWAYS works + admin 'Where am I?' room detection",
+    titleFi: "Mobiilikartta toimii AINA + hallinnan 'Missä olen?' -tunnistus",
+    highlights: [
+      "**Mobile map now works with or without network** — every APK ships a bundled snapshot of buildings, rooms, doors and hallways in the assets/ folder. On launch, the map paints from the bundle in ~10 ms, then attempts a live API fetch to update on top. If the live fetch fails (Vercel bot check, no network, etc.), Api.get() falls back to a GitHub Raw hosted snapshot at raw.githubusercontent.com/JuusoJuusto/ksyk-maps/main/data/snapshot/ — completely outside Vercel's bot protection.",
+      "**Admin panel: 'Where am I?'** — a new hero card at the top of the Wi-Fi section detects your current room from a combined Wi-Fi scan + GPS fix, then queries /api/wifi/locate to match against the fingerprint database. Shows room name+number, floor, confidence score, GPS coords, and matched/visible AP counts.",
+    ],
+    highlightsFi: [
+      "**Mobiilikartta toimii nyt aina** — jokainen APK sisältää mukana rakennus-, huone-, ovi- ja käytäväsnapshotin. Käynnistyksessä kartta piirtyy paketista ~10 ms:ssä, sitten päivittyy live-API:sta jos mahdollista. Jos ei mahdollista, käytetään GitHub Raw -snapshotia.",
+      "**Hallintapaneeli: 'Missä olen?'** — Wi-Fi-osion yläreunaan lisätty uusi kortti, joka tunnistaa nykyisen huoneesi Wi-Fi:n ja GPS:n yhdistelmästä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.46",
     date: "August 2026",
     title: "Fix: maintenance mode stuck-on when CDN cached settings",
+    latest: false,
     titleFi: "Korjaus: huoltotila juuttui päälle CDN-välimuistin takia",
     highlights: [
       "**Maintenance mode can now be disabled** — /api/settings was being cached by the CDN for 30 minutes (from the s-maxage=1800 rule added to make the mobile map work). So when an admin toggled maintenance mode off, the site kept serving `maintenanceMode: true` from the CDN cache. Fixed by adding explicit no-store headers to /api/settings responses, plus cache-busting query params + `cache: 'no-store'` on the client.",
@@ -26,7 +42,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Huoltotilan voi nyt sammuttaa** — /api/settings-vastaus välitallennettiin CDN:ään 30 minuutiksi, joten huoltotilan sammuttaminen ei tullut voimaan. Korjattu palvelimen no-store-otsikoilla ja selaimen cache-bustingilla.",
       "**Sivu tulee automaattisesti pois huollosta 30 s välein** — julkinen sovellus tarkistaa asetukset 30 sekunnin välein.",
     ],
-    latest: true,
   },
   {
     version: "4.5.45",

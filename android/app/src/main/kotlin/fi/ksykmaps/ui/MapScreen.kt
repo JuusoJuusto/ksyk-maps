@@ -407,43 +407,47 @@ fun MapScreen() {
 
     LaunchedEffect(mapDataRetryTrigger) {
         dataFetching = true
-        // All four map data sources fetched in parallel so the map renders
-        // in ~1 round-trip instead of 4 sequential round-trips.
+
+        // STEP 1: Paint from bundled/disk snapshot IMMEDIATELY so the map
+        // is never empty. This runs in ~10 ms — no network required.
+        val bundledB = withContext(Dispatchers.IO) { Api.getOffline("/buildings") }
+        val bundledR = withContext(Dispatchers.IO) { Api.getOffline("/rooms") }
+        val bundledD = withContext(Dispatchers.IO) { Api.getOffline("/doors") }
+        val bundledH = withContext(Dispatchers.IO) { Api.getOffline("/hallways") }
+        bundledB?.let { buildings = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
+        bundledR?.let { rooms = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
+        bundledD?.let { doors = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
+        bundledH?.let { hallways = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
+
+        // STEP 2: Try to refresh from the live API in parallel. Api.get()
+        // itself falls back to GitHub Raw snapshots if the live API 429s,
+        // so this either gets fresh data or same-day data — never empty.
         val bldDeferred  = async(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
         val roomsDeferred = async(Dispatchers.IO) { runCatching { Api.get("/rooms") } }
         val doorsDeferred = async(Dispatchers.IO) { runCatching { Api.get("/doors") } }
         val hwDeferred   = async(Dispatchers.IO) { runCatching { Api.get("/hallways") } }
 
         bldDeferred.await().onSuccess { json ->
-            buildings = json.jsonArray.mapNotNull { it as? JsonObject }
-            offlineMode = false
+            val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
+            if (fresh.isNotEmpty()) { buildings = fresh; offlineMode = false }
         }.onFailure { e ->
             Analytics.trackError("MapScreen", "buildings: ${e.message ?: "unknown"}")
-            Api.getOffline("/buildings")?.let {
-                buildings = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject }
-                offlineMode = true
-            }
+            offlineMode = buildings.isEmpty()
         }
 
         roomsDeferred.await().onSuccess { json ->
-            rooms = json.jsonArray.mapNotNull { it as? JsonObject }
-        }.onFailure {
-            Api.getOffline("/rooms")?.let {
-                rooms = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject }
-                offlineMode = true
-            }
+            val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
+            if (fresh.isNotEmpty()) rooms = fresh
         }
 
         doorsDeferred.await().onSuccess { json ->
-            doors = json.jsonArray.mapNotNull { it as? JsonObject }
-        }.onFailure {
-            Api.getOffline("/doors")?.let { doors = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject } }
+            val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
+            if (fresh.isNotEmpty()) doors = fresh
         }
 
         hwDeferred.await().onSuccess { json ->
-            hallways = json.jsonArray.mapNotNull { it as? JsonObject }
-        }.onFailure {
-            Api.getOffline("/hallways")?.let { hallways = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject } }
+            val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
+            if (fresh.isNotEmpty()) hallways = fresh
         }
         dataFetching = false
     }

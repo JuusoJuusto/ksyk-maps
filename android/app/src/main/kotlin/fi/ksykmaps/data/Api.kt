@@ -59,23 +59,68 @@ object Api {
             DiskCache.write(path, fresh)   // mirror every success so we can serve offline next time
             fresh
         } catch (e: ApiException) {
-            // Fall back to last-good disk copy for:
-            //   status == 0   → no network / IO error
-            //   status == 429 → Vercel bot-protection challenge (OkHttp can't solve JS challenge;
-            //                   once the CDN cache is warm from a browser visit the 429 stops)
-            //   status >= 500 → transient server error
-            // Real auth/not-found errors (401, 403, 404) still surface so
-            // callers can change behavior appropriately.
+            // Three-tier fallback for read-only map data endpoints:
+            //   1. Disk cache — last successful response we saved
+            //   2. GitHub Raw snapshot — data/snapshot/<endpoint>.json in the repo,
+            //      updated periodically. Not behind Vercel bot protection.
+            //   3. Bundled asset — snapshot/<endpoint>.json shipped in the APK.
+            // Only for status 0 (network), 429 (bot check), 5xx (server error).
+            // Real auth/not-found (401/403/404) still surfaces.
             if (e.status == 0 || e.status == 429 || e.status >= 500) {
-                val cached = DiskCache.read(path)
-                if (cached != null) return cached
+                DiskCache.read(path)?.let { return it }
+                fetchGithubSnapshot(path)?.let {
+                    DiskCache.write(path, it)
+                    return it
+                }
+                loadBundledSnapshot(path)?.let { return it }
             }
             throw e
         }
     }
 
-    /** Pure disk read — returns whatever was cached without touching the network. */
-    fun getOffline(path: String): JsonElement? = DiskCache.read(path)
+    /**
+     * Fetch a data snapshot from GitHub Raw. This bypasses Vercel bot
+     * protection entirely (github.com has no such gate) and gives the app
+     * fresh-ish data even when the primary API is unreachable.
+     */
+    private fun fetchGithubSnapshot(path: String): JsonElement? {
+        val slug = path.trim('/').substringBefore('?').substringBefore('/').lowercase()
+        val allowed = setOf("buildings", "rooms", "doors", "hallways")
+        if (slug !in allowed) return null
+        val url = "https://raw.githubusercontent.com/JuusoJuusto/ksyk-maps/main/data/snapshot/$slug.json"
+        return try {
+            val req = Request.Builder().url(url).get()
+                .header("User-Agent", UA)
+                .header("Accept", "application/json")
+                .build()
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return null
+                val text = resp.body?.string() ?: return null
+                if (text.isBlank()) return null
+                json.parseToJsonElement(text)
+            }
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Load a JSON snapshot shipped inside the APK (android/app/src/main/assets/snapshot/).
+     * Guarantees the map ALWAYS shows something even on first launch with no network.
+     */
+    private fun loadBundledSnapshot(path: String): JsonElement? {
+        val slug = path.trim('/').substringBefore('?').substringBefore('/').lowercase()
+        val allowed = setOf("buildings", "rooms", "doors", "hallways")
+        if (slug !in allowed) return null
+        val ctx = try { fi.ksykmaps.KsykApp.instance } catch (_: Exception) { return null }
+        return try {
+            val text = ctx.assets.open("snapshot/$slug.json").bufferedReader().use { it.readText() }
+            if (text.isBlank()) null else json.parseToJsonElement(text)
+        } catch (_: Exception) { null }
+    }
+
+    /** Pure disk read — returns whatever was cached without touching the network.
+     *  Falls back to the APK's bundled snapshot if nothing on disk. */
+    fun getOffline(path: String): JsonElement? =
+        DiskCache.read(path) ?: loadBundledSnapshot(path)
 
     @Throws(ApiException::class)
     fun post(path: String, body: JsonElement): JsonElement = request(path, "POST", body)
