@@ -407,6 +407,7 @@ fun MapScreen() {
 
     LaunchedEffect(mapDataRetryTrigger) {
         dataFetching = true
+        fi.ksykmaps.data.AppLog.info("MapScreen", "data-load start (retry=$mapDataRetryTrigger)")
 
         // STEP 1: Paint from bundled/disk snapshot IMMEDIATELY so the map
         // is never empty. This runs in ~10 ms — no network required.
@@ -418,6 +419,10 @@ fun MapScreen() {
         bundledR?.let { rooms = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
         bundledD?.let { doors = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
         bundledH?.let { hallways = it.jsonArray.mapNotNull { e -> e as? JsonObject } }
+        fi.ksykmaps.data.AppLog.info(
+            "MapScreen",
+            "STEP1 bundled: buildings=${buildings.size} rooms=${rooms.size} doors=${doors.size} hallways=${hallways.size}",
+        )
 
         // STEP 2: Try to refresh from the live API in parallel. Api.get()
         // itself falls back to GitHub Raw snapshots if the live API 429s,
@@ -630,11 +635,18 @@ fun MapScreen() {
     // the building shells that stay put regardless of which level is
     // "active."
     LaunchedEffect(buildings, rooms, selectedFloor, mapRef) {
-        val map = mapRef ?: return@LaunchedEffect
+        val map = mapRef ?: run {
+            fi.ksykmaps.data.AppLog.warn("MapScreen", "render skipped: mapRef=null")
+            return@LaunchedEffect
+        }
         val buildingsGeoJson = buildBuildingsFeatureCollection(buildings, selectedFloor)
         val buildingPinsGeoJson = buildBuildingPinsFeatureCollection(buildings)
         val roomsGeoJson = buildRoomsFeatureCollection(rooms, selectedFloor)
         val roomPinsGeoJson = buildRoomPinsFeatureCollection(rooms, selectedFloor)
+        fi.ksykmaps.data.AppLog.info(
+            "MapScreen",
+            "render polygons: buildingsJson=${buildingsGeoJson.length}chars roomsJson=${roomsGeoJson.length}chars floor=$selectedFloor",
+        )
 
         map.getStyle { style ->
             // ── Buildings (polygon layer) ──
@@ -984,8 +996,10 @@ fun MapScreen() {
                             try { mv.onResume() } catch (_: Exception) {}
                             mv.getMapAsync { m ->
                                 MapViewHolder.map = m
+                                fi.ksykmaps.data.AppLog.info("MapScreen", "MapView getMapAsync fired")
                                 try {
                                     m.setStyle(Style.Builder().fromJson(STYLE_JSON_LIGHT)) {
+                                        fi.ksykmaps.data.AppLog.info("MapScreen", "initial style loaded")
                                         val restored = loadPersistedCamera(c)
                                         val serverDefaults = loadServerMapDefaults(c)
                                         val cam = CameraPosition.Builder()

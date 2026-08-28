@@ -66,6 +66,7 @@ object ThemeState {
 fun SettingsScreen(
     onSignOut: () -> Unit,
     onSignIn: () -> Unit = {},
+    onOpenLogs: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
@@ -209,6 +210,28 @@ fun SettingsScreen(
                             cacheBytes = 0L
                             clearing = false
                         },
+                    )
+                }
+            }
+
+            // ── Diagnostics ────────────────────────────────────────
+            item {
+                val errorCount = fi.ksykmaps.data.AppLog.entriesState.value
+                    .count { it.level == fi.ksykmaps.data.AppLog.Level.ERROR ||
+                             it.level == fi.ksykmaps.data.AppLog.Level.WARN }
+                SettingsGroup(title = if (isFi) "Diagnostiikka" else "Diagnostics") {
+                    LinkGroupRow(
+                        icon = Icons.Outlined.BugReport,
+                        iconTint = if (errorCount > 0) Color(0xFFEF4444)
+                                   else MaterialTheme.colorScheme.primary,
+                        title = if (isFi) "Sovelluslokit" else "App logs",
+                        subtitle = if (errorCount > 0)
+                            (if (isFi) "$errorCount virhettä tai varoitusta"
+                             else "$errorCount errors or warnings")
+                        else
+                            (if (isFi) "Katso viimeaikaiset tapahtumat"
+                             else "See recent app activity"),
+                        onClick = onOpenLogs,
                     )
                 }
             }

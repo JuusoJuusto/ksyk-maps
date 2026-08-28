@@ -10,13 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.47";
+export const APP_VERSION = "4.5.48";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.48",
+    date: "August 2026",
+    title: "Mobile: jakso-filtered lesson notifications + Settings > App Logs viewer",
+    titleFi: "Mobiili: jakso-suodatetut tuntimuistutukset + Asetukset > Sovelluslokit",
+    highlights: [
+      "**Lesson reminders now respect the current jakso** — the initial alarm scheduler was passing every timetable entry regardless of which period was active, causing notifications for lessons in future or past periods. Now filters at both initial schedule and re-schedule.",
+      "**Settings > Diagnostics > App logs** — new in-app log viewer. AppLog captures INFO/WARN/ERROR events from every module (Api, MapScreen, LessonReminder, WifiPositioning, …). Filter by level or tag, share via any messaging app, clear. Purpose: give the user something concrete to attach when reporting bugs.",
+      "**Instrumented Api and MapScreen** — every API call logs whether it hit live, disk cache, GitHub snapshot, or bundled asset; MapScreen logs how many buildings/rooms/doors/hallways loaded at each step. If the map is empty, the log tells us exactly why.",
+    ],
+    highlightsFi: [
+      "**Tuntimuistutukset kunnioittavat nyt aktiivista jaksoa** — muistutusaikataulu välitti aiemmin kaikki lukujärjestyksen merkinnät, mikä aiheutti muistutuksia menneistä tai tulevista jaksoista.",
+      "**Asetukset > Diagnostiikka > Sovelluslokit** — uusi sovelluksen sisäinen lokinäkymä. Suodata tason tai tunnisteen mukaan, jaa mihin tahansa viestisovellukseen.",
+      "**Api ja MapScreen instrumentoitu** — jokainen API-kutsu kirjaa, tuliko vastaus live-palvelimelta, levyvälimuistista, GitHubista vai APK:n mukana toimitetusta paketista.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.47",
     date: "August 2026",
     title: "Mobile map ALWAYS works + admin 'Where am I?' room detection",
+    latest: false,
     titleFi: "Mobiilikartta toimii AINA + hallinnan 'Missä olen?' -tunnistus",
     highlights: [
       "**Mobile map now works with or without network** — every APK ships a bundled snapshot of buildings, rooms, doors and hallways in the assets/ folder. On launch, the map paints from the bundle in ~10 ms, then attempts a live API fetch to update on top. If the live fetch fails (Vercel bot check, no network, etc.), Api.get() falls back to a GitHub Raw hosted snapshot at raw.githubusercontent.com/JuusoJuusto/ksyk-maps/main/data/snapshot/ — completely outside Vercel's bot protection.",
@@ -26,7 +44,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Mobiilikartta toimii nyt aina** — jokainen APK sisältää mukana rakennus-, huone-, ovi- ja käytäväsnapshotin. Käynnistyksessä kartta piirtyy paketista ~10 ms:ssä, sitten päivittyy live-API:sta jos mahdollista. Jos ei mahdollista, käytetään GitHub Raw -snapshotia.",
       "**Hallintapaneeli: 'Missä olen?'** — Wi-Fi-osion yläreunaan lisätty uusi kortti, joka tunnistaa nykyisen huoneesi Wi-Fi:n ja GPS:n yhdistelmästä.",
     ],
-    latest: true,
   },
   {
     version: "4.5.46",

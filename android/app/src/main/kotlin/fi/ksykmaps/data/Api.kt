@@ -57,8 +57,10 @@ object Api {
         return try {
             val fresh = request(path, "GET", null)
             DiskCache.write(path, fresh)   // mirror every success so we can serve offline next time
+            AppLog.info("Api", "GET $path → live OK (${fresh.toString().length} chars)")
             fresh
         } catch (e: ApiException) {
+            AppLog.warn("Api", "GET $path → live failed status=${e.status} msg=${e.message?.take(80)}")
             // Three-tier fallback for read-only map data endpoints:
             //   1. Disk cache — last successful response we saved
             //   2. GitHub Raw snapshot — data/snapshot/<endpoint>.json in the repo,
@@ -67,12 +69,20 @@ object Api {
             // Only for status 0 (network), 429 (bot check), 5xx (server error).
             // Real auth/not-found (401/403/404) still surfaces.
             if (e.status == 0 || e.status == 429 || e.status >= 500) {
-                DiskCache.read(path)?.let { return it }
-                fetchGithubSnapshot(path)?.let {
-                    DiskCache.write(path, it)
+                DiskCache.read(path)?.let {
+                    AppLog.info("Api", "GET $path → disk cache")
                     return it
                 }
-                loadBundledSnapshot(path)?.let { return it }
+                fetchGithubSnapshot(path)?.let {
+                    DiskCache.write(path, it)
+                    AppLog.info("Api", "GET $path → GitHub snapshot")
+                    return it
+                }
+                loadBundledSnapshot(path)?.let {
+                    AppLog.info("Api", "GET $path → bundled snapshot")
+                    return it
+                }
+                AppLog.error("Api", "GET $path → all fallbacks failed")
             }
             throw e
         }

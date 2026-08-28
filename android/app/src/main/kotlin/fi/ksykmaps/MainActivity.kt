@@ -35,6 +35,7 @@ import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.HomeScreen
 import fi.ksykmaps.ui.LessonReminderScheduler
+import fi.ksykmaps.ui.LogsScreen
 import fi.ksykmaps.ui.LoginScreen
 import fi.ksykmaps.ui.LoadingScreen
 import fi.ksykmaps.ui.LunchScreen
@@ -48,8 +49,10 @@ import fi.ksykmaps.ui.WilmaConnectScreen
 import fi.ksykmaps.ui.LanguageState
 import fi.ksykmaps.ui.ThemeState
 import fi.ksykmaps.ui.getAppLanguage
+import fi.ksykmaps.ui.activeJaksoId
 import fi.ksykmaps.ui.isOnboardingDone
 import fi.ksykmaps.ui.loadEntries
+import fi.ksykmaps.ui.loadJaksot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,8 +87,29 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val entries = loadEntries(this@MainActivity)
-                if (entries.isNotEmpty()) LessonReminderScheduler.schedule(this@MainActivity, entries)
-            } catch (_: Throwable) {}
+                if (entries.isNotEmpty()) {
+                    // Filter to the currently active jakso so we don't
+                    // notify about lessons from a period that isn't
+                    // running yet (or already ended). Mirrors the same
+                    // filter LessonReminderReceiver applies on re-schedule.
+                    val activeJakso = try {
+                        activeJaksoId(loadJaksot(this@MainActivity))
+                    } catch (_: Throwable) { null }
+                    val filtered = if (activeJakso != null) {
+                        entries.filter { e ->
+                            val ej = e.jaksoId.ifBlank { "all" }
+                            ej == "all" || ej == activeJakso
+                        }
+                    } else entries
+                    fi.ksykmaps.data.AppLog.info(
+                        "LessonReminder",
+                        "scheduled ${filtered.size}/${entries.size} entries (jakso=$activeJakso)",
+                    )
+                    LessonReminderScheduler.schedule(this@MainActivity, filtered)
+                }
+            } catch (t: Throwable) {
+                fi.ksykmaps.data.AppLog.error("LessonReminder", "schedule failed: ${t.message}")
+            }
         }
         setContent {
             val systemDark = isSystemInDarkTheme()
@@ -249,6 +273,7 @@ private fun AppShell() {
                             onImported = { subScreen = null },
                         )
                         subScreen == "beaconCapture" -> BeaconScreen()
+                        subScreen == "logs" -> LogsScreen(onBack = { subScreen = null })
                         selectedTab == "home" -> HomeScreen(
                             onOpenRooms         = { subScreen = "rooms" },
                             onOpenBeacons       = {},
@@ -275,6 +300,7 @@ private fun AppShell() {
                         selectedTab == "settings" -> SettingsScreen(
                             onSignOut = { Session.clear(ctx) },
                             onSignIn  = { showLogin = true },
+                            onOpenLogs = { subScreen = "logs" },
                         )
                     }
                 }
