@@ -1346,6 +1346,14 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       };
 
       if (req.method === 'GET') {
+        // NEVER CACHE this endpoint — the admin toggles maintenanceMode
+        // from this same object, and stale CDN copies would leave the site
+        // in maintenance mode for up to 30 minutes after disabling it.
+        // Vercel's edge honors these headers when they win over vercel.json's
+        // /api/(.*) rule (last-match wins → our explicit setHeader overrides).
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        res.setHeader('CDN-Cache-Control', 'no-store');
+        res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
         try {
           const settings = await storage.getAppSettings();
           return res.status(200).json(settings ?? DEFAULT_SETTINGS);

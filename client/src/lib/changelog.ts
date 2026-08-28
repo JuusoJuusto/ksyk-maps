@@ -10,13 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.45";
+export const APP_VERSION = "4.5.46";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.46",
+    date: "August 2026",
+    title: "Fix: maintenance mode stuck-on when CDN cached settings",
+    titleFi: "Korjaus: huoltotila juuttui päälle CDN-välimuistin takia",
+    highlights: [
+      "**Maintenance mode can now be disabled** — /api/settings was being cached by the CDN for 30 minutes (from the s-maxage=1800 rule added to make the mobile map work). So when an admin toggled maintenance mode off, the site kept serving `maintenanceMode: true` from the CDN cache. Fixed by adding explicit no-store headers to /api/settings responses, plus cache-busting query params + `cache: 'no-store'` on the client.",
+      "**Site auto-un-maintenances every 30 s** — the public app now polls settings every 30 seconds so users don't have to reload to see the site come back after admin disables maintenance mode.",
+    ],
+    highlightsFi: [
+      "**Huoltotilan voi nyt sammuttaa** — /api/settings-vastaus välitallennettiin CDN:ään 30 minuutiksi, joten huoltotilan sammuttaminen ei tullut voimaan. Korjattu palvelimen no-store-otsikoilla ja selaimen cache-bustingilla.",
+      "**Sivu tulee automaattisesti pois huollosta 30 s välein** — julkinen sovellus tarkistaa asetukset 30 sekunnin välein.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.45",
     date: "August 2026",
     title: "Mobile: map colors fixed, satellite basemap, Vercel bypass, expanded admin panel",
+    latest: false,
     titleFi: "Mobiili: karttavärit korjattu, satelliittinäkymä, Vercel-ohitus, laajennettu hallintapaneeli",
     highlights: [
       "**Buildings and rooms now render on the mobile map** — replaced the data-driven color expression (Expression.toColor(Expression.get(\"color\"))) that was silently failing in MapLibre-Android with hardcoded layer colors (buildings blue, rooms green with per-type tinting via Expression.match on the `type` property, which is well-supported). This is why only walls showed before — walls were the only layer already using a hardcoded color.",
@@ -30,7 +46,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Satelliittitausta** — uusi kerrostoiminto vaihtaa OSM-standardin ja Esri-satelliittikuvan välillä.",
       "**Hallintapaneeli laajennettu 6 osioon** — lisätty Ilmoitukset (uutispostausten kirjoitus mobiilista) ja Käyttäjät (roolimerkittyjen käyttäjien lista).",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.44",

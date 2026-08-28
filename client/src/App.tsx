@@ -98,11 +98,15 @@ function Router() {
   const { data: appSettings } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const r = await fetch("/api/settings");
+      // Cache-bust so the CDN can't leave the site in maintenance mode
+      // for 30 minutes after admin disables it. Poll every 30s so the
+      // public site un-maintenances itself without needing a reload.
+      const r = await fetch("/api/settings?t=" + Date.now(), { cache: "no-store" });
       if (!r.ok) return null;
       return r.json();
     },
-    staleTime: 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   // Maintenance mode hides the public app — but admins still need to

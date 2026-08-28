@@ -67,10 +67,18 @@ export default function AppSettingsManager() {
   const { data: serverSettings, isLoading, isError } = useQuery<AppSettings>({
     queryKey: ['app-settings'],
     queryFn: async () => {
-      const res = await fetch('/api/settings', { credentials: 'include' });
+      // Cache-bust the CDN. /api/settings gates maintenanceMode, so a
+      // stale CDN copy would leave the site in maintenance mode for up
+      // to 30 minutes after disabling it.
+      const res = await fetch('/api/settings?t=' + Date.now(), {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (!res.ok) throw new Error('Failed to load settings');
       return res.json();
     },
+    staleTime: 0,
+    gcTime: 0,
   });
 
   useEffect(() => {
