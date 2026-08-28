@@ -24,10 +24,12 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ViewInAr
@@ -290,6 +292,10 @@ fun MapScreen() {
     // become visible, buildings and room slabs read as real volumes.
     // Off → flat top-down, extrusions hidden, only fill layers show.
     var is3D by remember { mutableStateOf(false) }
+    // Incremented to retry the map data fetch (e.g., user taps "Retry").
+    var mapDataRetryTrigger by remember { mutableIntStateOf(0) }
+    // True while the initial data fetch is in progress.
+    var dataFetching by remember { mutableStateOf(true) }
     // v1.6.0 — first-run detection so we only auto-fit to buildings
     // on the very first data load per session. Stored in MapViewHolder so
     // it survives tab switches (Composable recreated) but resets on app restart.
@@ -356,7 +362,8 @@ fun MapScreen() {
         appliedServerDefaults = true
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(mapDataRetryTrigger) {
+        dataFetching = true
         // All four map data sources fetched in parallel so the map renders
         // in ~1 round-trip instead of 4 sequential round-trips.
         val bldDeferred  = async(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
@@ -395,6 +402,7 @@ fun MapScreen() {
         }.onFailure {
             Api.getOffline("/hallways")?.let { hallways = it.jsonArray.mapNotNull { e2 -> e2 as? JsonObject } }
         }
+        dataFetching = false
     }
 
     // Route rendering — whenever origin or destination changes, redraw
@@ -1069,36 +1077,38 @@ fun MapScreen() {
             )
         }
 
-        // ── Zoom + locate controls (bottom right) ──────────────────
+        // ── Map controls (Apple-Maps-style grouped pills, bottom right) ─────
+        // Zoom and 3D live in one grouped rounded card (like Apple Maps'
+        // right-edge control stack). "My location", refit, and compass
+        // are separate pills below because they're conceptually distinct
+        // actions rather than view options.
         Column(
             Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 12.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.End,
         ) {
-            MapChipButton(icon = Icons.Outlined.Add, label = "Zoom in") {
-                mapRef?.animateCamera(CameraUpdateFactory.zoomIn())
-            }
-            MapChipButton(icon = Icons.Outlined.Remove, label = "Zoom out") {
-                mapRef?.animateCamera(CameraUpdateFactory.zoomOut())
-            }
-            // v1.8.0 — compass chip. Icon spins with current bearing
-            // so users can see how far off north they are; tap resets
-            // to 0°. Hidden when bearing is negligible (<1°) so the
-            // chip doesn't clutter the rail when the map is already
-            // pointing north.
+            // Compass — only when off-north. Small circular pill.
             if (Math.abs(currentBearing) > 1) {
                 CompassChip(bearingDeg = currentBearing) {
                     mapRef?.animateCamera(CameraUpdateFactory.bearingTo(0.0))
                 }
             }
-            MapChipButton(
-                icon = Icons.Outlined.ViewInAr,
-                label = if (is3D) "2D view" else "3D view",
-                highlighted = is3D,
-            ) {
-                is3D = !is3D
+            // Grouped zoom + 3D pill (Apple Maps signature)
+            GroupedMapControls(
+                onZoomIn = { mapRef?.animateCamera(CameraUpdateFactory.zoomIn()) },
+                onZoomOut = { mapRef?.animateCamera(CameraUpdateFactory.zoomOut()) },
+                is3D = is3D,
+                onToggle3D = { is3D = !is3D },
+            )
+            // Refit to campus — one-tap to jump back to the buildings
+            // when a user has wandered off. MazeMap has this as their
+            // "reset view" corner button.
+            MapChipButton(icon = Icons.Outlined.Home, label = "Fit campus") {
+                mapRef?.let { m -> centerOnBuildings(m, buildings) }
             }
+            // Locate me — the primary action, so it stays a standalone chip
             MapChipButton(
                 icon = Icons.Outlined.MyLocation,
                 label = "My location",
@@ -1124,6 +1134,52 @@ fun MapScreen() {
                     .align(Alignment.TopCenter)
                     .padding(top = 74.dp),
             )
+        }
+        // ── Loading / retry pill ───────────────────────────────────
+        // While data is fetching → animated spinner pill.
+        // If fetch finished with zero buildings AND zero rooms → offer
+        // an explicit "Retry" button (typical when the CDN cache is cold
+        // and OkHttp got a bot-check 429 on first launch).
+        val showRetry = !dataFetching && buildings.isEmpty() && rooms.isEmpty() && !offlineMode
+        if (dataFetching || showRetry) {
+            Row(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = if (offlineMode) 120.dp else 74.dp)
+                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp), clip = false)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .clickable(enabled = showRetry) { mapDataRetryTrigger++ },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (dataFetching) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(14.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        if (lang == "fi") "Ladataan karttaa…" else "Loading map…",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                } else {
+                    Icon(
+                        Icons.Outlined.Refresh, null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (lang == "fi") "Yritä uudelleen" else "Retry loading",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
 
         // ── Building/room count pill + Wi-Fi position (bottom-left) ──
@@ -1657,6 +1713,59 @@ private fun MapChipButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * Apple-Maps-style grouped controls — three stacked buttons inside a single
+ * rounded card, separated by hairline dividers. Feels like a real physical
+ * segment control instead of loose chips.
+ */
+@Composable
+private fun GroupedMapControls(
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    is3D: Boolean,
+    onToggle3D: () -> Unit,
+) {
+    Column(
+        Modifier
+            .width(44.dp)
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(22.dp), clip = false)
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surface),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.size(44.dp).clickable(onClick = onZoomIn),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = "Zoom in",
+                 tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+        }
+        HorizontalDivider(
+            Modifier.padding(horizontal = 10.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+        )
+        Box(
+            Modifier.size(44.dp).clickable(onClick = onZoomOut),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Remove, contentDescription = "Zoom out",
+                 tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+        }
+        HorizontalDivider(
+            Modifier.padding(horizontal = 10.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+        )
+        val fg3d = if (is3D) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        Box(
+            Modifier.size(44.dp).clickable(onClick = onToggle3D),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.ViewInAr, contentDescription = if (is3D) "2D view" else "3D view",
+                 tint = fg3d, modifier = Modifier.size(20.dp))
+        }
     }
 }
 

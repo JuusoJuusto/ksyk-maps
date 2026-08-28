@@ -62,12 +62,17 @@ fun LunchScreen() {
             try {
                 val result = withContext(Dispatchers.IO) { fetchMenu() }
                 days = result
-                // Pick today's row if the menu has it. Otherwise show
-                // the closest upcoming day (weekend → Monday), which is
-                // more useful than defaulting to Monday every time.
+                // Pick today's row. Three-layer fallback so we always land
+                // on the right day even when the RSS title lacks a date:
+                //   1. exact date match (most reliable)
+                //   2. day-of-week match against the label text
+                //      (label often reads "Maanantai" / "Tiistai" etc.)
+                //   3. closest upcoming date (weekend → next Monday)
                 val todayIdx = result.indexOfFirst { it.date == today }
+                val dowIdx = if (todayIdx < 0) matchByDayOfWeek(result, today, lang) else -1
                 val bestIdx = when {
                     todayIdx >= 0 -> todayIdx
+                    dowIdx >= 0 -> dowIdx
                     else -> result.indexOfFirst { it.date != null && it.date >= today }
                         .takeIf { it >= 0 } ?: 0
                 }
@@ -602,6 +607,24 @@ private fun String.decodeHtmlEntities(): String = this
     .replace("&quot;", "\"")
     .replace("&#39;", "'")
     .replace(Regex("\\s{2,}"), " ")
+
+/**
+ * Fallback matcher when the RSS date can't be parsed — check whether the
+ * label contains today's weekday name in Finnish or English. Compass
+ * Group's feed titles read like "Maanantai 25.8." or just "Maanantai".
+ */
+private fun matchByDayOfWeek(days: List<LunchDay>, today: LocalDate, lang: String): Int {
+    val dow = today.dayOfWeek.value
+    val fiNames = listOf("maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai")
+    val enNames = listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+    val target = if (lang == "fi") fiNames[dow - 1] else enNames[dow - 1]
+    // Match either the localized day name or (as a safety net) the other language's name.
+    val otherTarget = if (lang == "fi") enNames[dow - 1] else fiNames[dow - 1]
+    return days.indexOfFirst { d ->
+        val lbl = d.label.lowercase()
+        lbl.contains(target) || lbl.contains(otherTarget)
+    }
+}
 
 private fun parseDate(label: String): LocalDate? {
     val yearPattern = Regex("(\\d{1,2})\\.(\\d{2})\\.(\\d{4})")

@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.42";
+export const APP_VERSION = "4.5.43";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.43",
+    date: "August 2026",
+    title: "Mobile: Apple-Maps-style controls; lunch defaults to today; loading + retry states",
+    titleFi: "Mobiili: Apple Maps -tyyliset kontrollit; lounas näyttää tänään; latautuminen + yritä uudelleen",
+    highlights: [
+      "**Map controls redesigned in Apple Maps / MazeMap style** — zoom in/out and 3D toggle are now grouped in a single rounded pill with hairline dividers. Added a dedicated 'Fit campus' button that re-centers the map on the buildings when you've wandered off.",
+      "**Map now shows loading and retry states** — a small pill at the top says 'Loading map…' while data fetches, and if buildings and rooms both come back empty (usually because the CDN cache is cold and OkHttp got a 429), a 'Retry loading' pill appears so the user can trigger another fetch instead of staring at a blank map.",
+      "**Lunch page always opens on today** — added a day-of-week fallback so today is picked even when the RSS feed doesn't include a parseable date.",
+      "**vercel.json: API caching rule moved to end** — Vercel applies last-matching header wins, so /api/(.*) with s-maxage=1800 must come after the global no-cache rule to actually take effect.",
+    ],
+    highlightsFi: [
+      "**Karttakontrollit uudistettu Apple Maps / MazeMap -tyyliin** — zoomaus ja 3D-vaihto on yhdistetty yhteen pyöristettyyn pilleriin ohuilla erottimilla. Lisätty 'Sovita kampukselle' -nappi, joka keskittää kartan takaisin rakennuksiin.",
+      "**Kartta näyttää nyt latautumis- ja yrityksen uudelleen -tilat** — latautumisen aikana pieni pilleri kertoo 'Ladataan karttaa…', ja jos rakennukset ja huoneet palautuvat tyhjinä, näytetään 'Yritä uudelleen' -pilleri.",
+      "**Lounas-sivu avautuu aina tänään** — lisätty viikonpäivä-fallback, joten oikea päivä valitaan vaikka RSS-syöte ei sisällä päivämäärää.",
+      "**vercel.json: API-välimuistisääntö siirretty loppuun** — Vercel soveltaa viimeksi täsmäävää sääntöä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.42",
     date: "August 2026",
@@ -26,7 +45,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**API CDN-välimuisti korjattu** — vercel.json:n globaali no-cache-sääntö kumosi funktion asettaman s-maxage-otsikon; CDN ei koskaan tallentanut API-vastauksia. API-reiteillä on nyt oma sääntö (s-maxage=1800) ensimmäisenä.",
       "**Android käyttää levyvälimuistia 429-virheen sattuessa** — kun Vercel:n bot-suojaus estää OkHttp:n (HTTP 429), sovellus käyttää viimeksi onnistuneesti tallennettua vastausta.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.41",
