@@ -164,33 +164,49 @@ export default function App() {
     initTelemetry();
   }, []);
 
-  // Global error logging to admin panel
+  // Global error logging to the admin activity feed. Uses the
+  // adblock-safe /api/session/heartbeat endpoint so uBlock Origin,
+  // AdGuard etc. don't strip the beacon before it leaves the browser.
   useEffect(() => {
-    const onError = (e: ErrorEvent) => {
-      fetch("/api/logs", {
+    const send = (payload: Record<string, unknown>) => {
+      const body = JSON.stringify({
+        source: "web",
+        sessionId: sessionStorage.getItem("ksyk_session_id") ?? "anon",
+        userId: localStorage.getItem("ksyk_user_id") ?? "anon",
+        events: [{ ts: new Date().toISOString(), ...payload }],
+      });
+      if (navigator.sendBeacon) {
+        try {
+          navigator.sendBeacon(
+            "/api/session/heartbeat",
+            new Blob([body], { type: "application/json" }),
+          );
+          return;
+        } catch { /* fallthrough */ }
+      }
+      fetch("/api/session/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "error",
-          message: `Global Error: ${e.message}`,
-          details: { filename: e.filename, lineno: e.lineno, colno: e.colno, stack: e.error?.stack },
-          timestamp: new Date().toISOString(),
-          source: "window.onerror",
-        }),
+        body,
+        keepalive: true,
       }).catch(() => {});
     };
+    const onError = (e: ErrorEvent) => {
+      send({
+        type: "error",
+        level: "error",
+        message: `Global Error: ${e.message}`,
+        url: window.location.pathname,
+        stack: e.error?.stack,
+      });
+    };
     const onRejection = (e: PromiseRejectionEvent) => {
-      fetch("/api/logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "error",
-          message: `Unhandled Rejection: ${e.reason}`,
-          details: { reason: String(e.reason) },
-          timestamp: new Date().toISOString(),
-          source: "unhandledrejection",
-        }),
-      }).catch(() => {});
+      send({
+        type: "error",
+        level: "error",
+        message: `Unhandled Rejection: ${e.reason}`,
+        url: window.location.pathname,
+      });
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);

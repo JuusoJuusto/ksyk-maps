@@ -116,17 +116,18 @@ fun AdminPanelScreen(
                 selected = selectedSection,
                 onSelect = { selectedSection = it },
                 labels = if (isFi)
-                    listOf("Yleiskatsaus", "Ilmoitukset", "Wi-Fi", "Sijainti", "Käyttäjät", "Toiminnot")
+                    listOf("Yleiskatsaus", "Aktiviteetti", "Ilmoitukset", "Wi-Fi", "Sijainti", "Käyttäjät", "Toiminnot")
                 else
-                    listOf("Overview", "News", "Wi-Fi", "Live", "Users", "Actions"),
+                    listOf("Overview", "Activity", "News", "Wi-Fi", "Live", "Users", "Actions"),
             )
             when (selectedSection) {
                 0 -> AdminOverviewSection(isFi, scope)
-                1 -> AdminAnnouncementsSection(isFi, scope)
-                2 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
-                3 -> AdminLiveSection(isFi)
-                4 -> AdminUsersSection(isFi)
-                5 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
+                1 -> AdminActivitySection(isFi)
+                2 -> AdminAnnouncementsSection(isFi, scope)
+                3 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
+                4 -> AdminLiveSection(isFi)
+                5 -> AdminUsersSection(isFi)
+                6 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
             }
         }
     }
@@ -1495,4 +1496,349 @@ private fun formatBytesAdmin(b: Long): String = when {
     b < 1024 -> "$b B"
     b < 1024 * 1024 -> "%.1f KB".format(b / 1024.0)
     else -> "%.1f MB".format(b / (1024.0 * 1024.0))
+}
+
+// ── Activity / analytics section ──────────────────────────────────────
+// Streams unified activity feed from /api/admin/activity plus headline
+// stats from /api/admin/activity/live-stats. Filters by source (web /
+// android / server) and log level. Auto-refreshes every 15 s while the
+// tab is visible.
+
+private data class ActivityRow(
+    val id: String,
+    val ts: String,
+    val kind: String,
+    val level: String,
+    val source: String,
+    val message: String,
+    val url: String,
+)
+
+private data class ActivityStats(
+    val pageviews24h: Int,
+    val pageviewsLastHour: Int,
+    val errors24h: Int,
+    val topScreens: List<Pair<String, Int>>,
+    val bySource: Map<String, Int>,
+)
+
+@Composable
+private fun AdminActivitySection(isFi: Boolean) {
+    var rows by remember { mutableStateOf<List<ActivityRow>>(emptyList()) }
+    var stats by remember { mutableStateOf<ActivityStats?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var sourceFilter by remember { mutableStateOf<String?>(null) } // null = all
+    var levelFilter by remember { mutableStateOf<String?>(null) }
+    var refreshTick by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(refreshTick, sourceFilter, levelFilter) {
+        loading = true
+        val fetched = withContext(Dispatchers.IO) {
+            val qs = buildString {
+                append("?limit=300")
+                sourceFilter?.let { append("&source=$it") }
+                levelFilter?.let { append("&level=$it") }
+            }
+            val rowsResult = runCatching {
+                val obj = Api.get("/admin/activity$qs").jsonObject
+                val arr = obj["rows"]?.jsonArray ?: JsonArray(emptyList())
+                arr.mapNotNull { el ->
+                    val o = el as? JsonObject ?: return@mapNotNull null
+                    ActivityRow(
+                        id = (o["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
+                        ts = (o["ts"] as? JsonPrimitive)?.contentOrNull ?: "",
+                        kind = (o["kind"] as? JsonPrimitive)?.contentOrNull ?: "",
+                        level = (o["level"] as? JsonPrimitive)?.contentOrNull ?: "info",
+                        source = (o["source"] as? JsonPrimitive)?.contentOrNull ?: "",
+                        message = (o["message"] as? JsonPrimitive)?.contentOrNull ?: "",
+                        url = (o["url"] as? JsonPrimitive)?.contentOrNull ?: "",
+                    )
+                }
+            }
+            val statsResult = runCatching {
+                val o = Api.get("/admin/activity/live-stats").jsonObject
+                val topArr = o["topScreens"]?.jsonArray ?: JsonArray(emptyList())
+                val top = topArr.mapNotNull { el ->
+                    val ob = el as? JsonObject ?: return@mapNotNull null
+                    val u = (ob["url"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                    val c = (ob["count"] as? JsonPrimitive)?.intOrNull ?: 0
+                    u to c
+                }
+                val by = (o["bySource"] as? JsonObject)?.mapValues {
+                    (it.value as? JsonPrimitive)?.intOrNull ?: 0
+                } ?: emptyMap()
+                ActivityStats(
+                    pageviews24h = (o["pageviews24h"] as? JsonPrimitive)?.intOrNull ?: 0,
+                    pageviewsLastHour = (o["pageviewsLastHour"] as? JsonPrimitive)?.intOrNull ?: 0,
+                    errors24h = (o["errors24h"] as? JsonPrimitive)?.intOrNull ?: 0,
+                    topScreens = top,
+                    bySource = by,
+                )
+            }
+            rowsResult to statsResult
+        }
+        fetched.first.onSuccess { rows = it; error = null }
+            .onFailure { error = it.message }
+        fetched.second.onSuccess { stats = it }
+        loading = false
+    }
+
+    // Auto-refresh every 15 s.
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(15_000)
+            refreshTick++
+        }
+    }
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatTile(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Outlined.Visibility,
+                    label = if (isFi) "24h katselut" else "Views 24h",
+                    value = stats?.pageviews24h?.toString() ?: "…",
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                StatTile(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Outlined.Bolt,
+                    label = if (isFi) "Viim. tunti" else "Last hour",
+                    value = stats?.pageviewsLastHour?.toString() ?: "…",
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+                StatTile(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Outlined.Warning,
+                    label = if (isFi) "Virheet 24h" else "Errors 24h",
+                    value = stats?.errors24h?.toString() ?: "…",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        // ── Source filter pills ─────────────────────────────────────
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    if (isFi) "Lähde" else "Source",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val items = listOf(
+                        null to (if (isFi) "Kaikki" else "All"),
+                        "web" to "Web",
+                        "android" to "Android",
+                        "server" to "Server",
+                    )
+                    items(items) { (key, label) ->
+                        FilterChipTiny(
+                            selected = sourceFilter == key,
+                            label = label,
+                            onClick = { sourceFilter = key },
+                        )
+                    }
+                }
+                Text(
+                    if (isFi) "Taso" else "Level",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val items = listOf(
+                        null to (if (isFi) "Kaikki" else "All"),
+                        "error" to "Error",
+                        "warn" to "Warn",
+                        "info" to "Info",
+                        "debug" to "Debug",
+                    )
+                    items(items) { (key, label) ->
+                        FilterChipTiny(
+                            selected = levelFilter == key,
+                            label = label,
+                            onClick = { levelFilter = key },
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Top screens ─────────────────────────────────────────────
+        stats?.topScreens?.takeIf { it.isNotEmpty() }?.let { top ->
+            item {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        if (isFi) "Suosituimmat näkymät" else "Top screens",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    top.take(6).forEach { (u, c) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(u.ifBlank { "/" }, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$c", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Event stream ─────────────────────────────────────────────
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    if (isFi) "Tapahtumat" else "Events",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (loading) CircularProgressIndicator(
+                        Modifier.size(14.dp), strokeWidth = 2.dp,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = { refreshTick++ }) {
+                        Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+        }
+        error?.let { err ->
+            item {
+                Text(
+                    (if (isFi) "Virhe: " else "Error: ") + err,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                )
+            }
+        }
+        if (!loading && rows.isEmpty() && error == null) {
+            item {
+                Text(
+                    if (isFi) "Ei tapahtumia valituilla suodattimilla."
+                    else "No events matching the filters.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 12.dp),
+                )
+            }
+        }
+        items(rows, key = { it.id }) { row ->
+            ActivityRowCard(row)
+        }
+    }
+}
+
+@Composable
+private fun FilterChipTiny(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun ActivityRowCard(row: ActivityRow) {
+    val badgeColor = when (row.level) {
+        "error" -> MaterialTheme.colorScheme.error
+        "warn" -> MaterialTheme.colorScheme.tertiary
+        "debug" -> MaterialTheme.colorScheme.outline
+        else -> MaterialTheme.colorScheme.primary
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(width = 44.dp, height = 20.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(badgeColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    row.level.uppercase(),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = badgeColor,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                row.source.uppercase(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                formatShortTime(row.ts),
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(row.message, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        if (row.url.isNotBlank()) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                row.url,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun formatShortTime(iso: String): String {
+    return try {
+        val i = Instant.parse(iso)
+        val delta = (System.currentTimeMillis() - i.toEpochMilli()) / 1000
+        when {
+            delta < 60 -> "${delta}s"
+            delta < 3600 -> "${delta / 60}m"
+            delta < 86_400 -> "${delta / 3600}h"
+            else -> "${delta / 86_400}d"
+        }
+    } catch (_: Throwable) { iso.take(19) }
 }

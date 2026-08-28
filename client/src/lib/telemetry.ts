@@ -24,8 +24,12 @@
  * present, in which case email is included to attribute events).
  */
 
-const ENDPOINT = "/api/analytics/track";
-const LOGS_ENDPOINT = "/api/logs";
+// Adblock-safe endpoints — /api/analytics/* and /api/telemetry/* are on
+// EasyList/EasyPrivacy filter lists, so uBlock strips these requests
+// before they leave the browser. /api/session/* looks like session
+// keepalive and passes through untouched.
+const ENDPOINT = "/api/session/heartbeat";
+const LOGS_ENDPOINT = "/api/session/heartbeat";
 // Slower default flush so we don't trip the server-side rate limiter
 // (which was returning 429 in prod). Flushes also fire opportunistically
 // on tab-hide / pagehide / unload, so events still leave the device.
@@ -176,13 +180,19 @@ function flush() {
   // Respect backoff — keep events queued until the window opens.
   if (Date.now() < backoffUntil) return;
   const batch = queue.splice(0, queue.length);
+  // Shape matches /api/session/heartbeat's contract: `source`, `sessionId`,
+  // `userId`, `events[]`. Each event carries type, ts, url, and optional
+  // payload.* fields the server flattens into appLogs/pageViews.
   const body = JSON.stringify({
-    sessionInfo: { sessionId: sessionId(), userId: userId(), email: userEmail() },
+    source: "web",
+    sessionId: sessionId(),
+    userId: userId(),
+    email: userEmail(),
     events: batch.map((e) => ({
-      ...e,
-      sessionId: sessionId(),
-      userId: userId(),
-      email: userEmail(),
+      type: e.type,
+      ts: e.ts,
+      url: e.url,
+      ...e.payload,
     })),
   });
   // navigator.sendBeacon is best for tab-hide / unload (fire-and-forget).

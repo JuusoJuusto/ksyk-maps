@@ -2957,6 +2957,261 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       return res.status(200).json(rows);
     }
 
+    // ── Adblock-safe unified ingest ─────────────────────────────────────
+    // /api/analytics/* and /api/telemetry/* are blocked by uBlock Origin
+    // (EasyList, EasyPrivacy). We alias the same behaviour under path
+    // names that don't match any tracking filter: /session/heartbeat,
+    // /session/sync, /config/report. All three accept:
+    //   { source: "web"|"android"|"ios", events: [...], userId?, sessionId?, meta? }
+    // and fan out into appLogs + pageViews + searchAnalytics.
+    if (
+      (apiPath === '/session/heartbeat' ||
+        apiPath === '/session/sync' ||
+        apiPath === '/config/report' ||
+        apiPath === '/preferences/save') &&
+      req.method === 'POST'
+    ) {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs, pageViews, searchAnalytics } = await import('../shared/schema.js');
+        const body = req.body || {};
+        const source = ((body.source || 'web') as string).slice(0, 20);
+        const sessionId = ((body.sessionId || 'anon') as string).slice(0, 60);
+        const userId = ((body.userId || '') as string).slice(0, 60);
+        const events = Array.isArray(body.events) ? body.events.slice(0, 100) : [];
+        const ua = (req.headers['user-agent'] || '').toString().slice(0, 300);
+        const nowIso = new Date().toISOString();
+
+        // Persist each event into the most appropriate table. We tolerate
+        // partial failures — every table insert is `.catch(() => {})`.
+        for (const ev of events) {
+          if (!ev || typeof ev !== 'object') continue;
+          const kind = ((ev.type || ev.event || 'unknown') as string).slice(0, 50);
+          const msg = ((ev.message || ev.msg || '') as string).slice(0, 1000);
+          const level = (['error', 'warn', 'warning', 'info', 'debug', 'success'].includes(String(ev.level))
+            ? String(ev.level).replace('warning', 'warn')
+            : (kind.includes('error') || kind === 'error' ? 'error'
+              : kind === 'warn' ? 'warn'
+                : 'info'));
+          if (kind === 'page_view' || kind === 'pageview' || kind === 'screen_view') {
+            await pgDb.insert(pageViews).values({
+              url: ((ev.url || ev.path || ev.screen || '/') as string).slice(0, 200),
+              sessionId,
+              userId: null,
+              referrer: ((ev.referrer || ev.from || '') as string).slice(0, 200),
+              userAgent: ua,
+              deviceType: source,
+            }).catch(() => {});
+          } else if (kind === 'search') {
+            const q = ((ev.query || ev.q || '') as string).slice(0, 200).trim();
+            if (q) {
+              await pgDb.insert(searchAnalytics).values({
+                query: q,
+                sessionId,
+                userId: null,
+                resultsCount: Number(ev.hits ?? ev.resultsCount ?? 0),
+              } as any).catch(() => {});
+            }
+          }
+          // Every event, regardless of kind, is also stored as an appLog
+          // row so /api/admin/activity can present a unified stream.
+          const label = kind.startsWith('feature') ? kind : `${source}:${kind}`;
+          const payload = msg ? `${label} — ${msg}` : label;
+          await pgDb.insert(appLogs).values({
+            level,
+            message: payload.slice(0, 500),
+            userAgent: ua,
+            url: ((ev.url || ev.path || ev.screen || '') as string).slice(0, 200),
+            ipAddress: clientIP.slice(0, 45),
+            errorStack: ((ev.stack || ev.errorStack || null) as string | null)?.slice(0, 2000) ?? null,
+          } as any).catch(() => {});
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(204).end();
+      } catch (err) {
+        console.error('session/heartbeat error:', err);
+        return res.status(204).end();
+      }
+    }
+
+    // ── Adblock-safe GET pixel — same payload via querystring beacon ──
+    // Fires from <img src="/api/session/ping?..."> when sendBeacon isn't
+    // available (Safari on iOS <13, some corporate proxies). We accept
+    // a single event per hit encoded as query params.
+    if (apiPath.startsWith('/session/ping') && req.method === 'GET') {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { pageViews } = await import('../shared/schema.js');
+        const q = req.query as Record<string, string>;
+        await pgDb.insert(pageViews).values({
+          url: (q.p || '/').slice(0, 200),
+          sessionId: (q.s || 'anon').slice(0, 60),
+          userId: null,
+          referrer: (q.r || '').slice(0, 200),
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          deviceType: (q.src || 'web').slice(0, 20),
+        }).catch(() => {});
+      } catch { /* non-critical */ }
+      const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+      res.setHeader('Content-Type', 'image/gif');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).end(gif);
+    }
+
+    // ── GET /api/admin/activity ─────────────────────────────────────────
+    // Unified paginated stream for the admin panel's Aktiviteetti tab.
+    // Merges appLogs + pageViews + searchAnalytics into a single time-
+    // ordered feed with filter options: level, source, since, limit.
+    if (apiPath.startsWith('/admin/activity') && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs, pageViews, searchAnalytics } = await import('../shared/schema.js');
+        const { desc, gte, eq, and } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(parseInt(q.limit || '200', 10), 500);
+        const sinceParam = q.since ? new Date(q.since) : new Date(Date.now() - 24 * 3600 * 1000);
+        const since = isNaN(sinceParam.getTime()) ? new Date(Date.now() - 24 * 3600 * 1000) : sinceParam;
+        const levelFilter = q.level;
+        const sourceFilter = q.source; // "web" | "android"
+
+        const [logs, views, searches] = await Promise.all([
+          pgDb.select().from(appLogs)
+            .where(levelFilter
+              ? and(gte(appLogs.createdAt, since), eq(appLogs.level, levelFilter))
+              : gte(appLogs.createdAt, since))
+            .orderBy(desc(appLogs.createdAt))
+            .limit(limit).catch(() => [] as any[]),
+          pgDb.select().from(pageViews)
+            .where(gte(pageViews.createdAt, since))
+            .orderBy(desc(pageViews.createdAt))
+            .limit(limit).catch(() => [] as any[]),
+          pgDb.select().from(searchAnalytics)
+            .where(gte(searchAnalytics.createdAt, since))
+            .orderBy(desc(searchAnalytics.createdAt))
+            .limit(limit).catch(() => [] as any[]),
+        ]);
+
+        type Row = {
+          id: string; ts: string; kind: string; level: string;
+          source: string; message: string; url: string; userAgent: string;
+        };
+        const rows: Row[] = [];
+        for (const r of logs as any[]) {
+          // Message format when written via /session/heartbeat is
+          // "<source>:<kind> — <message>". Parse it back out so the
+          // dashboard can filter by source natively.
+          const parts = String(r.message || '').split(':');
+          const src = parts.length > 1 && ['web', 'android', 'ios'].includes(parts[0])
+            ? parts[0] : 'server';
+          rows.push({
+            id: `log:${r.id}`,
+            ts: (r.createdAt as Date).toISOString(),
+            kind: 'log',
+            level: r.level || 'info',
+            source: src,
+            message: r.message || '',
+            url: r.url || '',
+            userAgent: r.userAgent || '',
+          });
+        }
+        for (const r of views as any[]) {
+          rows.push({
+            id: `view:${r.id}`,
+            ts: (r.createdAt as Date).toISOString(),
+            kind: 'pageview',
+            level: 'info',
+            source: r.deviceType || 'web',
+            message: `pageview ${r.url}`,
+            url: r.url || '',
+            userAgent: r.userAgent || '',
+          });
+        }
+        for (const r of searches as any[]) {
+          rows.push({
+            id: `search:${r.id}`,
+            ts: (r.createdAt as Date).toISOString(),
+            kind: 'search',
+            level: 'info',
+            source: 'web',
+            message: `search "${r.query}" → ${r.resultsCount ?? 0} hits`,
+            url: '',
+            userAgent: '',
+          });
+        }
+        rows.sort((a, b) => b.ts.localeCompare(a.ts));
+        const filtered = sourceFilter
+          ? rows.filter(r => r.source === sourceFilter)
+          : rows;
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          rows: filtered.slice(0, limit),
+          totals: {
+            log: logs.length,
+            pageview: views.length,
+            search: searches.length,
+          },
+          since: since.toISOString(),
+        });
+      } catch (err) {
+        console.error('admin/activity error:', err);
+        return res.status(200).json({ rows: [], totals: { log: 0, pageview: 0, search: 0 } });
+      }
+    }
+
+    // GET /api/admin/activity/live-stats — headline numbers for the
+    // Aktiviteetti page hero: DAU proxy, top screens, error rate.
+    if (apiPath === '/admin/activity/live-stats' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs, pageViews } = await import('../shared/schema.js');
+        const { gte, eq, and, count: pgCount } = await import('drizzle-orm');
+        const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
+        const hourAgo = new Date(Date.now() - 3600 * 1000);
+
+        const [pvDay, pvHour, errDay, logsSample] = await Promise.all([
+          pgDb.select({ count: pgCount() }).from(pageViews)
+            .where(gte(pageViews.createdAt, dayAgo)).catch(() => [{ count: 0 }]),
+          pgDb.select({ count: pgCount() }).from(pageViews)
+            .where(gte(pageViews.createdAt, hourAgo)).catch(() => [{ count: 0 }]),
+          pgDb.select({ count: pgCount() }).from(appLogs)
+            .where(and(gte(appLogs.createdAt, dayAgo), eq(appLogs.level, 'error')))
+            .catch(() => [{ count: 0 }]),
+          pgDb.select({ url: pageViews.url, deviceType: pageViews.deviceType })
+            .from(pageViews).where(gte(pageViews.createdAt, dayAgo))
+            .limit(1000).catch(() => [] as any[]),
+        ]);
+
+        const screenCounts: Record<string, number> = {};
+        const sourceCounts: Record<string, number> = {};
+        for (const r of logsSample as any[]) {
+          const url = (r.url || '/') as string;
+          screenCounts[url] = (screenCounts[url] || 0) + 1;
+          const src = (r.deviceType || 'web') as string;
+          sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+        }
+        const topScreens = Object.entries(screenCounts)
+          .map(([url, count]) => ({ url, count }))
+          .sort((a, b) => b.count - a.count).slice(0, 10);
+
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          pageviews24h: Number((pvDay[0] as any)?.count ?? 0),
+          pageviewsLastHour: Number((pvHour[0] as any)?.count ?? 0),
+          errors24h: Number((errDay[0] as any)?.count ?? 0),
+          topScreens,
+          bySource: sourceCounts,
+          fetchedAt: new Date().toISOString(),
+        });
+      } catch {
+        return res.status(200).json({
+          pageviews24h: 0, pageviewsLastHour: 0, errors24h: 0,
+          topScreens: [], bySource: {}, fetchedAt: new Date().toISOString(),
+        });
+      }
+    }
+
     // 404 for unknown routes
     return res.status(404).json({
       message: "Not found",
@@ -2972,7 +3227,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         '/auth/user',
         '/auth/admin-login',
         '/map-package',
-        '/telemetry/pageview'
+        '/telemetry/pageview',
+        '/session/heartbeat',
+        '/admin/activity'
       ]
     });
     

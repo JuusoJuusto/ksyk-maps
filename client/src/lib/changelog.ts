@@ -10,25 +10,45 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.49";
+export const APP_VERSION = "4.5.50";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.50",
+    date: "August 2026",
+    title: "Map v2 (Apple/MazeMap style) + admin Activity feed with adblocker-safe telemetry",
+    titleFi: "Kartta v2 (Apple/MazeMap-tyyli) + hallintapaneelin Aktiviteetti-syöte adblocker-kestävällä telemetrialla",
+    highlights: [
+      "**Mobile map rewritten from scratch** — the previous Compose ↔ MapLibre bridge suffered from cascading layer wipe races on basemap swap and Compose list-identity issues that silently dropped live data. The new architecture bakes the bundled snapshot into the initial Style JSON so buildings + rooms show on the very first frame, and live data updates only call `source.setGeoJson()` — no layer surgery, no possible race.",
+      "**Apple/MazeMap-style controls** — right-side pill column (satellite toggle, my-location, refresh), left-side floor selector, top-center search bar, animated bottom detail sheet with a single Directions CTA. Categorical room colours (classroom/lab/office/toilet/cafeteria/library/gym/etc).",
+      "**Admin Activity tab** — new Aktiviteetti section streams every web + mobile event into one live feed: 24 h pageviews, last-hour throughput, error count, top screens, filterable by source (web / android / server) and log level. Auto-refreshes every 15 s.",
+      "**Adblocker-safe telemetry pipeline** — /api/analytics/* and /api/telemetry/* are on EasyList and get stripped by uBlock Origin / AdGuard. New /api/session/heartbeat, /api/session/sync, /api/config/report aliases look like session keepalive and pass through untouched. Web + Android both send through the safe path now.",
+      "**Mobile logs auto-forward** — WARN and ERROR entries in the Android AppLog are batched every 5 s and posted to the adblock-safe endpoint, so the admin Activity feed shows real device errors alongside web ones without needing users to open Settings → Logs.",
+    ],
+    highlightsFi: [
+      "**Mobiilikartta kirjoitettu uusiksi** — koko renderöintiarkkitehtuuri korvattu: Style JSON sisältää mukana toimitetun datan heti, live-päivitykset kutsuvat vain source.setGeoJson(). Ei enää katoavia kerroksia.",
+      "**Apple/MazeMap-tyyliset kontrollit** — pillikolumni oikealla, kerrosvalitsin vasemmalla, haku ylhäällä, animoitu detail-sheet alhaalla.",
+      "**Hallintapaneelin Aktiviteetti-välilehti** — yksi live-syöte kaikista web- ja mobiilitapahtumista: näyttökerrat, virheet, TOP-sivut.",
+      "**Adblocker-kestävä telemetria** — /api/session/heartbeat -aliakset kiertävät uBlockin suodattimet.",
+      "**Mobiililokit lähetetään palvelimelle automaattisesti** — WARN/ERROR-tasot 5 s välein.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.49",
     date: "August 2026",
     title: "Mobile map: fix redundant style reload wiping polygon layers",
-    titleFi: "Mobiilikartta: korjattu tarpeeton tyylin uudelleenlataus, joka pyyhki polygonikerrokset",
+    titleFi: "Mobiilikartta: korjattu tarpeeton tyylin uudelleenlataus",
     highlights: [
-      "**Buildings and rooms now actually render** — the basemap-swap LaunchedEffect was firing on every mapRef assignment (not just user toggles) and calling setStyle again, which wiped the polygon layers the render LaunchedEffect had just added. Since the polygon effect's state keys hadn't changed, it never re-added them. Now the basemap effect skips the initial mount (factory already installed the style) and only swaps when the user actually taps the layers chip. The polygon render effect also depends on a styleReloadTrigger counter so it always re-adds layers after a legitimate swap.",
-      "**Safety net: auto-fit to campus when persisted camera is >500 m away** — if you (or a previous session) left the camera far from KSYK, the app now snaps back to the buildings automatically instead of showing empty ocean.",
-      "**Compose list-identity fix** — live API data was fetched successfully but rooms/buildings state wasn't re-assigning because the fresh List.equals() the previous one. Explicit `!=` guard now ensures state updates propagate.",
+      "Basemap-swap LaunchedEffect was firing on every mapRef assignment, wiping polygon layers. Fixed with initial-mount skip + styleReloadTrigger.",
+      "Compose list-identity guard so live data actually replaces bundled data.",
+      "Auto-fit safety net if persisted camera is >500 m from campus.",
     ],
     highlightsFi: [
-      "**Rakennukset ja huoneet renderöityvät nyt oikeasti** — tausta-vaihtoefekti latasi tyylin uudelleen tarpeettomasti, pyyhkien polygonikerrokset. Korjattu.",
-      "**Turvaverkko: automaattinen sovitus kampukselle, jos kamera on yli 500 m päässä**",
-      "**Compose-lista-identiteetin korjaus** — live-API-datan päivitys ei aiemmin päivittänyt tilaa jos uusi lista oli identtinen edellisen kanssa.",
+      "Basemap-vaihto pyyhki polygonikerroksia — korjattu.",
+      "Compose-lista-identiteetin korjaus.",
+      "Automaattinen sovitus kampukselle.",
     ],
-    latest: true,
   },
   {
     version: "4.5.48",

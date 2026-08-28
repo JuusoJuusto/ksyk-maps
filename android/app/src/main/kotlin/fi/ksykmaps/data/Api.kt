@@ -135,6 +135,22 @@ object Api {
     @Throws(ApiException::class)
     fun post(path: String, body: JsonElement): JsonElement = request(path, "POST", body)
 
+    /**
+     * Send a raw JSON body via POST with no response parsing and no
+     * exception on failure. Used by AppLog to forward log entries to
+     * /session/heartbeat without recursively logging (and risking loops)
+     * if the beacon itself fails.
+     */
+    fun postFireAndForget(path: String, rawJsonBody: String) {
+        try {
+            val builder = Request.Builder().url(base + path)
+            base(builder, includeAuth = false)
+            val rb = rawJsonBody.toRequestBody("application/json".toMediaType())
+            builder.post(rb)
+            client.newCall(builder.build()).execute().use { /* discard */ }
+        } catch (_: Throwable) { /* silent */ }
+    }
+
     @Throws(ApiException::class)
     fun put(path: String, body: JsonElement): JsonElement = request(path, "PUT", body)
 
