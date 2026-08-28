@@ -115,15 +115,17 @@ fun AdminPanelScreen(
                 selected = selectedSection,
                 onSelect = { selectedSection = it },
                 labels = if (isFi)
-                    listOf("Yleiskatsaus", "Wi-Fi", "Sijainti", "Toiminnot")
+                    listOf("Yleiskatsaus", "Ilmoitukset", "Wi-Fi", "Sijainti", "Käyttäjät", "Toiminnot")
                 else
-                    listOf("Overview", "Wi-Fi", "Live", "Actions"),
+                    listOf("Overview", "News", "Wi-Fi", "Live", "Users", "Actions"),
             )
             when (selectedSection) {
                 0 -> AdminOverviewSection(isFi, scope)
-                1 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
-                2 -> AdminLiveSection(isFi)
-                3 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
+                1 -> AdminAnnouncementsSection(isFi, scope)
+                2 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
+                3 -> AdminLiveSection(isFi)
+                4 -> AdminUsersSection(isFi)
+                5 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
             }
         }
     }
@@ -913,6 +915,344 @@ private fun ActionCard(
         ) {
             Text(actionText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+// ── Announcements section ─────────────────────────────────────────────
+
+@Composable
+private fun AdminAnnouncementsSection(
+    isFi: Boolean,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    var title by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("info") }
+    var posting by remember { mutableStateOf(false) }
+    var toast by remember { mutableStateOf<String?>(null) }
+    var recent by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(refreshTrigger) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val arr = Api.get("/announcements?limit=15").jsonArray
+                recent = arr.mapNotNull { it as? JsonObject }
+            }
+        }
+    }
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.Campaign, null,
+                        tint = Color(0xFF3B82F6),
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        if (isFi) "Uusi ilmoitus" else "New announcement",
+                        fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
+                    )
+                }
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(if (isFi) "Otsikko" else "Title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                )
+                OutlinedTextField(
+                    value = body,
+                    onValueChange = { body = it },
+                    label = { Text(if (isFi) "Sisältö" else "Body") },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    minLines = 3,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("info" to Color(0xFF3B82F6),
+                           "warning" to Color(0xFFF59E0B),
+                           "urgent" to Color(0xFFEF4444),
+                           "event" to Color(0xFF8B5CF6)).forEach { (t, c) ->
+                        val label = when (t) {
+                            "info" -> if (isFi) "Tieto" else "Info"
+                            "warning" -> if (isFi) "Varoitus" else "Warning"
+                            "urgent" -> if (isFi) "Kiireellinen" else "Urgent"
+                            else -> if (isFi) "Tapahtuma" else "Event"
+                        }
+                        val isSel = type == t
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSel) c else c.copy(alpha = 0.12f))
+                                .clickable { type = t }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isSel) Color.White else c,
+                            )
+                        }
+                    }
+                }
+                Button(
+                    onClick = {
+                        if (title.isBlank() || body.isBlank()) return@Button
+                        posting = true; toast = null
+                        scope.launch {
+                            val ok = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    Api.post("/announcements", buildJsonObject {
+                                        put("title", title.trim())
+                                        put("content", body.trim())
+                                        put("type", type)
+                                        put("active", true)
+                                    })
+                                }.isSuccess
+                            }
+                            posting = false
+                            if (ok) {
+                                toast = if (isFi) "Ilmoitus julkaistu" else "Announcement posted"
+                                title = ""; body = ""; type = "info"
+                                refreshTrigger++
+                            } else {
+                                toast = if (isFi) "Julkaisu epäonnistui" else "Failed to post"
+                            }
+                        }
+                    },
+                    enabled = !posting && title.isNotBlank() && body.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    if (posting) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                        Spacer(Modifier.width(10.dp))
+                    } else {
+                        Icon(Icons.Outlined.Send, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        if (isFi) "Julkaise" else "Publish",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                toast?.let {
+                    Text(
+                        it,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+        item {
+            Text(
+                if (isFi) "Viimeisimmät" else "Recent",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+            )
+        }
+        if (recent.isEmpty()) {
+            item {
+                Text(
+                    if (isFi) "Ei ilmoituksia." else "No announcements yet.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(4.dp),
+                )
+            }
+        }
+        items(recent) { a ->
+            val ttl = (a["title"] as? JsonPrimitive)?.contentOrNull ?: ""
+            val bod = (a["content"] as? JsonPrimitive)?.contentOrNull
+                ?: (a["body"] as? JsonPrimitive)?.contentOrNull ?: ""
+            val tpe = (a["type"] as? JsonPrimitive)?.contentOrNull ?: "info"
+            val accent = when (tpe.lowercase()) {
+                "urgent" -> Color(0xFFEF4444)
+                "warning" -> Color(0xFFF59E0B)
+                "event" -> Color(0xFF8B5CF6)
+                else -> Color(0xFF3B82F6)
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    Modifier
+                        .size(width = 4.dp, height = 40.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(accent)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        ttl,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (bod.isNotBlank()) {
+                        Text(
+                            bod.take(120),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                        )
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(12.dp)) }
+    }
+}
+
+// ── Users section ─────────────────────────────────────────────────────
+
+@Composable
+private fun AdminUsersSection(isFi: Boolean) {
+    var users by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(refreshTrigger) {
+        loading = true; error = null
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val arr = Api.get("/users").jsonArray
+                users = arr.mapNotNull { it as? JsonObject }
+            }.onFailure { error = it.message ?: "load failed" }
+        }
+        loading = false
+    }
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    (if (isFi) "Käyttäjät · " else "Users · ") + users.size,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { refreshTrigger++ }) {
+                    Icon(Icons.Outlined.Refresh, null, tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        if (loading) {
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                }
+            }
+        }
+        if (error != null) {
+            item {
+                Text(
+                    "⚠ $error",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+        items(users) { u ->
+            val email = (u["email"] as? JsonPrimitive)?.contentOrNull ?: "—"
+            val name = (u["name"] as? JsonPrimitive)?.contentOrNull ?: ""
+            val role = (u["role"] as? JsonPrimitive)?.contentOrNull ?: "user"
+            val roleColor = when (role.lowercase()) {
+                "admin", "superadmin", "owner" -> Color(0xFF10B981)
+                "moderator" -> Color(0xFF8B5CF6)
+                else -> Color(0xFF64748B)
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(roleColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        email.take(1).uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        color = roleColor,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (name.isNotBlank()) name else email,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        email,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(roleColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        role,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = roleColor,
+                    )
+                }
+            }
+        }
+        item { Spacer(Modifier.height(12.dp)) }
     }
 }
 

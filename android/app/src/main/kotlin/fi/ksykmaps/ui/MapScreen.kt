@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Home
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -172,6 +174,27 @@ private const val STYLE_JSON_LIGHT = """{
   ]
 }"""
 
+// Satellite basemap — Esri World Imagery. Free to use with attribution,
+// no API key. Higher zoom than OSM (up to 20). MazeMap has this option
+// too for outdoor navigation.
+private const val STYLE_JSON_SATELLITE = """{
+  "version": 8,
+  "sources": {
+    "esri-sat": {
+      "type": "raster",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "attribution": "Tiles © Esri",
+      "maxzoom": 20
+    }
+  },
+  "layers": [
+    { "id": "esri-sat-layer", "type": "raster", "source": "esri-sat" }
+  ]
+}"""
+
 // KSYK campus starting camera — matches the site default. Real
 // coordinates are read from the first building fetched, but this is
 // the fallback until data arrives.
@@ -292,6 +315,10 @@ fun MapScreen() {
     // become visible, buildings and room slabs read as real volumes.
     // Off → flat top-down, extrusions hidden, only fill layers show.
     var is3D by remember { mutableStateOf(false) }
+    // Basemap toggle — "standard" (OSM) vs "satellite" (Esri imagery).
+    // Mirrors Apple Maps / MazeMap; setting rerenders the entire style so
+    // building/room layers reinstall on the next data pass.
+    var basemap by rememberSaveable { mutableStateOf("standard") }
     // Incremented to retry the map data fetch (e.g., user taps "Retry").
     var mapDataRetryTrigger by remember { mutableIntStateOf(0) }
     // True while the initial data fetch is in progress.
@@ -360,6 +387,22 @@ fun MapScreen() {
             )
         }
         appliedServerDefaults = true
+    }
+
+    // Basemap swap — reload the style JSON when the user toggles between
+    // standard OSM and satellite. Because MapLibre wipes all sources on
+    // style change, we force the polygon LaunchedEffect to re-run by
+    // resetting `mapDataRetryTrigger` after the style finishes loading.
+    LaunchedEffect(basemap, mapRef) {
+        val m = mapRef ?: return@LaunchedEffect
+        val styleJson = when (basemap) {
+            "satellite" -> STYLE_JSON_SATELLITE
+            else -> STYLE_JSON_LIGHT
+        }
+        m.setStyle(Style.Builder().fromJson(styleJson)) {
+            // Trigger re-add of buildings/rooms/etc. layers.
+            mapDataRetryTrigger++
+        }
     }
 
     LaunchedEffect(mapDataRetryTrigger) {
@@ -596,15 +639,20 @@ fun MapScreen() {
                 existingB.setGeoJson(buildingsGeoJson)
             } else {
                 style.addSource(GeoJsonSource(SRC_BUILDINGS, buildingsGeoJson))
+                // Hardcoded fill/outline colors — MapLibre-Android's
+                // data-driven color expressions (Expression.toColor(get("color")))
+                // silently drop features on some devices. Per-feature tinting
+                // was cosmetic anyway; the visual hierarchy is fine with a
+                // uniform building palette.
                 style.addLayer(
                     FillLayer(LAYER_FILL, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.fillColor(Expression.toColor(Expression.get("color"))),
-                        PropertyFactory.fillOpacity(0.52f),
+                        PropertyFactory.fillColor(AndroidColor.parseColor("#2563EB")),
+                        PropertyFactory.fillOpacity(0.42f),
                     )
                 )
                 style.addLayer(
                     FillExtrusionLayer(LAYER_BUILDING_EXTRUSION, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.fillExtrusionColor(Expression.toColor(Expression.get("color"))),
+                        PropertyFactory.fillExtrusionColor(AndroidColor.parseColor("#2563EB")),
                         PropertyFactory.fillExtrusionHeight(Expression.get("height")),
                         PropertyFactory.fillExtrusionBase(0f),
                         PropertyFactory.fillExtrusionOpacity(0.80f),
@@ -614,9 +662,9 @@ fun MapScreen() {
                 )
                 style.addLayer(
                     LineLayer(LAYER_OUTLINE, SRC_BUILDINGS).withProperties(
-                        PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                        PropertyFactory.lineWidth(3f),
-                        PropertyFactory.lineOpacity(1.0f),
+                        PropertyFactory.lineColor(AndroidColor.parseColor("#1E40AF")),
+                        PropertyFactory.lineWidth(2.5f),
+                        PropertyFactory.lineOpacity(0.9f),
                     )
                 )
                 style.addLayer(
@@ -650,7 +698,7 @@ fun MapScreen() {
                                 Expression.stop(20f, 36f),
                             )
                         ),
-                        PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
+                        PropertyFactory.circleColor(AndroidColor.parseColor("#2563EB")),
                         PropertyFactory.circleOpacity(0.85f),
                         PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
                         PropertyFactory.circleStrokeWidth(2.5f),
@@ -676,15 +724,35 @@ fun MapScreen() {
                 existingR.setGeoJson(roomsGeoJson)
             } else {
                 style.addSource(GeoJsonSource(SRC_ROOMS, roomsGeoJson))
+                // Rooms: type-based coloring via Expression.match on the
+                // `type` property (well-supported in MapLibre-Android),
+                // with a green fallback for anything unrecognized.
+                val roomColorExpr = Expression.match(
+                    Expression.get("type"),
+                    Expression.color(AndroidColor.parseColor("#059669")),  // default
+                    Expression.stop("classroom", Expression.color(AndroidColor.parseColor("#10B981"))),
+                    Expression.stop("lab",       Expression.color(AndroidColor.parseColor("#F59E0B"))),
+                    Expression.stop("toilet",    Expression.color(AndroidColor.parseColor("#EC4899"))),
+                    Expression.stop("wc",        Expression.color(AndroidColor.parseColor("#EC4899"))),
+                    Expression.stop("office",    Expression.color(AndroidColor.parseColor("#8B5CF6"))),
+                    Expression.stop("staff",     Expression.color(AndroidColor.parseColor("#8B5CF6"))),
+                    Expression.stop("hallway",   Expression.color(AndroidColor.parseColor("#94A3B8"))),
+                    Expression.stop("stairs",    Expression.color(AndroidColor.parseColor("#64748B"))),
+                    Expression.stop("elevator",  Expression.color(AndroidColor.parseColor("#64748B"))),
+                    Expression.stop("cafeteria", Expression.color(AndroidColor.parseColor("#F97316"))),
+                    Expression.stop("gym",       Expression.color(AndroidColor.parseColor("#06B6D4"))),
+                    Expression.stop("library",   Expression.color(AndroidColor.parseColor("#6366F1"))),
+                    Expression.stop("music",     Expression.color(AndroidColor.parseColor("#EF4444"))),
+                )
                 style.addLayer(
                     FillLayer(LAYER_ROOM_FILL, SRC_ROOMS).withProperties(
-                        PropertyFactory.fillColor(Expression.toColor(Expression.get("color"))),
-                        PropertyFactory.fillOpacity(0.78f),
+                        PropertyFactory.fillColor(roomColorExpr),
+                        PropertyFactory.fillOpacity(0.72f),
                     )
                 )
                 style.addLayer(
                     FillExtrusionLayer(LAYER_ROOM_EXTRUSION, SRC_ROOMS).withProperties(
-                        PropertyFactory.fillExtrusionColor(Expression.toColor(Expression.get("color"))),
+                        PropertyFactory.fillExtrusionColor(AndroidColor.parseColor("#059669")),
                         PropertyFactory.fillExtrusionBase(Expression.get("base")),
                         PropertyFactory.fillExtrusionHeight(Expression.get("top")),
                         PropertyFactory.fillExtrusionOpacity(0.95f),
@@ -734,7 +802,7 @@ fun MapScreen() {
                                 Expression.stop(20f, 14f),
                             )
                         ),
-                        PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
+                        PropertyFactory.circleColor(AndroidColor.parseColor("#059669")),
                         PropertyFactory.circleOpacity(0.9f),
                         PropertyFactory.circleStrokeColor(AndroidColor.WHITE),
                         PropertyFactory.circleStrokeWidth(1.5f),
@@ -1102,6 +1170,15 @@ fun MapScreen() {
                 is3D = is3D,
                 onToggle3D = { is3D = !is3D },
             )
+            // Basemap toggle — Apple/Google Maps style. One tap swaps
+            // between standard OSM and satellite imagery.
+            MapChipButton(
+                icon = if (basemap == "satellite") Icons.Outlined.Map else Icons.Outlined.Layers,
+                label = if (basemap == "satellite") "Standard" else "Satellite",
+                highlighted = basemap == "satellite",
+            ) {
+                basemap = if (basemap == "satellite") "standard" else "satellite"
+            }
             // Refit to campus — one-tap to jump back to the buildings
             // when a user has wandered off. MazeMap has this as their
             // "reset view" corner button.

@@ -12,8 +12,20 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 40
-        versionName = "1.38.0"
+        versionCode = 41
+        versionName = "1.39.0"
+
+        // Vercel Attack Challenge Mode bypass — the API client sends this
+        // as `x-vercel-protection-bypass` and `x-ksyk-bypass-token`. Add a
+        // matching Vercel WAF Custom Rule → Skip Attack Challenge when
+        // request header `x-ksyk-bypass-token` equals this value, and set
+        // env var VERCEL_AUTOMATION_BYPASS_SECRET to the same string.
+        // Override at build time with:
+        //   ORG_GRADLE_PROJECT_ksykBypassToken=<secret> ./gradlew assembleRelease
+        val bypassToken = System.getenv("KSYK_BYPASS_TOKEN")
+            ?: (project.findProperty("ksykBypassToken") as? String)
+            ?: "ksyk-mobile-2b9d47f83c6e5a1"
+        buildConfigField("String", "BYPASS_TOKEN", "\"$bypassToken\"")
     }
 
     buildFeatures { compose = true; buildConfig = true }

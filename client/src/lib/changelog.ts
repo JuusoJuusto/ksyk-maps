@@ -10,27 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.44";
+export const APP_VERSION = "4.5.45";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.45",
+    date: "August 2026",
+    title: "Mobile: map colors fixed, satellite basemap, Vercel bypass, expanded admin panel",
+    titleFi: "Mobiili: karttavärit korjattu, satelliittinäkymä, Vercel-ohitus, laajennettu hallintapaneeli",
+    highlights: [
+      "**Buildings and rooms now render on the mobile map** — replaced the data-driven color expression (Expression.toColor(Expression.get(\"color\"))) that was silently failing in MapLibre-Android with hardcoded layer colors (buildings blue, rooms green with per-type tinting via Expression.match on the `type` property, which is well-supported). This is why only walls showed before — walls were the only layer already using a hardcoded color.",
+      "**Vercel Attack Challenge Mode bypass** — the API client now sends x-vercel-protection-bypass and x-ksyk-bypass-token headers on every request. When paired with a Vercel Firewall → Custom Rule → Skip Attack Challenge for matching headers (and VERCEL_AUTOMATION_BYPASS_SECRET env var), the mobile app punches through bot protection without waiting for a browser to warm the CDN cache first.",
+      "**Satellite basemap toggle** — new layers chip in the map controls swaps between OSM standard and Esri satellite imagery (like Apple Maps / MazeMap). All building/room polygons re-render on top.",
+      "**Admin panel expanded to 6 sections** — added Announcements (compose and publish news posts directly from mobile, with type picker: Info / Warning / Urgent / Event) and Users (list of every user with role badge). Overview, Wi-Fi, Live, Actions still there.",
+    ],
+    highlightsFi: [
+      "**Rakennukset ja huoneet näkyvät nyt mobiilikarttaan** — vaihdettu tietolähtöinen väri-ilmaisu MapLibre-Androidilla luotettavampiin kovakoodattuihin väreihin. Huoneet saavat värin tyypin mukaan.",
+      "**Vercel Attack Challenge Mode -ohitus** — API-asiakas lähettää nyt ohitusotsikot; kun Vercel:in palomuurisääntö vastaa, mobiili pääsee ohittamaan bot-suojauksen.",
+      "**Satelliittitausta** — uusi kerrostoiminto vaihtaa OSM-standardin ja Esri-satelliittikuvan välillä.",
+      "**Hallintapaneeli laajennettu 6 osioon** — lisätty Ilmoitukset (uutispostausten kirjoitus mobiilista) ja Käyttäjät (roolimerkittyjen käyttäjien lista).",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.44",
     date: "August 2026",
     title: "Mobile: admin login + full admin panel with WiFi scanning, stats and cache control",
     titleFi: "Mobiili: ylläpitäjän kirjautuminen ja täysi hallintapaneeli",
     highlights: [
-      "**Admin panel added to the mobile app** — signing in with an admin account unlocks a new 'Admin' tab in the bottom nav. Four sections: Overview (buildings/rooms/doors/hallways/fingerprints/coverage stats), Wi-Fi (live scan of visible APs with signal strength), Live (current positioning engine output with room/floor/confidence), and Actions (open web builder, force-refresh cache, test notification, sign out).",
-      "**Session reactivity** — signed-in and admin state are now Compose-observable, so screens automatically recompose on login/logout without manual state juggling. Cached role in SharedPreferences means the Admin tab shows immediately on cold start.",
-      "**Login auto-jumps admins to the panel** — signing in as admin drops you straight into the panel instead of the previous screen.",
-      "**Fingerprint capture reachable from mobile** — the existing BeaconScreen (WiFi + GPS snapshot upload) is now reachable via 'Capture fingerprint' in the admin panel's Wi-Fi section, so admins can add room fingerprints from their phone without opening the desktop admin.",
+      "**Admin panel added to the mobile app** — signing in with an admin account unlocks a new 'Admin' tab in the bottom nav.",
     ],
     highlightsFi: [
-      "**Hallintapaneeli lisätty mobiilisovellukseen** — ylläpitäjänä kirjautuminen avaa uuden 'Hallinta'-välilehden. Neljä osiota: Yleiskatsaus (tilastot), Wi-Fi (live-skannaus), Sijainti (positiointimoottorin ulostulo), Toiminnot (rakennin, välimuisti, testi-ilmoitus, uloskirjautuminen).",
-      "**Istunto on nyt reaktiivinen** — kirjautumistila ja admin-tila ovat Compose-havainnoitavia, joten näytöt päivittyvät automaattisesti kirjautuessa.",
-      "**Kirjautuminen ohjaa ylläpitäjän suoraan paneeliin** — admin-tilillä kirjautuminen vie suoraan hallintapaneeliin.",
-      "**Sormenjälkien kaappaus mobiilista** — BeaconScreen on nyt tavoitettavissa hallintapaneelin Wi-Fi-osiosta.",
+      "**Hallintapaneeli lisätty mobiilisovellukseen** — ylläpitäjänä kirjautuminen avaa uuden 'Hallinta'-välilehden.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.43",

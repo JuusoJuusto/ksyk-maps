@@ -1,5 +1,6 @@
 package fi.ksykmaps.data
 
+import fi.ksykmaps.BuildConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import okhttp3.MediaType.Companion.toMediaType
@@ -41,6 +42,14 @@ object Api {
         .header("Sec-Fetch-Dest", "empty")
         .header("Referer", "https://ksykmaps.fi/")
         .header("X-KSYK-Client", "KSYK-Maps-Android/1.0")
+        // Vercel Attack Challenge Mode bypass. `x-vercel-protection-bypass`
+        // is the well-known Vercel header (matches VERCEL_AUTOMATION_BYPASS_SECRET
+        // env var). `x-ksyk-bypass-token` is our fallback for custom WAF Skip
+        // rules — set a Firewall → Custom Rule → Skip Attack Challenge when
+        // Request Header `x-ksyk-bypass-token` equals BuildConfig.BYPASS_TOKEN.
+        .header("x-vercel-protection-bypass", BuildConfig.BYPASS_TOKEN)
+        .header("x-vercel-set-bypass-cookie", "samesitenone")
+        .header("x-ksyk-bypass-token", BuildConfig.BYPASS_TOKEN)
         .apply { if (includeAuth) adminToken?.let { header("Authorization", "Bearer $it") } }
 
     @Throws(ApiException::class)
