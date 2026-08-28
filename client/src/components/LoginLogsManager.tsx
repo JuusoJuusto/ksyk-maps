@@ -22,10 +22,13 @@ export default function LoginLogsManager() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['admin-login-logs'],
     queryFn: async () => {
+      const token = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('ksyk_admin_token') : null;
       const response = await fetch('/api/admin-login-logs?limit=100', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!response.ok) throw new Error('Failed to fetch login logs');
+      if (!response.ok) return [];
       return response.json();
     },
     refetchInterval: 30000, // Refresh every 30 seconds

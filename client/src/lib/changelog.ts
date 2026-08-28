@@ -10,9 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.50";
+export const APP_VERSION = "4.5.51";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.51",
+    date: "August 2026",
+    title: "Fix admin 401s + /api/settings 404 + full map redesign (Apple/MazeMap)",
+    titleFi: "Korjattu hallintapaneelin 401-virheet + /api/settings 404 + kartan uudistus",
+    highlights: [
+      "**/api/settings 404 fixed** — the router matched paths exactly, so `/api/settings?t=<cache-bust>` never hit the settings handler. Now querystring is stripped before matching. Same fix cascades to every other endpoint the client called with a `?t=` bust.",
+      "**Admin panel 401s fixed** — `fetchList` / `fetchObject` only sent cookies, never the HMAC admin token from localStorage. Every request now attaches `Authorization: Bearer <token>` when the token exists. LoginLogsManager patched the same way.",
+      "**/api/logs GET added** — was POST-only, so AppLogsManager saw empty lists. Now returns the last 300 appLogs rows with an inferred source (web / android).",
+      "**Map redesign — Apple Maps / MazeMap** — muted warm background (`#f3f4f6`), OSM tiles rendered at 55% opacity with −40% saturation so labels are legible but not screaming. Buildings are soft off-white (`#e8ecf2`), hallways barely-there grey, rooms use pastel per-type shades (blue classrooms, violet labs, amber offices, pink cafeteria, etc). Room outlines dropped from bright white to soft slate.",
+      "**Satellite basemap removed** — was the last remaining source of layer-wipe races. Single OSM base only, no more basemap-swap glitches.",
+      "**Controls redesigned** — right-side stack is now a grouped +/- zoom pill on top with location + refresh below. Each button is a 44 dp rounded square with tight drop-shadow, like iPadOS Maps. Search bar is now a proper capsule (22 dp radius) with a subtle border and a round close chip. Refresh button auto-fits to campus.",
+    ],
+    highlightsFi: [
+      "**/api/settings 404 korjattu** — reititin tarkisti polkuja tarkasti, joten `?t=`-parametri esti osumat.",
+      "**Hallintapaneelin 401 korjattu** — fetchList lähetti vain evästeet, ei Bearer-tokenia. Nyt token liitetään aina.",
+      "**/api/logs GET lisätty** — AppLogsManager sai tyhjiä listoja koska endpoint oli vain POST.",
+      "**Kartan täysi uudistus (Apple Maps / MazeMap)** — vaimennettu tausta, pehmeät värit, pastellihuoneet tyypin mukaan.",
+      "**Satelliittipohjakartta poistettu** — viimeinen glitcheistä.",
+      "**Ohjaimet uudistettu** — Apple-tyylinen pillipainikkeet, +/- zoomiryhmä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.50",
     date: "August 2026",
@@ -32,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Adblocker-kestävä telemetria** — /api/session/heartbeat -aliakset kiertävät uBlockin suodattimet.",
       "**Mobiililokit lähetetään palvelimelle automaattisesti** — WARN/ERROR-tasot 5 s välein.",
     ],
-    latest: true,
   },
   {
     version: "4.5.49",

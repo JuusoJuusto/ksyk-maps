@@ -19,13 +19,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,8 +131,13 @@ private const val KSYK_ZOOM = 17.6
 // Empty FeatureCollection literal for placeholder sources.
 private const val EMPTY_FC = """{"type":"FeatureCollection","features":[]}"""
 
-// Basemap style fragments (raster only — the campus layers get added
-// programmatically in installCampusLayers).
+// Muted "Apple Maps standard" base — the raster tiles are OSM but the
+// campus polygons render brightly on top, so we tone the base down with
+// a partially-transparent white overlay layer that MapLibre supports
+// via a `background` layer type painted before the raster. The stack is
+// bottom-up: white bg → OSM tiles → white 45 % overlay → campus data.
+// Result: OSM's road labels and pathways are still legible but way less
+// visually loud than raw OSM, which is exactly the Apple/MazeMap feel.
 private val STYLE_OSM = """{
   "version": 8,
   "sources": {
@@ -146,23 +153,10 @@ private val STYLE_OSM = """{
       "maxzoom": 19
     }
   },
-  "layers": [ { "id": "osm-base", "type": "raster", "source": "osm" } ]
-}"""
-
-private val STYLE_SATELLITE = """{
-  "version": 8,
-  "sources": {
-    "sat": {
-      "type": "raster",
-      "tiles": [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      ],
-      "tileSize": 256,
-      "attribution": "Tiles © Esri",
-      "maxzoom": 20
-    }
-  },
-  "layers": [ { "id": "sat-base", "type": "raster", "source": "sat" } ]
+  "layers": [
+    { "id": "canvas", "type": "background", "paint": { "background-color": "#f3f4f6" } },
+    { "id": "osm-base", "type": "raster", "source": "osm", "paint": { "raster-opacity": 0.55, "raster-saturation": -0.4, "raster-brightness-min": 0.2, "raster-brightness-max": 1.0, "raster-contrast": -0.1 } }
+  ]
 }"""
 
 // Room colours by type — MazeMap-style categorical palette.
@@ -250,7 +244,6 @@ fun MapScreen() {
     // ── UI state ──────────────────────────────────────────────────────
     var selectedBuilding by remember { mutableStateOf<JsonObject?>(null) }
     var selectedRoom by remember { mutableStateOf<JsonObject?>(null) }
-    var basemap by rememberSaveable { mutableStateOf("standard") }
     var searchQuery by remember { mutableStateOf("") }
     var searchFocused by remember { mutableStateOf(false) }
     var followMe by remember { mutableStateOf(false) }
@@ -392,7 +385,6 @@ fun MapScreen() {
     // ── The compose tree ──────────────────────────────────────────────
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         MapCanvas(
-            initialBasemap = basemap,
             initialBuildings = buildings,
             initialRooms = rooms,
             initialHallways = hallways,
@@ -409,19 +401,9 @@ fun MapScreen() {
             currentRooms = rooms,
         )
 
-        // ── Basemap swap: rebuild style with data pre-baked, then re-install layers ──
-        LaunchedEffect(basemap) {
-            val m = mapRef ?: return@LaunchedEffect
-            if (!styleReady) return@LaunchedEffect
-            val styleJson = if (basemap == "satellite") STYLE_SATELLITE else STYLE_OSM
-            styleReady = false
-            AppLog.info("MapScreen", "basemap swap → $basemap")
-            m.setStyle(Style.Builder().fromJson(styleJson)) { style ->
-                installCampusLayers(style, buildings, rooms, hallways, selectedFloor)
-                styleReady = true
-                AppLog.info("MapScreen", "style reinstalled after swap")
-            }
-        }
+        // NOTE: basemap swap removed in v1.44.0 — satellite tile toggle
+        // was the last remaining source of layer-wipe races and the user
+        // asked to remove it entirely. Single OSM base only.
 
         // ── Top search bar + status row ─────────────────────────────
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(top = 14.dp)) {
@@ -463,26 +445,49 @@ fun MapScreen() {
             }
         }
 
-        // ── Right-side control column (Apple/MazeMap style) ─────────
+        // ── Right-side control stack (Apple/MazeMap style) ──────────
+        // Two grouped stacks with a small gap: zoom pair on top, then
+        // location + refresh below. Each button is a soft pill with a
+        // tight drop shadow — matches Apple Maps' iPad control cluster.
         Column(
             Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 14.dp)
-                .widthIn(max = 52.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(end = 12.dp)
+                .widthIn(max = 46.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            PillButton(
-                icon = Icons.Outlined.Layers,
-                selected = basemap == "satellite",
-                onClick = { basemap = if (basemap == "satellite") "standard" else "satellite" },
+            // Zoom pair rendered as a single rounded rect with a divider.
+            GroupedPill(
+                items = listOf(
+                    Icons.Outlined.Add to {
+                        mapRef?.let { m ->
+                            m.animateCamera(
+                                CameraUpdateFactory.zoomTo(
+                                    (m.cameraPosition.zoom + 1.0).coerceAtMost(21.0),
+                                ),
+                                220,
+                            )
+                        }
+                    },
+                    Icons.Outlined.Remove to {
+                        mapRef?.let { m ->
+                            m.animateCamera(
+                                CameraUpdateFactory.zoomTo(
+                                    (m.cameraPosition.zoom - 1.0).coerceAtLeast(12.0),
+                                ),
+                                220,
+                            )
+                        }
+                    },
+                ),
             )
             PillButton(
                 icon = Icons.Outlined.MyLocation,
                 selected = followMe,
                 onClick = {
                     val perm = ContextCompat.checkSelfPermission(
-                        ctx, Manifest.permission.ACCESS_FINE_LOCATION
+                        ctx, Manifest.permission.ACCESS_FINE_LOCATION,
                     )
                     if (perm == PackageManager.PERMISSION_GRANTED) {
                         followMe = true
@@ -497,6 +502,11 @@ fun MapScreen() {
                 onClick = {
                     dataRetry++
                     MapHolder.autofitDone = false
+                    mapRef?.let { m ->
+                        boundsOf(buildings)?.let { b ->
+                            m.animateCamera(CameraUpdateFactory.newLatLngBounds(b, 80), 500)
+                        }
+                    }
                 },
             )
         }
@@ -558,7 +568,6 @@ fun MapScreen() {
 // ── MapCanvas — pure MapLibre bridge. ───────────────────────────────
 @Composable
 private fun MapCanvas(
-    initialBasemap: String,
     initialBuildings: List<JsonObject>,
     initialRooms: List<JsonObject>,
     initialHallways: List<JsonObject>,
@@ -608,8 +617,7 @@ private fun MapCanvas(
                     isTiltGesturesEnabled = true
                 }
 
-                val styleJson = if (initialBasemap == "satellite") STYLE_SATELLITE else STYLE_OSM
-                map.setStyle(Style.Builder().fromJson(styleJson)) { style ->
+                map.setStyle(Style.Builder().fromJson(STYLE_OSM)) { style ->
                     installCampusLayers(style, initialBuildings, initialRooms, initialHallways, initialFloor)
                     onStyleLoaded()
                 }
@@ -680,20 +688,22 @@ private fun installCampusLayers(
         }
     }
 
-    // Building fill — pale blue with data-driven opacity for selection.
+    // Building fill — warm off-white MazeMap-style (like Apple's "beige
+    // building"). Very low saturation so the room categorical colours
+    // pop on top without competing.
     if (style.getLayer(LYR_BUILDING_FILL) == null) {
         style.addLayer(
             FillLayer(LYR_BUILDING_FILL, SRC_BUILDINGS).withProperties(
-                PropertyFactory.fillColor(AndroidColor.parseColor("#2563EB")),
-                PropertyFactory.fillOpacity(0.18f),
+                PropertyFactory.fillColor(AndroidColor.parseColor("#e8ecf2")),
+                PropertyFactory.fillOpacity(0.95f),
             )
         )
     }
     if (style.getLayer(LYR_BUILDING_OUTLINE) == null) {
         style.addLayer(
             LineLayer(LYR_BUILDING_OUTLINE, SRC_BUILDINGS).withProperties(
-                PropertyFactory.lineColor(AndroidColor.parseColor("#1D4ED8")),
-                PropertyFactory.lineWidth(2.0f),
+                PropertyFactory.lineColor(AndroidColor.parseColor("#9ca3af")),
+                PropertyFactory.lineWidth(1.4f),
                 PropertyFactory.lineOpacity(0.85f),
             )
         )
@@ -703,9 +713,9 @@ private fun installCampusLayers(
             SymbolLayer(LYR_BUILDING_LABEL, SRC_BUILDINGS).withProperties(
                 PropertyFactory.textField(Expression.get("label")),
                 PropertyFactory.textSize(13f),
-                PropertyFactory.textColor(AndroidColor.parseColor("#0F172A")),
-                PropertyFactory.textHaloColor(AndroidColor.parseColor("#FFFFFF")),
-                PropertyFactory.textHaloWidth(1.4f),
+                PropertyFactory.textColor(AndroidColor.parseColor("#1f2937")),
+                PropertyFactory.textHaloColor(AndroidColor.parseColor("#ffffff")),
+                PropertyFactory.textHaloWidth(1.6f),
                 PropertyFactory.textAllowOverlap(false),
                 PropertyFactory.textIgnorePlacement(false),
                 PropertyFactory.textAnchor(Property.TEXT_ANCHOR_CENTER),
@@ -714,45 +724,50 @@ private fun installCampusLayers(
     }
 
     // Hallway fill — under rooms so rooms cover corridors visually.
+    // Apple/MazeMap style: a warm light grey with barely-there outline.
     if (style.getLayer(LYR_HALLWAY_FILL) == null) {
         style.addLayer(
             FillLayer(LYR_HALLWAY_FILL, SRC_HALLWAYS).withProperties(
-                PropertyFactory.fillColor(AndroidColor.parseColor("#CBD5E1")),
-                PropertyFactory.fillOpacity(0.6f),
+                PropertyFactory.fillColor(AndroidColor.parseColor("#f5f6f8")),
+                PropertyFactory.fillOpacity(0.9f),
             )
         )
     }
 
-    // Rooms — per-type colours via data-driven Expression.match.
+    // Rooms — desaturated MazeMap-style palette per type. Softer than
+    // the previous version so the map reads calm at first glance and
+    // rooms only stand out when zoomed in.
     if (style.getLayer(LYR_ROOM_FILL) == null) {
         val colorExpr = Expression.match(
             Expression.get("type"),
-            Expression.color(AndroidColor.parseColor("#059669")),
-            Expression.stop("classroom", Expression.color(AndroidColor.parseColor("#10B981"))),
-            Expression.stop("lab", Expression.color(AndroidColor.parseColor("#8B5CF6"))),
-            Expression.stop("office", Expression.color(AndroidColor.parseColor("#F59E0B"))),
-            Expression.stop("toilet", Expression.color(AndroidColor.parseColor("#06B6D4"))),
-            Expression.stop("cafeteria", Expression.color(AndroidColor.parseColor("#EC4899"))),
-            Expression.stop("library_room", Expression.color(AndroidColor.parseColor("#3B82F6"))),
-            Expression.stop("gym", Expression.color(AndroidColor.parseColor("#EF4444"))),
-            Expression.stop("music_room", Expression.color(AndroidColor.parseColor("#F97316"))),
-            Expression.stop("storage", Expression.color(AndroidColor.parseColor("#6B7280"))),
-            Expression.stop("hallway", Expression.color(AndroidColor.parseColor("#94A3B8"))),
-            Expression.stop("emergency_exit", Expression.color(AndroidColor.parseColor("#DC2626"))),
+            Expression.color(AndroidColor.parseColor("#dbeafe")),
+            Expression.stop("classroom", Expression.color(AndroidColor.parseColor("#dbeafe"))),
+            Expression.stop("lab", Expression.color(AndroidColor.parseColor("#ede9fe"))),
+            Expression.stop("office", Expression.color(AndroidColor.parseColor("#fef3c7"))),
+            Expression.stop("toilet", Expression.color(AndroidColor.parseColor("#cffafe"))),
+            Expression.stop("cafeteria", Expression.color(AndroidColor.parseColor("#fce7f3"))),
+            Expression.stop("library_room", Expression.color(AndroidColor.parseColor("#dbeafe"))),
+            Expression.stop("library", Expression.color(AndroidColor.parseColor("#dbeafe"))),
+            Expression.stop("gym", Expression.color(AndroidColor.parseColor("#fee2e2"))),
+            Expression.stop("music_room", Expression.color(AndroidColor.parseColor("#ffedd5"))),
+            Expression.stop("music", Expression.color(AndroidColor.parseColor("#ffedd5"))),
+            Expression.stop("storage", Expression.color(AndroidColor.parseColor("#e5e7eb"))),
+            Expression.stop("hallway", Expression.color(AndroidColor.parseColor("#f5f6f8"))),
+            Expression.stop("emergency_exit", Expression.color(AndroidColor.parseColor("#fecaca"))),
         )
         style.addLayer(
             FillLayer(LYR_ROOM_FILL, SRC_ROOMS).withProperties(
                 PropertyFactory.fillColor(colorExpr),
-                PropertyFactory.fillOpacity(0.7f),
+                PropertyFactory.fillOpacity(0.92f),
             )
         )
     }
     if (style.getLayer(LYR_ROOM_OUTLINE) == null) {
         style.addLayer(
             LineLayer(LYR_ROOM_OUTLINE, SRC_ROOMS).withProperties(
-                PropertyFactory.lineColor(AndroidColor.parseColor("#FFFFFF")),
-                PropertyFactory.lineWidth(1.2f),
-                PropertyFactory.lineOpacity(0.9f),
+                PropertyFactory.lineColor(AndroidColor.parseColor("#94a3b8")),
+                PropertyFactory.lineWidth(0.7f),
+                PropertyFactory.lineOpacity(0.75f),
             )
         )
     }
@@ -760,10 +775,10 @@ private fun installCampusLayers(
         style.addLayer(
             SymbolLayer(LYR_ROOM_LABEL, SRC_ROOMS).withProperties(
                 PropertyFactory.textField(Expression.get("label")),
-                PropertyFactory.textSize(11f),
-                PropertyFactory.textColor(AndroidColor.parseColor("#FFFFFF")),
-                PropertyFactory.textHaloColor(AndroidColor.parseColor("#0F172A")),
-                PropertyFactory.textHaloWidth(1.0f),
+                PropertyFactory.textSize(10.5f),
+                PropertyFactory.textColor(AndroidColor.parseColor("#334155")),
+                PropertyFactory.textHaloColor(AndroidColor.parseColor("#ffffff")),
+                PropertyFactory.textHaloWidth(1.2f),
                 PropertyFactory.textAllowOverlap(false),
                 PropertyFactory.textAnchor(Property.TEXT_ANCHOR_CENTER),
             )
@@ -1011,27 +1026,74 @@ private fun enableLocation(ctx: android.content.Context, map: MapLibreMap) {
     }
 }
 
-// ── Simple UI atoms ──────────────────────────────────────────────────
+// ── UI atoms — Apple/MazeMap-flavoured ────────────────────────────
+// Soft off-white surface + tight drop shadow + rounded 12 dp square is
+// how iPadOS Maps renders its floating buttons. We match that so the
+// whole map surface reads as a native iOS panel, not a Material chip.
 @Composable
 private fun PillButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
+    val shape = RoundedCornerShape(12.dp)
+    val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
     else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-    else MaterialTheme.colorScheme.onSurface
+    val fg = if (selected) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
     Box(
         modifier = Modifier
-            .size(46.dp)
-            .shadow(4.dp, CircleShape)
-            .clip(CircleShape)
+            .size(44.dp)
+            .shadow(6.dp, shape, spotColor = Color(0x40000000))
+            .clip(shape)
             .background(bg)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * Two-item vertical stack rendered as one rounded rectangle with a hair
+ * divider — Apple Maps uses this for the +/- zoom pair. Keeps the
+ * cluster visually tight without collapsing the tap targets.
+ */
+@Composable
+private fun GroupedPill(
+    items: List<Pair<androidx.compose.ui.graphics.vector.ImageVector, () -> Unit>>,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        Modifier
+            .width(44.dp)
+            .shadow(6.dp, shape, spotColor = Color(0x40000000))
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        items.forEachIndexed { i, (icon, action) ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .clickable(onClick = action),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon, null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            if (i < items.size - 1) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                )
+            }
+        }
     }
 }
 
@@ -1045,24 +1107,40 @@ private fun SearchBar(
     lang: String,
     onCancel: () -> Unit,
 ) {
+    // Apple-Maps-style capsule: 22 dp corner radius, subtle border, a
+    // shadow just faint enough to lift it off the map. Padding is tuned
+    // so the text field's own vertical inset lines up with the icons.
     Row(
         Modifier
-            .padding(horizontal = 14.dp)
+            .padding(horizontal = 12.dp)
             .fillMaxWidth()
-            .shadow(6.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(8.dp, RoundedCornerShape(22.dp), spotColor = Color(0x33000000))
+            .clip(RoundedCornerShape(22.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 14.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Outlined.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            Icons.Outlined.Search, null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(8.dp))
         TextField(
             value = query,
             onValueChange = { onQueryChange(it); onFocusChange(true) },
-            placeholder = { Text(if (lang == "fi") "Etsi luokka tai rakennus" else "Search room or building") },
+            placeholder = {
+                Text(
+                    if (lang == "fi") "Etsi luokka tai rakennus" else "Search room or building",
+                    fontSize = 14.sp,
+                )
+            },
             singleLine = true,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).onFocusChanged { onFocusChange(it.isFocused) },
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
@@ -1072,8 +1150,19 @@ private fun SearchBar(
             ),
         )
         if (focused || query.isNotBlank()) {
-            IconButton(onClick = onCancel) {
-                Icon(Icons.Outlined.Close, null)
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable(onClick = onCancel),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Close, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }

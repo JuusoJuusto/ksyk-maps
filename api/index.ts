@@ -90,10 +90,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Simple router based on URL path
     const path = req.url || '/';
-    
-    // Remove /api prefix if present
-    const apiPath = path.replace(/^\/api/, '');
-    
+
+    // Strip /api prefix AND querystring. Every handler below matches by
+    // path only — leaving `?t=<cache-bust>` in the string broke naive
+    // `apiPath === '/settings'` checks and returned 404 to the client.
+    // Query params remain available via req.query which Vercel parses.
+    const apiPath = path.replace(/^\/api/, '').split('?')[0];
+
     console.log(`Handling request: ${req.method} ${apiPath}`);
     
     // Health check — also served at /api/health for uptime monitors
@@ -1077,16 +1080,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'POST') {
       console.log('ðŸ“ POST /api/logs - Client log received');
       try {
-        const logData = req.body;
-        console.log('Client log:', logData);
-        // In production, you would save this to a logging service
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const body = req.body || {};
+        const level = (['error', 'warn', 'warning', 'info', 'debug', 'success']
+          .includes(String(body.type)) ? String(body.type).replace('warning', 'warn') : 'info');
+        await pgDb.insert(appLogs).values({
+          level,
+          message: (body.message || 'log').toString().slice(0, 1000),
+          errorStack: ((body.details?.stack || body.stack || null) as string | null)?.slice(0, 2000) ?? null,
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          url: (body.details?.path || body.url || '').toString().slice(0, 200),
+          ipAddress: clientIP.slice(0, 45),
+        } as any).catch(() => {});
         return res.status(200).json({ message: "Log received" });
       } catch (error: any) {
         console.error('Error processing log:', error);
         return res.status(500).json({ message: "Failed to process log" });
       }
     }
-    
+    // GET /api/logs — admin viewer for existing AppLogsManager. Reads
+    // recent appLogs rows and rewraps them into the shape the client
+    // expects (id/level/message/source/timestamp).
+    if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const { desc } = await import('drizzle-orm');
+        const rows = await pgDb.select().from(appLogs)
+          .orderBy(desc(appLogs.createdAt))
+          .limit(300).catch(() => [] as any[]);
+        return res.status(200).json(
+          (rows as any[]).map(r => ({
+            id: r.id,
+            level: r.level,
+            message: r.message,
+            source: (r.userAgent || '').includes('KSYK-Maps-Android') ? 'android' : 'web',
+            timestamp: r.createdAt,
+          })),
+        );
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
     // Tickets endpoints
     if (apiPath.startsWith('/tickets')) {
       if (req.method === 'GET') {
