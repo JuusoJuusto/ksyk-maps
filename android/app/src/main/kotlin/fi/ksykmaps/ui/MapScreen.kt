@@ -389,19 +389,41 @@ fun MapScreen() {
         appliedServerDefaults = true
     }
 
-    // Basemap swap — reload the style JSON when the user toggles between
-    // standard OSM and satellite. Because MapLibre wipes all sources on
-    // style change, we force the polygon LaunchedEffect to re-run by
-    // resetting `mapDataRetryTrigger` after the style finishes loading.
+    // Basemap swap — reload the style JSON only when the user TOGGLES.
+    // The factory already loads STYLE_JSON_LIGHT on first mount, so
+    // there's nothing to do until basemap actually differs from what
+    // the map currently has. Tracking the last-loaded basemap prevents
+    // an extra setStyle on the initial mapRef assignment which used to
+    // wipe polygon layers the render LaunchedEffect had just added.
+    var lastLoadedBasemap by remember { mutableStateOf<String?>(null) }
+    var styleReloadTrigger by remember { mutableIntStateOf(0) }
     LaunchedEffect(basemap, mapRef) {
         val m = mapRef ?: return@LaunchedEffect
+        // First-time mount: factory already installed STYLE_JSON_LIGHT.
+        // If default basemap matches, just record it and exit — no wipe.
+        if (lastLoadedBasemap == null) {
+            lastLoadedBasemap = basemap
+            fi.ksykmaps.data.AppLog.info(
+                "MapScreen",
+                "basemap initial=$basemap (skip setStyle — factory already installed it)",
+            )
+            return@LaunchedEffect
+        }
+        if (lastLoadedBasemap == basemap) return@LaunchedEffect
+        fi.ksykmaps.data.AppLog.info(
+            "MapScreen",
+            "basemap swap $lastLoadedBasemap → $basemap",
+        )
         val styleJson = when (basemap) {
             "satellite" -> STYLE_JSON_SATELLITE
             else -> STYLE_JSON_LIGHT
         }
         m.setStyle(Style.Builder().fromJson(styleJson)) {
-            // Trigger re-add of buildings/rooms/etc. layers.
-            mapDataRetryTrigger++
+            lastLoadedBasemap = basemap
+            fi.ksykmaps.data.AppLog.info("MapScreen", "basemap style loaded: $basemap")
+            // Force polygon-render LaunchedEffect to re-run so it re-adds
+            // sources/layers to the fresh style.
+            styleReloadTrigger++
         }
     }
 
@@ -434,7 +456,10 @@ fun MapScreen() {
 
         bldDeferred.await().onSuccess { json ->
             val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
-            if (fresh.isNotEmpty()) { buildings = fresh; offlineMode = false }
+            if (fresh.isNotEmpty() && fresh != buildings) {
+                buildings = fresh; offlineMode = false
+                fi.ksykmaps.data.AppLog.info("MapScreen", "STEP2 live buildings=${fresh.size}")
+            }
         }.onFailure { e ->
             Analytics.trackError("MapScreen", "buildings: ${e.message ?: "unknown"}")
             offlineMode = buildings.isEmpty()
@@ -442,17 +467,20 @@ fun MapScreen() {
 
         roomsDeferred.await().onSuccess { json ->
             val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
-            if (fresh.isNotEmpty()) rooms = fresh
+            if (fresh.isNotEmpty() && fresh != rooms) {
+                rooms = fresh
+                fi.ksykmaps.data.AppLog.info("MapScreen", "STEP2 live rooms=${fresh.size}")
+            }
         }
 
         doorsDeferred.await().onSuccess { json ->
             val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
-            if (fresh.isNotEmpty()) doors = fresh
+            if (fresh.isNotEmpty() && fresh != doors) doors = fresh
         }
 
         hwDeferred.await().onSuccess { json ->
             val fresh = json.jsonArray.mapNotNull { it as? JsonObject }
-            if (fresh.isNotEmpty()) hallways = fresh
+            if (fresh.isNotEmpty() && fresh != hallways) hallways = fresh
         }
         dataFetching = false
     }
@@ -634,7 +662,7 @@ fun MapScreen() {
     // the room layer's opacity/visibility per floor without touching
     // the building shells that stay put regardless of which level is
     // "active."
-    LaunchedEffect(buildings, rooms, selectedFloor, mapRef) {
+    LaunchedEffect(buildings, rooms, selectedFloor, mapRef, styleReloadTrigger) {
         val map = mapRef ?: run {
             fi.ksykmaps.data.AppLog.warn("MapScreen", "render skipped: mapRef=null")
             return@LaunchedEffect
@@ -829,6 +857,33 @@ fun MapScreen() {
         if (!MapViewHolder.sessionAutoFitDone && buildings.isNotEmpty()) {
             centerOnBuildings(map, buildings)
             MapViewHolder.sessionAutoFitDone = true
+            fi.ksykmaps.data.AppLog.info("MapScreen", "auto-fit to ${buildings.size} buildings")
+        } else if (buildings.isNotEmpty()) {
+            // Safety net: if the persisted camera is more than 500 m from
+            // ANY building (i.e. the user was viewing another part of the
+            // world last session), snap back to the campus. Prevents the
+            // "map opens on empty ocean" bug.
+            val cam = map.cameraPosition
+            val target = cam.target
+            if (target != null) {
+                val nearest = buildings.mapNotNull { b -> centroidOf(b) }
+                    .minOfOrNull { (lat, lng) ->
+                        haversineMeters(LatLng(target.latitude, target.longitude), LatLng(lat, lng))
+                    } ?: Double.MAX_VALUE
+                fi.ksykmaps.data.AppLog.info(
+                    "MapScreen",
+                    "camera at (%.5f, %.5f) zoom=%.1f, nearest building %.0fm".format(
+                        target.latitude, target.longitude, cam.zoom, nearest,
+                    ),
+                )
+                if (nearest > 500.0) {
+                    fi.ksykmaps.data.AppLog.warn(
+                        "MapScreen",
+                        "camera too far (${nearest.toInt()} m) — force-fit to buildings",
+                    )
+                    centerOnBuildings(map, buildings)
+                }
+            }
         }
     }
 

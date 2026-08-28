@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.48";
+export const APP_VERSION = "4.5.49";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.49",
+    date: "August 2026",
+    title: "Mobile map: fix redundant style reload wiping polygon layers",
+    titleFi: "Mobiilikartta: korjattu tarpeeton tyylin uudelleenlataus, joka pyyhki polygonikerrokset",
+    highlights: [
+      "**Buildings and rooms now actually render** — the basemap-swap LaunchedEffect was firing on every mapRef assignment (not just user toggles) and calling setStyle again, which wiped the polygon layers the render LaunchedEffect had just added. Since the polygon effect's state keys hadn't changed, it never re-added them. Now the basemap effect skips the initial mount (factory already installed the style) and only swaps when the user actually taps the layers chip. The polygon render effect also depends on a styleReloadTrigger counter so it always re-adds layers after a legitimate swap.",
+      "**Safety net: auto-fit to campus when persisted camera is >500 m away** — if you (or a previous session) left the camera far from KSYK, the app now snaps back to the buildings automatically instead of showing empty ocean.",
+      "**Compose list-identity fix** — live API data was fetched successfully but rooms/buildings state wasn't re-assigning because the fresh List.equals() the previous one. Explicit `!=` guard now ensures state updates propagate.",
+    ],
+    highlightsFi: [
+      "**Rakennukset ja huoneet renderöityvät nyt oikeasti** — tausta-vaihtoefekti latasi tyylin uudelleen tarpeettomasti, pyyhkien polygonikerrokset. Korjattu.",
+      "**Turvaverkko: automaattinen sovitus kampukselle, jos kamera on yli 500 m päässä**",
+      "**Compose-lista-identiteetin korjaus** — live-API-datan päivitys ei aiemmin päivittänyt tilaa jos uusi lista oli identtinen edellisen kanssa.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.48",
     date: "August 2026",
@@ -28,7 +45,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Asetukset > Diagnostiikka > Sovelluslokit** — uusi sovelluksen sisäinen lokinäkymä. Suodata tason tai tunnisteen mukaan, jaa mihin tahansa viestisovellukseen.",
       "**Api ja MapScreen instrumentoitu** — jokainen API-kutsu kirjaa, tuliko vastaus live-palvelimelta, levyvälimuistista, GitHubista vai APK:n mukana toimitetusta paketista.",
     ],
-    latest: true,
   },
   {
     version: "4.5.47",
