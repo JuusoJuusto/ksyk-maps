@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.53";
+export const APP_VERSION = "4.5.54";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.54",
+    date: "August 2026",
+    title: "uBlock-bypass reverse-proxy for PostHog + Sentry, posthog-node capture, redesigned /support page",
+    titleFi: "uBlock-kestävä käänteisproxy PostHogille + Sentrylle, posthog-node capture, uudistettu /support",
+    highlights: [
+      "**PostHog + Sentry now bypass uBlock Origin, EasyList, EasyPrivacy** — added `/ingest/*` → `us.i.posthog.com/*` and `/monitoring/*` → `o4512001020133376.ingest.de.sentry.io/*` rewrites in `vercel.json`. Every posthog-js request (event, feature-flag, lazy-loaded recorder / dead-clicks / surveys bundle) now looks first-party (`ksykmaps.fi/ingest/…`) so filter lists don't strip it. Sentry envelope POSTs go through `tunnel: '/monitoring/api/4512001025376336/envelope/'`.",
+      "**posthog-node installed** — server-side capture events (admin actions, API 500s) now land in PostHog Product Analytics AND PostHog Logs. Uses the same phc_ project token; flushed synchronously so Vercel's serverless-freeze doesn't drop events.",
+      "**Content-Security-Policy set explicitly** — `worker-src 'self' blob: data:` for PostHog's recorder + Sentry's replay worker; `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:` for the lazy chunks; `connect-src 'self' + basemap CDNs`. Overrides any report-only upstream CSP that was blocking things.",
+      "**/support redesigned** — removed the Tuki Pöllö companion. Single-purpose ticket form with 4 type cards (Bug / Feature / Support / Question), priority chips (Low → Critical), title + description with character counters + client-side validation, optional name + email fields with inline email format check. Post-submit success screen shows the ticket ID with a one-click copy button. Still POSTs to `/api/tickets` which runs the existing email + Discord pipeline.",
+    ],
+    highlightsFi: [
+      "**PostHog + Sentry ohittavat nyt uBlockin ja muut estolistat** — käänteisproxy /ingest ja /monitoring polkujen kautta niin että kaikki näyttää saman origin -pyynnöiltä.",
+      "**posthog-node asennettu** — palvelinpuolen tapahtumat menevät nyt myös Product Analyticsiin.",
+      "**Content-Security-Policy asetettu eksplisiittisesti** vercel.jsonissa niin että recorder ja replay workerit toimivat.",
+      "**/support uudistettu** — poistettu Tuki Pöllö, uusi ammattimainen tikettilomake tyyppikorteilla, prioriteettivalinnalla ja lomakkeenvalidoinnilla.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.53",
     date: "August 2026",
@@ -36,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Pääsiäismunien nollaus** — hallintapaneelissa yksi nappi.",
       "**AdminLogsManager kaatuminen korjattu**.",
     ],
-    latest: true,
   },
   {
     version: "4.5.52",

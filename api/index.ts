@@ -1,6 +1,7 @@
 ﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
 import { emitLog, flushLogs } from '../server/posthogLogger.js';
+import { capture as posthogCapture, flush as posthogFlush } from '../server/posthogNode.js';
 import crypto from 'node:crypto';
 
 // â”€â”€ Stateless admin token (HMAC-signed, 24h TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3307,6 +3308,14 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
             ...(meta ?? {}),
           },
         });
+        // Also emit as a Product Analytics event so admin activity
+        // shows up on the Insights dashboards, not just the Logs view.
+        posthogCapture(claim?.userId || `ip:${clientIP}`, `server_${action}`, {
+          adminUserId: claim?.userId,
+          role: claim?.role,
+          ip: clientIP,
+          ...(meta ?? {}),
+        });
       } catch { /* audit is best-effort */ }
     }
 
@@ -3766,7 +3775,14 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         stack: error?.stack?.slice(0, 1500),
       },
     });
-    try { await flushLogs(); } catch { /* ignore */ }
+    // Product Analytics event too — powers "5xx by endpoint" chart.
+    posthogCapture(`ip:${clientIP}`, 'server_error', {
+      status: 500,
+      method: req.method,
+      url: req.url,
+      message: error?.message,
+    });
+    try { await Promise.all([flushLogs(), posthogFlush()]); } catch { /* ignore */ }
 
     return res.status(500).json({
       message: "Internal server error",

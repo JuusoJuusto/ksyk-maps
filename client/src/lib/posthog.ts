@@ -10,7 +10,14 @@
 import posthog from "posthog-js";
 
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
-const DEFAULT_HOST = "https://us.i.posthog.com";
+// Reverse-proxy host — every capture, feature-flag, and lazy-loaded bundle
+// request now goes to same-origin /ingest/*, which vercel.json rewrites to
+// us.i.posthog.com and us-assets.i.posthog.com respectively. This is the
+// only reliable way to reach uBlock Origin / EasyList / EasyPrivacy users
+// — those filter lists block posthog.com at the network layer, so a raw
+// snippet install would be stripped for a big chunk of visitors.
+const DEFAULT_HOST = "/ingest";
+const DEFAULT_UI_HOST = "https://us.posthog.com";
 
 const projectToken =
   ((import.meta as any).env?.VITE_POSTHOG_KEY as string | undefined) ??
@@ -37,6 +44,10 @@ if (shouldInit()) {
   try {
     posthog.init(projectToken, {
       api_host: host,
+      // ui_host is where "View recording" / "Feature flag" links point
+      // (the actual PostHog dashboard). Point it at the real domain so
+      // admins clicking through get to the app, not our proxy.
+      ui_host: DEFAULT_UI_HOST,
       defaults: "2026-05-30",
       capture_pageview: false, // our SDK handles route change tracking
       autocapture: true,

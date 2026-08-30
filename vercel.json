@@ -15,6 +15,18 @@
       "destination": "/api"
     },
     {
+      "source": "/ingest/static/(.*)",
+      "destination": "https://us-assets.i.posthog.com/static/$1"
+    },
+    {
+      "source": "/ingest/(.*)",
+      "destination": "https://us.i.posthog.com/$1"
+    },
+    {
+      "source": "/monitoring/(.*)",
+      "destination": "https://o4512001020133376.ingest.de.sentry.io/$1"
+    },
+    {
       "source": "/google7116ce6c6365eddb.html",
       "destination": "/google7116ce6c6365eddb.html"
     },
@@ -66,6 +78,10 @@
         {
           "key": "Permissions-Policy",
           "value": "geolocation=(self), camera=(), microphone=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://server.arcgisonline.com https://raw.githubusercontent.com; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' https:"
         }
       ]
     },

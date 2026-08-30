@@ -32,6 +32,11 @@ export function initSentry() {
   try {
     Sentry.init({
       dsn,
+      // Route every envelope POST through /monitoring/* (same-origin) so
+      // uBlock / EasyPrivacy don't strip it. vercel.json rewrites this to
+      // o4512001020133376.ingest.de.sentry.io/*. The DSN's project id
+      // (4512001025376336) determines the URL suffix Sentry writes.
+      tunnel: "/monitoring/api/4512001025376336/envelope/",
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({
