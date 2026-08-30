@@ -199,16 +199,20 @@ private fun AppShell() {
     LaunchedEffect(selectedTab) {
         if (selectedTab == "map") mapMounted = true
         try { fi.ksykmaps.data.Analytics.pageView(selectedTab) } catch (_: Throwable) {}
-        // This is a single-Activity Compose app, so PostHog never sees an
-        // Android screen change on its own. Emit $screen for each tab so
-        // PostHog web/screen analytics get a denominator.
-        try { PostHog.screen(selectedTab) } catch (_: Throwable) {}
     }
     LaunchedEffect(subScreen) {
         subScreen?.let {
             try { fi.ksykmaps.data.Analytics.pageView(it) } catch (_: Throwable) {}
-            try { PostHog.screen(it) } catch (_: Throwable) {}
         }
+    }
+    // This is a single-Activity Compose app, so PostHog never sees an
+    // Android screen change on its own. Record the screen the user actually
+    // sees: a sub-screen sits on top of the selected tab, so key on the
+    // composite. Keying on selectedTab alone would drop the parent tab when
+    // a sub-screen closes, since selectedTab does not change on return.
+    val visibleScreen = subScreen ?: selectedTab
+    LaunchedEffect(visibleScreen) {
+        try { PostHog.screen(visibleScreen) } catch (_: Throwable) {}
     }
 
     if (!onboardingDone) {
