@@ -1,6 +1,12 @@
 /**
  * Client-side telemetry — adblock-resistant.
  *
+ * v4.5.52: every public helper here also fans out to
+ * `@/lib/analytics-sdk` so the new first-party pipeline gets a copy
+ * without every call site having to import both modules. The legacy
+ * `/api/telemetry/*` sends continue firing for back-compat with the
+ * older admin dashboards that read those paths.
+ *
  * Every send goes through `sendTelemetry(path, payload)` which picks
  * the best available transport in this order:
  *
@@ -17,6 +23,8 @@
  * The old `/api/analytics/*` paths remain as server aliases so any
  * cached client build continues to work.
  */
+
+import { analytics as sdk } from "@/lib/analytics-sdk";
 
 interface AnalyticsEvent {
   type: 'page_view' | 'easter_egg' | 'feature_use' | 'search' | 'navigation';
@@ -106,6 +114,9 @@ function pixelBeacon(payload: unknown): void {
 // ── Public API — call sites don't change ─────────────────────────
 
 export const trackPageView = async (page: string) => {
+  // Fan-out to the new SDK first so the event lands in telemetry_events
+  // even when consent hasn't been granted yet for the legacy pipeline.
+  try { sdk.pageView(page); } catch { /* ignore */ }
   if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'page_view',
@@ -128,6 +139,7 @@ export const trackPageView = async (page: string) => {
 };
 
 export const trackEasterEgg = async (eggType: string) => {
+  try { sdk.easterEgg(eggType); } catch { /* ignore */ }
   const event: AnalyticsEvent = {
     type: 'easter_egg',
     eggType,
@@ -143,6 +155,7 @@ export const trackEasterEgg = async (eggType: string) => {
 };
 
 export const trackFeatureUse = async (feature: string, meta?: Record<string, unknown>) => {
+  try { sdk.featureUsed(feature, "used", meta || {}); } catch { /* ignore */ }
   if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'feature_use',
@@ -169,6 +182,7 @@ export const trackFeature = (name: string, meta?: Record<string, unknown>) =>
   trackFeatureUse(name, meta);
 
 export const trackSearch = async (query: string) => {
+  try { sdk.search(query); } catch { /* ignore */ }
   if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'search',
@@ -190,6 +204,7 @@ export const trackSearch = async (query: string) => {
 };
 
 export const trackNavigation = async (from: string, to: string) => {
+  try { sdk.navigation({ fromRoom: from, toRoom: to }); } catch { /* ignore */ }
   if (!hasAnalyticsConsent()) return;
   const event: AnalyticsEvent = {
     type: 'navigation',

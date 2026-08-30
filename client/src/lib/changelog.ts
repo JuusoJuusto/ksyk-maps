@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.51";
+export const APP_VERSION = "4.5.52";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.52",
+    date: "August 2026",
+    title: "First-party telemetry v1: Postgres pipeline + admin analytics + web/Android SDKs",
+    titleFi: "Ensimmäisen osapuolen telemetria v1: Postgres-putki + hallintapaneelin analytiikka + web/Android SDK:t",
+    highlights: [
+      "**Complete first-party analytics system.** Every event (page view, search, feature use, navigation, easter egg, performance metric, error) flows through the single adblock-safe endpoint `/api/session/heartbeat` into Postgres. No Google Analytics. No third-party trackers as the primary system. PostHog stays as an optional secondary sink (only fires when `POSTHOG_API_KEY` is set at build time).",
+      "**5 new Postgres tables** — `telemetry_sessions`, `telemetry_events`, `feature_usage`, `easter_egg_events`, `performance_events`, `audit_logs` — plus tuned indexes. Idempotent migration (`migrations/0002_telemetry_v4551.sql`) and mirror in `server/initDb.ts` so the schema exists on first cold start.",
+      "**Web SDK** — new `client/src/lib/analytics-sdk.ts` with a clean API (`analytics.track/pageView/search/navigation/featureUsed/error/performance/easterEgg`). Batches every 15 s, flushes on tab hide via sendBeacon, persistent localStorage queue survives crashes, exponential backoff on 429/5xx, image-pixel fallback for hostile networks. Auto-captures Web Vitals (LCP/CLS/INP/TTFB/FCP), route changes, uncaught errors, and unhandled promise rejections.",
+      "**Android SDK** — rewritten `Analytics.kt` with disk-backed queue (`filesDir/telemetry_queue.json`) that survives app kills. Same API surface as web. Auto-initialised in `MainActivity.onCreate`. Every tab and subscreen switch fires a `screen_view`.",
+      "**Admin analytics dashboard** — new `/admin/analytics` sidebar entry. 8 real-time stat cards (sessions, pageviews, searches, feature uses, navigations, errors, easter eggs, web/android split) with 24h/7d/30d/90d range picker. Sub-tabs: Features (bar-chart ranking), Sessions (list), Errors (with stack traces), Perf (p50/p95/p99 percentiles per metric), Easter Eggs (rarity-sorted with icons from the registry), Recent (10 s live firehose). Every panel is powered by real Postgres data — no hardcoded numbers anywhere.",
+      "**Admin audit log** — every view of an admin analytics section writes an `audit_logs` row. Includes admin user id, IP, user agent, timestamp, and the section that was viewed. Surfaced at the bottom of the analytics dashboard.",
+      "**Every existing easter egg auto-instrumented** — the 28 eggs in `easterEggRegistry.ts` already call `trackEasterEgg(id)`, which now forwards to the new SDK, which writes to both `easter_egg_events` (time-series) and the KV counter (aggregate). Nothing needs to change per-egg to appear on the dashboard.",
+    ],
+    highlightsFi: [
+      "**Täydellinen ensimmäisen osapuolen analytiikkajärjestelmä.** Kaikki tapahtumat kulkevat `/api/session/heartbeat` -päätepisteen kautta Postgresiin. Ei Google Analyticsia.",
+      "**5 uutta Postgres-taulua** telemetriaa varten + indeksit + idempotentti migraatio.",
+      "**Web-SDK** (analytics-sdk.ts) — batching, sendBeacon, offline-jono, Web Vitals -tuki.",
+      "**Android-SDK** — uudelleen kirjoitettu Analytics.kt levylle tallentavalla jonolla joka selviää sovelluksen tappamisesta.",
+      "**Hallintapaneelin analytiikkakoja** — /admin/analytics -välilehti oikeaa Postgres-dataa käyttäen.",
+      "**Hallintapaneelin auditointi** — jokainen katselu tallennetaan audit_logs-tauluun.",
+      "**Kaikki 28 pääsiäismunaa automaattisesti instrumentoituja** ilman koodimuutoksia.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.51",
     date: "August 2026",
@@ -34,7 +59,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Satelliittipohjakartta poistettu** — viimeinen glitcheistä.",
       "**Ohjaimet uudistettu** — Apple-tyylinen pillipainikkeet, +/- zoomiryhmä.",
     ],
-    latest: true,
   },
   {
     version: "4.5.50",

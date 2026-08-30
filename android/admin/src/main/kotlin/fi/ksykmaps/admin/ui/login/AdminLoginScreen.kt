@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.admin.data.AdminApi
 import fi.ksykmaps.admin.data.AdminSession
+import com.posthog.android.PostHogAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,13 +95,16 @@ fun AdminLoginScreen(onLoggedIn: () -> Unit) {
                                     AdminApi.post("/auth/admin-login", """{"email":"$email","password":"$password"}""")
                                 }
                                 val obj = body as? JsonObject ?: throw Exception("Invalid response")
-                                val tok = (obj["token"] as? JsonPrimitive)?.contentOrNull
+                                val user = obj["user"] as? JsonObject
+                                val tok = ((obj["adminToken"] ?: obj["token"]) as? JsonPrimitive)?.contentOrNull
                                     ?: throw Exception("No token in response")
-                                val r = (obj["role"] as? JsonPrimitive)?.contentOrNull ?: "admin"
+                                val r = ((user?.get("role") ?: obj["role"]) as? JsonPrimitive)?.contentOrNull ?: "admin"
+                                val userId = user?.get("id")?.jsonPrimitive?.contentOrNull
                                 if (r != "admin" && r != "owner") {
                                     error = "This account does not have admin privileges."
                                 } else {
-                                    AdminSession.save(tok, email, r)
+                                    AdminSession.save(tok, email, r, userId)
+                                    runCatching { PostHogAndroid.getInstance().capture("admin_login_succeeded") }
                                     onLoggedIn()
                                 }
                             } catch (e: Exception) {

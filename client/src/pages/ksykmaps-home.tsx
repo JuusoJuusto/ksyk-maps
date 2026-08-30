@@ -19,6 +19,7 @@ import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { cn } from "@/lib/utils";
 import { trackFeature } from "@/lib/analytics";
+import posthog from "@/lib/posthog";
 
 export default function KSYKMapsHome() {
   const { darkMode } = useDarkMode();
@@ -75,6 +76,7 @@ export default function KSYKMapsHome() {
         onSearchChange={settingsOpen ? undefined : setSearchQuery}
         onOpenSettings={settingsOpen ? undefined : () => {
           trackFeature("campus_settings_opened");
+          posthog.capture("campus_settings_opened");
           setSettingsOpen(true);
         }}
       />

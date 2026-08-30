@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, CheckCircle, Send, X } from 'lucide-react';
+import posthog from '@/lib/posthog';
 
 interface TicketSystemProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
       const id = data.ticketId || data.id || 'ERROR-NO-ID';
       console.log('📋 Setting ticket ID to:', id);
       setTicketId(id);
+      posthog.capture("support_ticket_submitted", { ticket_type: formData.type });
       setSubmitted(true);
     },
     onError: (error) => {

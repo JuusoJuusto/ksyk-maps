@@ -980,3 +980,190 @@ export type NavigationAnalytic = typeof navigationAnalytics.$inferSelect;
 export type InsertNavigationAnalytic = z.infer<typeof insertNavigationAnalyticSchema>;
 export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+
+// ── v4.5.52 telemetry additions ────────────────────────────────────
+// Added 2026-08-30. Reuses existing pageViews / searchAnalytics /
+// navigationAnalytics / appLogs where possible; the new tables here
+// cover event categories the existing schema didn't have a home for.
+
+/**
+ * Session lifecycle (session_started, session_ended, heartbeat).
+ * Anonymous IDs are fine — we never require a real userId.
+ */
+export const telemetrySessions = pgTable(
+  "telemetry_sessions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull().unique(),
+    anonymousId: varchar("anonymous_id"),
+    userId: varchar("user_id"),
+    platform: varchar("platform").notNull(),      // web | android | ios
+    appVersion: varchar("app_version"),
+    osVersion: varchar("os_version"),
+    deviceType: varchar("device_type"),           // mobile | tablet | desktop
+    browser: varchar("browser"),
+    browserVersion: varchar("browser_version"),
+    language: varchar("language"),
+    timezone: varchar("timezone"),
+    country: varchar("country"),
+    startedAt: timestamp("started_at").defaultNow(),
+    lastSeenAt: timestamp("last_seen_at").defaultNow(),
+    endedAt: timestamp("ended_at"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_tsessions_platform").on(table.platform),
+    index("idx_tsessions_started_at").on(table.startedAt),
+    index("idx_tsessions_last_seen").on(table.lastSeenAt),
+  ],
+);
+
+/**
+ * Generic first-party firehose. Every event that doesn't have its own
+ * dedicated table (pageView, search, navigation, appLog, easterEgg,
+ * performance) lands here. Metadata is JSONB so we can add new event
+ * shapes without migrations.
+ */
+export const telemetryEvents = pgTable(
+  "telemetry_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull(),
+    userId: varchar("user_id"),
+    platform: varchar("platform").notNull(),
+    appVersion: varchar("app_version"),
+    eventName: varchar("event_name").notNull(),
+    eventCategory: varchar("event_category"),     // ui | map | schedule | auth | …
+    route: varchar("route"),
+    screen: varchar("screen"),
+    durationMs: integer("duration_ms"),
+    success: boolean("success"),
+    errorCode: varchar("error_code"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_tevents_created_at").on(table.createdAt),
+    index("idx_tevents_event_name").on(table.eventName),
+    index("idx_tevents_session_id").on(table.sessionId),
+    index("idx_tevents_platform").on(table.platform),
+  ],
+);
+
+/**
+ * Feature usage counters — feature_opened, feature_used, feature_completed,
+ * feature_failed. Denormalised on purpose so we can aggregate cheaply.
+ */
+export const featureUsage = pgTable(
+  "feature_usage",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull(),
+    userId: varchar("user_id"),
+    platform: varchar("platform").notNull(),
+    appVersion: varchar("app_version"),
+    feature: varchar("feature").notNull(),        // map | schedule | search | …
+    action: varchar("action").notNull().default("used"), // opened | used | completed | failed
+    durationMs: integer("duration_ms"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_feature_created_at").on(table.createdAt),
+    index("idx_feature_feature").on(table.feature),
+    index("idx_feature_action").on(table.action),
+  ],
+);
+
+/**
+ * Easter-egg discoveries. Duplicated from the existing easterEggCounters
+ * KV blob so admins can see the time series (when eggs were found), not
+ * just totals.
+ */
+export const easterEggEvents = pgTable(
+  "easter_egg_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull(),
+    userId: varchar("user_id"),
+    platform: varchar("platform").notNull(),
+    eggId: varchar("egg_id").notNull(),
+    action: varchar("action").notNull().default("discovered"), // discovered | triggered | viewed
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_egg_created_at").on(table.createdAt),
+    index("idx_egg_egg_id").on(table.eggId),
+  ],
+);
+
+/**
+ * Web Vitals + custom perf metrics. Stored per-observation; roll up in
+ * the admin dashboard via percentile queries.
+ */
+export const performanceEvents = pgTable(
+  "performance_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull(),
+    userId: varchar("user_id"),
+    platform: varchar("platform").notNull(),
+    appVersion: varchar("app_version"),
+    metricName: varchar("metric_name").notNull(), // lcp | cls | inp | map_load | api_latency | …
+    valueMs: real("value_ms"),                    // stored as milliseconds; unit-agnostic values like CLS use the raw number
+    endpoint: varchar("endpoint"),                // only for api_* metrics
+    statusCode: integer("status_code"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_perf_created_at").on(table.createdAt),
+    index("idx_perf_metric").on(table.metricName),
+  ],
+);
+
+/**
+ * Admin audit trail — every privileged action lands here. Never store
+ * credentials or tokens; store *what* was done and *by whom*.
+ */
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    adminUserId: varchar("admin_user_id"),
+    adminEmail: varchar("admin_email"),
+    action: varchar("action").notNull(),          // announcement_created | settings_changed | analytics_viewed | …
+    resource: varchar("resource"),                // e.g. announcements/<id>
+    ipAddress: varchar("ip_address"),
+    userAgent: text("user_agent"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_audit_created_at").on(table.createdAt),
+    index("idx_audit_action").on(table.action),
+    index("idx_audit_admin").on(table.adminUserId),
+  ],
+);
+
+export const insertTelemetrySessionSchema = createInsertSchema(telemetrySessions).omit({ id: true, createdAt: true });
+export const insertTelemetryEventSchema = createInsertSchema(telemetryEvents).omit({ id: true, createdAt: true });
+export const insertFeatureUsageSchema = createInsertSchema(featureUsage).omit({ id: true, createdAt: true });
+export const insertEasterEggEventSchema = createInsertSchema(easterEggEvents).omit({ id: true, createdAt: true });
+export const insertPerformanceEventSchema = createInsertSchema(performanceEvents).omit({ id: true, createdAt: true });
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+
+export type TelemetrySession = typeof telemetrySessions.$inferSelect;
+export type InsertTelemetrySession = z.infer<typeof insertTelemetrySessionSchema>;
+export type TelemetryEvent = typeof telemetryEvents.$inferSelect;
+export type InsertTelemetryEvent = z.infer<typeof insertTelemetryEventSchema>;
+export type FeatureUsage = typeof featureUsage.$inferSelect;
+export type InsertFeatureUsage = z.infer<typeof insertFeatureUsageSchema>;
+export type EasterEggEvent = typeof easterEggEvents.$inferSelect;
+export type InsertEasterEggEvent = z.infer<typeof insertEasterEggEventSchema>;
+export type PerformanceEvent = typeof performanceEvents.$inferSelect;
+export type InsertPerformanceEvent = z.infer<typeof insertPerformanceEventSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;

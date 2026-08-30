@@ -60,3 +60,6 @@ build
 .cache
 .vercel
 .env*.local
+
+# PostHog setup-wizard scratch dir — not source, don't ship.
+.posthog-wizard-cache/

@@ -2,6 +2,7 @@ package fi.ksykmaps.admin.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.posthog.android.PostHogAndroid
 
 object AdminSession {
     private const val PREFS = "ksyk_admin_session"
@@ -11,6 +12,7 @@ object AdminSession {
     var token: String? = null; private set
     var email: String? = null; private set
     var role: String? = null; private set
+    var userId: String? = null; private set
 
     val isLoggedIn get() = token != null
     val isAdmin get() = role == "admin" || role == "owner"
@@ -20,12 +22,20 @@ object AdminSession {
         token = prefs?.getString("token", null)
         email = prefs?.getString("email", null)
         role = prefs?.getString("role", null)
+        userId = prefs?.getString("user_id", null)
         prefs?.getString("server", null)?.let { AdminApi.setBaseUrl(it) }
+        identifyUser()
     }
 
-    fun save(token: String, email: String, role: String) {
-        this.token = token; this.email = email; this.role = role
-        prefs?.edit()?.putString("token", token)?.putString("email", email)?.putString("role", role)?.apply()
+    fun save(token: String, email: String, role: String, userId: String?) {
+        this.token = token; this.email = email; this.role = role; this.userId = userId
+        prefs?.edit()
+            ?.putString("token", token)
+            ?.putString("email", email)
+            ?.putString("role", role)
+            ?.apply { if (userId != null) putString("user_id", userId) else remove("user_id") }
+            ?.apply()
+        identifyUser()
     }
 
     fun saveServer(url: String) {
@@ -34,7 +44,22 @@ object AdminSession {
     }
 
     fun clear() {
-        token = null; email = null; role = null
-        prefs?.edit()?.remove("token")?.remove("email")?.remove("role")?.apply()
+        runCatching { PostHogAndroid.getInstance().reset() }
+        token = null; email = null; role = null; userId = null
+        prefs?.edit()?.remove("token")?.remove("email")?.remove("role")?.remove("user_id")?.apply()
+    }
+
+    private fun identifyUser() {
+        val stableUserId = userId?.takeIf { it.isNotBlank() } ?: return
+        val userEmail = email?.takeIf { it.isNotBlank() } ?: return
+        runCatching {
+            PostHogAndroid.getInstance().identify(
+                stableUserId,
+                mapOf(
+                    "email" to userEmail,
+                    "role" to role,
+                ),
+            )
+        }
     }
 }

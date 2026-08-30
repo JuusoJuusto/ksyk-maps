@@ -7,6 +7,7 @@ import { Eye, EyeOff, ArrowRight, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
+import posthog from '@/lib/posthog';
 
 /**
  * KSYK Admin Login — flipped split:
@@ -46,6 +47,13 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         localStorage.setItem('ksyk_admin_user', JSON.stringify(data.user));
         localStorage.setItem('ksyk_admin_login_at', String(Date.now()));
         if (data.adminToken) localStorage.setItem('ksyk_admin_token', data.adminToken);
+        if (typeof data.user?.id === 'string' && data.user.id) {
+          posthog.identify(data.user.id, {
+            email: typeof data.user.email === 'string' ? data.user.email : undefined,
+            role: typeof data.user.role === 'string' ? data.user.role : undefined,
+          });
+        }
+        posthog.capture("admin_login_succeeded", { auth_method: "password" });
         toast({ title: 'Signed in', description: 'Welcome back.' });
         onLoginSuccess();
       } else {

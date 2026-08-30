@@ -3,6 +3,7 @@ package fi.ksykmaps.data
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.mutableStateOf
+import com.posthog.android.PostHogAndroid
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -40,6 +41,7 @@ object Session {
     private const val KEY_EMAIL = "remembered_email"
     private const val KEY_TOKEN = "admin_token"
     private const val KEY_ROLE = "admin_role"
+    private const val KEY_USER_ID = "user_id"
 
     fun load(ctx: Context) {
         val sp = prefs(ctx)
@@ -52,15 +54,25 @@ object Session {
             // Restore cached admin flag so the admin tab shows immediately
             // on cold start (before we've had a chance to re-verify with
             // the server). The token itself gates the actual API calls.
-            adminState.value = sp.getString(KEY_ROLE, null)?.let { isAdminRole(it) } ?: false
+            val role = sp.getString(KEY_ROLE, null)
+            adminState.value = role?.let { isAdminRole(it) } ?: false
+            val userId = sp.getString(KEY_USER_ID, null)
+            val email = rememberedEmail
+            if (!userId.isNullOrBlank() && !email.isNullOrBlank()) {
+                identifyUser(userId, email, role)
+            }
         }
     }
 
     fun saveToDataStore(ctx: Context, email: String, token: String? = null) {
         val sp = prefs(ctx)
         val role = extractRole(user)
+        val userId = extractUserId(user)
         sp.edit()
             .putString(KEY_EMAIL, email)
+            .apply {
+                if (userId != null) putString(KEY_USER_ID, userId) else remove(KEY_USER_ID)
+            }
             .apply { if (token != null) putString(KEY_TOKEN, token) else remove(KEY_TOKEN) }
             .apply { if (role != null) putString(KEY_ROLE, role) else remove(KEY_ROLE) }
             .apply()
@@ -69,11 +81,13 @@ object Session {
         Api.sessionEmail = email
         signedInState.value = true
         adminState.value = extractAdmin(user)
+        if (userId != null) identifyUser(userId, email, role)
     }
 
     fun clear(ctx: Context) {
         val sp = prefs(ctx)
-        sp.edit().remove(KEY_EMAIL).remove(KEY_TOKEN).remove(KEY_ROLE).apply()
+        sp.edit().remove(KEY_EMAIL).remove(KEY_TOKEN).remove(KEY_ROLE).remove(KEY_USER_ID).apply()
+        runCatching { PostHogAndroid.getInstance().reset() }
         rememberedEmail = null
         user = null
         Api.sessionEmail = null
@@ -84,6 +98,21 @@ object Session {
 
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun extractUserId(user: JsonObject?): String? =
+        (user?.get("id") as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+
+    private fun identifyUser(userId: String, email: String, role: String?) {
+        runCatching {
+            PostHogAndroid.getInstance().identify(
+                userId,
+                mapOf(
+                    "email" to email,
+                    "role" to role,
+                ),
+            )
+        }
+    }
 
     private fun extractRole(u: JsonObject?): String? =
         (u?.get("role") as? JsonPrimitive)?.contentOrNull

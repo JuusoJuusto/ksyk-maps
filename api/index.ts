@@ -58,7 +58,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline' ${process.env.POSTHOG_CSP_SCRIPT_SRC ?? ''}`.trim(),
+      "style-src 'self' 'unsafe-inline'",
+      `connect-src 'self' ${process.env.VITE_POSTHOG_HOST ?? ''}`.trim(),
+      "worker-src 'self' blob:",
+    ].join('; '),
+  );
   
   // Rate limiting — admins get a separate high-capacity bucket so the
   // dashboard (which fires 5 parallel requests on load) never hits 429.
@@ -2999,9 +3008,23 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // /api/analytics/* and /api/telemetry/* are blocked by uBlock Origin
     // (EasyList, EasyPrivacy). We alias the same behaviour under path
     // names that don't match any tracking filter: /session/heartbeat,
-    // /session/sync, /config/report. All three accept:
-    //   { source: "web"|"android"|"ios", events: [...], userId?, sessionId?, meta? }
-    // and fan out into appLogs + pageViews + searchAnalytics.
+    // /session/sync, /config/report, /preferences/save. All accept:
+    //   { source: "web"|"android"|"ios",
+    //     sessionId, userId, anonymousId, appVersion, meta: {...},
+    //     events: [{ type, ts, url|screen|route, ...typed fields }] }
+    // and fan out into the right table based on event.type / event.category.
+    //
+    // ROUTING (see also shared/schema.ts):
+    //   session_started / session_ended → telemetry_sessions (upsert)
+    //   page_view / screen_view         → pageViews
+    //   search                          → searchAnalytics
+    //   navigation                      → navigationAnalytics
+    //   feature                         → featureUsage
+    //   easter_egg                      → easterEggEvents
+    //   performance / web_vital         → performanceEvents
+    //   error                           → appLogs (level=error)
+    //   log                             → appLogs (level from event.level)
+    //   everything else                 → telemetryEvents (firehose)
     if (
       (apiPath === '/session/heartbeat' ||
         apiPath === '/session/sync' ||
@@ -3009,60 +3032,204 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         apiPath === '/preferences/save') &&
       req.method === 'POST'
     ) {
+      // Payload size guard — reject anything over 128 KB. Prevents a
+      // pathological client from filling the disk with a single request.
+      const contentLength = Number(req.headers['content-length'] || 0);
+      if (contentLength > 128 * 1024) {
+        return res.status(413).json({ message: 'payload too large' });
+      }
       try {
         const { db: pgDb } = await import('../server/db.js');
-        const { appLogs, pageViews, searchAnalytics } = await import('../shared/schema.js');
+        const schema = await import('../shared/schema.js');
+        const {
+          appLogs, pageViews, searchAnalytics, navigationAnalytics,
+          telemetrySessions, telemetryEvents, featureUsage,
+          easterEggEvents, performanceEvents,
+        } = schema;
+        const { eq, sql: dsql } = await import('drizzle-orm');
+
         const body = req.body || {};
         const source = ((body.source || 'web') as string).slice(0, 20);
         const sessionId = ((body.sessionId || 'anon') as string).slice(0, 60);
-        const userId = ((body.userId || '') as string).slice(0, 60);
+        const anonymousId = ((body.anonymousId || body.userId || '') as string).slice(0, 60);
+        const appVersion = ((body.appVersion || body.meta?.appVersion || '') as string).slice(0, 40);
+        const osVersion = ((body.osVersion || body.meta?.osVersion || '') as string).slice(0, 40);
+        const deviceType = ((body.deviceType || body.meta?.deviceType || source) as string).slice(0, 40);
         const events = Array.isArray(body.events) ? body.events.slice(0, 100) : [];
         const ua = (req.headers['user-agent'] || '').toString().slice(0, 300);
-        const nowIso = new Date().toISOString();
 
-        // Persist each event into the most appropriate table. We tolerate
-        // partial failures — every table insert is `.catch(() => {})`.
+        // Touch the session row: create if missing, bump last_seen_at.
+        // A fresh Set the "startedAt" too. Every event we ingest counts as
+        // a heartbeat, so this doubles as the activity ping.
+        try {
+          await pgDb.execute(dsql`
+            INSERT INTO telemetry_sessions
+              (session_id, anonymous_id, platform, app_version, os_version, device_type, started_at, last_seen_at)
+            VALUES (${sessionId}, ${anonymousId || null}, ${source}, ${appVersion || null},
+                    ${osVersion || null}, ${deviceType}, NOW(), NOW())
+            ON CONFLICT (session_id) DO UPDATE
+              SET last_seen_at = NOW(),
+                  app_version = COALESCE(${appVersion || null}, telemetry_sessions.app_version)
+          `);
+        } catch (e: any) {
+          // Table may not exist yet on first cold start — initDb creates
+          // it, but if this request beat it, just drop the session touch.
+          if (!/relation .* does not exist/.test(e?.message || '')) {
+            console.warn('[heartbeat] session upsert failed:', e?.message?.slice(0, 120));
+          }
+        }
+
         for (const ev of events) {
           if (!ev || typeof ev !== 'object') continue;
-          const kind = ((ev.type || ev.event || 'unknown') as string).slice(0, 50);
+          const kind = ((ev.type || ev.event || 'unknown') as string).slice(0, 60);
+          const evCategory = ((ev.category || '') as string).slice(0, 40) || null;
+          const evRoute = ((ev.route || ev.url || ev.screen || '') as string).slice(0, 200);
+          const metaObj = ev.metadata && typeof ev.metadata === 'object' ? ev.metadata : {};
           const msg = ((ev.message || ev.msg || '') as string).slice(0, 1000);
-          const level = (['error', 'warn', 'warning', 'info', 'debug', 'success'].includes(String(ev.level))
-            ? String(ev.level).replace('warning', 'warn')
-            : (kind.includes('error') || kind === 'error' ? 'error'
-              : kind === 'warn' ? 'warn'
-                : 'info'));
-          if (kind === 'page_view' || kind === 'pageview' || kind === 'screen_view') {
-            await pgDb.insert(pageViews).values({
-              url: ((ev.url || ev.path || ev.screen || '/') as string).slice(0, 200),
-              sessionId,
-              userId: null,
-              referrer: ((ev.referrer || ev.from || '') as string).slice(0, 200),
-              userAgent: ua,
-              deviceType: source,
-            }).catch(() => {});
-          } else if (kind === 'search') {
-            const q = ((ev.query || ev.q || '') as string).slice(0, 200).trim();
-            if (q) {
-              await pgDb.insert(searchAnalytics).values({
-                query: q,
+          const durMs = Number.isFinite(ev.durationMs) ? Number(ev.durationMs)
+                       : Number.isFinite(ev.duration_ms) ? Number(ev.duration_ms) : null;
+
+          try {
+            if (kind === 'session_started') {
+              // Session row already upserted above; nothing else to do.
+              continue;
+            } else if (kind === 'session_ended') {
+              await pgDb.execute(dsql`
+                UPDATE telemetry_sessions
+                   SET ended_at    = NOW(),
+                       duration_ms = ${durMs},
+                       last_seen_at = NOW()
+                 WHERE session_id = ${sessionId}
+              `);
+              continue;
+            } else if (kind === 'page_view' || kind === 'pageview' || kind === 'screen_view') {
+              await pgDb.insert(pageViews).values({
+                url: evRoute || '/',
                 sessionId,
                 userId: null,
-                resultsCount: Number(ev.hits ?? ev.resultsCount ?? 0),
+                referrer: ((ev.referrer || ev.from || '') as string).slice(0, 200),
+                userAgent: ua,
+                deviceType: source,
+              }).catch(() => {});
+            } else if (kind === 'search') {
+              const q = ((ev.query || ev.q || '') as string).slice(0, 200).trim();
+              if (q) {
+                await pgDb.insert(searchAnalytics).values({
+                  query: q,
+                  sessionId,
+                  userId: null,
+                  resultsCount: Number(ev.hits ?? ev.resultsCount ?? 0),
+                } as any).catch(() => {});
+              }
+            } else if (kind === 'navigation') {
+              await pgDb.insert(navigationAnalytics).values({
+                sessionId,
+                userId: null,
+                fromRoom: ((ev.fromRoom || null) as string | null)?.slice(0, 80) ?? null,
+                toRoom: ((ev.toRoom || null) as string | null)?.slice(0, 80) ?? null,
+                fromBuilding: ((ev.fromBuilding || null) as string | null)?.slice(0, 80) ?? null,
+                toBuilding: ((ev.toBuilding || null) as string | null)?.slice(0, 80) ?? null,
+                navigationType: ((ev.navigationType || 'walking') as string).slice(0, 40),
+                distance: Number.isFinite(ev.distance) ? String(ev.distance) : null,
+                duration: Number.isFinite(ev.duration) ? Number(ev.duration) : null,
+                userAgent: ua,
+              } as any).catch(() => {});
+            } else if (kind === 'feature') {
+              const feature = ((ev.name || ev.feature || 'unknown') as string).slice(0, 80);
+              const action = ((ev.action || 'used') as string).slice(0, 40);
+              await pgDb.insert(featureUsage).values({
+                sessionId,
+                userId: null,
+                platform: source,
+                appVersion: appVersion || null,
+                feature,
+                action,
+                durationMs: durMs,
+                metadata: metaObj,
+              } as any).catch(() => {});
+            } else if (kind === 'easter_egg') {
+              const eggId = ((ev.eggId || ev.egg_id || ev.name || '') as string).slice(0, 80);
+              if (eggId) {
+                const action = ((ev.action || 'discovered') as string).slice(0, 40);
+                await pgDb.insert(easterEggEvents).values({
+                  sessionId,
+                  userId: null,
+                  platform: source,
+                  eggId,
+                  action,
+                  metadata: metaObj,
+                } as any).catch(() => {});
+                // Also bump the KV counter so the legacy stats card keeps
+                // working without a schema migration on the client.
+                try {
+                  const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
+                  if (/^[a-z0-9-]{1,64}$/.test(eggId)) {
+                    await incrementEggCounter(eggId).catch(() => {});
+                    await appendEggRecent({
+                      egg: eggId, userId: anonymousId || 'anon',
+                      at: new Date().toISOString(),
+                    }).catch(() => {});
+                  }
+                } catch { /* KV unavailable */ }
+              }
+            } else if (kind === 'performance' || kind === 'web_vital') {
+              const metricName = ((ev.metric || ev.name || 'unknown') as string).slice(0, 40);
+              const valueMs = Number.isFinite(ev.value) ? Number(ev.value)
+                            : Number.isFinite(ev.valueMs) ? Number(ev.valueMs) : null;
+              await pgDb.insert(performanceEvents).values({
+                sessionId,
+                userId: null,
+                platform: source,
+                appVersion: appVersion || null,
+                metricName,
+                valueMs,
+                endpoint: ((ev.endpoint || null) as string | null)?.slice(0, 200) ?? null,
+                statusCode: Number.isFinite(ev.statusCode) ? Number(ev.statusCode) : null,
+                metadata: metaObj,
+              } as any).catch(() => {});
+            } else if (kind === 'error' || (ev.level === 'error')) {
+              await pgDb.insert(appLogs).values({
+                level: 'error',
+                message: (msg || `${source}:error`).slice(0, 500),
+                userAgent: ua,
+                url: evRoute,
+                ipAddress: clientIP.slice(0, 45),
+                errorStack: ((ev.stack || ev.errorStack || null) as string | null)?.slice(0, 2000) ?? null,
+              } as any).catch(() => {});
+            } else if (kind === 'log' || ev.level) {
+              const level = (['error', 'warn', 'warning', 'info', 'debug', 'success'].includes(String(ev.level))
+                ? String(ev.level).replace('warning', 'warn')
+                : 'info');
+              const label = ev.tag ? `${source}:${ev.tag}` : source;
+              await pgDb.insert(appLogs).values({
+                level,
+                message: (msg ? `${label} — ${msg}` : label).slice(0, 500),
+                userAgent: ua,
+                url: evRoute,
+                ipAddress: clientIP.slice(0, 45),
+              } as any).catch(() => {});
+            } else {
+              // Firehose: everything else goes into telemetry_events so we
+              // never lose an event just because it's a new type.
+              await pgDb.insert(telemetryEvents).values({
+                sessionId,
+                userId: null,
+                platform: source,
+                appVersion: appVersion || null,
+                eventName: kind,
+                eventCategory: evCategory,
+                route: evRoute || null,
+                screen: ((ev.screen || null) as string | null)?.slice(0, 80) ?? null,
+                durationMs: durMs,
+                success: typeof ev.success === 'boolean' ? ev.success : null,
+                errorCode: ((ev.errorCode || null) as string | null)?.slice(0, 60) ?? null,
+                metadata: metaObj,
               } as any).catch(() => {});
             }
+          } catch (perEventErr: any) {
+            // A single malformed event must never bring down the batch.
+            console.warn('[heartbeat] event insert failed:', perEventErr?.message?.slice(0, 120));
           }
-          // Every event, regardless of kind, is also stored as an appLog
-          // row so /api/admin/activity can present a unified stream.
-          const label = kind.startsWith('feature') ? kind : `${source}:${kind}`;
-          const payload = msg ? `${label} — ${msg}` : label;
-          await pgDb.insert(appLogs).values({
-            level,
-            message: payload.slice(0, 500),
-            userAgent: ua,
-            url: ((ev.url || ev.path || ev.screen || '') as string).slice(0, 200),
-            ipAddress: clientIP.slice(0, 45),
-            errorStack: ((ev.stack || ev.errorStack || null) as string | null)?.slice(0, 2000) ?? null,
-          } as any).catch(() => {});
         }
         res.setHeader('Cache-Control', 'no-store');
         return res.status(204).end();
@@ -3094,6 +3261,265 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       res.setHeader('Content-Type', 'image/gif');
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).end(gif);
+    }
+
+    // ── /api/admin/analytics/* — dashboard queries ──────────────────────
+    // Every handler requires admin auth. Every handler is READ-only. Every
+    // handler emits a matching audit_logs row so we can prove who looked
+    // at what and when (spec §32).
+    async function auditView(action: string, meta: any = null) {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { auditLogs } = await import('../shared/schema.js');
+        const authHdr = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
+        const t = authHdr?.replace(/^Bearer\s+/i, '').trim();
+        const claim = t ? verifyAdminToken(t) : null;
+        await pgDb.insert(auditLogs).values({
+          adminUserId: claim?.userId ?? null,
+          adminEmail: null,
+          action,
+          resource: null,
+          ipAddress: clientIP.slice(0, 45),
+          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          metadata: meta,
+        } as any).catch(() => {});
+      } catch { /* audit is best-effort */ }
+    }
+
+    // GET /api/admin/analytics/overview
+    if (apiPath === '/admin/analytics/overview' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'overview' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const {
+          pageViews, searchAnalytics, appLogs, featureUsage,
+          easterEggEvents, telemetrySessions, navigationAnalytics,
+        } = await import('../shared/schema.js');
+        const { gte, count: pgCount, eq, and } = await import('drizzle-orm');
+
+        const q = req.query as Record<string, string>;
+        const range = (q.range || '24h').toLowerCase();
+        const hours = range === '7d' ? 168 : range === '30d' ? 720 : range === '90d' ? 2160 : 24;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+
+        const [pv, searches, errors, features, eggs, sessions, navs] = await Promise.all([
+          pgDb.select({ n: pgCount() }).from(pageViews).where(gte(pageViews.createdAt, since)).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(searchAnalytics).where(gte(searchAnalytics.createdAt, since)).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(appLogs).where(and(gte(appLogs.createdAt, since), eq(appLogs.level, 'error'))).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(featureUsage).where(gte(featureUsage.createdAt, since)).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(easterEggEvents).where(gte(easterEggEvents.createdAt, since)).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(telemetrySessions).where(gte(telemetrySessions.startedAt, since)).catch(() => [{ n: 0 }]),
+          pgDb.select({ n: pgCount() }).from(navigationAnalytics).where(gte(navigationAnalytics.createdAt, since)).catch(() => [{ n: 0 }]),
+        ]);
+
+        // Split sessions by platform.
+        let bySource: Record<string, number> = {};
+        try {
+          const rows = await pgDb.select({
+            platform: telemetrySessions.platform,
+            n: pgCount(),
+          }).from(telemetrySessions).where(gte(telemetrySessions.startedAt, since))
+            .groupBy(telemetrySessions.platform);
+          for (const r of rows as any[]) bySource[r.platform] = Number(r.n) || 0;
+        } catch { /* table might not yet exist */ }
+
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          range,
+          since: since.toISOString(),
+          pageviews: Number((pv[0] as any)?.n ?? 0),
+          searches: Number((searches[0] as any)?.n ?? 0),
+          errors: Number((errors[0] as any)?.n ?? 0),
+          featureUses: Number((features[0] as any)?.n ?? 0),
+          easterEggs: Number((eggs[0] as any)?.n ?? 0),
+          sessions: Number((sessions[0] as any)?.n ?? 0),
+          navigations: Number((navs[0] as any)?.n ?? 0),
+          bySource,
+          fetchedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('analytics/overview error:', err);
+        return res.status(200).json({ range: '24h', pageviews: 0, searches: 0, errors: 0, featureUses: 0, easterEggs: 0, sessions: 0, navigations: 0, bySource: {} });
+      }
+    }
+
+    // GET /api/admin/analytics/sessions
+    if (apiPath === '/admin/analytics/sessions' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'sessions' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { telemetrySessions } = await import('../shared/schema.js');
+        const { desc, gte } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(parseInt(q.limit || '100', 10), 500);
+        const since = q.since ? new Date(q.since) : new Date(Date.now() - 24 * 3600 * 1000);
+        const rows = await pgDb.select().from(telemetrySessions)
+          .where(gte(telemetrySessions.startedAt, since))
+          .orderBy(desc(telemetrySessions.lastSeenAt))
+          .limit(limit).catch(() => [] as any[]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(rows);
+      } catch { return res.status(200).json([]); }
+    }
+
+    // GET /api/admin/analytics/features
+    if (apiPath === '/admin/analytics/features' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'features' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { featureUsage } = await import('../shared/schema.js');
+        const { gte, count: pgCount, sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const hours = q.range === '7d' ? 168 : q.range === '30d' ? 720 : 24;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+        const rows = await pgDb.select({
+          feature: featureUsage.feature,
+          action: featureUsage.action,
+          n: pgCount(),
+        }).from(featureUsage)
+          .where(gte(featureUsage.createdAt, since))
+          .groupBy(featureUsage.feature, featureUsage.action)
+          .orderBy(dsql`n DESC`)
+          .limit(200).catch(() => [] as any[]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(rows);
+      } catch { return res.status(200).json([]); }
+    }
+
+    // GET /api/admin/analytics/errors
+    if (apiPath === '/admin/analytics/errors' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'errors' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const { desc, gte, eq, and } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const hours = q.range === '7d' ? 168 : q.range === '30d' ? 720 : 24;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+        const rows = await pgDb.select().from(appLogs)
+          .where(and(gte(appLogs.createdAt, since), eq(appLogs.level, 'error')))
+          .orderBy(desc(appLogs.createdAt))
+          .limit(300).catch(() => [] as any[]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(rows);
+      } catch { return res.status(200).json([]); }
+    }
+
+    // GET /api/admin/analytics/performance
+    if (apiPath === '/admin/analytics/performance' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'performance' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { performanceEvents } = await import('../shared/schema.js');
+        const { gte, sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const hours = q.range === '7d' ? 168 : q.range === '30d' ? 720 : 24;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+        // Percentile aggregation per metric. Postgres percentile_cont works
+        // on numeric arrays; we bucket by metric_name.
+        const rows = await pgDb.execute(dsql`
+          SELECT metric_name,
+                 COUNT(*)::int                                                   AS n,
+                 percentile_cont(0.5)  WITHIN GROUP (ORDER BY value_ms)          AS p50,
+                 percentile_cont(0.95) WITHIN GROUP (ORDER BY value_ms)          AS p95,
+                 percentile_cont(0.99) WITHIN GROUP (ORDER BY value_ms)          AS p99,
+                 AVG(value_ms)                                                   AS avg
+            FROM performance_events
+           WHERE created_at >= ${since}
+             AND value_ms IS NOT NULL
+        GROUP BY metric_name
+        ORDER BY n DESC
+           LIMIT 100
+        `);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json((rows as any).rows ?? rows);
+      } catch (err) {
+        console.error('analytics/performance error:', err);
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/admin/analytics/easter-eggs
+    if (apiPath === '/admin/analytics/easter-eggs' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'easter_eggs' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { easterEggEvents } = await import('../shared/schema.js');
+        const { desc, gte, count: pgCount } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const hours = q.range === '7d' ? 168 : q.range === '30d' ? 720 : q.range === '90d' ? 2160 : 8760;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+        const [byEgg, recent] = await Promise.all([
+          pgDb.select({
+            eggId: easterEggEvents.eggId,
+            n: pgCount(),
+          }).from(easterEggEvents)
+            .where(gte(easterEggEvents.createdAt, since))
+            .groupBy(easterEggEvents.eggId).catch(() => [] as any[]),
+          pgDb.select().from(easterEggEvents)
+            .where(gte(easterEggEvents.createdAt, since))
+            .orderBy(desc(easterEggEvents.createdAt))
+            .limit(100).catch(() => [] as any[]),
+        ]);
+        // Include KV counters as a fallback so pre-v4.5.52 discoveries
+        // aren't lost from the dashboard.
+        const { kvGet } = await import('../server/kvStorage.js');
+        const kvCounters = (await kvGet('easterEggCounters') as Record<string, number> | null) || {};
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          byEgg: (byEgg as any[]).map(r => ({ eggId: r.eggId, count: Number(r.n) || 0 })),
+          recent,
+          kvCounters,
+          range: q.range || '365d',
+        });
+      } catch (err) {
+        console.error('analytics/easter-eggs error:', err);
+        return res.status(200).json({ byEgg: [], recent: [], kvCounters: {} });
+      }
+    }
+
+    // GET /api/admin/analytics/recent-events
+    if (apiPath === '/admin/analytics/recent-events' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'recent_events' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { telemetryEvents } = await import('../shared/schema.js');
+        const { desc } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(parseInt(q.limit || '200', 10), 500);
+        const rows = await pgDb.select().from(telemetryEvents)
+          .orderBy(desc(telemetryEvents.createdAt))
+          .limit(limit).catch(() => [] as any[]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(rows);
+      } catch { return res.status(200).json([]); }
+    }
+
+    // GET /api/admin/analytics/audit
+    if (apiPath === '/admin/analytics/audit' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      // Note: we *don't* audit-log audit-log views — that would spiral.
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { auditLogs } = await import('../shared/schema.js');
+        const { desc, gte } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(parseInt(q.limit || '200', 10), 500);
+        const since = q.since ? new Date(q.since) : new Date(Date.now() - 7 * 24 * 3600 * 1000);
+        const rows = await pgDb.select().from(auditLogs)
+          .where(gte(auditLogs.createdAt, since))
+          .orderBy(desc(auditLogs.createdAt))
+          .limit(limit).catch(() => [] as any[]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(rows);
+      } catch { return res.status(200).json([]); }
     }
 
     // ── GET /api/admin/activity ─────────────────────────────────────────

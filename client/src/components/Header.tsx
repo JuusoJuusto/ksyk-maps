@@ -10,6 +10,7 @@ import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Mon
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 import { trackFeature } from "@/lib/analytics";
+import posthog from "@/lib/posthog";
 
 type HeaderProps = {
   largeLogo?: boolean;
@@ -121,6 +122,7 @@ export default function Header({
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch { /* non-critical */ } finally {
+      posthog.reset();
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = "/";

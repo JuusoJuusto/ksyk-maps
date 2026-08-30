@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
 import { useCampusData } from "@/hooks/useCampusData";
+import posthog from "@/lib/posthog";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -471,6 +472,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
    *  event carrying the destination. NavigationPanel listens and
    *  prefills the To field. */
   const handleRouteTo = useCallback((f: ClickedFeature) => {
+    posthog.capture("directions_opened", { destination_type: f.kind, entry_point: "feature_info_sheet" });
     setShowNav(true);
     setClickedFeature(null);
     // Defer so NavigationPanel is mounted before we dispatch.
@@ -483,6 +485,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
 
   const toggle3D = useCallback(() => {
     const next = is3D ? 0 : 45;
+    posthog.capture("map_view_mode_changed", { view_mode: next > 0 ? "3d" : "2d" });
     setIs3D(!is3D);
     handleRef.current?.setPitch(next);
     update("osmPitchDeg", next);
@@ -557,7 +560,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       });
     }
     // Show the info drawer — same UI a click on the map opens.
-    if (infoFeature) setClickedFeature(infoFeature);
+    if (infoFeature) {
+      posthog.capture("map_search_result_selected", { result_type: pick.kind });
+      setClickedFeature(infoFeature);
+    }
     // v3.27.5 — clear the search input after a pick so the dropdown
     // closes and the info drawer isn't blocked. Especially critical
     // on mobile where the dropdown occupies most of the viewport.
@@ -669,7 +675,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                 type="button"
                 aria-label={`Floor ${floor}`}
                 aria-pressed={selectedFloor === floor}
-                onClick={() => setSelectedFloor(floor)}
+                onClick={() => {
+                  posthog.capture("map_floor_selected", { floor });
+                  setSelectedFloor(floor);
+                }}
                 className={cn(
                   "min-w-[38px] h-9 px-2 rounded-xl text-sm font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
                   selectedFloor === floor
@@ -802,7 +811,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         {canUseRouting && (
         <button
           type="button"
-          onClick={() => setShowNav((v) => !v)}
+          onClick={() => {
+            if (!showNav) posthog.capture("directions_opened", { entry_point: "map_controls" });
+            setShowNav((v) => !v);
+          }}
           aria-label={showNav ? "Close directions" : "Get directions"}
           aria-pressed={showNav}
           title="Directions"

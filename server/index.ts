@@ -41,8 +41,8 @@ app.use((_req, res, next) => {
         // Google fonts + Pyodide + Cloudflare beacon
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://replit.com",
-        "connect-src 'self' https://*.basemaps.cartocdn.com https://*.openstreetmap.org https://tiles.stadiamaps.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://api.openweathermap.org",
+        `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://replit.com ${process.env.POSTHOG_CSP_SCRIPT_SRC ?? ""}`.trim(),
+        `connect-src 'self' https://*.basemaps.cartocdn.com https://*.openstreetmap.org https://tiles.stadiamaps.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://api.openweathermap.org ${process.env.VITE_POSTHOG_HOST ?? ""}`.trim(),
         "worker-src 'self' blob:",
         "frame-ancestors 'self'",
         "base-uri 'self'",

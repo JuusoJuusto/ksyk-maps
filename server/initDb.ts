@@ -88,6 +88,112 @@ export async function ensureSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS campus_pois_kind_idx  ON campus_pois (kind);
       CREATE INDEX IF NOT EXISTS campus_pois_floor_idx ON campus_pois (floor);
       CREATE INDEX IF NOT EXISTS beacon_surveys_room_idx ON beacon_surveys (room_id);
+
+      -- v4.5.52 first-party telemetry tables (mirror of migrations/0002).
+      CREATE TABLE IF NOT EXISTS telemetry_sessions (
+        id               varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        session_id       varchar NOT NULL UNIQUE,
+        anonymous_id     varchar,
+        user_id          varchar,
+        platform         varchar NOT NULL,
+        app_version      varchar,
+        os_version       varchar,
+        device_type      varchar,
+        browser          varchar,
+        browser_version  varchar,
+        language         varchar,
+        timezone         varchar,
+        country          varchar,
+        started_at       timestamptz DEFAULT now(),
+        last_seen_at     timestamptz DEFAULT now(),
+        ended_at         timestamptz,
+        duration_ms      integer,
+        created_at       timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_tsessions_platform    ON telemetry_sessions (platform);
+      CREATE INDEX IF NOT EXISTS idx_tsessions_started_at  ON telemetry_sessions (started_at);
+      CREATE INDEX IF NOT EXISTS idx_tsessions_last_seen   ON telemetry_sessions (last_seen_at);
+
+      CREATE TABLE IF NOT EXISTS telemetry_events (
+        id              varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        session_id      varchar NOT NULL,
+        user_id         varchar,
+        platform        varchar NOT NULL,
+        app_version     varchar,
+        event_name      varchar NOT NULL,
+        event_category  varchar,
+        route           varchar,
+        screen          varchar,
+        duration_ms     integer,
+        success         boolean,
+        error_code      varchar,
+        metadata        jsonb,
+        created_at      timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_tevents_created_at  ON telemetry_events (created_at);
+      CREATE INDEX IF NOT EXISTS idx_tevents_event_name  ON telemetry_events (event_name);
+      CREATE INDEX IF NOT EXISTS idx_tevents_session_id  ON telemetry_events (session_id);
+      CREATE INDEX IF NOT EXISTS idx_tevents_platform    ON telemetry_events (platform);
+
+      CREATE TABLE IF NOT EXISTS feature_usage (
+        id           varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        session_id   varchar NOT NULL,
+        user_id      varchar,
+        platform     varchar NOT NULL,
+        app_version  varchar,
+        feature      varchar NOT NULL,
+        action       varchar NOT NULL DEFAULT 'used',
+        duration_ms  integer,
+        metadata     jsonb,
+        created_at   timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_feature_created_at  ON feature_usage (created_at);
+      CREATE INDEX IF NOT EXISTS idx_feature_feature     ON feature_usage (feature);
+      CREATE INDEX IF NOT EXISTS idx_feature_action      ON feature_usage (action);
+
+      CREATE TABLE IF NOT EXISTS easter_egg_events (
+        id          varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        session_id  varchar NOT NULL,
+        user_id     varchar,
+        platform    varchar NOT NULL,
+        egg_id      varchar NOT NULL,
+        action      varchar NOT NULL DEFAULT 'discovered',
+        metadata    jsonb,
+        created_at  timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_egg_created_at  ON easter_egg_events (created_at);
+      CREATE INDEX IF NOT EXISTS idx_egg_egg_id      ON easter_egg_events (egg_id);
+
+      CREATE TABLE IF NOT EXISTS performance_events (
+        id           varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        session_id   varchar NOT NULL,
+        user_id      varchar,
+        platform     varchar NOT NULL,
+        app_version  varchar,
+        metric_name  varchar NOT NULL,
+        value_ms     real,
+        endpoint     varchar,
+        status_code  integer,
+        metadata     jsonb,
+        created_at   timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_perf_created_at  ON performance_events (created_at);
+      CREATE INDEX IF NOT EXISTS idx_perf_metric      ON performance_events (metric_name);
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id             varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        admin_user_id  varchar,
+        admin_email    varchar,
+        action         varchar NOT NULL,
+        resource       varchar,
+        ip_address     varchar,
+        user_agent     text,
+        metadata       jsonb,
+        created_at     timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_created_at  ON audit_logs (created_at);
+      CREATE INDEX IF NOT EXISTS idx_audit_action      ON audit_logs (action);
+      CREATE INDEX IF NOT EXISTS idx_audit_admin       ON audit_logs (admin_user_id);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { getAdminHeaders } from "@/lib/adminAuth";
+import posthog from "@/lib/posthog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementManager from "@/components/AnnouncementManager";
@@ -11,6 +12,7 @@ import AnnouncementManager from "@/components/AnnouncementManager";
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
 import AppLogsManager from "@/components/AppLogsManager";
+import AdminAnalyticsDashboard from "@/components/AdminAnalyticsDashboard";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
@@ -420,9 +422,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
     const loginAt = Number(localStorage.getItem("ksyk_admin_login_at") || 0);
     const hoursSinceLogin = (Date.now() - loginAt) / (1000 * 60 * 60);
     const wipeAndRedirect = () => {
+      if (currentUser) posthog.reset();
       localStorage.removeItem("ksyk_admin_logged_in");
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
+      localStorage.removeItem("ksyk_admin_token");
       window.location.replace("/admin");
     };
     if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
@@ -582,9 +586,11 @@ export default function AdminDashboard({ section }: { section?: string }) {
   };
 
   const logoutFn = () => {
+    posthog.reset();
     localStorage.removeItem("ksyk_admin_logged_in");
     localStorage.removeItem("ksyk_admin_user");
     localStorage.removeItem("ksyk_admin_login_at");
+    localStorage.removeItem("ksyk_admin_token");
     fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
       window.location.replace("/admin");
     });
@@ -601,7 +607,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "__builder", label: "Builder", Icon: Box, href: "/builder" as const },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
-    // Analytics is now a tab inside Logs — no top-level sidebar entry.
+    { value: "analytics", label: "Analytics", Icon: LayoutDashboard },
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
     { value: "notifications", label: "Notifications", Icon: Bell },
@@ -1529,6 +1535,10 @@ export default function AdminDashboard({ section }: { section?: string }) {
            *  nested tabs. See AppLogsManager. */}
           <AppLogsManager />
           <AnalyticsExternalPanel />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-0 space-y-6">
+          <AdminAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-0 space-y-6">

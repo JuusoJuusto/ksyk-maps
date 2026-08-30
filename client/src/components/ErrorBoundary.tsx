@@ -1,6 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
+import { analytics } from '@/lib/analytics-sdk';
+import posthog from '@/lib/posthog';
 
 interface Props {
   children: ReactNode;
@@ -41,10 +43,22 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('Error caught by boundary:', error, errorInfo);
     console.error('Error Reference ID:', errorReferenceId);
     
-    this.setState({ 
+    this.setState({
       errorInfo,
-      errorReferenceId 
+      errorReferenceId
     });
+
+    // First-party SDK — writes to appLogs via /api/session/heartbeat.
+    try {
+      analytics.error(error, {
+        area: this.props.name || 'root',
+        componentStack: errorInfo.componentStack?.slice(0, 2000),
+        errorReferenceId,
+      });
+    } catch { /* never crash on telemetry */ }
+
+    // Send errors handled by React boundaries to PostHog Error Tracking.
+    posthog.captureException(error);
 
     // Log error to backend with reference ID
     try {

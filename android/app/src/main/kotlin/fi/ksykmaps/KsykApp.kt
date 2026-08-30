@@ -4,6 +4,10 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+// PostHog Android SDK removed 2026-08-30 due to Kotlin 2.1/1.9 metadata
+// mismatch — see build.gradle.kts for detail. First-party pipeline
+// (fi.ksykmaps.data.Analytics) covers everything the wizard-installed
+// PostHog was going to do.
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

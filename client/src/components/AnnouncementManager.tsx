@@ -21,6 +21,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
+import posthog from "@/lib/posthog";
 
 interface Announcement {
   id: string;
@@ -72,6 +73,7 @@ export default function AnnouncementManager() {
       return response.json();
     },
     onSuccess: () => {
+      posthog.capture("announcement_created", { priority: formData.priority });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       resetForm();
     },
@@ -88,6 +90,7 @@ export default function AnnouncementManager() {
       return response.json();
     },
     onSuccess: () => {
+      posthog.capture("announcement_updated", { priority: formData.priority });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       resetForm();
     },
@@ -102,6 +105,7 @@ export default function AnnouncementManager() {
       if (!response.ok) throw new Error("Failed to delete announcement");
     },
     onSuccess: () => {
+      posthog.capture("announcement_deleted");
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
     },
   });

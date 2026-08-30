@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         try { Session.load(this) } catch (_: Throwable) {}
+        try { fi.ksykmaps.data.Analytics.init(this) } catch (_: Throwable) {}
         try {
             val savedTheme = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
                 .getString("dark_mode", "system") ?: "system"
@@ -196,6 +197,12 @@ private fun AppShell() {
     }
     LaunchedEffect(selectedTab) {
         if (selectedTab == "map") mapMounted = true
+        try { fi.ksykmaps.data.Analytics.pageView(selectedTab) } catch (_: Throwable) {}
+    }
+    LaunchedEffect(subScreen) {
+        subScreen?.let {
+            try { fi.ksykmaps.data.Analytics.pageView(it) } catch (_: Throwable) {}
+        }
     }
 
     if (!onboardingDone) {

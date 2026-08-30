@@ -26,7 +26,9 @@ import CookieConsent from "@/components/CookieConsent";
 import DevPanel from "@/components/DevPanel";
 import { useEffect, useState } from "react";
 import { initAnalytics } from "@/lib/analytics";
-import { initTelemetry } from "@/lib/telemetry";
+import { initTelemetry as initLegacyTelemetry } from "@/lib/telemetry";
+import { initTelemetry, analytics } from "@/lib/analytics-sdk";
+import posthog from "@/lib/posthog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import { useKsykEasterEggs } from "@/hooks/useKsykEasterEggs";
@@ -160,60 +162,33 @@ function Router() {
 
 export default function App() {
   useEffect(() => {
-    initAnalytics();
-    initTelemetry();
-  }, []);
-
-  // Global error logging to the admin activity feed. Uses the
-  // adblock-safe /api/session/heartbeat endpoint so uBlock Origin,
-  // AdGuard etc. don't strip the beacon before it leaves the browser.
-  useEffect(() => {
-    const send = (payload: Record<string, unknown>) => {
-      const body = JSON.stringify({
-        source: "web",
-        sessionId: sessionStorage.getItem("ksyk_session_id") ?? "anon",
-        userId: localStorage.getItem("ksyk_user_id") ?? "anon",
-        events: [{ ts: new Date().toISOString(), ...payload }],
-      });
-      if (navigator.sendBeacon) {
-        try {
-          navigator.sendBeacon(
-            "/api/session/heartbeat",
-            new Blob([body], { type: "application/json" }),
-          );
-          return;
-        } catch { /* fallthrough */ }
+    try {
+      const storedUser = localStorage.getItem("ksyk_admin_user") ?? localStorage.getItem("ksyk_user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        if (user?.provider !== "guest" && typeof user?.id === "string" && user.id) {
+          posthog.identify(user.id, {
+            email: typeof user.email === "string" ? user.email : undefined,
+            role: typeof user.role === "string" ? user.role : undefined,
+          });
+        }
       }
-      fetch("/api/session/heartbeat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    };
-    const onError = (e: ErrorEvent) => {
-      send({
-        type: "error",
-        level: "error",
-        message: `Global Error: ${e.message}`,
-        url: window.location.pathname,
-        stack: e.error?.stack,
-      });
-    };
-    const onRejection = (e: PromiseRejectionEvent) => {
-      send({
-        type: "error",
-        level: "error",
-        message: `Unhandled Rejection: ${e.reason}`,
-        url: window.location.pathname,
-      });
-    };
-    window.addEventListener("error", onError);
-    window.addEventListener("unhandledrejection", onRejection);
-    return () => {
-      window.removeEventListener("error", onError);
-      window.removeEventListener("unhandledrejection", onRejection);
-    };
+    } catch {
+      // Keep app startup resilient when browser storage is unavailable or malformed.
+    }
+
+    // v4.5.52: analytics-sdk is the source of truth. It handles session
+    // lifecycle, page views, errors, Web Vitals, batched flush. The two
+    // legacy modules stay wired for anything still calling their exports.
+    initTelemetry();
+    initAnalytics();
+    initLegacyTelemetry();
+    // Attach the SDK to window in dev builds so we can hand-fire events
+    // from the browser console when testing. Guarded so it doesn't ship
+    // to production users as an accidental global.
+    if (import.meta.env.DEV) {
+      (window as any).__ksykAnalytics = analytics;
+    }
   }, []);
 
   return (

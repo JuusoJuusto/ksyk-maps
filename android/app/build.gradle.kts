@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -12,8 +14,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 46
-        versionName = "1.44.0"
+        versionCode = 47
+        versionName = "1.45.0"
 
         // Vercel Attack Challenge Mode bypass — the API client sends this
         // as `x-vercel-protection-bypass` and `x-ksyk-bypass-token`. Add a
@@ -26,6 +28,15 @@ android {
             ?: (project.findProperty("ksykBypassToken") as? String)
             ?: "ksyk-mobile-2b9d47f83c6e5a1"
         buildConfigField("String", "BYPASS_TOKEN", "\"$bypassToken\"")
+
+        val projectEnv = Properties().apply {
+            rootProject.projectDir.parentFile.resolve(".env").takeIf { it.isFile }
+                ?.inputStream()?.use { load(it) }
+        }
+        val posthogApiKey = System.getenv("POSTHOG_API_KEY") ?: projectEnv.getProperty("POSTHOG_API_KEY")
+        val posthogHost = System.getenv("POSTHOG_HOST") ?: projectEnv.getProperty("POSTHOG_HOST")
+        buildConfigField("String", "POSTHOG_API_KEY", posthogApiKey?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null")
+        buildConfigField("String", "POSTHOG_HOST", posthogHost?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null")
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -83,6 +94,19 @@ android {
 
 dependencies {
     val compose = "1.6.0"
+
+    // PostHog Android SDK removed 2026-08-30. Two independent breakages:
+    //   (1) posthog-android 3.12+ ships with Kotlin 2.1 stdlib metadata
+    //       that our Kotlin 1.9 toolchain cannot read.
+    //   (2) The setup-wizard's call sites use PostHogAndroid.getInstance()
+    //       which existed in older API but no longer in 3.x. Pinning to
+    //       an older version fixed (1) but broke the API.
+    // Fix: use a local no-op shim at com/posthog/android/PostHogAndroid.kt
+    // that satisfies every call site. Our first-party pipeline
+    // (fi.ksykmaps.data.Analytics → /api/session/heartbeat → Postgres)
+    // covers the analytics per spec §14. Re-enable this when we upgrade
+    // the project to Kotlin 2.x:
+    //   implementation("com.posthog:posthog-android:3.+")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.activity:activity-compose:1.8.2")
