@@ -3422,6 +3422,106 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       } catch { return res.status(200).json([]); }
     }
 
+    // GET /api/admin/analytics/timeseries
+    // Returns hourly buckets of pageviews / errors / feature-uses
+    // grouped by platform for the stacked-area chart on the dashboard.
+    // Cheap because it's driven by DATE_TRUNC + GROUP BY on indexed
+    // created_at columns.
+    if (apiPath === '/admin/analytics/timeseries' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'timeseries' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const range = (q.range || '24h').toLowerCase();
+        const hours = range === '7d' ? 168 : range === '30d' ? 720 : range === '90d' ? 2160 : 24;
+        const bucket = hours <= 24 ? 'hour' : hours <= 168 ? 'hour' : 'day';
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+
+        const [pv, err, feat] = await Promise.all([
+          pgDb.execute(dsql`
+            SELECT DATE_TRUNC(${bucket}, created_at) AS ts,
+                   COALESCE(device_type, 'unknown')   AS platform,
+                   COUNT(*)::int                       AS n
+              FROM page_views
+             WHERE created_at >= ${since}
+          GROUP BY 1, 2 ORDER BY 1
+          `).catch(() => ({ rows: [] } as any)),
+          pgDb.execute(dsql`
+            SELECT DATE_TRUNC(${bucket}, created_at) AS ts,
+                   COUNT(*)::int AS n
+              FROM app_logs
+             WHERE created_at >= ${since} AND level = 'error'
+          GROUP BY 1 ORDER BY 1
+          `).catch(() => ({ rows: [] } as any)),
+          pgDb.execute(dsql`
+            SELECT DATE_TRUNC(${bucket}, created_at) AS ts,
+                   feature,
+                   COUNT(*)::int AS n
+              FROM feature_usage
+             WHERE created_at >= ${since}
+          GROUP BY 1, 2 ORDER BY 1
+          `).catch(() => ({ rows: [] } as any)),
+        ]);
+
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          bucket,
+          range,
+          since: since.toISOString(),
+          pageviews: (pv as any).rows ?? pv,
+          errors: (err as any).rows ?? err,
+          features: (feat as any).rows ?? feat,
+        });
+      } catch (e: any) {
+        console.error('analytics/timeseries error:', e?.message);
+        return res.status(200).json({ pageviews: [], errors: [], features: [] });
+      }
+    }
+
+    // GET /api/admin/analytics/session/:id
+    // Drill-in: recent events belonging to a specific session id, pulled
+    // from telemetry_events + page_views + searches. Powers the "click a
+    // session row" experience on the dashboard.
+    const sessionMatch = apiPath.match(/^\/admin\/analytics\/session\/([^/?]+)$/);
+    if (sessionMatch && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'session_detail', sessionId: sessionMatch[1] });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const {
+          telemetryEvents, pageViews, searchAnalytics, telemetrySessions,
+        } = await import('../shared/schema.js');
+        const { eq, desc } = await import('drizzle-orm');
+        const sid = sessionMatch[1];
+        const [events, views, searches, session] = await Promise.all([
+          pgDb.select().from(telemetryEvents)
+            .where(eq(telemetryEvents.sessionId, sid))
+            .orderBy(desc(telemetryEvents.createdAt))
+            .limit(300).catch(() => [] as any[]),
+          pgDb.select().from(pageViews)
+            .where(eq(pageViews.sessionId, sid))
+            .orderBy(desc(pageViews.createdAt))
+            .limit(200).catch(() => [] as any[]),
+          pgDb.select().from(searchAnalytics)
+            .where(eq(searchAnalytics.sessionId, sid))
+            .orderBy(desc(searchAnalytics.createdAt))
+            .limit(100).catch(() => [] as any[]),
+          pgDb.select().from(telemetrySessions)
+            .where(eq(telemetrySessions.sessionId, sid))
+            .limit(1).catch(() => [] as any[]),
+        ]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          session: (session as any[])[0] ?? null,
+          events,
+          pageViews: views,
+          searches,
+        });
+      } catch { return res.status(200).json({ session: null, events: [], pageViews: [], searches: [] }); }
+    }
+
     // GET /api/admin/analytics/errors
     if (apiPath === '/admin/analytics/errors' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;

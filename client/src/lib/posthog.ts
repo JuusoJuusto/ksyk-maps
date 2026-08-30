@@ -10,13 +10,17 @@
 import posthog from "posthog-js";
 
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
-// Reverse-proxy host — every capture, feature-flag, and lazy-loaded bundle
-// request now goes to same-origin /ingest/*, which vercel.json rewrites to
-// us.i.posthog.com and us-assets.i.posthog.com respectively. This is the
-// only reliable way to reach uBlock Origin / EasyList / EasyPrivacy users
-// — those filter lists block posthog.com at the network layer, so a raw
-// snippet install would be stripped for a big chunk of visitors.
-const DEFAULT_HOST = "/ingest";
+// Managed reverse proxy at t.ksykmaps.fi (PostHog-provisioned, live).
+// Every capture, feature-flag lookup, and lazy-loaded bundle request now
+// hits our subdomain, so uBlock Origin / EasyList / EasyPrivacy filter
+// lists that block us.i.posthog.com don't strip anything.
+// The proxy handles TLS + caching + fanning static assets to
+// us-assets.i.posthog.com automatically, so no additional rewrites in
+// vercel.json are needed for PostHog.
+// `ui_host` still points at the real PostHog dashboard so
+// "View recording" / feature-flag links in the SDK land in the right
+// place when admins click through.
+const DEFAULT_HOST = "https://t.ksykmaps.fi";
 const DEFAULT_UI_HOST = "https://us.posthog.com";
 
 const projectToken =

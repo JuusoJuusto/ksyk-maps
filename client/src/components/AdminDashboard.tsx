@@ -603,14 +603,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
     });
   };
 
+  // Grouped sidebar structure (v4.5.55) — same items as before but
+  // logically clustered by purpose so the sidebar reads at a glance
+  // instead of being a flat 12-item wall.
   const NAV_ITEMS = [
     { value: "overview", label: "Overview", Icon: LayoutDashboard },
     { value: "security", label: "Security", Icon: Shield },
     { value: "users", label: "Users", Icon: Users },
     { value: "campus-map", label: "Campus Map", Icon: MapPin },
-    // Builder is a top-level /builder route now — the sidebar entry
-    // navigates out via window.location so it opens the full-screen
-    // editor instead of being embedded in the admin frame.
     { value: "__builder", label: "Builder", Icon: Box, href: "/builder" as const },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
@@ -622,6 +622,18 @@ export default function AdminDashboard({ section }: { section?: string }) {
     ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
   ];
+
+  const NAV_GROUPS: { label: string; values: string[] }[] = [
+    { label: "Overview",   values: ["overview", "analytics"] },
+    { label: "Content",    values: ["announcements", "tickets", "staff"] },
+    { label: "Data",       values: ["campus-map", "__builder", "logs"] },
+    { label: "People",     values: ["users"] },
+    { label: "Safety",     values: ["security", "notifications"] },
+    ...(isOwner ? [{ label: "Owner", values: ["beacons", "2fa", "settings"] }] : []),
+  ];
+  const navByValue: Record<string, typeof NAV_ITEMS[number]> = Object.fromEntries(
+    NAV_ITEMS.map((i) => [i.value, i]),
+  ) as any;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-white dark:bg-gray-900">
@@ -653,61 +665,53 @@ export default function AdminDashboard({ section }: { section?: string }) {
             <Home className="h-3.5 w-3.5" />
           </a>
         </div>
-        {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
-          <div className="space-y-0.5">
-            {NAV_ITEMS.filter(({ value }) => value !== "2fa" && value !== "settings").map((item) => {
-              const { value, label, Icon } = item;
-              const href = (item as { href?: string }).href;
-              // External-nav items (e.g. Builder → /builder) navigate the
-              // browser instead of switching the internal tab.
-              const onClick = href
-                ? () => setLocation(href)
-                : () => navigate(value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={onClick}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                    activeTab === value
-                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/50 dark:ring-blue-900/50"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate flex-1 text-left">{label}</span>
-                  {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
-                </button>
-              );
-            })}
-          </div>
-          {isOwner && (
-            <>
-              <div className="my-2 mx-1 border-t border-gray-100 dark:border-gray-800" />
-              <p className="px-3 py-1 text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Owner</p>
-              <div className="space-y-0.5">
-                {NAV_ITEMS.filter(({ value }) => value === "2fa" || value === "settings").map(({ value, label, Icon }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => navigate(value)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                      activeTab === value
-                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate flex-1 text-left">{label}</span>
-                    {activeTab === value && <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-50" />}
-                  </button>
-                ))}
+        {/* Nav items — grouped by purpose. Each group has a tiny caps
+         *  header; renders nothing for empty groups. Owner group only
+         *  appears for the owner role. */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+          {NAV_GROUPS.map((group) => {
+            const items = group.values
+              .map((v) => navByValue[v])
+              .filter(Boolean);
+            if (items.length === 0) return null;
+            return (
+              <div key={group.label}>
+                <p className="px-3 pb-1 text-[10px] uppercase tracking-[0.18em] font-semibold text-gray-400 dark:text-gray-500">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {items.map((item) => {
+                    const { value, label, Icon } = item;
+                    const href = (item as { href?: string }).href;
+                    const onClick = href ? () => setLocation(href) : () => navigate(value);
+                    const isActive = activeTab === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={onClick}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                          isActive
+                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-900/60 shadow-sm"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100",
+                        )}
+                      >
+                        <Icon className={cn(
+                          "h-4 w-4 shrink-0",
+                          isActive ? "text-blue-600 dark:text-blue-400" : "",
+                        )} />
+                        <span className="truncate flex-1 text-left">{label}</span>
+                        {isActive && (
+                          <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-60" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </>
-          )}
+            );
+          })}
         </nav>
         {/* User chip */}
         {currentUser && (

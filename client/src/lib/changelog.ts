@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.54";
+export const APP_VERSION = "4.5.55";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.55",
+    date: "August 2026",
+    title: "PostHog managed proxy (t.ksykmaps.fi) + grouped admin sidebar + analytics dashboard v2",
+    titleFi: "PostHog managed proxy (t.ksykmaps.fi) + ryhmitelty sivupalkki + hallintapaneelin analytiikka v2",
+    highlights: [
+      "**PostHog now hits `t.ksykmaps.fi`** — moved from the Vercel /ingest rewrite to the PostHog-managed reverse-proxy subdomain the account provisioned. Same adblock bypass, but PostHog handles TLS + CDN caching + static-asset fanning; we don't pay for the bandwidth. Sentry still tunnels through /monitoring/*.",
+      "**Admin sidebar grouped** — was a flat wall of 12 items. Now clustered into Overview / Content / Data / People / Safety / Owner sections with tiny caps headers. Active item gets a subtle ring + coloured icon. Scans in one glance.",
+      "**Analytics dashboard v2**: sticky range picker in the header (24h / 7d / 30d / 90d), sparkline mini-charts inside Pageviews + Errors stat cards, a proper stacked-area chart of Pageviews-by-platform driven by the new /api/admin/analytics/timeseries endpoint (Postgres DATE_TRUNC), session drill-in modal (click any row to see that session's full event stream from telemetry_events + pageViews + searches), per-panel CSV export, per-panel refresh button, per-error stack-trace expand/collapse, better empty states.",
+      "**CSP updated** for the new proxy — `connect-src` and `script-src` now whitelist `https://t.ksykmaps.fi`. No third-party observability domain remains in the client's Network tab.",
+    ],
+    highlightsFi: [
+      "**PostHog käyttää nyt t.ksykmaps.fi-aliverkkotunnusta** — PostHogin oma managed proxy hoitaa TLS:n ja CDN:n.",
+      "**Hallintapaneelin sivupalkki ryhmitelty** — Overview / Content / Data / People / Safety / Owner.",
+      "**Analytiikkakoja v2** — kiinnitetty aikaväli, sparkline-piirrokset korteissa, pinottu aluechart alustan mukaan, klikattava istuntoruutu.",
+      "**CSP päivitetty** uudelle proxylle.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.54",
     date: "August 2026",
@@ -30,7 +49,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Content-Security-Policy asetettu eksplisiittisesti** vercel.jsonissa niin että recorder ja replay workerit toimivat.",
       "**/support uudistettu** — poistettu Tuki Pöllö, uusi ammattimainen tikettilomake tyyppikorteilla, prioriteettivalinnalla ja lomakkeenvalidoinnilla.",
     ],
-    latest: true,
   },
   {
     version: "4.5.53",

@@ -1,44 +1,68 @@
 /**
  * AdminAnalyticsDashboard — real-Postgres analytics for KSYK Maps admins.
  *
- * Powered by /api/admin/analytics/{overview,sessions,features,errors,
- * performance,easter-eggs,recent-events,audit}. Every panel fetches its
- * own data (React Query) with staleTime so tab switching is instant.
+ * v4.5.55 rewrite: sticky range picker, sparkline mini-charts in each
+ * stat card, stacked-area time-series of pageviews by platform, session
+ * drill-in modal, CSV export per panel, richer empty states, per-panel
+ * refresh timestamp, mobile-first responsive layout.
  *
- * No hardcoded numbers. Empty states are honest ("no events yet — try
- * generating one from the console").
+ * All data is powered by /api/admin/analytics/{overview,timeseries,
+ * sessions,session/:id,features,errors,performance,easter-eggs,
+ * recent-events,audit}. No hardcoded numbers anywhere.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchList, fetchObject } from "@/lib/fetchList";
-import { EASTER_EGGS, eggById } from "@/lib/easterEggRegistry";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { fetchList, fetchObject } from "@/lib/fetchList";
+import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
-  Activity, AlertTriangle, BarChart3, Clock, Eye,
-  Gauge, MousePointer2, Search, Sparkles, TrendingUp, Users, Shield,
+  Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
+  Eye, Filter, Gauge, MousePointer2, RefreshCw, Search, Shield,
+  Sparkles, TrendingUp, Users,
 } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
+} from "recharts";
 
 type Range = "24h" | "7d" | "30d" | "90d";
+
+// ── Range picker (sticky in dashboard header) ───────────────────────
+function RangePicker({ range, onChange }: { range: Range; onChange: (r: Range) => void }) {
+  return (
+    <div className="flex gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1 shadow-sm">
+      {(["24h", "7d", "30d", "90d"] as Range[]).map((r) => (
+        <button
+          key={r}
+          type="button"
+          onClick={() => onChange(r)}
+          className={`px-3 py-1 rounded-md text-xs font-semibold transition min-w-[42px] ${
+            range === r
+              ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ── Overview ────────────────────────────────────────────────────────
 interface Overview {
   range: string;
   since: string;
-  pageviews: number;
-  searches: number;
-  errors: number;
-  featureUses: number;
-  easterEggs: number;
-  sessions: number;
+  pageviews: number; searches: number; errors: number;
+  featureUses: number; easterEggs: number; sessions: number;
   navigations: number;
   bySource: Record<string, number>;
   fetchedAt: string;
 }
-
 function useOverview(range: Range) {
   return useQuery<Overview | null>({
     queryKey: ["admin-analytics-overview", range],
@@ -47,109 +71,356 @@ function useOverview(range: Range) {
   });
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone = "blue",
-}: {
-  icon: any;
-  label: string;
-  value: string | number;
-  hint?: string;
-  tone?: "blue" | "amber" | "red" | "emerald" | "violet";
-}) {
-  const toneClass: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
-    amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-    red: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",
-    emerald: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-    violet: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+// ── Timeseries ──────────────────────────────────────────────────────
+interface TimeseriesRow { ts: string; platform?: string; feature?: string; n: number; }
+interface Timeseries { bucket: string; pageviews: TimeseriesRow[]; errors: TimeseriesRow[]; features: TimeseriesRow[]; }
+function useTimeseries(range: Range) {
+  return useQuery<Timeseries | null>({
+    queryKey: ["admin-analytics-timeseries", range],
+    queryFn: () => fetchObject<Timeseries>(`/api/admin/analytics/timeseries?range=${range}`),
+    refetchInterval: 60_000,
+  });
+}
+
+function TimeseriesChart({ range }: { range: Range }) {
+  const { data, isLoading } = useTimeseries(range);
+  // Reshape pageviews (rows have ts + platform + n) → wide rows per ts
+  // with a column per platform, ready for AreaChart.
+  const rows = useMemo(() => {
+    const map = new Map<string, Record<string, any>>();
+    for (const r of data?.pageviews ?? []) {
+      const key = r.ts;
+      const existing = map.get(key) || { ts: key };
+      existing[r.platform || "unknown"] = (existing[r.platform || "unknown"] || 0) + Number(r.n);
+      map.set(key, existing);
+    }
+    for (const r of data?.errors ?? []) {
+      const key = r.ts;
+      const existing = map.get(key) || { ts: key };
+      existing.errors = Number(r.n);
+      map.set(key, existing);
+    }
+    return [...map.values()].sort((a, b) => a.ts.localeCompare(b.ts));
+  }, [data]);
+
+  const platforms = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of data?.pageviews ?? []) s.add(r.platform || "unknown");
+    return [...s].sort();
+  }, [data]);
+  const colours: Record<string, string> = {
+    web:     "#3b82f6",
+    android: "#10b981",
+    ios:     "#f59e0b",
+    unknown: "#9ca3af",
+    server:  "#8b5cf6",
   };
+
+  const fmt = (v: string) => {
+    try {
+      const d = new Date(v);
+      if (data?.bucket === "day") return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    } catch { return v; }
+  };
+
   return (
-    <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${toneClass[tone]}`}>
-            <Icon className="h-4 w-4" />
+    <Card className="border-slate-200 dark:border-slate-800">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Pageviews by platform
+            </CardTitle>
+            <CardDescription className="text-xs">Live time-series from Postgres</CardDescription>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {label}
-            </p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight mt-1">
-              {value}
-            </p>
-            {hint && (
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{hint}</p>
-            )}
-          </div>
+          {platforms.length > 0 && (
+            <div className="flex gap-2 text-[10px]">
+              {platforms.map((p) => (
+                <span key={p} className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ background: colours[p] || "#9ca3af" }} />
+                  {p}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
+      </CardHeader>
+      <CardContent className="pl-0 pr-2 pb-2">
+        {isLoading && (
+          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
+            Loading…
+          </div>
+        )}
+        {!isLoading && rows.length === 0 && (
+          <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+            <BarChart3 className="h-6 w-6 opacity-40" />
+            <p>No pageviews in this range yet — generate some traffic to see the chart populate.</p>
+          </div>
+        )}
+        {rows.length > 0 && (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={rows} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+              <defs>
+                {platforms.map((p) => (
+                  <linearGradient key={p} id={`grad-${p}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colours[p] || "#9ca3af"} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={colours[p] || "#9ca3af"} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <XAxis dataKey="ts" tickFormatter={fmt} tick={{ fontSize: 10 }} stroke="#94a3b8" />
+              <YAxis width={28} tick={{ fontSize: 10 }} stroke="#94a3b8" />
+              <Tooltip
+                labelFormatter={fmt}
+                contentStyle={{
+                  background: "rgba(15,23,42,0.95)", border: 0,
+                  borderRadius: 8, fontSize: 12, color: "#f8fafc",
+                }}
+              />
+              {platforms.map((p) => (
+                <Area
+                  key={p}
+                  type="monotone"
+                  dataKey={p}
+                  stackId="pv"
+                  stroke={colours[p] || "#9ca3af"}
+                  strokeWidth={2}
+                  fill={`url(#grad-${p})`}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-// ── Sessions ────────────────────────────────────────────────────────
-interface TelemetrySession {
-  id: string;
-  sessionId: string;
-  platform: string;
-  appVersion: string | null;
-  osVersion: string | null;
-  deviceType: string | null;
-  startedAt: string;
-  lastSeenAt: string;
-  endedAt: string | null;
-  durationMs: number | null;
+// ── Stat card with sparkline ────────────────────────────────────────
+function StatCard({
+  icon: Icon, label, value, sparkline, tone = "blue", trend,
+}: {
+  icon: any;
+  label: string;
+  value: string | number;
+  sparkline?: number[];
+  tone?: "blue" | "amber" | "red" | "emerald" | "violet";
+  trend?: string;
+}) {
+  const toneClass: Record<string, { bg: string; stroke: string }> = {
+    blue:    { bg: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",       stroke: "#3b82f6" },
+    amber:   { bg: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",   stroke: "#f59e0b" },
+    red:     { bg: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",           stroke: "#ef4444" },
+    emerald: { bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", stroke: "#10b981" },
+    violet:  { bg: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300", stroke: "#8b5cf6" },
+  };
+  const t = toneClass[tone];
+  const chartData = (sparkline || []).map((n, i) => ({ i, n }));
+  return (
+    <Card className="border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${t.bg}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {label}
+            </p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
+              {value}
+            </p>
+            {trend && (
+              <p className="text-[10px] text-slate-400 mt-0.5">{trend}</p>
+            )}
+          </div>
+        </div>
+        {chartData.length > 1 && (
+          <div className="absolute -bottom-1 left-0 right-0 h-10 opacity-60 pointer-events-none">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+                <Line type="monotone" dataKey="n" stroke={t.stroke} strokeWidth={1.5} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
+// ── CSV helper ──────────────────────────────────────────────────────
+function downloadCSV(rows: Record<string, unknown>[], filename: string) {
+  if (!rows.length) return;
+  const cols = Object.keys(rows[0]);
+  const esc = (v: unknown) => {
+    if (v == null) return "";
+    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Sessions with drill-in ──────────────────────────────────────────
+interface TelemetrySession {
+  id: string; sessionId: string; platform: string;
+  appVersion: string | null; osVersion: string | null; deviceType: string | null;
+  startedAt: string; lastSeenAt: string; endedAt: string | null; durationMs: number | null;
+}
 function SessionsPanel() {
-  const { data = [], isLoading } = useQuery<TelemetrySession[]>({
+  const [drillSid, setDrillSid] = useState<string | null>(null);
+  const { data = [], isLoading, refetch } = useQuery<TelemetrySession[]>({
     queryKey: ["admin-analytics-sessions"],
     queryFn: () => fetchList<TelemetrySession>("/api/admin/analytics/sessions?limit=100"),
     refetchInterval: 60_000,
   });
   return (
-    <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-950">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500">
-          <tr>
-            <th className="text-left px-3 py-2">Session</th>
-            <th className="text-left px-3 py-2">Platform</th>
-            <th className="text-left px-3 py-2">Version</th>
-            <th className="text-left px-3 py-2">Started</th>
-            <th className="text-left px-3 py-2">Last seen</th>
-            <th className="text-right px-3 py-2">Duration</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {isLoading && (
-            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
-          )}
-          {!isLoading && data.length === 0 && (
-            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No sessions in the last 24 hours.</td></tr>
-          )}
-          {data.map((s) => (
-            <tr key={s.id}>
-              <td className="px-3 py-2 font-mono text-[11px]">{s.sessionId.slice(0, 24)}</td>
-              <td className="px-3 py-2"><Badge variant="outline">{s.platform}</Badge></td>
-              <td className="px-3 py-2 text-xs">{s.appVersion || "—"}</td>
-              <td className="px-3 py-2 text-xs">{new Date(s.startedAt).toLocaleString()}</td>
-              <td className="px-3 py-2 text-xs">{new Date(s.lastSeenAt).toLocaleString()}</td>
-              <td className="px-3 py-2 text-xs text-right">
-                {s.durationMs ? `${Math.round(s.durationMs / 1000)}s` : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-muted-foreground">
+          {isLoading ? "Loading…" : `${data.length} sessions`}
+        </p>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+            title="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadCSV(data as any, "ksyk-sessions.csv")}
+            disabled={!data.length}
+            className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+            title="Download CSV"
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
+      </div>
+      <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-950">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="text-left px-3 py-2">Session</th>
+                <th className="text-left px-3 py-2">Platform</th>
+                <th className="text-left px-3 py-2">Version</th>
+                <th className="text-left px-3 py-2">Started</th>
+                <th className="text-left px-3 py-2">Last seen</th>
+                <th className="text-right px-3 py-2">Duration</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {isLoading && (
+                <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              )}
+              {!isLoading && data.length === 0 && (
+                <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground text-xs">
+                  No sessions in the last 24 hours. New visitors will show up here as they land.
+                </td></tr>
+              )}
+              {data.map((s) => (
+                <tr
+                  key={s.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition"
+                  onClick={() => setDrillSid(s.sessionId)}
+                >
+                  <td className="px-3 py-2 font-mono text-[11px] text-blue-600 dark:text-blue-400">
+                    {s.sessionId.slice(0, 24)}
+                  </td>
+                  <td className="px-3 py-2"><Badge variant="outline">{s.platform}</Badge></td>
+                  <td className="px-3 py-2 text-xs">{s.appVersion || "—"}</td>
+                  <td className="px-3 py-2 text-xs">{new Date(s.startedAt).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-xs">{new Date(s.lastSeenAt).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-xs text-right">
+                    {s.durationMs ? `${Math.round(s.durationMs / 1000)}s` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <SessionDrillDialog sessionId={drillSid} onClose={() => setDrillSid(null)} />
+    </>
   );
 }
 
-// ── Features ────────────────────────────────────────────────────────
+function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; onClose: () => void }) {
+  const { data, isLoading } = useQuery<{ session: any; events: any[]; pageViews: any[]; searches: any[] } | null>({
+    queryKey: ["admin-analytics-session-drill", sessionId],
+    queryFn: () => sessionId ? fetchObject(`/api/admin/analytics/session/${encodeURIComponent(sessionId)}`) : Promise.resolve(null),
+    enabled: !!sessionId,
+  });
+  const rows = useMemo(() => {
+    if (!data) return [];
+    const events = [
+      ...(data.events || []).map((e: any) => ({ ts: e.createdAt, kind: e.eventName, detail: e.route || e.screen || "" })),
+      ...(data.pageViews || []).map((v: any) => ({ ts: v.createdAt, kind: "pageview", detail: v.url })),
+      ...(data.searches || []).map((s: any) => ({ ts: s.createdAt, kind: "search", detail: `"${s.query}" — ${s.resultsCount ?? 0} hits` })),
+    ];
+    return events.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+  }, [data]);
+  return (
+    <Dialog open={!!sessionId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm text-blue-600 dark:text-blue-400 break-all">
+            {sessionId}
+          </DialogTitle>
+          {data?.session && (
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-3 mt-1">
+              <span>Platform: <strong>{data.session.platform}</strong></span>
+              <span>Version: <strong>{data.session.appVersion || "—"}</strong></span>
+              <span>Started: <strong>{new Date(data.session.startedAt).toLocaleString()}</strong></span>
+              <span>Events: <strong>{rows.length}</strong></span>
+            </div>
+          )}
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          {isLoading && <p className="text-sm text-muted-foreground py-6 text-center">Loading events…</p>}
+          {!isLoading && rows.length === 0 && (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              No events recorded for this session yet.
+            </p>
+          )}
+          {rows.length > 0 && (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {rows.map((r, i) => (
+                <li key={i} className="py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{r.kind}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{r.detail || "—"}</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    {new Date(r.ts).toLocaleTimeString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Features panel ──────────────────────────────────────────────────
 interface FeatureRow { feature: string; action: string; n: number; }
 function FeaturesPanel({ range }: { range: Range }) {
   const { data = [], isLoading } = useQuery<FeatureRow[]>({
@@ -157,74 +428,103 @@ function FeaturesPanel({ range }: { range: Range }) {
     queryFn: () => fetchList<FeatureRow>(`/api/admin/analytics/features?range=${range}`),
     refetchInterval: 60_000,
   });
-  // Roll up rows into per-feature totals across all actions.
   const totals = new Map<string, number>();
   for (const r of data) totals.set(r.feature, (totals.get(r.feature) || 0) + Number(r.n));
   const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
   const max = ranked[0]?.[1] || 1;
   return (
-    <div className="rounded-xl border bg-white dark:bg-gray-950 p-4">
-      {isLoading && <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>}
-      {!isLoading && ranked.length === 0 && (
-        <p className="text-sm text-muted-foreground py-6 text-center">
-          No feature usage recorded in this range yet.
-        </p>
-      )}
-      <div className="space-y-2">
-        {ranked.map(([f, n]) => (
-          <div key={f}>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="font-medium">{f}</span>
-              <span className="text-xs text-muted-foreground">{n.toLocaleString()}</span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => downloadCSV(data as any, "ksyk-features.csv")}
+          disabled={!data.length}
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+        >
+          <Download className="h-3 w-3" /> CSV
+        </button>
+      </div>
+      <div className="rounded-xl border bg-white dark:bg-slate-950 p-4">
+        {isLoading && <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>}
+        {!isLoading && ranked.length === 0 && (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            No feature usage recorded yet in this range.
+          </p>
+        )}
+        <div className="space-y-2">
+          {ranked.map(([f, n]) => (
+            <div key={f}>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="font-medium">{f}</span>
+                <span className="text-xs text-muted-foreground">{n.toLocaleString()}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.max(3, (n / max) * 100)}%` }} />
+              </div>
             </div>
-            <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-              <div className="h-full bg-blue-500" style={{ width: `${Math.max(3, (n / max) * 100)}%` }} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Errors ──────────────────────────────────────────────────────────
-interface ErrorRow {
-  id: string; level: string; message: string; url: string | null;
-  errorStack: string | null; createdAt: string;
-}
+interface ErrorRow { id: string; level: string; message: string; url: string | null; errorStack: string | null; createdAt: string; }
 function ErrorsPanel({ range }: { range: Range }) {
   const { data = [], isLoading } = useQuery<ErrorRow[]>({
     queryKey: ["admin-analytics-errors", range],
     queryFn: () => fetchList<ErrorRow>(`/api/admin/analytics/errors?range=${range}`),
     refetchInterval: 30_000,
   });
+  const [expanded, setExpanded] = useState<string | null>(null);
   return (
-    <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">
-      {isLoading && <p className="text-sm text-muted-foreground p-6 text-center">Loading…</p>}
-      {!isLoading && data.length === 0 && (
-        <p className="text-sm text-muted-foreground p-6 text-center">No errors in this range 🎉</p>
-      )}
-      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-        {data.map((e) => (
-          <li key={e.id} className="p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{e.message}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {new Date(e.createdAt).toLocaleString()}
-                  {e.url && <span> · {e.url}</span>}
-                </p>
-              </div>
-              <Badge variant="destructive" className="shrink-0">{e.level}</Badge>
-            </div>
-            {e.errorStack && (
-              <pre className="mt-2 text-[10px] font-mono bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto max-h-32">
-                {e.errorStack.slice(0, 800)}
-              </pre>
-            )}
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {isLoading ? "Loading…" : `${data.length} errors`}
+        </p>
+        <button
+          type="button"
+          onClick={() => downloadCSV(data as any, "ksyk-errors.csv")}
+          disabled={!data.length}
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+        >
+          <Download className="h-3 w-3" /> CSV
+        </button>
+      </div>
+      <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+        {!isLoading && data.length === 0 && (
+          <p className="text-sm text-muted-foreground p-6 text-center">
+            No errors in this range. 🎉
+          </p>
+        )}
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {data.map((e) => (
+            <li key={e.id} className="p-3">
+              <button
+                type="button"
+                onClick={() => setExpanded(expanded === e.id ? null : e.id)}
+                className="w-full flex items-start justify-between gap-3 text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{e.message}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {new Date(e.createdAt).toLocaleString()}
+                    {e.url && <span> · {e.url}</span>}
+                  </p>
+                </div>
+                <Badge variant="destructive" className="shrink-0">{e.level}</Badge>
+              </button>
+              {expanded === e.id && e.errorStack && (
+                <pre className="mt-2 text-[10px] font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-64">
+                  {e.errorStack}
+                </pre>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -239,44 +539,58 @@ function PerformancePanel({ range }: { range: Range }) {
   });
   const fmt = (v: number | null) => v == null ? "—" : v >= 1000 ? `${(v / 1000).toFixed(2)}s` : `${Math.round(v)}ms`;
   return (
-    <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500">
-          <tr>
-            <th className="text-left px-3 py-2">Metric</th>
-            <th className="text-right px-3 py-2">Count</th>
-            <th className="text-right px-3 py-2">p50</th>
-            <th className="text-right px-3 py-2">p95</th>
-            <th className="text-right px-3 py-2">p99</th>
-            <th className="text-right px-3 py-2">avg</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {isLoading && (
-            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
-          )}
-          {!isLoading && data.length === 0 && (
-            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-              No performance samples yet. Web Vitals arrive after real users load pages.
-            </td></tr>
-          )}
-          {data.map((r) => (
-            <tr key={r.metric_name}>
-              <td className="px-3 py-2 font-mono text-xs">{r.metric_name}</td>
-              <td className="px-3 py-2 text-right text-xs">{r.n?.toLocaleString?.() ?? r.n}</td>
-              <td className="px-3 py-2 text-right text-xs">{fmt(r.p50)}</td>
-              <td className="px-3 py-2 text-right text-xs">{fmt(r.p95)}</td>
-              <td className="px-3 py-2 text-right text-xs">{fmt(r.p99)}</td>
-              <td className="px-3 py-2 text-right text-xs">{fmt(r.avg)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => downloadCSV(data as any, "ksyk-perf.csv")}
+          disabled={!data.length}
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+        >
+          <Download className="h-3 w-3" /> CSV
+        </button>
+      </div>
+      <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[520px]">
+            <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="text-left px-3 py-2">Metric</th>
+                <th className="text-right px-3 py-2">Count</th>
+                <th className="text-right px-3 py-2">p50</th>
+                <th className="text-right px-3 py-2">p95</th>
+                <th className="text-right px-3 py-2">p99</th>
+                <th className="text-right px-3 py-2">avg</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {isLoading && (
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              )}
+              {!isLoading && data.length === 0 && (
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground text-xs">
+                  No performance samples yet. Web Vitals populate this after real page loads.
+                </td></tr>
+              )}
+              {data.map((r) => (
+                <tr key={r.metric_name}>
+                  <td className="px-3 py-2 font-mono text-xs">{r.metric_name}</td>
+                  <td className="px-3 py-2 text-right text-xs">{r.n?.toLocaleString?.() ?? r.n}</td>
+                  <td className="px-3 py-2 text-right text-xs">{fmt(r.p50)}</td>
+                  <td className="px-3 py-2 text-right text-xs">{fmt(r.p95)}</td>
+                  <td className="px-3 py-2 text-right text-xs">{fmt(r.p99)}</td>
+                  <td className="px-3 py-2 text-right text-xs">{fmt(r.avg)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Easter Eggs ─────────────────────────────────────────────────────
+// ── Eggs ────────────────────────────────────────────────────────────
 interface EggsPanelData {
   byEgg: { eggId: string; count: number }[];
   recent: any[];
@@ -294,8 +608,7 @@ function EggsPanel() {
     if (!confirm("Reset every easter-egg counter to zero? This wipes both the aggregate KV counters and the time-series events.")) return;
     setResetting(true); setResetError(null);
     try {
-      const token = typeof localStorage !== "undefined"
-        ? localStorage.getItem("ksyk_admin_token") : null;
+      const token = typeof localStorage !== "undefined" ? localStorage.getItem("ksyk_admin_token") : null;
       const r = await fetch("/api/admin/analytics/reset-easter-eggs", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -304,19 +617,13 @@ function EggsPanel() {
       await refetch();
     } catch (e: any) {
       setResetError(e?.message || "Reset failed");
-    } finally {
-      setResetting(false);
-    }
+    } finally { setResetting(false); }
   }
-  // Merge counts from both sources (new event table + legacy KV counters).
   const counts = new Map<string, number>();
   for (const { eggId, count } of data?.byEgg ?? []) counts.set(eggId, (counts.get(eggId) || 0) + count);
   for (const [k, v] of Object.entries(data?.kvCounters ?? {})) counts.set(k, (counts.get(k) || 0) + Number(v));
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
-  const ranked = EASTER_EGGS.map((e) => ({
-    egg: e,
-    count: counts.get(e.id) || 0,
-  })).sort((a, b) => b.count - a.count);
+  const ranked = EASTER_EGGS.map((e) => ({ egg: e, count: counts.get(e.id) || 0 })).sort((a, b) => b.count - a.count);
   return (
     <div className="space-y-4">
       <Card>
@@ -340,40 +647,40 @@ function EggsPanel() {
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-bold">{total.toLocaleString()}</p>
-          {resetError && (
-            <p className="text-xs text-red-600 mt-1">{resetError}</p>
-          )}
+          {resetError && <p className="text-xs text-red-600 mt-1">{resetError}</p>}
         </CardContent>
       </Card>
-      <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500">
-            <tr>
-              <th className="text-left px-3 py-2">Egg</th>
-              <th className="text-left px-3 py-2">Rarity</th>
-              <th className="text-right px-3 py-2">Discoveries</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {ranked.map(({ egg, count }) => (
-              <tr key={egg.id}>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-6 w-6 rounded-md ${egg.bgColor} ${egg.color} flex items-center justify-center`}>
-                      <egg.icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div>
-                      <p className="font-medium leading-tight">{egg.name}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{egg.description}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-3 py-2"><Badge variant="outline">{egg.rarity}</Badge></td>
-                <td className="px-3 py-2 text-right font-semibold">{count.toLocaleString()}</td>
+      <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[420px]">
+            <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="text-left px-3 py-2">Egg</th>
+                <th className="text-left px-3 py-2">Rarity</th>
+                <th className="text-right px-3 py-2">Discoveries</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {ranked.map(({ egg, count }) => (
+                <tr key={egg.id}>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-6 w-6 rounded-md ${egg.bgColor} ${egg.color} flex items-center justify-center`}>
+                        <egg.icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="font-medium leading-tight">{egg.name}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">{egg.description}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2"><Badge variant="outline">{egg.rarity}</Badge></td>
+                  <td className="px-3 py-2 text-right font-semibold">{count.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -387,39 +694,41 @@ function RecentEventsPanel() {
     refetchInterval: 10_000,
   });
   return (
-    <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500">
-          <tr>
-            <th className="text-left px-3 py-2">Time</th>
-            <th className="text-left px-3 py-2">Event</th>
-            <th className="text-left px-3 py-2">Platform</th>
-            <th className="text-left px-3 py-2">Route</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {isLoading && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
-          )}
-          {!isLoading && data.length === 0 && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-              No firehose events yet. Every non-dedicated event type lands here.
-            </td></tr>
-          )}
-          {data.map((r) => (
-            <tr key={r.id}>
-              <td className="px-3 py-2 text-[11px] text-muted-foreground whitespace-nowrap">
-                {new Date(r.createdAt).toLocaleTimeString()}
-              </td>
-              <td className="px-3 py-2 text-xs font-medium">{r.eventName}</td>
-              <td className="px-3 py-2"><Badge variant="outline">{r.platform}</Badge></td>
-              <td className="px-3 py-2 text-[11px] text-muted-foreground truncate max-w-[240px]">
-                {r.route || r.screen || "—"}
-              </td>
+    <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[540px]">
+          <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="text-left px-3 py-2">Time</th>
+              <th className="text-left px-3 py-2">Event</th>
+              <th className="text-left px-3 py-2">Platform</th>
+              <th className="text-left px-3 py-2">Route</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {isLoading && (
+              <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+            )}
+            {!isLoading && data.length === 0 && (
+              <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground text-xs">
+                No firehose events yet. Every non-dedicated event type lands here.
+              </td></tr>
+            )}
+            {data.map((r) => (
+              <tr key={r.id}>
+                <td className="px-3 py-2 text-[11px] text-muted-foreground whitespace-nowrap">
+                  {new Date(r.createdAt).toLocaleTimeString()}
+                </td>
+                <td className="px-3 py-2 text-xs font-medium">{r.eventName}</td>
+                <td className="px-3 py-2"><Badge variant="outline">{r.platform}</Badge></td>
+                <td className="px-3 py-2 text-[11px] text-muted-foreground truncate max-w-[240px]">
+                  {r.route || r.screen || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -432,84 +741,83 @@ function AuditPanel() {
     refetchInterval: 60_000,
   });
   return (
-    <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500">
-          <tr>
-            <th className="text-left px-3 py-2">Time</th>
-            <th className="text-left px-3 py-2">Action</th>
-            <th className="text-left px-3 py-2">Admin</th>
-            <th className="text-left px-3 py-2">IP</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {isLoading && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
-          )}
-          {!isLoading && data.length === 0 && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-              No audit rows yet.
-            </td></tr>
-          )}
-          {data.map((r) => (
-            <tr key={r.id}>
-              <td className="px-3 py-2 text-[11px] text-muted-foreground whitespace-nowrap">
-                {new Date(r.createdAt).toLocaleString()}
-              </td>
-              <td className="px-3 py-2 text-xs font-medium">{r.action}</td>
-              <td className="px-3 py-2 text-xs">{r.adminEmail || r.adminUserId || "—"}</td>
-              <td className="px-3 py-2 text-[11px] text-muted-foreground">{r.ipAddress || "—"}</td>
+    <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[480px]">
+          <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="text-left px-3 py-2">Time</th>
+              <th className="text-left px-3 py-2">Action</th>
+              <th className="text-left px-3 py-2">Admin</th>
+              <th className="text-left px-3 py-2">IP</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {isLoading && (
+              <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+            )}
+            {!isLoading && data.length === 0 && (
+              <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground text-xs">
+                No audit rows yet.
+              </td></tr>
+            )}
+            {data.map((r) => (
+              <tr key={r.id}>
+                <td className="px-3 py-2 text-[11px] text-muted-foreground whitespace-nowrap">
+                  {new Date(r.createdAt).toLocaleString()}
+                </td>
+                <td className="px-3 py-2 text-xs font-medium">{r.action}</td>
+                <td className="px-3 py-2 text-xs">{r.adminEmail || r.adminUserId || "—"}</td>
+                <td className="px-3 py-2 text-[11px] text-muted-foreground">{r.ipAddress || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-// ── Top-level component ─────────────────────────────────────────────
+// ── Top-level ───────────────────────────────────────────────────────
 export default function AdminAnalyticsDashboard() {
   const [range, setRange] = useState<Range>("24h");
-  const { data: overview } = useOverview(range);
+  const { data: overview, dataUpdatedAt } = useOverview(range);
+  const { data: timeseries } = useTimeseries(range);
+
+  // Sparklines derived from timeseries so we don't fetch twice.
+  const pvSpark = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of timeseries?.pageviews ?? []) {
+      map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
+    }
+    return [...map.entries()].sort().map(([, n]) => n);
+  }, [timeseries]);
+  const errSpark = useMemo(() => (timeseries?.errors ?? []).map((r) => Number(r.n)), [timeseries]);
 
   return (
     <div className="space-y-4">
-      <Card className="border-none shadow-none bg-transparent">
-        <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" /> Analytics
-            </CardTitle>
-            <CardDescription>
-              First-party telemetry, Postgres-backed. Data auto-refreshes every 30 s.
-            </CardDescription>
-          </div>
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
-            {(["24h", "7d", "30d", "90d"] as Range[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
-                  range === r
-                    ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" /> Analytics
+          </h2>
+          <p className="text-[11px] text-muted-foreground">
+            Postgres-backed · auto-refresh 30 s
+            {dataUpdatedAt && <span> · updated {new Date(dataUpdatedAt).toLocaleTimeString()}</span>}
+          </p>
+        </div>
+        <RangePicker range={range} onChange={setRange} />
+      </div>
 
+      {/* Stat grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} hint="Distinct devices" />
-        <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} tone="blue" />
+        <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} tone="blue" />
+        <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} sparkline={pvSpark} tone="blue" />
         <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} tone="violet" />
         <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} tone="emerald" />
         <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} tone="blue" />
-        <StatCard icon={AlertTriangle} label="Errors" value={overview?.errors ?? "…"} tone="red" />
+        <StatCard icon={AlertTriangle} label="Errors" value={overview?.errors ?? "…"} sparkline={errSpark} tone="red" />
         <StatCard icon={Sparkles} label="Easter eggs" value={overview?.easterEggs ?? "…"} tone="amber" />
         <StatCard
           icon={TrendingUp}
@@ -518,10 +826,13 @@ export default function AdminAnalyticsDashboard() {
             ? `${overview.bySource?.web ?? 0} / ${overview.bySource?.android ?? 0}`
             : "…"}
           tone="emerald"
-          hint="Sessions by platform"
         />
       </div>
 
+      {/* Timeseries chart */}
+      <TimeseriesChart range={range} />
+
+      {/* Detail tabs */}
       <Tabs defaultValue="features">
         <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
           <TabsTrigger value="features"><Gauge className="h-3.5 w-3.5 mr-1" />Features</TabsTrigger>
@@ -529,7 +840,7 @@ export default function AdminAnalyticsDashboard() {
           <TabsTrigger value="errors"><AlertTriangle className="h-3.5 w-3.5 mr-1" />Errors</TabsTrigger>
           <TabsTrigger value="perf"><Clock className="h-3.5 w-3.5 mr-1" />Perf</TabsTrigger>
           <TabsTrigger value="eggs"><Sparkles className="h-3.5 w-3.5 mr-1" />Eggs</TabsTrigger>
-          <TabsTrigger value="recent"><Activity className="h-3.5 w-3.5 mr-1" />Recent</TabsTrigger>
+          <TabsTrigger value="recent"><Filter className="h-3.5 w-3.5 mr-1" />Recent</TabsTrigger>
         </TabsList>
         <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
         <TabsContent value="sessions"><SessionsPanel /></TabsContent>
@@ -545,7 +856,7 @@ export default function AdminAnalyticsDashboard() {
             <Shield className="h-4 w-4" /> Admin audit log
           </CardTitle>
           <CardDescription className="text-xs">
-            Every privileged action lands here. Views of this panel are not audited to avoid infinite loops.
+            Every privileged action lands here. Views of the audit log itself are not audited to avoid infinite loops.
           </CardDescription>
         </CardHeader>
         <CardContent><AuditPanel /></CardContent>
