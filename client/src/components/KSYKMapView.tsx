@@ -100,7 +100,6 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // the room, corridor, hallway, and POI layers to empty. So we only
   // apply the value when the param is actually present and an integer;
   // the clamp effect below then snaps it into the real floor list.
-  const urlFloorAppliedRef = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = new URLSearchParams(window.location.search).get("floor");
@@ -445,15 +444,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     return [...set].sort((a, b) => b - a); // top-to-bottom: highest first
   }, [campus.buildings]);
 
-  // v4.5.57 — clamp the active floor into the floors that actually exist
-  // once campus data is ready (floorList is only meaningful after the
-  // buildings load). A missing or out-of-range value resolves to floor 1
-  // so no overlay filters to an empty set. Runs once per load; later
-  // manual floor changes come from the selector or real feature data and
-  // are already valid, so we leave them untouched.
+  // v4.5.57 — keep the active floor inside the floors that actually
+  // exist. Re-runs whenever the floor list changes (campus data
+  // refetches every 60s), so a publish that removes the selected floor
+  // re-clamps instead of leaving every overlay filtered against a floor
+  // that is gone. resolveFloor returns a still-valid floor unchanged, so
+  // this never fights a manual selection; a missing or out-of-range
+  // value falls back to floor 1. Gated on isReady so we never clamp
+  // against the [1] placeholder before the buildings load.
   useEffect(() => {
-    if (!campus.isReady || urlFloorAppliedRef.current) return;
-    urlFloorAppliedRef.current = true;
+    if (!campus.isReady) return;
     setSelectedFloor((current) => resolveFloor(current, floorList));
   }, [campus.isReady, floorList]);
 
