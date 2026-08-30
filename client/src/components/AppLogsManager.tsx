@@ -26,9 +26,16 @@ interface LoginLog {
   type: 'login';
 }
 
+// Config keys the log UI knows how to style.
+type AppLogLevel = 'info' | 'warning' | 'error' | 'success';
+
 interface AppLog {
   id: string;
-  level: 'info' | 'warning' | 'error' | 'success';
+  // `app_logs.level` is an unconstrained varchar, so the server can write
+  // levels the UI has no config for — the rate limiter emits `warn`, and the
+  // schema also documents `debug`. Keep this a plain string and normalize at
+  // every read site (see `normalizeLevel`) instead of trusting a narrow union.
+  level: string;
   message: string;
   details?: string;
   userId?: string | null;
@@ -49,6 +56,24 @@ interface LiveActivity {
 }
 
 type LogEntry = LoginLog | AppLog;
+
+// Map any raw log level onto one of the four config keys the UI can render.
+// `warn` → `warning` matches the server's vocabulary; `debug` and every other
+// unknown value fall back to `info`, so a level the UI has no config for can
+// never produce an undefined lookup and blank the whole panel.
+const normalizeLevel = (level: string): AppLogLevel => {
+  switch (level) {
+    case 'info':
+    case 'success':
+    case 'warning':
+    case 'error':
+      return level;
+    case 'warn':
+      return 'warning';
+    default:
+      return 'info';
+  }
+};
 
 export default function AppLogsManager() {
   const { darkMode } = useDarkMode();
@@ -144,7 +169,7 @@ export default function AppLogsManager() {
     // Level (login logs pass through only when 'all' is selected)
     if (levelFilter !== 'all') {
       if (log.type !== 'app') return false;
-      const lvl = (log as AppLog).level;
+      const lvl = normalizeLevel((log as AppLog).level);
       if (levelFilter === 'info' && !(lvl === 'info' || lvl === 'success')) return false;
       if (levelFilter === 'warning' && lvl !== 'warning') return false;
       if (levelFilter === 'error' && lvl !== 'error') return false;
@@ -195,8 +220,14 @@ export default function AppLogsManager() {
 
   const loginSuccessCount = loginLogs.filter((log: any) => log.loginStatus === 'success').length;
   const loginFailedCount = loginLogs.filter((log: any) => log.loginStatus === 'failed').length;
-  const appInfoCount = appLogs.filter((log: any) => log.level === 'info' || log.level === 'success').length;
-  const appWarningCount = appLogs.filter((log: any) => log.level === 'warning' || log.level === 'error').length;
+  const appInfoCount = appLogs.filter((log) => {
+    const lvl = normalizeLevel(log.level);
+    return lvl === 'info' || lvl === 'success';
+  }).length;
+  const appWarningCount = appLogs.filter((log) => {
+    const lvl = normalizeLevel(log.level);
+    return lvl === 'warning' || lvl === 'error';
+  }).length;
 
   const isLoading = loginLogsLoading || appLogsLoading || analyticsLoading || searchesLoading || roomsLoading || eventsLoading;
 
@@ -316,7 +347,7 @@ export default function AppLogsManager() {
       error: { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800' },
     };
 
-    const config = levelConfig[log.level];
+    const config = levelConfig[normalizeLevel(log.level)];
     const Icon = config.icon;
 
     return (
