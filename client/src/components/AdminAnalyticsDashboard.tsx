@@ -283,11 +283,31 @@ interface EggsPanelData {
   kvCounters: Record<string, number>;
 }
 function EggsPanel() {
-  const { data, isLoading } = useQuery<EggsPanelData | null>({
+  const { data, isLoading, refetch } = useQuery<EggsPanelData | null>({
     queryKey: ["admin-analytics-eggs"],
     queryFn: () => fetchObject<EggsPanelData>("/api/admin/analytics/easter-eggs?range=90d"),
     refetchInterval: 60_000,
   });
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  async function handleReset() {
+    if (!confirm("Reset every easter-egg counter to zero? This wipes both the aggregate KV counters and the time-series events.")) return;
+    setResetting(true); setResetError(null);
+    try {
+      const token = typeof localStorage !== "undefined"
+        ? localStorage.getItem("ksyk_admin_token") : null;
+      const r = await fetch("/api/admin/analytics/reset-easter-eggs", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await refetch();
+    } catch (e: any) {
+      setResetError(e?.message || "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  }
   // Merge counts from both sources (new event table + legacy KV counters).
   const counts = new Map<string, number>();
   for (const { eggId, count } of data?.byEgg ?? []) counts.set(eggId, (counts.get(eggId) || 0) + count);
@@ -300,16 +320,29 @@ function EggsPanel() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Sparkles className="h-4 w-4" /> Total discoveries
-          </CardTitle>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="h-4 w-4" /> Total discoveries
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {isLoading ? "Loading…" : `${EASTER_EGGS.length} eggs in the registry`}
+            </CardDescription>
+          </div>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={resetting}
+            className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/30"
+          >
+            {resetting ? "Resetting…" : "Reset counters"}
+          </button>
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-bold">{total.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {isLoading ? "Loading…" : `${EASTER_EGGS.length} eggs in the registry`}
-          </p>
+          {resetError && (
+            <p className="text-xs text-red-600 mt-1">{resetError}</p>
+          )}
         </CardContent>
       </Card>
       <div className="rounded-xl border bg-white dark:bg-gray-950 overflow-hidden">

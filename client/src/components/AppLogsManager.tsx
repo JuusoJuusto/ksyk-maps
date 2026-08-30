@@ -219,7 +219,11 @@ export default function AppLogsManager() {
   }, {});
 
   const eventTypeData = Object.entries(eventsByType).map(([name, value]) => ({
-    name: name.replace('_', ' ').toUpperCase(),
+    // Defensive coercion — KV blob rows from older client builds sometimes
+    // lack `type`, which crashed the entire admin page ("Cannot read
+    // properties of undefined (reading 'replace')"). Now we always end up
+    // with a string.
+    name: String(name ?? 'other').replace(/_/g, ' ').toUpperCase(),
     value
   }));
 
@@ -598,13 +602,13 @@ export default function AppLogsManager() {
                               {event.type === 'room_view' && <MapPin className="h-5 w-5 text-green-600" />}
                               {event.type === 'building_view' && <Monitor className="h-5 w-5 text-orange-600" />}
                               {event.type === 'navigation' && <Navigation className="h-5 w-5 text-red-600" />}
-                              {!['page_view', 'search', 'room_view', 'building_view', 'navigation'].includes(event.type) && <Zap className="h-5 w-5 text-yellow-600" />}
+                              {!['page_view', 'search', 'room_view', 'building_view', 'navigation'].includes(String(event.type ?? '')) && <Zap className="h-5 w-5 text-yellow-600" />}
                             </div>
                             <div>
                               <div className="flex items-center space-x-2">
                                 <span className="font-medium text-gray-900 dark:text-white">{event.message}</span>
                                 <Badge variant="outline" className="text-xs">
-                                  {event.type.replace('_', ' ').toUpperCase()}
+                                  {String(event.type ?? 'other').replace(/_/g, ' ').toUpperCase()}
                                 </Badge>
                               </div>
                               <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600 dark:text-gray-400">

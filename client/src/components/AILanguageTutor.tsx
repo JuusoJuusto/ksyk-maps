@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Languages, MessageCircle, BookOpen, Mic, Volume2, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { GeminiChat, generateStructuredOutput } from "@/lib/geminiAI";
 import { useToast } from "@/hooks/use-toast";
+import posthog from "@/lib/posthog";
 
 export default function AILanguageTutor() {
   const [language, setLanguage] = useState("Finnish");
@@ -42,6 +43,7 @@ For advanced: Use mostly ${language} with English explanations when needed`;
       role: "assistant",
       content: `Hei! 👋 I'm your ${language} tutor. I'm excited to help you learn! What would you like to practice today?`
     }]);
+    posthog.capture("ai_tutor_conversation_started", { language, level });
   };
 
   const sendMessage = async () => {
@@ -112,6 +114,7 @@ Provide detailed feedback in JSON format with:
 
       const result = await generateStructuredOutput(prompt, schema) as any;
       setFeedback(result);
+      posthog.capture("ai_tutor_grammar_checked", { language });
       toast({
         title: "Analysis Complete!",
         description: `Score: ${result?.score}/100`,

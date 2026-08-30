@@ -300,7 +300,7 @@ fun TimetableScreen(
                         isCurrent = entry == currentEntry,
                         lang = lang,
                         onDelete = {
-                            runCatching { PostHog.capture("timetable_entry_deleted", mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
+                            runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
                             val updated = entries.filterNot { it.id == entry.id }
                             entries = updated
                             scope.launch { saveEntries(ctx, updated) }
@@ -361,7 +361,7 @@ fun TimetableScreen(
                     entries + e
                 }
                 entries = updated
-                runCatching { PostHog.capture("timetable_entry_saved", mapOf("entry_action" to if (editEntry != null) "updated" else "created", "has_room" to e.roomId.isNotBlank(), "has_period" to (e.jaksoId != "all"))) }
+                runCatching { PostHog.capture("timetable_entry_saved", properties = mapOf("entry_action" to if (editEntry != null) "updated" else "created", "has_room" to e.roomId.isNotBlank(), "has_period" to (e.jaksoId != "all"))) }
                 scope.launch { saveEntries(ctx, updated) }
                 showAdd = false; editEntry = null
             },

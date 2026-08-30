@@ -133,7 +133,7 @@ fun WilmaConnectScreen(
                     runCatching {
                         PostHog.capture(
                             "wilma_calendar_imported",
-                            mapOf("lesson_count" to deduped.size, "matched_room_count" to deduped.count { it.roomId.isNotBlank() }),
+                            properties = mapOf("lesson_count" to deduped.size, "matched_room_count" to deduped.count { it.roomId.isNotBlank() }),
                         )
                     }
                     syncing = false

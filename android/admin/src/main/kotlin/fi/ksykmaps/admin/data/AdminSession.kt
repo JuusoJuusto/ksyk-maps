@@ -55,9 +55,10 @@ object AdminSession {
         runCatching {
             PostHog.identify(
                 stableUserId,
-                mapOf(
+                // PostHog SDK expects Map<String, Any>; coerce nullable role.
+                userProperties = mapOf<String, Any>(
                     "email" to userEmail,
-                    "role" to role,
+                    "role" to (role ?: ""),
                 ),
             )
         }

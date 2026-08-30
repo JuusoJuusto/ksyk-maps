@@ -104,11 +104,13 @@ object Session {
 
     private fun identifyUser(userId: String, email: String, role: String?) {
         runCatching {
+            // PostHog SDK expects Map<String, Any> (no nulls). Coerce
+            // null role to empty string so the identify call type-checks.
             PostHog.identify(
                 userId,
-                mapOf(
+                userProperties = mapOf<String, Any>(
                     "email" to email,
-                    "role" to role,
+                    "role" to (role ?: ""),
                 ),
             )
         }

@@ -436,7 +436,14 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // Probe the server. If it tells us specifically that the token is
     // invalid (vs a generic cold-start 401), redirect.
     let cancelled = false;
-    fetch("/api/auth/user", { credentials: "include" })
+    // Attach the Bearer token so the server can validate it and return
+    // 200 (instead of a noisy 401 that only means "no cookie session").
+    const authToken = typeof localStorage !== "undefined"
+      ? localStorage.getItem("ksyk_admin_token") : null;
+    fetch("/api/auth/user", {
+      credentials: "include",
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    })
       .then(async (r) => {
         if (cancelled) return;
         if (r.status === 401 || r.status === 403) {

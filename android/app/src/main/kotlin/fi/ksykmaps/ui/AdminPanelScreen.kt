@@ -1168,7 +1168,7 @@ private fun AdminAnnouncementsSection(
                             }
                             posting = false
                             if (ok) {
-                                runCatching { PostHog.capture("admin_announcement_published", mapOf("announcement_type" to type)) }
+                                runCatching { PostHog.capture("admin_announcement_published", properties = mapOf("announcement_type" to type)) }
                                 toast = if (isFi) "Ilmoitus julkaistu" else "Announcement posted"
                                 title = ""; body = ""; type = "info"
                                 refreshTrigger++

@@ -1,5 +1,6 @@
 ﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
+import { emitLog, flushLogs } from '../server/posthogLogger.js';
 import crypto from 'node:crypto';
 
 // â”€â”€ Stateless admin token (HMAC-signed, 24h TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -69,14 +70,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ].join('; '),
   );
   
-  // Rate limiting — admins get a separate high-capacity bucket so the
-  // dashboard (which fires 5 parallel requests on load) never hits 429.
+  // Rate limiting — admins get a separate high-capacity bucket. Public
+  // limit raised from 100 → 500/min in v4.5.53 because the builder page
+  // legitimately fires ~40 requests on load (pois/doors/stairs/elevators
+  // + settings poll + telemetry heartbeat + rooms/buildings/hallways)
+  // and one active user session was exhausting the old bucket in ~90 s.
+  // Telemetry endpoints are exempt entirely — they must NEVER 429 a
+  // user because a beacon fails.
   const clientIP = getRealIP(req.headers);
   const adminHeader = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
   const adminToken = adminHeader?.replace(/^Bearer\s+/i, '').trim();
   const isAdminReq = adminToken ? verifyAdminToken(adminToken) !== null : false;
+  const _pathForRl = (req.url || '/').split('?')[0];
+  const isTelemetry =
+    _pathForRl.startsWith('/api/session/') ||
+    _pathForRl.startsWith('/api/config/report') ||
+    _pathForRl.startsWith('/api/preferences/save') ||
+    _pathForRl.startsWith('/api/telemetry/') ||
+    _pathForRl === '/api/analytics-event' ||
+    _pathForRl.startsWith('/api/t/');
   const rateLimitKey = isAdminReq ? `admin:${adminToken!.slice(-16)}` : clientIP;
-  const maxReq = isAdminReq ? 1000 : 100;
+  const maxReq = isAdminReq ? 2000 : (isTelemetry ? 2000 : 500);
   const rateLimit = checkRateLimit(rateLimitKey, maxReq, 60000);
 
   res.setHeader('X-RateLimit-Limit', maxReq.toString());
@@ -3283,6 +3297,16 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
           metadata: meta,
         } as any).catch(() => {});
+        // Mirror to PostHog Logs so the same events also land in the
+        // hosted logs viewer (searchable across all deployments).
+        emitLog(`admin action: ${action}`, {
+          severity: 'info',
+          attributes: {
+            adminUserId: claim?.userId,
+            ip: clientIP,
+            ...(meta ?? {}),
+          },
+        });
       } catch { /* audit is best-effort */ }
     }
 
@@ -3522,6 +3546,34 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       } catch { return res.status(200).json([]); }
     }
 
+    // POST /api/admin/analytics/reset-easter-eggs
+    // Admin-only wipe of every easter-egg counter + history. Both the
+    // legacy KV blob (easterEggCounters/easterEggRecent) and the new
+    // easter_egg_events table are cleared. Emits an audit row + PostHog
+    // log so it's traceable — never invoked accidentally.
+    if (apiPath === '/admin/analytics/reset-easter-eggs' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { kvSet } = await import('../server/kvStorage.js');
+        await Promise.all([
+          kvSet('easterEggCounters', {}).catch(() => {}),
+          kvSet('easterEggRecent', { entries: [] }).catch(() => {}),
+        ]);
+        try {
+          const { db: pgDb } = await import('../server/db.js');
+          const { sql: dsql } = await import('drizzle-orm');
+          await pgDb.execute(dsql`TRUNCATE TABLE easter_egg_events`);
+        } catch { /* table may not exist yet — swallow */ }
+        await auditView('easter_eggs_reset');
+        emitLog('Easter egg counters reset', { severity: 'warn' });
+        await flushLogs().catch(() => {});
+        return res.status(200).json({ success: true });
+      } catch (err: any) {
+        console.error('reset-easter-eggs failed:', err?.message);
+        return res.status(500).json({ message: 'reset failed', error: err?.message });
+      }
+    }
+
     // ── GET /api/admin/activity ─────────────────────────────────────────
     // Unified paginated stream for the admin panel's Aktiviteetti tab.
     // Merges appLogs + pageViews + searchAnalytics into a single time-
@@ -3704,7 +3756,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       url: req.url,
       method: req.method
     });
-    
+    // Ship the failure to PostHog Logs so we see it on the Logs board
+    // without needing to scrape Vercel deployment logs.
+    emitLog(`API 500 on ${req.method} ${req.url}: ${error.message}`, {
+      severity: 'error',
+      attributes: {
+        method: req.method,
+        url: req.url,
+        stack: error?.stack?.slice(0, 1500),
+      },
+    });
+    try { await flushLogs(); } catch { /* ignore */ }
+
     return res.status(500).json({
       message: "Internal server error",
       error: error.message

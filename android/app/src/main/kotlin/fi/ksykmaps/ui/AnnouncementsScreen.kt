@@ -145,7 +145,7 @@ fun AnnouncementsScreen() {
                     items(items) { a ->
                         AnnouncementCard(a, onClick = {
                             val type = (a["type"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: "info"
-                            runCatching { PostHog.capture("announcement_opened", mapOf("announcement_type" to type)) }
+                            runCatching { PostHog.capture("announcement_opened", properties = mapOf("announcement_type" to type)) }
                             selectedForDetail = a
                         })
                     }

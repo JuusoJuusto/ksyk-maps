@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
 import { analytics } from '@/lib/analytics-sdk';
 import posthog from '@/lib/posthog';
+import Sentry from '@/lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -33,6 +34,28 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
+    // MapLibre transient render errors ("Cannot read properties of
+    // undefined (reading 'get' | '0' | 'getLayer')" originating from
+    // Om.renderLayer / Object.circle / _render) fire mid-frame when a
+    // source is torn down before its layer is removed. They're
+    // self-recovering — the next frame paints fine — so we log them via
+    // analytics but don't paint the fatal-error screen.
+    const msg = String(error?.message || '');
+    const stack = String(error?.stack || '');
+    const isMapLibreRender =
+      /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
+      /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack);
+    if (isMapLibreRender) {
+      // eslint-disable-next-line no-console
+      console.warn('[ErrorBoundary] swallowed transient MapLibre render error:', msg);
+      try {
+        // Fire-and-forget report so we can still see the frequency.
+        import('@/lib/analytics-sdk').then(m => m.analytics.error(error, {
+          area: 'maplibre-transient', swallowed: true,
+        }));
+      } catch { /* ignore */ }
+      return {};
+    }
     return { hasError: true, error };
   }
 
@@ -58,7 +81,10 @@ class ErrorBoundary extends Component<Props, State> {
     } catch { /* never crash on telemetry */ }
 
     // Send errors handled by React boundaries to PostHog Error Tracking.
-    posthog.captureException(error);
+    try { posthog.captureException?.(error); } catch { /* ignore */ }
+    // Mirror to Sentry so the crash shows up in the Sentry Issues feed
+    // with a session replay attached (when the user was on-error sampled).
+    try { Sentry.captureException?.(error, { extra: { errorReferenceId } }); } catch { /* ignore */ }
 
     // Log error to backend with reference ID
     try {
@@ -222,14 +248,25 @@ class ErrorBoundary extends Component<Props, State> {
                     Go home
                   </Button>
                   {!this.state.ticketSubmitted && (
-                    <Button
-                      onClick={this.handleSubmitTicket}
-                      variant="outline"
-                      className="flex-1 h-11 rounded-xl font-semibold active:scale-[0.98] border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Report
-                    </Button>
+                    <>
+                      <Button
+                        onClick={this.handleSubmitTicket}
+                        variant="outline"
+                        className="flex-1 h-11 rounded-xl font-semibold active:scale-[0.98] border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Quick report
+                      </Button>
+                      {/* Full ticket form — opens /support and pre-fills
+                       *  it with the error reference ID so the user can
+                       *  add details (their email, what they were doing). */}
+                      <a
+                        href={`/support?ref=${encodeURIComponent(this.state.errorReferenceId || '')}&msg=${encodeURIComponent(this.state.error?.message || '')}`}
+                        className="flex-1 h-11 rounded-xl font-semibold flex items-center justify-center active:scale-[0.98] border border-input bg-transparent hover:bg-accent hover:text-accent-foreground text-sm"
+                      >
+                        Contact support
+                      </a>
+                    </>
                   )}
                 </div>
 

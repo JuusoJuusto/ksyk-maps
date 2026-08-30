@@ -1,6 +1,7 @@
 import "dotenv/config";
 import "./posthogLogger.js"; // initialise PostHog OTel log exporter
 import express, { type Request, Response, NextFunction } from "express";
+import { PostHog, setupExpressRequestContext } from "posthog-node";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -10,6 +11,15 @@ import { rateLimiters } from "./rateLimiter";
 // import { createOwnerAdmin } from "./createOwnerAdmin"; // TODO: Re-enable when file exists
 
 const app = express();
+
+const posthogProjectToken = process.env.POSTHOG_API_KEY;
+const posthogHost = process.env.POSTHOG_HOST;
+const posthog = posthogProjectToken && posthogHost
+  ? new PostHog(posthogProjectToken, {
+      host: posthogHost,
+      enableExceptionAutocapture: true,
+    })
+  : undefined;
 
 // Trust the first reverse proxy (Vercel/Replit/nginx). Required for
 // `express-rate-limit` + `express-session` `secure` cookies to use the
@@ -59,6 +69,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 // Parse cookies so simpleAuth can read the JWT auth cookie.
 app.use(cookieParser());
+
+if (posthog) {
+  setupExpressRequestContext(posthog, app);
+}
 
 // ── Route-parameter validation ────────────────────────────────────
 // Every `/api/…/:id` handler expects an alphanumeric-dash-underscore
@@ -142,6 +156,10 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    if (posthog) {
+      posthog.captureException(err);
+    }
+
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 

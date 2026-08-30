@@ -37,7 +37,10 @@ const ENDPOINT = "/api/session/heartbeat";
 const PIXEL_ENDPOINT = "/api/session/ping";
 const APP_VERSION_HDR: string =
   (import.meta as any).env?.VITE_APP_VERSION ?? "web";
-const FLUSH_INTERVAL_MS = 15_000;
+// v4.5.53: relaxed 15s → 45s to spare the shared rate-limit bucket. On
+// tab-hide / pagehide we still flush immediately via sendBeacon, so the
+// worst-case dropped events window is one 45s interval.
+const FLUSH_INTERVAL_MS = 45_000;
 const MAX_BATCH = 40;
 const MAX_QUEUE = 400;
 const QUEUE_STORAGE_KEY = "ksyk_telemetry_queue_v1";
@@ -360,8 +363,20 @@ export function initTelemetry() {
   window.addEventListener("beforeunload", () => flush(true));
   setInterval(() => flush(false), FLUSH_INTERVAL_MS);
 
-  // Global error hooks — safety-critical, always send.
+  // Global error hooks — safety-critical, always send. We tag the
+  // transient MapLibre render errors so they show up in analytics but
+  // don't spam the "fatal errors" chart on the admin dashboard.
+  const isMapLibreTransient = (msg: string, stack: string) =>
+    /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
+    /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack);
   window.addEventListener("error", (e: ErrorEvent) => {
+    const stack = String(e.error?.stack || '');
+    const msg = String(e.error?.message || e.message || '');
+    if (isMapLibreTransient(msg, stack)) {
+      analytics.track("maplibre_transient_error", { message: msg });
+      e.preventDefault?.();
+      return;
+    }
     analytics.error(e.error ?? e.message ?? "unknown", {
       filename: e.filename,
       lineno: e.lineno,
@@ -369,6 +384,13 @@ export function initTelemetry() {
     });
   });
   window.addEventListener("unhandledrejection", (e: PromiseRejectionEvent) => {
+    const stack = String((e.reason as any)?.stack || '');
+    const msg = String((e.reason as any)?.message || e.reason || '');
+    if (isMapLibreTransient(msg, stack)) {
+      analytics.track("maplibre_transient_error", { message: msg, unhandledRejection: true });
+      e.preventDefault?.();
+      return;
+    }
     analytics.error(e.reason, { unhandledRejection: true });
   });
 

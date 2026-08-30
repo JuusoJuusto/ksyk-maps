@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.52";
+export const APP_VERSION = "4.5.53";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.53",
+    date: "August 2026",
+    title: "Kill 429 storm + swallow MapLibre render blips + PostHog Logs + Sentry + support ticket flow",
+    titleFi: "429-tulva korjattu + MapLibre-renderöintivirheet vaimennettu + PostHog Logs + Sentry + tukilomake",
+    highlights: [
+      "**429 storm fixed** — the shared per-IP bucket exhausted at 100 req/min under a normal builder session (settings poll + heartbeat + pois/doors/stairs/elevators + telemetry). Raised the public limit to 500/min, admin to 2000/min, and telemetry endpoints get their own 2000/min bucket so a beacon never 429s a real request. `/api/settings` polling relaxed 30 s → 90 s. Telemetry flush relaxed 15 s → 45 s.",
+      "**MapLibre transient render crashes swallowed** — `Cannot read properties of undefined (reading 'get'|'getLayer'|'0')` from `Om.renderLayer` / `Object.circle` are self-recovering (source torn down mid-frame). The ErrorBoundary now recognises the pattern by message + stack and returns to steady state instead of painting the fatal-error screen. Global window.error handler tags them as `maplibre_transient_error` so we still see the rate on the analytics dashboard.",
+      "**Support ticket flow wired** — `/pages/support.tsx` was already complete (POSTs to `/api/tickets`, triggers email + Discord) but the route wasn't registered. Now reachable at `/support` and `/report`. ErrorBoundary's crash screen now includes a `Contact support` link that pre-fills the form with the error reference ID + message. `/api/logs` GET added for the admin logs panel; POST now persists to appLogs.",
+      "**PostHog web + server both installed** — client uses the phc_ project token as a baked default so it works out of the box (override with `VITE_POSTHOG_KEY`). Server uses OpenTelemetry OTLP over HTTP to ship logs to `us.i.posthog.com`; admin actions + API 500s emit + `forceFlush()` before the serverless function returns.",
+      "**Sentry web installed** — `@sentry/react` inits from `main.tsx` with 20 % traces + 5 % session replay + 100 % on-error replay. `beforeSend` drops the MapLibre transient noise to preserve quota. `ErrorBoundary.captureException` writes to Sentry alongside PostHog.",
+      "**Easter egg reset** — new `/api/admin/analytics/reset-easter-eggs` admin endpoint wipes the KV counters + `easter_egg_events` table; surfaced as a `Reset counters` button in the analytics dashboard's Eggs panel. Audit-logged + PostHog-logged (`warn` severity) so it's traceable.",
+      "**AppLogsManager crash fix** — `event.type.replace(...)` on an undefined KV row was killing the entire admin logs page. Now defensively coerces via `String(x ?? 'other')`.",
+    ],
+    highlightsFi: [
+      "**429-tulva korjattu** — jaettu IP-kohtainen bucket loppui 100 req/min:ssä. Nostettu julkinen raja 500:aan, admin 2000, telemetria omaan 2000-bucketiin.",
+      "**MapLibre-renderöintivirheet vaimennettu** — itsestään palautuvat virheet eivät enää tapa sovellusta.",
+      "**Tukilomake toimii** — `/support` ja `/report` reititetty, ErrorBoundary linkittää niihin virhereferenssin kanssa.",
+      "**PostHog web + serveri asennettu** — sekä browser SDK että OTel OTLP logit.",
+      "**Sentry web asennettu** — session replay + trace sampling.",
+      "**Pääsiäismunien nollaus** — hallintapaneelissa yksi nappi.",
+      "**AdminLogsManager kaatuminen korjattu**.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.52",
     date: "August 2026",
@@ -36,7 +61,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Hallintapaneelin auditointi** — jokainen katselu tallennetaan audit_logs-tauluun.",
       "**Kaikki 28 pääsiäismunaa automaattisesti instrumentoituja** ilman koodimuutoksia.",
     ],
-    latest: true,
   },
   {
     version: "4.5.51",

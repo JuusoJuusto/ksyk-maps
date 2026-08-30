@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, BookOpen, Target, TrendingUp, Loader2, Sparkles } from "lucide-react";
 import { generateStructuredOutput } from "@/lib/geminiAI";
 import { useToast } from "@/hooks/use-toast";
+import posthog from "@/lib/posthog";
 
 export default function AIStudyPlanner() {
   const [subjects, setSubjects] = useState("");
@@ -101,6 +102,9 @@ Provide a structured JSON response.`;
 
       const plan = await generateStructuredOutput(prompt, schema);
       setStudyPlan(plan);
+      posthog.capture("ai_study_plan_generated", {
+        availability_provided: Boolean(availableTime.trim()),
+      });
       toast({
         title: "Study Plan Generated!",
         description: "Your personalized study plan is ready.",

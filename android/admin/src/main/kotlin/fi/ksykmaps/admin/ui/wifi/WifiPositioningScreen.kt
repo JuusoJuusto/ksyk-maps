@@ -311,7 +311,7 @@ private fun SurveyTab() {
                             positions = withContext(Dispatchers.IO) {
                                 (AdminApi.get("/beacons/$roomId/positions") as? JsonArray)?.mapNotNull { it as? JsonObject } ?: emptyList()
                             }
-                            runCatching { PostHog.capture("wifi_fingerprint_saved", mapOf("access_point_count" to wifiReadings.size)) }
+                            runCatching { PostHog.capture("wifi_fingerprint_saved", properties = mapOf("access_point_count" to wifiReadings.size)) }
                             status = "Saved ${wifiReadings.size} APs at '$posLabel'"
                             wifiReadings = emptyList()
                         }.onFailure { status = "Error: ${it.message}" }
@@ -399,7 +399,7 @@ private fun TestLocateTab() {
                         result = withContext(Dispatchers.IO) {
                             AdminApi.post("/wifi/locate", """{"readings":[$readingsJson]}""")
                         } as? JsonObject
-                        runCatching { PostHog.capture("wifi_location_test_completed", mapOf("access_point_count" to readings.size, "location_found" to (result != null))) }
+                        runCatching { PostHog.capture("wifi_location_test_completed", properties = mapOf("access_point_count" to readings.size, "location_found" to (result != null))) }
                     }.onFailure { error = AdminApi.friendly(it as Exception) }
                     scanning = false
                 }

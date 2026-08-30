@@ -423,7 +423,7 @@ fun MapScreen() {
                     rooms = rooms,
                     lang = lang,
                     onBuildingPick = { b ->
-                        runCatching { PostHog.capture("map_search_result_selected", mapOf("result_type" to "building")) }
+                        runCatching { PostHog.capture("map_search_result_selected", properties = mapOf("result_type" to "building")) }
                         selectedBuilding = b; selectedRoom = null
                         searchQuery = ""; searchFocused = false
                         (b["coordinates"] as? JsonObject)?.let { c ->
@@ -434,7 +434,7 @@ fun MapScreen() {
                         }
                     },
                     onRoomPick = { r ->
-                        runCatching { PostHog.capture("map_search_result_selected", mapOf("result_type" to "room")) }
+                        runCatching { PostHog.capture("map_search_result_selected", properties = mapOf("result_type" to "room")) }
                         selectedRoom = r; selectedBuilding = null
                         searchQuery = ""; searchFocused = false
                         (r["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
@@ -556,7 +556,7 @@ fun MapScreen() {
                 lang = lang,
                 onDismiss = { selectedBuilding = null; selectedRoom = null },
                 onNavigate = { target ->
-                    runCatching { PostHog.capture("map_directions_started", mapOf("destination_type" to if (visibleRoom != null) "room" else "building")) }
+                    runCatching { PostHog.capture("map_directions_started", properties = mapOf("destination_type" to if (visibleRoom != null) "room" else "building")) }
                     destination = target
                     origin = null
                     originIsMyLoc = true

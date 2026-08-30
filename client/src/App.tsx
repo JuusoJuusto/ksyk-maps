@@ -45,6 +45,7 @@ import KonamiEasterEgg from "@/pages/konami";
 import DevModeEasterEgg from "@/pages/dev-mode";
 import NotFound from "@/pages/not-found";
 import BuilderPage from "@/pages/builder";
+import Support from "@/pages/support";
 import "./lib/i18n";
 
 function OfflineBanner() {
@@ -107,8 +108,11 @@ function Router() {
       if (!r.ok) return null;
       return r.json();
     },
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 90_000,
+    // v4.5.53: relaxed 30s → 90s so a single tab doesn't spend a third of
+    // its rate-limit budget on settings polling. Maintenance mode still
+    // clears within 90 s of the admin flipping the toggle.
+    refetchInterval: 90_000,
   });
 
   // Maintenance mode hides the public app — but admins still need to
@@ -149,6 +153,9 @@ function Router() {
       {/* Public info pages */}
       <Route path="/hsl" component={HSL} />
       <Route path="/lunch" component={Lunch} />
+      <Route path="/support" component={Support} />
+      {/* Alias so error boundaries + old bookmarks find the same page. */}
+      <Route path="/report" component={Support} />
 
       {/* Easter eggs */}
       <Route path="/secret-easter-egg" component={EasterEgg} />

@@ -119,7 +119,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     onClick = {
                         if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
                         markOnboardingDone(ctx)
-                        runCatching { PostHog.capture("onboarding_completed", mapOf("completion_method" to "skipped")) }
+                        runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "skipped")) }
                         onDone()
                     },
                     modifier = Modifier.align(Alignment.CenterEnd),
@@ -158,7 +158,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         keyboard?.hide()
                         if (isLast) {
                             markOnboardingDone(ctx)
-                            runCatching { PostHog.capture("onboarding_completed", mapOf("completion_method" to "get_started")) }
+                            runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "get_started")) }
                             onDone()
                         } else {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -181,7 +181,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                             onClick = {
                                 if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
                                 markOnboardingDone(ctx)
-                                runCatching { PostHog.capture("onboarding_completed", mapOf("completion_method" to "wilma_connect")) }
+                                runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "wilma_connect")) }
                                 onDone()
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,33 @@ export default function Support() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
+
+  // Pre-fill the form when the user is bounced here from an
+  // ErrorBoundary crash (or any URL like /support?ref=…&msg=…). This is
+  // what makes "Contact support" one-tap flow feasible.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref") || "";
+      const msg = params.get("msg") || "";
+      const type = params.get("type") || "";
+      if (ref || msg || type) {
+        setFormData((prev) => ({
+          ...prev,
+          type: type === "feature" || type === "support" ? type : "bug",
+          title: msg ? `Auto-report: ${msg.slice(0, 80)}` : prev.title,
+          description: [
+            msg ? `Error: ${msg}` : "",
+            ref ? `Reference ID: ${ref}` : "",
+            "",
+            "What I was doing when this happened:",
+            "",
+          ].filter(Boolean).join("\n"),
+          priority: "high",
+        }));
+      }
+    } catch { /* ignore malformed URL */ }
+  }, []);
 
   const createTicketMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
