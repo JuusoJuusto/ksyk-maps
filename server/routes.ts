@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { SeverityNumber } from '@opentelemetry/api-logs';
+import { posthogLogger } from './posthogLogger.js';
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, signChallenge, verifyChallenge } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "../shared/schema.js";
@@ -111,6 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/health', async (_req, res) => {
     try {
       await storage.getBuildings(); // lightweight probe
+      posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Health check OK', attributes: { route: '/api/health' } });
       res.json({
         status: 'ok',
         version: process.env.npm_package_version ?? 'unknown',
@@ -272,6 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("❌ Session error:", err);
             return res.status(500).json({ message: "Login failed" });
           }
+          posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'owner' } });
           console.log('✅ Owner logged in');
           console.log('=====================================\n');
           return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
@@ -284,7 +288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user) {
         console.log('❌ User not found');
-        
+        posthogLogger.emit({ severityNumber: SeverityNumber.WARN, severityText: 'WARN', body: 'Login failed: user not found', attributes: { route: '/api/auth/admin-login' } });
+
         // Log failed login attempt
         await storage.createAdminLoginLog({
           userId: null,
@@ -295,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'failed',
           failureReason: 'User not found'
         });
-        
+
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
@@ -313,6 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pwOk = await verifyPassword(trimmedPassword, user.password, user.id);
       if (!pwOk) {
         console.log('❌ Password mismatch');
+        posthogLogger.emit({ severityNumber: SeverityNumber.WARN, severityText: 'WARN', body: 'Login failed: invalid password', attributes: { route: '/api/auth/admin-login' } });
 
         await storage.createAdminLoginLog({
           userId: user.id,
@@ -359,10 +365,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sessionId: null
         });
         
+        posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'user' } });
         console.log('✅ User logged in');
         console.log('=====================================\n');
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           user: user,
           requirePasswordChange: user.isTemporaryPassword || false
         });
@@ -804,6 +811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/logout', (req: any, res) => {
     req.logout((err: any) => {
       if (err) console.error("Logout error:", err);
+      posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'User logged out', attributes: { route: '/api/auth/logout' } });
       res.json({ success: true, message: "Logged out successfully" });
     });
   });
