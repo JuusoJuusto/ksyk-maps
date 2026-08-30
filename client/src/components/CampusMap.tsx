@@ -246,6 +246,13 @@ export default function CampusMap({
   const { settings } = useAppSettings();
   const { darkMode } = useDarkMode();
   const [ready, setReady] = useState(false);
+  // Watchdog recovery — `initAttempt` is bumped when MapLibre's `load`
+  // never fires, which re-runs the init effect and rebuilds the map.
+  // Once the auto retries are spent we raise `bootFailed` and show an
+  // error overlay with a manual retry, instead of leaving an empty
+  // canvas behind the faded splash.
+  const [initAttempt, setInitAttempt] = useState(0);
+  const [bootFailed, setBootFailed] = useState(false);
 
   // ── Init map ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -331,18 +338,31 @@ export default function CampusMap({
 
     // Watchdog — if MapLibre's `load` event doesn't fire within 6s
     // (bad WebGL context, tile CDN slow, stale style spec, etc.), tear
-    // the map down and re-init. Without this the splash + overlays
-    // would wait forever on a silently-broken map.
+    // the map down and REBUILD it. The old code removed the map but the
+    // init effect never re-ran (empty dep array, no remount), so the
+    // canvas stayed dead while `ksyk:map-ready` still faded the splash.
+    // Now we bump `initAttempt` to re-run this effect with a fresh map,
+    // and after the retries are spent we show an error overlay instead
+    // of a blank container.
+    const MAX_AUTO_RETRIES = 1;
     let loadFired = false;
     const watchdog = window.setTimeout(() => {
       if (loadFired) return;
-      console.warn("CampusMap: load event didn't fire within 6s — recovering.");
+      console.warn(
+        `CampusMap: load event didn't fire within 6s (attempt ${initAttempt + 1}) — recovering.`,
+      );
       try { map.remove(); } catch { /* already gone */ }
       mapRef.current = null;
-      // Fire the boot signal anyway so the splash can proceed; the map
-      // effect will re-run on next mount cycle.
-      try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
-      catch { /* non-fatal */ }
+      if (initAttempt < MAX_AUTO_RETRIES) {
+        setInitAttempt((n) => n + 1); // re-run this effect → rebuild
+      } else {
+        // Out of auto retries — surface the failure and let the splash
+        // fade so users aren't stuck on the spinner. The overlay offers
+        // a manual retry.
+        setBootFailed(true);
+        try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
+        catch { /* non-fatal */ }
+      }
     }, 6000);
 
     map.on("error", (e) => {
@@ -357,6 +377,7 @@ export default function CampusMap({
       window.clearTimeout(watchdog);
       mapRef.current = map;
       setReady(true);
+      setBootFailed(false); // a retry that reached load clears the error
       // Fire boot-ready once the first frame paints so SplashScreen can
       // fade even if data queries are already resolved.
       map.once("idle", () => {
@@ -420,14 +441,16 @@ export default function CampusMap({
     });
 
     return () => {
-      map.remove();
+      window.clearTimeout(watchdog);
+      try { map.remove(); } catch { /* already removed by the watchdog */ }
       mapRef.current = null;
       setReady(false);
     };
-    // Intentionally only run once — later changes to settings flow through
-    // separate effects below (theme, bearing, pitch, center).
+    // Re-runs only when `initAttempt` changes (the watchdog rebuild).
+    // Later changes to settings flow through separate effects below
+    // (theme, bearing, pitch, center).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initAttempt]);
 
   // ── Dark mode: swap the tile source in place. Full setStyle() would
   //    also work but it re-installs every KSYK GeoJSON layer, so we
@@ -594,19 +617,42 @@ export default function CampusMap({
   }, [pitch, ready]);
 
   return (
-    <div
-      ref={containerRef}
-      // v3.26.2 — CSS fallback backdrop. If MapLibre fails to init or
-      // the raster tiles don't load, the container shows a neutral
-      // paper-beige (or dark slate) so users never see stark white.
-      style={{ backgroundColor: darkMode ? "#0f172a" : "#eeeae0" }}
-      className={cn(
-        "w-full h-full relative",
-        // Kill MapLibre's default focus outline — we manage focus states
-        // in the surrounding UI. Also silence any inherited borders.
-        "[&_.maplibregl-canvas]:outline-none",
-        className,
+    <div className={cn("w-full h-full relative", className)}>
+      <div
+        ref={containerRef}
+        // v3.26.2 — CSS fallback backdrop. If MapLibre fails to init or
+        // the raster tiles don't load, the container shows a neutral
+        // paper-beige (or dark slate) so users never see stark white.
+        style={{ backgroundColor: darkMode ? "#0f172a" : "#eeeae0" }}
+        className={cn(
+          "w-full h-full",
+          // Kill MapLibre's default focus outline — we manage focus states
+          // in the surrounding UI. Also silence any inherited borders.
+          "[&_.maplibregl-canvas]:outline-none",
+        )}
+      />
+
+      {/* v4.5.57 — watchdog gave up rebuilding the map. Show an explicit
+       *  error with a manual retry instead of the empty canvas the old
+       *  watchdog left behind. */}
+      {bootFailed && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 px-6 text-center bg-gradient-to-b from-slate-50 to-blue-50/40 dark:from-gray-950 dark:to-slate-900">
+          <div className="text-2xl" aria-hidden>🗺️</div>
+          <p className="text-sm font-semibold text-slate-600 dark:text-gray-300">
+            The campus map could not load.
+          </p>
+          <p className="max-w-xs text-xs text-slate-400 dark:text-gray-500">
+            Check your connection and try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setBootFailed(false); setInitAttempt((n) => n + 1); }}
+            className="mt-1 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm transition hover:bg-blue-700 active:scale-[0.97]"
+          >
+            Retry
+          </button>
+        </div>
       )}
-    />
+    </div>
   );
 }
