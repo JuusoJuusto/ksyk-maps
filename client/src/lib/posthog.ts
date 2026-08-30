@@ -53,7 +53,10 @@ if (shouldInit()) {
       // admins clicking through get to the app, not our proxy.
       ui_host: DEFAULT_UI_HOST,
       defaults: "2026-05-30",
-      capture_pageview: false, // our SDK handles route change tracking
+      // wouter navigates through the History API, so 'history_change'
+      // emits a $pageview on load and on each route change. The
+      // first-party pipeline (analytics.ts) still runs in parallel.
+      capture_pageview: "history_change",
       autocapture: true,
       capture_exceptions: true,
       person_profiles: "identified_only",

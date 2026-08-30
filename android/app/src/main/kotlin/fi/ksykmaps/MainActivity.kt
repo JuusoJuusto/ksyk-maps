@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.posthog.PostHog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -198,10 +199,15 @@ private fun AppShell() {
     LaunchedEffect(selectedTab) {
         if (selectedTab == "map") mapMounted = true
         try { fi.ksykmaps.data.Analytics.pageView(selectedTab) } catch (_: Throwable) {}
+        // This is a single-Activity Compose app, so PostHog never sees an
+        // Android screen change on its own. Emit $screen for each tab so
+        // PostHog web/screen analytics get a denominator.
+        try { PostHog.screen(selectedTab) } catch (_: Throwable) {}
     }
     LaunchedEffect(subScreen) {
         subScreen?.let {
             try { fi.ksykmaps.data.Analytics.pageView(it) } catch (_: Throwable) {}
+            try { PostHog.screen(it) } catch (_: Throwable) {}
         }
     }
 
