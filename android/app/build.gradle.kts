@@ -89,24 +89,16 @@ android {
         // though our minSdk = 26 — it's a compiler soft-guard.
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
+    }
 }
 
 dependencies {
     val compose = "1.6.0"
 
-    // PostHog Android SDK removed 2026-08-30. Two independent breakages:
-    //   (1) posthog-android 3.12+ ships with Kotlin 2.1 stdlib metadata
-    //       that our Kotlin 1.9 toolchain cannot read.
-    //   (2) The setup-wizard's call sites use PostHogAndroid.getInstance()
-    //       which existed in older API but no longer in 3.x. Pinning to
-    //       an older version fixed (1) but broke the API.
-    // Fix: use a local no-op shim at com/posthog/android/PostHogAndroid.kt
-    // that satisfies every call site. Our first-party pipeline
-    // (fi.ksykmaps.data.Analytics → /api/session/heartbeat → Postgres)
-    // covers the analytics per spec §14. Re-enable this when we upgrade
-    // the project to Kotlin 2.x:
-    //   implementation("com.posthog:posthog-android:3.+")
+    implementation("com.posthog:posthog-android:3.+")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.activity:activity-compose:1.8.2")

@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.ui.components.SkeletonLine
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -145,7 +145,7 @@ fun AnnouncementsScreen() {
                     items(items) { a ->
                         AnnouncementCard(a, onClick = {
                             val type = (a["type"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: "info"
-                            runCatching { PostHogAndroid.getInstance().capture("announcement_opened", mapOf("announcement_type" to type)) }
+                            runCatching { PostHog.capture("announcement_opened", mapOf("announcement_type" to type)) }
                             selectedForDetail = a
                         })
                     }

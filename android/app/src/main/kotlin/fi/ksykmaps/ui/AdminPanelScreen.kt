@@ -38,7 +38,7 @@ import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -1168,7 +1168,7 @@ private fun AdminAnnouncementsSection(
                             }
                             posting = false
                             if (ok) {
-                                runCatching { PostHogAndroid.getInstance().capture("admin_announcement_published", mapOf("announcement_type" to type)) }
+                                runCatching { PostHog.capture("admin_announcement_published", mapOf("announcement_type" to type)) }
                                 toast = if (isFi) "Ilmoitus julkaistu" else "Announcement posted"
                                 title = ""; body = ""; type = "info"
                                 refreshTrigger++

@@ -54,14 +54,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
+    }
 }
 
 dependencies {
     val compose = "1.6.0"
-    // PostHog Android SDK removed 2026-08-30. See app/build.gradle.kts
-    // for the rationale; a local no-op shim at com/posthog/android/
-    // PostHogAndroid.kt satisfies every call site.
+    implementation("com.posthog:posthog-android:3.+")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")

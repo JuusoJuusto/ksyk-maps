@@ -29,7 +29,7 @@ import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.ApiException
 import fi.ksykmaps.data.Session
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -81,7 +81,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                     Api.adminToken = token
                     Session.user = obj["user"]?.jsonObject
                     Session.saveToDataStore(ctx, email.trim(), token)
-                    runCatching { PostHogAndroid.getInstance().capture("admin_login_succeeded") }
+                    runCatching { PostHog.capture("admin_login_succeeded") }
                     onLoggedIn()
                 } else {
                     status = obj["message"]?.let {

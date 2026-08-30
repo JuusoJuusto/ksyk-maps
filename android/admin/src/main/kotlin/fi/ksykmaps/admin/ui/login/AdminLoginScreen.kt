@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.admin.data.AdminApi
 import fi.ksykmaps.admin.data.AdminSession
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -104,7 +104,10 @@ fun AdminLoginScreen(onLoggedIn: () -> Unit) {
                                     error = "This account does not have admin privileges."
                                 } else {
                                     AdminSession.save(tok, email, r, userId)
-                                    runCatching { PostHogAndroid.getInstance().capture("admin_login_succeeded") }
+                                    runCatching {
+                                        PostHog.capture("admin_login_succeeded")
+                                        PostHog.logger.info("Admin login succeeded", mapOf("role" to r))
+                                    }
                                     onLoggedIn()
                                 }
                             } catch (e: Exception) {

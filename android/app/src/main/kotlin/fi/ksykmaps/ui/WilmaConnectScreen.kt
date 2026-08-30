@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.ApiException
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -131,7 +131,7 @@ fun WilmaConnectScreen(
                     url = trimmed
                     successStats = Pair(deduped.size, deduped.count { it.roomId.isNotBlank() })
                     runCatching {
-                        PostHogAndroid.getInstance().capture(
+                        PostHog.capture(
                             "wilma_calendar_imported",
                             mapOf("lesson_count" to deduped.size, "matched_room_count" to deduped.count { it.roomId.isNotBlank() }),
                         )
@@ -168,7 +168,7 @@ fun WilmaConnectScreen(
     }
 
     fun disconnect() {
-        runCatching { PostHogAndroid.getInstance().capture("wilma_calendar_disconnected") }
+        runCatching { PostHog.capture("wilma_calendar_disconnected") }
         clearWilmaUrl(ctx)
         storedUrl = ""
         url = ""

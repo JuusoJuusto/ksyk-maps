@@ -2,7 +2,7 @@ package fi.ksykmaps.admin.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 
 object AdminSession {
     private const val PREFS = "ksyk_admin_session"
@@ -44,7 +44,7 @@ object AdminSession {
     }
 
     fun clear() {
-        runCatching { PostHogAndroid.getInstance().reset() }
+        runCatching { PostHog.reset() }
         token = null; email = null; role = null; userId = null
         prefs?.edit()?.remove("token")?.remove("email")?.remove("role")?.remove("user_id")?.apply()
     }
@@ -53,7 +53,7 @@ object AdminSession {
         val stableUserId = userId?.takeIf { it.isNotBlank() } ?: return
         val userEmail = email?.takeIf { it.isNotBlank() } ?: return
         runCatching {
-            PostHogAndroid.getInstance().identify(
+            PostHog.identify(
                 stableUserId,
                 mapOf(
                     "email" to userEmail,

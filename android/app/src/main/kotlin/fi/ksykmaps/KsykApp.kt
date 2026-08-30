@@ -4,10 +4,9 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-// PostHog Android SDK removed 2026-08-30 due to Kotlin 2.1/1.9 metadata
-// mismatch — see build.gradle.kts for detail. First-party pipeline
-// (fi.ksykmaps.data.Analytics) covers everything the wizard-installed
-// PostHog was going to do.
+import com.posthog.PostHog
+import com.posthog.android.PostHogAndroid
+import com.posthog.android.PostHogAndroidConfig
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,9 +35,17 @@ class KsykApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        initPostHog()
         installCrashHandler()
         createNotificationChannels()
         prefetchMapData()
+    }
+
+    private fun initPostHog() {
+        val apiKey = BuildConfig.POSTHOG_API_KEY ?: return
+        val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
+        PostHogAndroid.setup(this, PostHogAndroidConfig(apiKey = apiKey, host = host))
+        PostHog.logger.info("App started", mapOf("version" to BuildConfig.VERSION_NAME))
     }
 
     private fun prefetchMapData() {

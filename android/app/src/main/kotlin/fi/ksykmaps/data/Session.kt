@@ -3,7 +3,7 @@ package fi.ksykmaps.data
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.mutableStateOf
-import com.posthog.android.PostHogAndroid
+import com.posthog.PostHog
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -87,7 +87,7 @@ object Session {
     fun clear(ctx: Context) {
         val sp = prefs(ctx)
         sp.edit().remove(KEY_EMAIL).remove(KEY_TOKEN).remove(KEY_ROLE).remove(KEY_USER_ID).apply()
-        runCatching { PostHogAndroid.getInstance().reset() }
+        runCatching { PostHog.reset() }
         rememberedEmail = null
         user = null
         Api.sessionEmail = null
@@ -104,7 +104,7 @@ object Session {
 
     private fun identifyUser(userId: String, email: String, role: String?) {
         runCatching {
-            PostHogAndroid.getInstance().identify(
+            PostHog.identify(
                 userId,
                 mapOf(
                     "email" to email,
