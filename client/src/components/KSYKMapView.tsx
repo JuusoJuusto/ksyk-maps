@@ -47,6 +47,22 @@ interface Building extends Pick<SharedBuilding, "id" | "name" | "floors" | "poin
   floorMax?: number | null;
 }
 
+/** Resolve a desired floor against the floors that actually exist in the
+ *  campus. An unknown or out-of-range value falls back to floor 1 when
+ *  present, otherwise to the existing floor nearest to 1. `floors` is the
+ *  union of every building's declared range and is never empty — it
+ *  carries a [1] fallback. This is the guard that stops a stray
+ *  `?floor=0` (or any floor no building declares) from filtering every
+ *  overlay to an empty set. */
+function resolveFloor(desired: number | null, floors: number[]): number {
+  if (desired != null && floors.includes(desired)) return desired;
+  if (floors.includes(1)) return 1;
+  return floors.reduce(
+    (best, f) => (Math.abs(f - 1) < Math.abs(best - 1) ? f : best),
+    floors[0] ?? 1,
+  );
+}
+
 export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { searchQuery = "", showGpsLocation = false } = props;
   const { settings, update } = useAppSettings();
@@ -76,11 +92,22 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // shared links restore the correct level. Written back to the URL
   // whenever selectedFloor changes so subsequent copies of the URL
   // stay accurate. Only runs on the client; SSR-safe via typeof guard.
+  //
+  // v4.5.57 — a MISSING param must keep the default floor 1, not become
+  // floor 0. `Number(p.get("floor"))` read `Number(null)` as 0 on every
+  // plain visit; 0 passed the finite check, wrote itself back as
+  // `?floor=0`, and — because no building declares floor 0 — filtered
+  // the room, corridor, hallway, and POI layers to empty. So we only
+  // apply the value when the param is actually present and an integer;
+  // the clamp effect below then snaps it into the real floor list.
+  const urlFloorAppliedRef = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const p = new URLSearchParams(window.location.search);
-    const f = Number(p.get("floor"));
-    if (Number.isFinite(f)) setSelectedFloor(f);
+    const raw = new URLSearchParams(window.location.search).get("floor");
+    if (raw === null || raw.trim() === "") return; // missing → keep floor 1
+    const n = Number(raw);
+    if (!Number.isInteger(n)) return; // garbage → keep floor 1
+    setSelectedFloor(n); // optimistic; clamped against floorList once ready
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
@@ -417,6 +444,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     if (set.size === 0) set.add(1);
     return [...set].sort((a, b) => b - a); // top-to-bottom: highest first
   }, [campus.buildings]);
+
+  // v4.5.57 — clamp the active floor into the floors that actually exist
+  // once campus data is ready (floorList is only meaningful after the
+  // buildings load). A missing or out-of-range value resolves to floor 1
+  // so no overlay filters to an empty set. Runs once per load; later
+  // manual floor changes come from the selector or real feature data and
+  // are already valid, so we leave them untouched.
+  useEffect(() => {
+    if (!campus.isReady || urlFloorAppliedRef.current) return;
+    urlFloorAppliedRef.current = true;
+    setSelectedFloor((current) => resolveFloor(current, floorList));
+  }, [campus.isReady, floorList]);
 
   // Room count per floor — shown as a tiny badge under each floor
   // number so users can see at a glance which floors have many rooms.
