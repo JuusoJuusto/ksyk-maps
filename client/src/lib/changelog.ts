@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.55";
+export const APP_VERSION = "4.5.56";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.56",
+    date: "August 2026",
+    title: "CSP hotfix: unblock Google Fonts, all PostHog subdomains, Sentry ingest, MapLibre demotiles",
+    titleFi: "CSP-hotfix: sallii Google-fontit, PostHog-aliverkot, Sentry, MapLibre-glyphit",
+    highlights: [
+      "**CSP widened to fix all the blocks from the last deploy** — added `fonts.googleapis.com` + `fonts.gstatic.com` for the Google-hosted fonts, `https://*.posthog.com` for every PostHog subdomain (the SDK reaches raw us.i.posthog.com for some flag/config calls even when api_host is set to the proxy), `https://*.sentry.io` + `https://*.ingest.de.sentry.io` for Sentry envelope + replay, and `https://demotiles.maplibre.org` for MapLibre's glyph fallback so map symbol labels stop rendering as tofu boxes.",
+      "**`script-src-elem` and `style-src-elem` set explicitly** — the browser was falling back to `script-src` for `<script>` tags and `style-src` for `<link rel=stylesheet>` and blocking legitimate loads. Now both are set with the same permissive-but-scoped values.",
+    ],
+    highlightsFi: [
+      "**CSP laajennettu** kaikkien viime deployn estojen korjaamiseksi — Google-fontit, PostHog, Sentry, MapLibre-glyphit sallittu.",
+      "**script-src-elem ja style-src-elem asetettu eksplisiittisesti** ettei fallback estä niitä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.55",
     date: "August 2026",
@@ -30,7 +45,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Analytiikkakoja v2** — kiinnitetty aikaväli, sparkline-piirrokset korteissa, pinottu aluechart alustan mukaan, klikattava istuntoruutu.",
       "**CSP päivitetty** uudelle proxylle.",
     ],
-    latest: true,
   },
   {
     version: "4.5.54",
