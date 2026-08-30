@@ -450,12 +450,17 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // re-clamps instead of leaving every overlay filtered against a floor
   // that is gone. resolveFloor returns a still-valid floor unchanged, so
   // this never fights a manual selection; a missing or out-of-range
-  // value falls back to floor 1. Gated on isReady so we never clamp
-  // against the [1] placeholder before the buildings load.
+  // value falls back to floor 1.
+  //
+  // Skip while there are no buildings: a transient refetch can return a
+  // successful empty array, collapsing floorList to the [1] fallback, and
+  // re-clamping then would reset a valid floor to 1 for no reason (there
+  // are no overlays to filter in that state anyway). isReady also gates
+  // out the placeholder list before the first load.
   useEffect(() => {
-    if (!campus.isReady) return;
+    if (!campus.isReady || campus.buildings.length === 0) return;
     setSelectedFloor((current) => resolveFloor(current, floorList));
-  }, [campus.isReady, floorList]);
+  }, [campus.isReady, campus.buildings.length, floorList]);
 
   // Room count per floor — shown as a tiny badge under each floor
   // number so users can see at a glance which floors have many rooms.
