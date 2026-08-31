@@ -52,9 +52,6 @@ private fun markOnboardingDone(ctx: Context) {
         .edit().putBoolean(KEY_DONE, true).apply()
 }
 
-// mpassId OAuth endpoint — needs a registered client_id from Opetushallitus.
-// When properly configured, opens in Chrome Custom Tab and redirects back
-// to fi.ksykmaps://auth/callback?code=... which MainActivity handles.
 private const val MPASSID_AUTH_URL =
     "https://mpass-proxy.csc.fi/idp/profile/oidc/authorize" +
     "?client_id=ksykmaps-placeholder" +
@@ -67,81 +64,122 @@ private data class OnboardPage(
     val title: String,
     val subtitle: String,
     val isNamePage: Boolean = false,
-    val isLoginPage: Boolean = false,
+    val isWilmaPage: Boolean = false,
 )
 
-private val PAGES = listOf(
-    OnboardPage(
-        icon = Icons.Outlined.Person,
-        title = "What's your name?",
-        subtitle = "We'll use it to personalise your experience. You can change it later in Settings.",
-        isNamePage = true,
-    ),
-    OnboardPage(
-        icon = Icons.Outlined.Map,
-        title = "Welcome to KSYK Maps",
-        subtitle = "Navigate your campus, find classrooms, and track your timetable — all in one place.",
-    ),
-    OnboardPage(
-        icon = Icons.Outlined.MeetingRoom,
-        title = "Find any room",
-        subtitle = "Search by room number or name and get directions. The live map shows you exactly where to go.",
-    ),
-    OnboardPage(
-        icon = Icons.Outlined.CalendarMonth,
-        title = "Your timetable, always ready",
-        subtitle = "Import your Wilma calendar to see your schedule automatically. Add lessons manually too.",
-        isLoginPage = true,
-    ),
-)
+private fun buildPages(lang: String): List<OnboardPage> {
+    val fi = lang == "fi"
+    return listOf(
+        // 0 — Brand introduction
+        OnboardPage(
+            icon = Icons.Outlined.Map,
+            title = if (fi) "Tervetuloa KSYK Mapsiin" else "Welcome to KSYK Maps",
+            subtitle = if (fi) "Navigoi kampuksella, löydä luokat ja seuraa lukujärjestystäsi — kaikki yhdessä paikassa."
+                       else "Navigate your campus, find classrooms, and track your timetable — all in one place.",
+        ),
+        // 1 — Name entry
+        OnboardPage(
+            icon = Icons.Outlined.Person,
+            title = if (fi) "Mikä sinun nimesi on?" else "What's your name?",
+            subtitle = if (fi) "Personalisoimme kokemuksesi sen perusteella. Voit muuttaa sen myöhemmin asetuksissa."
+                       else "We'll personalise your experience. You can change this later in Settings.",
+            isNamePage = true,
+        ),
+        // 2 — Map intro
+        OnboardPage(
+            icon = Icons.Outlined.MeetingRoom,
+            title = if (fi) "Löydä mikä tahansa huone" else "Find any room",
+            subtitle = if (fi) "Etsi huonetta numerolla tai nimellä ja hae reittiohjeet. Live-kartta näyttää täsmälleen mihin mennä."
+                       else "Search by room number or name and get directions. The live map shows you exactly where to go.",
+        ),
+        // 3 — Wilma / timetable
+        OnboardPage(
+            icon = Icons.Outlined.CalendarMonth,
+            title = if (fi) "Lukujärjestyksesi, aina valmiina" else "Your timetable, always ready",
+            subtitle = if (fi) "Tuo Wilma-kalenterisi nähdäksesi lukujärjestyksesi automaattisesti. Voit lisätä tunnit myös manuaalisesti."
+                       else "Import your Wilma calendar to see your schedule automatically. Add lessons manually too.",
+            isWilmaPage = true,
+        ),
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(onDone: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(pageCount = { PAGES.size })
-    val isLast = pagerState.currentPage == PAGES.lastIndex
+    LanguageState.init(ctx)
+    val lang = LanguageState.current ?: "fi"
+    val fi = lang == "fi"
+    val pages = remember(lang) { buildPages(lang) }
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val isLast = pagerState.currentPage == pages.lastIndex
     var nameInput by remember { mutableStateOf(getUserName(ctx)) }
     val keyboard = LocalSoftwareKeyboardController.current
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { pad ->
+    // When the user taps "Connect Wilma calendar" on the last page, we show
+    // WilmaConnectScreen inline before marking onboarding complete.
+    var showWilmaConnect by remember { mutableStateOf(false) }
+
+    if (showWilmaConnect) {
+        WilmaConnectScreen(
+            onBack = { showWilmaConnect = false },
+            onImported = {
+                showWilmaConnect = false
+                if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
+                markOnboardingDone(ctx)
+                runCatching {
+                    PostHog.capture(
+                        "onboarding_completed",
+                        properties = mapOf("completion_method" to "wilma_connected"),
+                    )
+                }
+                onDone()
+            },
+        )
+        return
+    }
+
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(pad),
+            Modifier.fillMaxSize().padding(pad),
         ) {
-            // Skip button (top-right)
+            // Skip (top-right)
             Box(Modifier.fillMaxWidth().padding(end = 12.dp, top = 8.dp)) {
                 TextButton(
                     onClick = {
                         if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
                         markOnboardingDone(ctx)
-                        runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "skipped")) }
+                        runCatching {
+                            PostHog.capture(
+                                "onboarding_completed",
+                                properties = mapOf("completion_method" to "skipped"),
+                            )
+                        }
                         onDone()
                     },
                     modifier = Modifier.align(Alignment.CenterEnd),
                 ) {
-                    Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text(
+                        if (fi) "Ohita" else "Skip",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                    )
                 }
             }
 
-            // Pages
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
             ) { page ->
-                val p = PAGES[page]
+                val p = pages[page]
                 if (p.isNamePage) {
-                    NamePage(name = nameInput, onNameChange = { nameInput = it })
+                    NamePage(name = nameInput, onNameChange = { nameInput = it }, lang = lang)
                 } else {
                     OnboardPageContent(p)
                 }
             }
 
-            // Dots + buttons
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -150,7 +188,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                PageDots(total = PAGES.size, current = pagerState.currentPage)
+                PageDots(total = pages.size, current = pagerState.currentPage)
 
                 Button(
                     onClick = {
@@ -158,7 +196,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         keyboard?.hide()
                         if (isLast) {
                             markOnboardingDone(ctx)
-                            runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "get_started")) }
+                            runCatching {
+                                PostHog.capture(
+                                    "onboarding_completed",
+                                    properties = mapOf("completion_method" to "get_started"),
+                                )
+                            }
                             onDone()
                         } else {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -168,28 +211,27 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(
-                        if (isLast) "Get started" else "Next",
+                        if (isLast) (if (fi) "Aloita" else "Get started")
+                        else (if (fi) "Seuraava" else "Next"),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
                     )
                 }
 
-                // Last page: Wilma connect + mpassId login options
+                // Last page: Wilma connect + mpassId options
                 AnimatedVisibility(visible = isLast) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(
-                            onClick = {
-                                if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
-                                markOnboardingDone(ctx)
-                                runCatching { PostHog.capture("onboarding_completed", properties = mapOf("completion_method" to "wilma_connect")) }
-                                onDone()
-                            },
+                            onClick = { showWilmaConnect = true },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                         ) {
                             Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Connect Wilma calendar", fontSize = 14.sp)
+                            Text(
+                                if (fi) "Yhdistä Wilma-kalenteri" else "Connect Wilma calendar",
+                                fontSize = 14.sp,
+                            )
                         }
 
                         OutlinedButton(
@@ -207,7 +249,10 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         ) {
                             Icon(Icons.Outlined.School, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Sign in with mpassId", fontSize = 14.sp)
+                            Text(
+                                if (fi) "Kirjaudu mpassId:llä" else "Sign in with mpassId",
+                                fontSize = 14.sp,
+                            )
                         }
                     }
                 }
@@ -217,19 +262,16 @@ fun OnboardingScreen(onDone: () -> Unit) {
 }
 
 @Composable
-private fun NamePage(name: String, onNameChange: (String) -> Unit) {
+private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String) {
+    val fi = lang == "fi"
     val keyboard = LocalSoftwareKeyboardController.current
     Column(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
+        Modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(
-            Modifier
-                .size(100.dp)
-                .clip(CircleShape)
+            Modifier.size(100.dp).clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
@@ -244,7 +286,7 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit) {
         Spacer(Modifier.height(32.dp))
 
         Text(
-            "What's your name?",
+            if (fi) "Mikä sinun nimesi on?" else "What's your name?",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -254,7 +296,8 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit) {
         Spacer(Modifier.height(12.dp))
 
         Text(
-            "We'll personalise your experience. You can change this later in Settings.",
+            if (fi) "Personalisoimme kokemuksesi sen perusteella. Voit muuttaa sen myöhemmin asetuksissa."
+            else "We'll personalise your experience. You can change this later in Settings.",
             fontSize = 15.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -266,8 +309,8 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit) {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("Your first name") },
-            placeholder = { Text("e.g. Juuso") },
+            label = { Text(if (fi) "Etunimesi" else "Your first name") },
+            placeholder = { Text(if (fi) "esim. Juuso" else "e.g. Juuso") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
@@ -281,16 +324,12 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit) {
 @Composable
 private fun OnboardPageContent(page: OnboardPage) {
     Column(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
+        Modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(
-            Modifier
-                .size(100.dp)
-                .clip(CircleShape)
+            Modifier.size(100.dp).clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {

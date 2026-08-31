@@ -44,7 +44,12 @@ class KsykApp : Application() {
     private fun initPostHog() {
         val apiKey = BuildConfig.POSTHOG_API_KEY ?: return
         val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
-        PostHogAndroid.setup(this, PostHogAndroidConfig(apiKey = apiKey, host = host))
+        val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
+            sessionReplay = true
+            sessionReplayConfig.maskAllImages = false
+            sessionReplayConfig.maskAllTextInputs = true
+        }
+        PostHogAndroid.setup(this, config)
         PostHog.logger.info("App started", mapOf("version" to BuildConfig.VERSION_NAME))
     }
 
@@ -71,12 +76,25 @@ class KsykApp : Application() {
                 pw.println("=== KSYK crash ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())} ===")
                 pw.println("Thread: ${thread.name}")
                 pw.println("Android: ${Build.VERSION.SDK_INT} ${Build.MANUFACTURER} ${Build.MODEL}")
-                pw.println("App version: 1.34.0 (36)")
+                pw.println("App version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
                 pw.println()
                 throwable.printStackTrace(pw)
                 pw.flush()
                 log.writeText(sw.toString())
             } catch (_: Throwable) { /* nothing we can do */ }
+            try {
+                PostHog.capture(
+                    "app_crash",
+                    properties = mapOf(
+                        "error_message" to (throwable.message ?: "unknown"),
+                        "error_type" to throwable.javaClass.simpleName,
+                        "thread" to thread.name,
+                        "app_version" to BuildConfig.VERSION_NAME,
+                        "android_sdk" to Build.VERSION.SDK_INT,
+                        "device" to "${Build.MANUFACTURER} ${Build.MODEL}",
+                    ),
+                )
+            } catch (_: Throwable) {}
             default?.uncaughtException(thread, throwable)
         }
     }

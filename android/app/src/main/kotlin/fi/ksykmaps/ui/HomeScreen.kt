@@ -294,11 +294,13 @@ fun HomeScreen(
 
 @Composable
 private fun GreetingHeader(apiOk: Boolean, lang: String, onReload: () -> Unit) {
+    val ctx = LocalContext.current
     val now = remember { LocalDateTime.now() }
     val locale = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
+    val userName = remember { getUserName(ctx) }
     val greeting = remember(lang, now.hour) {
         val h = now.hour
-        if (lang == "fi") when {
+        val base = if (lang == "fi") when {
             h < 5  -> "Hyvää yötä"
             h < 11 -> "Hyvää huomenta"
             h < 17 -> "Hei"
@@ -311,6 +313,7 @@ private fun GreetingHeader(apiOk: Boolean, lang: String, onReload: () -> Unit) {
             h < 22 -> "Good evening"
             else   -> "Good night"
         }
+        if (userName.isNotBlank()) "$base, $userName" else base
     }
     val dateLine = remember(locale) {
         val day = now.dayOfWeek.getDisplayName(TextStyle.FULL, locale)

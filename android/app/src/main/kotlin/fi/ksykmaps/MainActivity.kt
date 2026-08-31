@@ -47,6 +47,7 @@ import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
 import fi.ksykmaps.ui.LanguageState
+import fi.ksykmaps.ui.DynamicColorState
 import fi.ksykmaps.ui.ThemeState
 import fi.ksykmaps.ui.getAppLanguage
 import fi.ksykmaps.ui.activeJaksoId
@@ -66,9 +67,9 @@ class MainActivity : ComponentActivity() {
         try { Session.load(this) } catch (_: Throwable) {}
         try { fi.ksykmaps.data.Analytics.init(this) } catch (_: Throwable) {}
         try {
-            val savedTheme = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
-                .getString("dark_mode", "system") ?: "system"
-            ThemeState.mode = savedTheme
+            val prefs = getSharedPreferences("ksyk_prefs", android.content.Context.MODE_PRIVATE)
+            ThemeState.mode = prefs.getString("dark_mode", "system") ?: "system"
+            DynamicColorState.enabled = prefs.getBoolean("dynamic_colour", true)
         } catch (_: Throwable) {}
         handleDeepLink(intent)
         // Start periodic announcement polling — replaces FCM. Idempotent
@@ -119,7 +120,8 @@ class MainActivity : ComponentActivity() {
                 "light" -> false
                 else    -> systemDark
             }
-            KsykTheme(darkTheme = darkMode) { AppShell() }
+            val dynamicColor = DynamicColorState.enabled
+            KsykTheme(darkTheme = darkMode, dynamicColor = dynamicColor) { AppShell() }
         }
     }
 

@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.57";
+export const APP_VERSION = "4.5.58";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.58",
+    date: "August 2026",
+    title: "PostHog fully bundled (uBlock-proof) + toolbar URL stripping + real consent gate + PR#4 merged",
+    titleFi: "PostHog täysin bundlattu (uBlock-kestävä) + työkalupalkin URL-siivoin + oikea suostumusportti",
+    highlights: [
+      "**Bundled PostHog assets — the ONLY way to defeat uBlock's path-based filters.** uBlock and EasyPrivacy match `posthog-recorder.js` and `dead-clicks-autocapture.js` by FILENAME regardless of host, so even `t.ksykmaps.fi/static/posthog-recorder.js` was blocked. Switched the import to `posthog-js/dist/module.full.no-external` which pre-bundles every extension (session replay, dead-clicks, surveys, exceptions, web vitals) into the main bundle. No external asset load ever happens. Bundle grows ~200 KB.",
+      "**Toolbar URL stripping** — the PostHog toolbar hijacks the page when a `?__posthog=…` or `#__posthog=…` param is present, then tries to load CSS from raw us-assets.i.posthog.com (blocked by our CSP). We now strip these params from `window.location` BEFORE `posthog.init` so the toolbar can't self-load.",
+      "**Real consent gate.** PostHog now inits with `opt_out_capturing_by_default: true`. The `loaded` callback + a `ksyk:analytics-consent` window listener flip capturing on/off in response to the cookie banner. Strictly-necessary telemetry (session start/end + errors) still flows through the first-party pipeline regardless — see analytics-sdk.ts.",
+      "**PR #4 merged into main** — the admin log level guard (`normalizeLevel`) now handles the `warn` / `debug` values our rate limiter and schema emit without crashing the log viewer.",
+    ],
+    highlightsFi: [
+      "**PostHog-liitännäiset bundlataan build-aikaan** — ainoa tapa ohittaa uBlockin polkupohjaiset suodattimet.",
+      "**Työkalupalkin URL-parametrit poistetaan** ennen initiä, joten toolbar ei voi ladata itseään.",
+      "**Suostumusportti toimii nyt oikeasti** — PostHog on opt-outed ja aktivoituu vain evästesuostumuksen jälkeen.",
+      "**PR #4 mergattu** — hallintapaneelin lokien tasotarkistus kestää nyt tuntemattomia arvoja.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.57",
     date: "August 2026",
@@ -28,7 +47,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**PostHog-työkalupalkki poistettu käytöstä** — korjaa /admin-kaatumisen ja poistaa siiliksi kutsutun leijuvan napin.",
       "**Puolustuksellinen egg.icon-tarkistus** — /admin/logs ei enää kaadu jos rekisteristä puuttuu munan kuvake.",
     ],
-    latest: true,
   },
   {
     version: "4.5.56",

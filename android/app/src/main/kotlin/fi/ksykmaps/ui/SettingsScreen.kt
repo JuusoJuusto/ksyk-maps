@@ -61,6 +61,10 @@ object ThemeState {
     var mode by androidx.compose.runtime.mutableStateOf("system") // "system" | "dark" | "light"
 }
 
+object DynamicColorState {
+    var enabled by androidx.compose.runtime.mutableStateOf(true)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -73,7 +77,7 @@ fun SettingsScreen(
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
 
     var notificationsEnabled by remember { mutableStateOf(false) }
-    var dynamicColour by remember { mutableStateOf(true) }
+    var dynamicColour by remember { mutableStateOf(prefs.getBoolean("dynamic_colour", true)) }
     var eggTaps by remember { mutableIntStateOf(0) }
     var eggsFound by remember { mutableIntStateOf(prefs.getInt(KEY_EGGS_FOUND, 0)) }
     var activeEgg by remember { mutableStateOf<String?>(null) }
@@ -142,7 +146,11 @@ fun SettingsScreen(
                         subtitle = if (isFi) "Käytä tapetin väripalettia (Android 12+)"
                                    else "Match your wallpaper (Android 12+)",
                         checked = dynamicColour,
-                        onCheckedChange = { dynamicColour = it },
+                        onCheckedChange = {
+                            dynamicColour = it
+                            DynamicColorState.enabled = it
+                            prefs.edit().putBoolean("dynamic_colour", it).apply()
+                        },
                     )
                 }
             }
