@@ -344,6 +344,13 @@ export default function AdminDashboard({ section }: { section?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
+  // Kill the PostHog toolbar on any /admin route — its keydown listener
+  // crashes with `n.key.toLowerCase()` on synthetic events (Sentry Seer
+  // issue cbb9866d). Also removes the floating hedgehog button.
+  useEffect(() => {
+    try { (posthog as any)?.toolbar?.close?.(); } catch { /* ignore */ }
+  }, []);
+
   // Single canonical admin base — the short /admin path was retired so
   // the panel is only reachable via the obscure portal URL.
   const adminBase = ADMIN_BASE;

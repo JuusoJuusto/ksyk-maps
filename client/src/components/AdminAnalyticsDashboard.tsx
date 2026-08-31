@@ -661,23 +661,28 @@ function EggsPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {ranked.map(({ egg, count }) => (
-                <tr key={egg.id}>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-6 w-6 rounded-md ${egg.bgColor} ${egg.color} flex items-center justify-center`}>
-                        <egg.icon className="h-3.5 w-3.5" />
+              {ranked.filter((r) => r.egg).map(({ egg, count }) => {
+                // Defensive Icon fallback — egg.icon can be undefined
+                // for a beat during hot-reload / registry mismatch.
+                const Icon: any = (egg as any).icon ?? (() => null);
+                return (
+                  <tr key={egg.id}>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-6 w-6 rounded-md ${egg.bgColor || ""} ${egg.color || ""} flex items-center justify-center`}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <p className="font-medium leading-tight">{egg.name}</p>
+                          <p className="text-[10px] text-muted-foreground leading-tight">{egg.description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium leading-tight">{egg.name}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">{egg.description}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2"><Badge variant="outline">{egg.rarity}</Badge></td>
-                  <td className="px-3 py-2 text-right font-semibold">{count.toLocaleString()}</td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-3 py-2"><Badge variant="outline">{egg.rarity}</Badge></td>
+                    <td className="px-3 py-2 text-right font-semibold">{count.toLocaleString()}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

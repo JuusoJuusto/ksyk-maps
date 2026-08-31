@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.56";
+export const APP_VERSION = "4.5.57";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.57",
+    date: "August 2026",
+    title: "Force PostHog through t.ksykmaps.fi proxy + kill toolbar (fixes uBlock + /admin crashes)",
+    titleFi: "Pakota PostHog t.ksykmaps.fi-proxyn kautta + tapa työkalupalkki",
+    highlights: [
+      "**PostHog now ALWAYS uses the t.ksykmaps.fi proxy.** The Vercel env var VITE_POSTHOG_HOST was overriding our default and pointing every request to raw us.i.posthog.com — which got blocked by uBlock Origin and leaked the phc_ project token into `?token=…` URL query strings. The SDK now ignores that env var completely; api_host is hard-coded.",
+      "**PostHog toolbar disabled everywhere.** Fixes the `n.key.toLowerCase()` crash on /admin (PostHog v1.422.5 toolbar keydown listener doesn't guard against undefined event.key from synthetic events — Sentry Seer confirmed the root cause). Also removes the floating hedgehog button at the bottom of the page. `disable_toolbar_metrics: true` + `posthog.toolbar.close()` on AdminDashboard mount.",
+      "**Defensive `egg.icon` guards** — the `.icon` crash on /admin/logs happened when a KV counter referenced an egg id that had been removed from the registry. EggCard + AdminAnalyticsDashboard's egg table now filter out undefined entries + fall back to a no-op Icon.",
+    ],
+    highlightsFi: [
+      "**PostHog käyttää nyt AINA t.ksykmaps.fi-proxya** — ei enää uBlock-estoja eikä tokenia URL:issa.",
+      "**PostHog-työkalupalkki poistettu käytöstä** — korjaa /admin-kaatumisen ja poistaa siiliksi kutsutun leijuvan napin.",
+      "**Puolustuksellinen egg.icon-tarkistus** — /admin/logs ei enää kaadu jos rekisteristä puuttuu munan kuvake.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.56",
     date: "August 2026",
@@ -26,7 +43,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**CSP laajennettu** kaikkien viime deployn estojen korjaamiseksi — Google-fontit, PostHog, Sentry, MapLibre-glyphit sallittu.",
       "**script-src-elem ja style-src-elem asetettu eksplisiittisesti** ettei fallback estä niitä.",
     ],
-    latest: true,
   },
   {
     version: "4.5.55",

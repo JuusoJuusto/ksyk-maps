@@ -287,7 +287,13 @@ function EggCard({
   revealed: boolean;
   onToggleReveal: () => void;
 }) {
-  const Icon = egg.icon;
+  // Defensive guards — a registry entry occasionally lands here as
+  // undefined (mismatched build cache, HMR race, or a KV counter that
+  // references an egg id we removed from the registry). Fall back to a
+  // neutral placeholder so the whole /admin/logs page doesn't crash
+  // with "Cannot read properties of undefined (reading 'icon')".
+  if (!egg) return null;
+  const Icon: any = egg.icon ?? (() => null);
   return (
     <div className="border-2 border-border rounded-xl p-4 hover:shadow-md transition-all bg-card">
       <div className="flex items-start gap-3">

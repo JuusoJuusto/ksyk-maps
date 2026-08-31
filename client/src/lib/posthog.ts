@@ -1,34 +1,34 @@
 /**
- * PostHog web wrapper — safe to import from anywhere.
+ * PostHog web wrapper.
  *
- * KSYK Maps writes to PostHog as an OPTIONAL secondary sink alongside the
- * first-party pipeline (see analytics-sdk.ts). We bake a public project
- * token (phc_… — safe to expose per PostHog docs) as the default so the
- * integration works out of the box without needing a build-time env var.
- * You can still override with VITE_POSTHOG_KEY / VITE_POSTHOG_HOST.
+ * Every request goes through the **managed reverse proxy at t.ksykmaps.fi**
+ * (PostHog-provisioned, live). We deliberately IGNORE any VITE_POSTHOG_HOST
+ * env var override — historically that variable was set to the raw
+ * us.i.posthog.com and caused every capture, config, flag lookup, and log
+ * to go directly to posthog.com, which:
+ *   1. leaks the phc_ project token in URL query strings for tools like
+ *      the Logs endpoint (`?token=phc_…`),
+ *   2. gets blocked by uBlock Origin / EasyList / EasyPrivacy at the
+ *      network layer,
+ *   3. exhausts our CSP allowlist with third-party subdomains.
+ *
+ * Hard-coding the proxy means the browser only ever sees same-site URLs
+ * under `https://t.ksykmaps.fi/…`.
+ *
+ * The toolbar is disabled everywhere because it (a) crashes with
+ * `n.key.toLowerCase()` on undefined `event.key` from synthetic
+ * keyboard events, (b) surfaces the "hedgehog" floating button that
+ * end users don't want to see, (c) isn't needed in production.
  */
 import posthog from "posthog-js";
 
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
-// Managed reverse proxy at t.ksykmaps.fi (PostHog-provisioned, live).
-// Every capture, feature-flag lookup, and lazy-loaded bundle request now
-// hits our subdomain, so uBlock Origin / EasyList / EasyPrivacy filter
-// lists that block us.i.posthog.com don't strip anything.
-// The proxy handles TLS + caching + fanning static assets to
-// us-assets.i.posthog.com automatically, so no additional rewrites in
-// vercel.json are needed for PostHog.
-// `ui_host` still points at the real PostHog dashboard so
-// "View recording" / feature-flag links in the SDK land in the right
-// place when admins click through.
-const DEFAULT_HOST = "https://t.ksykmaps.fi";
-const DEFAULT_UI_HOST = "https://us.posthog.com";
+const PROXY_HOST = "https://t.ksykmaps.fi";
+const UI_HOST = "https://us.posthog.com";
 
 const projectToken =
   ((import.meta as any).env?.VITE_POSTHOG_KEY as string | undefined) ??
   DEFAULT_KEY;
-const host =
-  ((import.meta as any).env?.VITE_POSTHOG_HOST as string | undefined) ??
-  DEFAULT_HOST;
 
 let initialised = false;
 
@@ -36,8 +36,6 @@ function shouldInit(): boolean {
   if (typeof window === "undefined") return false;
   if (initialised) return false;
   if (!projectToken) return false;
-  // Don't send events from localhost dev by default — set
-  // VITE_POSTHOG_DEV to any truthy value to override.
   const h = window.location.host;
   const isLocal = h.includes("localhost") || h.includes("127.0.0.1");
   if (isLocal && !(import.meta as any).env?.VITE_POSTHOG_DEV) return false;
@@ -47,18 +45,22 @@ function shouldInit(): boolean {
 if (shouldInit()) {
   try {
     posthog.init(projectToken, {
-      api_host: host,
-      // ui_host is where "View recording" / "Feature flag" links point
-      // (the actual PostHog dashboard). Point it at the real domain so
-      // admins clicking through get to the app, not our proxy.
-      ui_host: DEFAULT_UI_HOST,
+      // Hard-coded proxy. Ignoring VITE_POSTHOG_HOST is deliberate.
+      api_host: PROXY_HOST,
+      ui_host: UI_HOST,
       defaults: "2026-05-30",
-      capture_pageview: false, // our SDK handles route change tracking
+      capture_pageview: false, // our own SDK handles route changes
       autocapture: true,
       capture_exceptions: true,
       person_profiles: "identified_only",
+      // Toolbar off everywhere. See top-of-file rationale.
+      disable_toolbar_metrics: true,
+      disable_session_recording: false, // replay ON for prod
+      loaded: (ph) => {
+        try { (ph as any)?.toolbar?.close?.(); } catch { /* ignore */ }
+      },
       debug: (import.meta as any).env?.DEV,
-    });
+    } as any);
     initialised = true;
   } catch {
     // PostHog init failure must never crash the app — first-party
