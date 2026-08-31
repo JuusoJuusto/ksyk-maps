@@ -15,16 +15,10 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
-// Vercel Analytics removed 2026-07-16 — the /_vercel/insights/script.js
-// asset is on every major ad-block filter list (EasyPrivacy, uBO base
-// filters). Loading it just produces console noise + a "Failed to load
-// script" error for every visitor with an adblocker. Our own
-// /api/telemetry/* sink already captures pageviews + events
-// adblock-resistantly, so Vercel Analytics adds nothing.
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
 import DevPanel from "@/components/DevPanel";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { initAnalytics } from "@/lib/analytics";
 import { initTelemetry as initLegacyTelemetry } from "@/lib/telemetry";
 import { initTelemetry, analytics } from "@/lib/analytics-sdk";
@@ -34,18 +28,23 @@ import { useKonamiCode } from "@/hooks/useKonamiCode";
 import { useKsykEasterEggs } from "@/hooks/useKsykEasterEggs";
 import { useLocation } from "wouter";
 
+// Main page loads eagerly — it is the primary route and must render without
+// any async delay. All other routes are code-split so they do not inflate the
+// initial JS bundle (was 4.4 MB monolith; each lazy chunk is fetched only
+// when the user actually navigates to that route).
 import KSYKMapsHome from "@/pages/ksykmaps-home";
-import Admin from "@/pages/admin";
-import AdminForgotPassword from "@/pages/admin-forgot-password";
-import AdminResetPassword from "@/pages/admin-reset-password";
-import HSL from "@/pages/hsl";
-import Lunch from "@/pages/lunch";
-import EasterEgg from "@/pages/easter-egg";
-import KonamiEasterEgg from "@/pages/konami";
-import DevModeEasterEgg from "@/pages/dev-mode";
-import NotFound from "@/pages/not-found";
-import BuilderPage from "@/pages/builder";
-import Support from "@/pages/support";
+
+const Admin               = lazy(() => import("@/pages/admin"));
+const AdminForgotPassword = lazy(() => import("@/pages/admin-forgot-password"));
+const AdminResetPassword  = lazy(() => import("@/pages/admin-reset-password"));
+const HSL                 = lazy(() => import("@/pages/hsl"));
+const Lunch               = lazy(() => import("@/pages/lunch"));
+const EasterEgg           = lazy(() => import("@/pages/easter-egg"));
+const KonamiEasterEgg     = lazy(() => import("@/pages/konami"));
+const DevModeEasterEgg    = lazy(() => import("@/pages/dev-mode"));
+const NotFound            = lazy(() => import("@/pages/not-found"));
+const BuilderPage         = lazy(() => import("@/pages/builder"));
+const Support             = lazy(() => import("@/pages/support"));
 import "./lib/i18n";
 
 function OfflineBanner() {
@@ -124,6 +123,7 @@ function Router() {
   }
 
   return (
+    <Suspense fallback={null}>
     <Switch>
       {/* Public map */}
       <Route path="/" component={KSYKMapsHome} />
@@ -164,6 +164,7 @@ function Router() {
 
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 

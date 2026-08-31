@@ -159,8 +159,9 @@ object Api {
 
     private fun request(path: String, method: String, body: JsonElement?): JsonElement {
         val builder = Request.Builder().url(base + path)
-        val isWrite = method != "GET"
-        base(builder, includeAuth = isWrite)
+        // Always include auth when a token is available — GET to /admin/*
+        // and /users endpoints require it; public endpoints ignore it safely.
+        base(builder, includeAuth = true)
 
         when (method) {
             "GET" -> builder.get()

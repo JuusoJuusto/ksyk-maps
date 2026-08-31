@@ -7,7 +7,7 @@
  *   - 3D toggle + Center button (bottom-right, above zoom)
  *   - North reset (only shows when map is rotated off north)
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useQuery } from "@tanstack/react-query";
@@ -22,10 +22,14 @@ import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
 import { LocateFixed, Plus, Minus, Navigation2, Layers, Navigation } from "lucide-react";
-import NavigationPanel from "@/components/NavigationPanel";
-import FeatureInfoSheet, { type ClickedFeature } from "@/components/FeatureInfoSheet";
+import type { ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
 import CompassChip from "@/components/CompassChip";
+
+// Only fetched when the user opens navigation or clicks a feature — keeps
+// NavigationPanel and FeatureInfoSheet out of the initial map bundle.
+const NavigationPanel = lazy(() => import("@/components/NavigationPanel"));
+const FeatureInfoSheet = lazy(() => import("@/components/FeatureInfoSheet"));
 import type { LatLng } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
@@ -839,11 +843,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       </div>
 
       {showNav && (
-        <NavigationPanel
-          map={mapInstance}
-          onClose={() => setShowNav(false)}
-          searchActive={!!searchQuery.trim()}
-        />
+        <Suspense fallback={null}>
+          <NavigationPanel
+            map={mapInstance}
+            onClose={() => setShowNav(false)}
+            searchActive={!!searchQuery.trim()}
+          />
+        </Suspense>
       )}
 
       {/* Floor-change toast — brief indicator when switching floors. */}
@@ -902,11 +908,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {/* Feature info sheet — click a room/building on the map to
        *  inspect it and get one-tap directions there. */}
       {clickedFeature && (
-        <FeatureInfoSheet
-          feature={clickedFeature}
-          onClose={() => setClickedFeature(null)}
-          onRouteTo={handleRouteTo}
-        />
+        <Suspense fallback={null}>
+          <FeatureInfoSheet
+            feature={clickedFeature}
+            onClose={() => setClickedFeature(null)}
+            onRouteTo={handleRouteTo}
+          />
+        </Suspense>
       )}
 
       {/* Ephemeral pulsing outline on the last-picked feature so users

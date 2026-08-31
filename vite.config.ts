@@ -36,6 +36,27 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor split: react core stays in the main chunk (tiny).
+          // Large libraries that are only needed on specific routes get
+          // their own chunks so the public map page doesn't pay for them.
+          if (id.includes("node_modules")) {
+            if (id.includes("posthog-js"))     return "vendor-posthog";
+            if (id.includes("maplibre-gl") || id.includes("maplibre"))
+                                               return "vendor-maplibre";
+            if (id.includes("@radix-ui") || id.includes("cmdk"))
+                                               return "vendor-radix";
+            if (id.includes("recharts") || id.includes("d3-"))
+                                               return "vendor-charts";
+            if (id.includes("react-query") || id.includes("@tanstack"))
+                                               return "vendor-query";
+            if (id.includes("i18next"))         return "vendor-i18n";
+          }
+        },
+      },
+    },
   },
   server: {
     fs: {

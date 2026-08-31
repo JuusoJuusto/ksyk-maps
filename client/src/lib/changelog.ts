@@ -10,9 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.58";
+export const APP_VERSION = "4.5.60";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.60",
+    date: "August 2026",
+    title: "Android v1.50.0: room labels visible, walls visible, admin auth fix + route code-split",
+    titleFi: "Android v1.50.0: huonenimet näkyvät, seinät näkyvät, admin-autentikointi korjattu + reitti-jako",
+    highlights: [
+      "**Room labels (Android):** Added `\"glyphs\"` URL to the MapLibre style JSON and `textFont(\"Open Sans Regular\")` to all SymbolLayers. Without `glyphs`, MapLibre silently renders no text on any SymbolLayer — this was the root cause of invisible room names and building labels since v1.43.0.",
+      "**Walls visible (Android):** `hallwaysFC()` was building Polygon GeoJSON from LineString wall data, producing invisible fills. Rewritten to build correct LineString GeoJSON. Walls with `floor: null` now show on all floors (not only floor 1). Two separate layers filter outer walls (`surface=wall`) vs inner walls (`surface=inner-wall`) with distinct widths and colours.",
+      "**Admin GET auth (Android):** `Api.get()` never sent the `Authorization` header — only POST/PUT/DELETE did. Admin sections (activity feed, users list, live stats) were returning 401. Fixed: auth token is now included on all requests when set.",
+      "**Web route code-split:** All non-home routes (admin, builder, lunch, support, easter-eggs, etc.) are now `React.lazy()` — fetched only when the user navigates there. Main chunk unchanged at 1,202 kB; admin and builder load on demand.",
+    ],
+    highlightsFi: [
+      "**Huonenimet näkyvät (Android):** MapLibre-tyyliin lisätty `\"glyphs\"`-URL ja `textFont(\"Open Sans Regular\")` — ilman glyfejä SymbolLayer ei renderöi tekstiä.",
+      "**Seinät näkyvät (Android):** `hallwaysFC()` rakensi Polygon-GeoJSONia LineString-seinädatasta. Nyt oikea LineString-rakenne ja null-kerros näkyy kaikilla kerroksilla.",
+      "**Admin-autentikointi (Android):** GET-pyynnöt eivät sisältäneet auth-tokenia — admin-osiot palauttivat 401. Korjattu.",
+      "**Web-reitti-jako:** Kaikki muut sivut paitsi etusivu ladataan lazy-latautumalla.",
+    ],
+    latest: true,
+  },
+  {
+    version: "4.5.59",
+    date: "August 2026",
+    title: "Bundle split: settings/nav/info-sheet lazy-loaded + map compass + room selection highlight",
+    titleFi: "Bundle-jako: asetukset/navigointi/tietopaneeli lazy-ladataan + kompassi + huonevalinta",
+    highlights: [
+      "**Web bundle -7%:** CampusSettingsPanel, NavigationPanel, and FeatureInfoSheet are now lazy-loaded — they fetch on first user interaction instead of blocking the initial page load. Main chunk: 1,288 kB → 1,202 kB (gzip 410 → 388 kB).",
+      "**Map compass (Android):** A compass button appears when the map is rotated off north, showing the current heading as a rotating arrow. Tap it to snap back to north with a 400 ms animation.",
+      "**Room selection highlight (Android):** Tapping a room now renders a semi-transparent blue fill + 2.5 dp accent border via a dedicated GeoJSON source (`src-room-sel`), making the selected room clearly distinguishable from its neighbours.",
+    ],
+    highlightsFi: [
+      "**Verkkosivun bundle -7%:** Asetuspaneeli, navigointipaneeli ja tietopaneeli ladataan nyt lazy-latautumalla.",
+      "**Karttakompassi (Android):** Kompassipainike ilmestyy, kun kartta on kierretty pois pohjoisesta.",
+      "**Huonevalinta (Android):** Huoneen napauttaminen korostaa sen sinisellä täytöllä ja reunuksella.",
+    ],
+  },
   {
     version: "4.5.58",
     date: "August 2026",
@@ -30,7 +65,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Suostumusportti toimii nyt oikeasti** — PostHog on opt-outed ja aktivoituu vain evästesuostumuksen jälkeen.",
       "**PR #4 mergattu** — hallintapaneelin lokien tasotarkistus kestää nyt tuntemattomia arvoja.",
     ],
-    latest: true,
   },
   {
     version: "4.5.57",

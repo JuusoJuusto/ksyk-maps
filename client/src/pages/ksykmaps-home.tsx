@@ -7,13 +7,16 @@
  * settings overlay opening and closing.
  */
 
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
-import CampusSettingsPanel from "@/components/CampusSettingsPanel";
 import StudentLoginGate from "@/components/StudentLoginGate";
+
+// Only loaded when the user opens settings — keeps changelog data (~3k lines)
+// out of the initial bundle.
+const CampusSettingsPanel = lazy(() => import("@/components/CampusSettingsPanel"));
 import AccessLockoutScreen from "@/components/AccessLockoutScreen";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
@@ -102,7 +105,9 @@ export default function KSYKMapsHome() {
                 : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30",
             )}
           >
-            <CampusSettingsPanel onBack={() => setSettingsOpen(false)} />
+            <Suspense fallback={null}>
+              <CampusSettingsPanel onBack={() => setSettingsOpen(false)} />
+            </Suspense>
           </div>
         )}
       </div>

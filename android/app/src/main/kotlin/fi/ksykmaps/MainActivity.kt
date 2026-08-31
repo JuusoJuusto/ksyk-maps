@@ -121,7 +121,20 @@ class MainActivity : ComponentActivity() {
                 else    -> systemDark
             }
             val dynamicColor = DynamicColorState.enabled
-            KsykTheme(darkTheme = darkMode, dynamicColor = dynamicColor) { AppShell() }
+            KsykTheme(darkTheme = darkMode, dynamicColor = dynamicColor) {
+                LaunchedEffect(Unit) {
+                    try {
+                        com.posthog.PostHog.capture(
+                            "app_ready",
+                            properties = mapOf(
+                                "platform"    to "android",
+                                "app_version" to fi.ksykmaps.BuildConfig.VERSION_NAME,
+                            ),
+                        )
+                    } catch (_: Throwable) {}
+                }
+                AppShell()
+            }
         }
     }
 

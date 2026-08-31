@@ -42,7 +42,10 @@ class KsykApp : Application() {
     }
 
     private fun initPostHog() {
-        val apiKey = BuildConfig.POSTHOG_API_KEY ?: return
+        val apiKey = BuildConfig.POSTHOG_API_KEY ?: run {
+            android.util.Log.w("PostHog", "POSTHOG_API_KEY not configured — analytics disabled")
+            return
+        }
         val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
         val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
             sessionReplay = true
@@ -50,7 +53,17 @@ class KsykApp : Application() {
             sessionReplayConfig.maskAllTextInputs = true
         }
         PostHogAndroid.setup(this, config)
-        PostHog.logger.info("App started", mapOf("version" to BuildConfig.VERSION_NAME))
+        android.util.Log.i("PostHog", "Initialized (host configured, session replay on)")
+        PostHog.capture(
+            "app_started",
+            properties = mapOf(
+                "platform"    to "android",
+                "app_version" to BuildConfig.VERSION_NAME,
+                "version_code" to BuildConfig.VERSION_CODE,
+                "android_sdk" to Build.VERSION.SDK_INT,
+                "device"      to "${Build.MANUFACTURER} ${Build.MODEL}",
+            ),
+        )
     }
 
     private fun prefetchMapData() {

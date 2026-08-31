@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -118,19 +119,23 @@ private const val LYR_BUILDING_LABEL   = "lyr-building-label"
 private const val LYR_ROOM_FILL        = "lyr-room-fill"
 private const val LYR_ROOM_OUTLINE     = "lyr-room-outline"
 private const val LYR_ROOM_LABEL       = "lyr-room-label"
-private const val LYR_HALLWAY_FILL     = "lyr-hallway-fill"
+private const val LYR_WALL_OUTER       = "lyr-wall-outer"
+private const val LYR_WALL_INNER       = "lyr-wall-inner"
 private const val LYR_ROUTE_CASING     = "lyr-route-casing"
 private const val LYR_ROUTE_LINE       = "lyr-route-line"
 private const val LYR_WIFI_HALO        = "lyr-wifi-halo"
 private const val LYR_WIFI_DOT         = "lyr-wifi-dot"
 
-// KSYK campus fallback camera — real numbers get seeded from the first
-// building we render, but this keeps the very first frame framed sanely.
-private val KSYK_CENTER = LatLng(60.18717, 25.00358)
-private const val KSYK_ZOOM = 17.6
+// KSYK campus fallback camera — centre computed from actual building bounds.
+private val KSYK_CENTER = LatLng(60.187057, 25.003514)
+private const val KSYK_ZOOM = 18.5
 
 // Empty FeatureCollection literal for placeholder sources.
 private const val EMPTY_FC = """{"type":"FeatureCollection","features":[]}"""
+
+private const val SRC_ROOM_SELECTED = "src-room-sel"
+private const val LYR_ROOM_SELECTED = "lyr-room-sel"
+private const val LYR_ROOM_SEL_LINE = "lyr-room-sel-line"
 
 // Muted "Apple Maps standard" base — the raster tiles are OSM but the
 // campus polygons render brightly on top, so we tone the base down with
@@ -141,6 +146,7 @@ private const val EMPTY_FC = """{"type":"FeatureCollection","features":[]}"""
 // visually loud than raw OSM, which is exactly the Apple/MazeMap feel.
 private val STYLE_OSM = """{
   "version": 8,
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   "sources": {
     "osm": {
       "type": "raster",
@@ -160,20 +166,27 @@ private val STYLE_OSM = """{
   ]
 }"""
 
-// Room colours by type — MazeMap-style categorical palette.
-private fun roomFillFor(type: String?): Int = when ((type ?: "").lowercase()) {
-    "classroom", "class"         -> AndroidColor.parseColor("#10B981") // emerald
-    "lab", "laboratory"          -> AndroidColor.parseColor("#8B5CF6") // violet
-    "office"                     -> AndroidColor.parseColor("#F59E0B") // amber
-    "toilet", "restroom", "wc"   -> AndroidColor.parseColor("#06B6D4") // cyan
-    "cafeteria", "canteen"       -> AndroidColor.parseColor("#EC4899") // pink
-    "library", "library_room"    -> AndroidColor.parseColor("#3B82F6") // blue
-    "gym", "sports"              -> AndroidColor.parseColor("#EF4444") // red
-    "music_room", "music"        -> AndroidColor.parseColor("#F97316") // orange
-    "storage"                    -> AndroidColor.parseColor("#6B7280") // slate
-    "hallway", "corridor"        -> AndroidColor.parseColor("#94A3B8") // grey-blue
-    "emergency_exit", "exit"     -> AndroidColor.parseColor("#DC2626") // deep red
-    else                         -> AndroidColor.parseColor("#059669") // teal
+// Room fill colour as a CSS hex string per type.  Storing the colour in
+// the GeoJSON feature properties and reading it via Expression.get("c")
+// avoids Expression.match / Expression.stop entirely — those can fail
+// silently in some MapLibre Android versions and produce invisible layers.
+private fun roomColorHex(type: String?): String = when ((type ?: "").lowercase()) {
+    "classroom", "class"                  -> "#bfdbfe"  // blue-200
+    "lab", "laboratory"                   -> "#e9d5ff"  // purple-200
+    "office"                              -> "#fde68a"  // amber-200
+    "toilet", "restroom", "wc", "bathroom"-> "#a5f3fc"  // cyan-200
+    "cafeteria", "canteen"                -> "#fbcfe8"  // pink-200
+    "library", "library_room"             -> "#bfdbfe"  // blue-200
+    "gym", "sports"                       -> "#fca5a5"  // red-200
+    "music_room", "music"                 -> "#fed7aa"  // orange-200
+    "storage"                             -> "#e5e7eb"  // grey-200
+    "hallway", "corridor"                 -> "#f1f5f9"  // slate-100
+    "emergency_exit", "exit"              -> "#fecaca"  // red-200 light
+    "auditorium"                          -> "#fef08a"  // yellow-200
+    "lobby", "entrance"                   -> "#d1fae5"  // green-100
+    "stairs"                              -> "#e2e8f0"  // slate-200
+    "outdoor"                             -> "#dcfce7"  // green-100
+    else                                  -> "#dbeafe"  // blue-100 default
 }
 
 private object MapHolder {
@@ -250,6 +263,7 @@ fun MapScreen() {
     var followMe by remember { mutableStateOf(false) }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
     var styleReady by remember { mutableStateOf(false) }
+    var mapBearing by remember { mutableStateOf(0.0) }
 
     // Directions: destination room/building + optional origin.
     var destination by remember { mutableStateOf<JsonObject?>(null) }
@@ -355,6 +369,15 @@ fun MapScreen() {
         }
     }
 
+    // Selected-room highlight — updates whenever a room is tapped or dismissed.
+    LaunchedEffect(selectedRoom, styleReady, mapRef) {
+        val m = mapRef ?: return@LaunchedEffect
+        if (!styleReady) return@LaunchedEffect
+        val style = m.style ?: return@LaunchedEffect
+        style.getSourceAs<GeoJsonSource>(SRC_ROOM_SELECTED)
+            ?.setGeoJson(selectedRoom?.let { selectedRoomFC(it) } ?: EMPTY_FC)
+    }
+
     // Wi-Fi puck rendering.
     LaunchedEffect(wifiPos, styleReady) {
         val m = mapRef ?: return@LaunchedEffect
@@ -398,6 +421,7 @@ fun MapScreen() {
             onBuildingTap = { b -> selectedBuilding = b; selectedRoom = null },
             onRoomTap = { r -> selectedRoom = r; selectedBuilding = null },
             onCameraIdle = { follow -> if (!follow && followMe) followMe = false },
+            onBearingChanged = { mapBearing = it },
             currentBuildings = buildings,
             currentRooms = rooms,
         )
@@ -514,6 +538,29 @@ fun MapScreen() {
             )
         }
 
+        // ── Compass — visible only when the map is rotated off north ──
+        if (kotlin.math.abs(mapBearing) > 2.0) {
+            CompassChip(
+                bearing = mapBearing,
+                modifier = Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 112.dp),
+                onClick = {
+                    mapRef?.let { m ->
+                        val cam = m.cameraPosition
+                        m.animateCamera(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.Builder()
+                                    .target(cam.target)
+                                    .zoom(cam.zoom)
+                                    .bearing(0.0)
+                                    .tilt(cam.tilt)
+                                    .build()
+                            ), 400,
+                        )
+                    }
+                },
+            )
+        }
+
         // ── Floor selector (left) ───────────────────────────────────
         FloorSelector(
             floors = floorsPresent(rooms, buildings),
@@ -581,6 +628,7 @@ private fun MapCanvas(
     onBuildingTap: (JsonObject) -> Unit,
     onRoomTap: (JsonObject) -> Unit,
     onCameraIdle: (Boolean) -> Unit,
+    onBearingChanged: (Double) -> Unit,
     currentBuildings: List<JsonObject>,
     currentRooms: List<JsonObject>,
 ) {
@@ -660,6 +708,10 @@ private fun MapCanvas(
                         cam.zoom, cam.bearing, cam.tilt,
                     )
                     onCameraIdle(false)
+                    onBearingChanged(cam.bearing)
+                }
+                map.addOnCameraMoveListener {
+                    onBearingChanged(map.cameraPosition.bearing)
                 }
             }
             mv.onStart(); mv.onResume()
@@ -684,6 +736,7 @@ private fun installCampusLayers(
         SRC_HALLWAYS to hallwaysFC(hallways, floor),
         SRC_ROUTE to EMPTY_FC,
         SRC_WIFI_POS to EMPTY_FC,
+        SRC_ROOM_SELECTED to EMPTY_FC,
     ).forEach { (id, geo) ->
         if (style.getSource(id) == null) {
             style.addSource(GeoJsonSource(id, geo))
@@ -716,6 +769,7 @@ private fun installCampusLayers(
         style.addLayer(
             SymbolLayer(LYR_BUILDING_LABEL, SRC_BUILDINGS).withProperties(
                 PropertyFactory.textField(Expression.get("label")),
+                PropertyFactory.textFont(arrayOf("Open Sans Regular")),
                 PropertyFactory.textSize(13f),
                 PropertyFactory.textColor(AndroidColor.parseColor("#1f2937")),
                 PropertyFactory.textHaloColor(AndroidColor.parseColor("#ffffff")),
@@ -727,65 +781,88 @@ private fun installCampusLayers(
         )
     }
 
-    // Hallway fill — under rooms so rooms cover corridors visually.
-    // Apple/MazeMap style: a warm light grey with barely-there outline.
-    if (style.getLayer(LYR_HALLWAY_FILL) == null) {
+    // Wall lines — drawn under rooms. hallways.json is LineString geometry
+    // (actual structural walls), not corridor polygons. Two layers: outer
+    // walls (surface="wall", darker, thicker) and inner walls (thinner).
+    if (style.getLayer(LYR_WALL_OUTER) == null) {
         style.addLayer(
-            FillLayer(LYR_HALLWAY_FILL, SRC_HALLWAYS).withProperties(
-                PropertyFactory.fillColor(AndroidColor.parseColor("#f5f6f8")),
-                PropertyFactory.fillOpacity(0.9f),
-            )
+            LineLayer(LYR_WALL_OUTER, SRC_HALLWAYS).withProperties(
+                PropertyFactory.lineColor(AndroidColor.parseColor("#9ca3af")),
+                PropertyFactory.lineWidth(2.0f),
+                PropertyFactory.lineOpacity(0.90f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            ).also {
+                it.setFilter(Expression.eq(Expression.get("surface"), Expression.literal("wall")))
+            }
+        )
+    }
+    if (style.getLayer(LYR_WALL_INNER) == null) {
+        style.addLayer(
+            LineLayer(LYR_WALL_INNER, SRC_HALLWAYS).withProperties(
+                PropertyFactory.lineColor(AndroidColor.parseColor("#c8cdd6")),
+                PropertyFactory.lineWidth(1.2f),
+                PropertyFactory.lineOpacity(0.75f),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            ).also {
+                it.setFilter(Expression.eq(Expression.get("surface"), Expression.literal("inner-wall")))
+            }
         )
     }
 
-    // Rooms — desaturated MazeMap-style palette per type. Softer than
-    // the previous version so the map reads calm at first glance and
-    // rooms only stand out when zoomed in.
+    // Rooms — per-feature colour from the "c" property embedded in the GeoJSON.
+    // Using Expression.get("c") instead of Expression.match avoids the
+    // Expression.stop issue that caused rooms to render invisibly.
     if (style.getLayer(LYR_ROOM_FILL) == null) {
-        val colorExpr = Expression.match(
-            Expression.get("type"),
-            Expression.color(AndroidColor.parseColor("#dbeafe")),
-            Expression.stop("classroom", Expression.color(AndroidColor.parseColor("#dbeafe"))),
-            Expression.stop("lab", Expression.color(AndroidColor.parseColor("#ede9fe"))),
-            Expression.stop("office", Expression.color(AndroidColor.parseColor("#fef3c7"))),
-            Expression.stop("toilet", Expression.color(AndroidColor.parseColor("#cffafe"))),
-            Expression.stop("cafeteria", Expression.color(AndroidColor.parseColor("#fce7f3"))),
-            Expression.stop("library_room", Expression.color(AndroidColor.parseColor("#dbeafe"))),
-            Expression.stop("library", Expression.color(AndroidColor.parseColor("#dbeafe"))),
-            Expression.stop("gym", Expression.color(AndroidColor.parseColor("#fee2e2"))),
-            Expression.stop("music_room", Expression.color(AndroidColor.parseColor("#ffedd5"))),
-            Expression.stop("music", Expression.color(AndroidColor.parseColor("#ffedd5"))),
-            Expression.stop("storage", Expression.color(AndroidColor.parseColor("#e5e7eb"))),
-            Expression.stop("hallway", Expression.color(AndroidColor.parseColor("#f5f6f8"))),
-            Expression.stop("emergency_exit", Expression.color(AndroidColor.parseColor("#fecaca"))),
-        )
         style.addLayer(
             FillLayer(LYR_ROOM_FILL, SRC_ROOMS).withProperties(
-                PropertyFactory.fillColor(colorExpr),
-                PropertyFactory.fillOpacity(0.92f),
-            )
+                PropertyFactory.fillColor(Expression.get("c")),
+                PropertyFactory.fillOpacity(0.94f),
+            ).also { it.setMinZoom(16.0f) }
         )
     }
     if (style.getLayer(LYR_ROOM_OUTLINE) == null) {
         style.addLayer(
             LineLayer(LYR_ROOM_OUTLINE, SRC_ROOMS).withProperties(
-                PropertyFactory.lineColor(AndroidColor.parseColor("#94a3b8")),
-                PropertyFactory.lineWidth(0.7f),
-                PropertyFactory.lineOpacity(0.75f),
-            )
+                PropertyFactory.lineColor(AndroidColor.parseColor("#64748b")),
+                PropertyFactory.lineWidth(1.0f),
+                PropertyFactory.lineOpacity(0.7f),
+            ).also { it.setMinZoom(16.0f) }
         )
     }
+    // Selected room highlight — semi-transparent fill + solid accent border above rooms.
+    if (style.getLayer(LYR_ROOM_SELECTED) == null) {
+        style.addLayer(
+            FillLayer(LYR_ROOM_SELECTED, SRC_ROOM_SELECTED).withProperties(
+                PropertyFactory.fillColor(AndroidColor.parseColor("#2563EB")),
+                PropertyFactory.fillOpacity(0.22f),
+            ).also { it.setMinZoom(16.0f) }
+        )
+    }
+    if (style.getLayer(LYR_ROOM_SEL_LINE) == null) {
+        style.addLayer(
+            LineLayer(LYR_ROOM_SEL_LINE, SRC_ROOM_SELECTED).withProperties(
+                PropertyFactory.lineColor(AndroidColor.parseColor("#1d4ed8")),
+                PropertyFactory.lineWidth(2.5f),
+                PropertyFactory.lineOpacity(1.0f),
+            ).also { it.setMinZoom(16.0f) }
+        )
+    }
+
     if (style.getLayer(LYR_ROOM_LABEL) == null) {
         style.addLayer(
             SymbolLayer(LYR_ROOM_LABEL, SRC_ROOMS).withProperties(
                 PropertyFactory.textField(Expression.get("label")),
-                PropertyFactory.textSize(10.5f),
-                PropertyFactory.textColor(AndroidColor.parseColor("#334155")),
+                PropertyFactory.textFont(arrayOf("Open Sans Regular")),
+                PropertyFactory.textSize(11f),
+                PropertyFactory.textColor(AndroidColor.parseColor("#1e293b")),
                 PropertyFactory.textHaloColor(AndroidColor.parseColor("#ffffff")),
-                PropertyFactory.textHaloWidth(1.2f),
+                PropertyFactory.textHaloWidth(1.5f),
                 PropertyFactory.textAllowOverlap(false),
+                PropertyFactory.textIgnorePlacement(false),
                 PropertyFactory.textAnchor(Property.TEXT_ANCHOR_CENTER),
-            )
+            ).also { it.setMinZoom(17.5f) }
         )
     }
 
@@ -872,6 +949,7 @@ private fun roomsFC(rooms: List<JsonObject>, floor: Int): String {
         val id = (r["id"] as? JsonPrimitive)?.contentOrNull ?: continue
         val label = roomLabel(r)
         val type = (r["type"] as? JsonPrimitive)?.contentOrNull ?: ""
+        val colorHex = roomColorHex(type)
         val pts = (r["points"] as? JsonArray)?.mapNotNull { p ->
             val po = p as? JsonObject ?: return@mapNotNull null
             val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
@@ -884,7 +962,10 @@ private fun roomsFC(rooms: List<JsonObject>, floor: Int): String {
         if (pts[0] !== pts.last()) ring.put(JSONArray().put(pts[0][0]).put(pts[0][1]))
         val poly = JSONArray().put(ring)
         val geom = JSONObject().put("type", "Polygon").put("coordinates", poly)
-        val props = JSONObject().put("id", id).put("label", label).put("type", type)
+        // Embed the fill colour in the feature so Expression.get("c") can
+        // drive PropertyFactory.fillColor — avoids Expression.match/stop which
+        // can silently produce invisible layers in some MapLibre Android builds.
+        val props = JSONObject().put("id", id).put("label", label).put("type", type).put("c", colorHex)
         features.put(JSONObject().put("type", "Feature").put("geometry", geom).put("properties", props))
     }
     return JSONObject().put("type", "FeatureCollection").put("features", features).toString()
@@ -893,21 +974,22 @@ private fun roomsFC(rooms: List<JsonObject>, floor: Int): String {
 private fun hallwaysFC(hallways: List<JsonObject>, floor: Int): String {
     val features = JSONArray()
     for (h in hallways) {
-        val f = (h["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 1
-        if (f != floor) continue
+        // null floor = structural wall visible on every floor
+        val wallFloor = (h["floor"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+        if (wallFloor != null && wallFloor != floor) continue
+        val surface = (h["surface"] as? JsonPrimitive)?.contentOrNull ?: "wall"
         val pts = (h["points"] as? JsonArray)?.mapNotNull { p ->
             val po = p as? JsonObject ?: return@mapNotNull null
             val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
             val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
             doubleArrayOf(lng, lat)
         } ?: emptyList()
-        if (pts.size < 3) continue
-        val ring = JSONArray()
-        pts.forEach { ring.put(JSONArray().put(it[0]).put(it[1])) }
-        if (pts[0] !== pts.last()) ring.put(JSONArray().put(pts[0][0]).put(pts[0][1]))
-        val poly = JSONArray().put(ring)
-        val geom = JSONObject().put("type", "Polygon").put("coordinates", poly)
-        features.put(JSONObject().put("type", "Feature").put("geometry", geom).put("properties", JSONObject()))
+        if (pts.size < 2) continue
+        val coords = JSONArray()
+        pts.forEach { coords.put(JSONArray().put(it[0]).put(it[1])) }
+        val geom = JSONObject().put("type", "LineString").put("coordinates", coords)
+        val props = JSONObject().put("surface", surface)
+        features.put(JSONObject().put("type", "Feature").put("geometry", geom).put("properties", props))
     }
     return JSONObject().put("type", "FeatureCollection").put("features", features).toString()
 }
@@ -928,6 +1010,23 @@ private fun wifiPuckFC(lat: Double, lng: Double): String {
     val feat = JSONObject().put("type", "Feature").put("geometry", geom).put("properties", JSONObject())
     return JSONObject().put("type", "FeatureCollection")
         .put("features", JSONArray().put(feat)).toString()
+}
+
+private fun selectedRoomFC(room: JsonObject): String {
+    val pts = (room["points"] as? JsonArray)?.mapNotNull { p ->
+        val po = p as? JsonObject ?: return@mapNotNull null
+        val lat = (po["lat"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
+        val lng = (po["lng"] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
+        doubleArrayOf(lng, lat)
+    } ?: emptyList()
+    if (pts.size < 3) return EMPTY_FC
+    val ring = JSONArray()
+    pts.forEach { ring.put(JSONArray().put(it[0]).put(it[1])) }
+    ring.put(JSONArray().put(pts[0][0]).put(pts[0][1]))
+    val poly = JSONArray().put(ring)
+    val geom = JSONObject().put("type", "Polygon").put("coordinates", poly)
+    val feat = JSONObject().put("type", "Feature").put("geometry", geom).put("properties", JSONObject())
+    return JSONObject().put("type", "FeatureCollection").put("features", JSONArray().put(feat)).toString()
 }
 
 // ── Small helpers ────────────────────────────────────────────────────
@@ -1098,6 +1197,31 @@ private fun GroupedPill(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CompassChip(
+    bearing: Double,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .shadow(6.dp, shape, spotColor = Color(0x40000000))
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.Navigation,
+            contentDescription = "Reset north",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp).rotate((-bearing).toFloat()),
+        )
     }
 }
 
