@@ -7,6 +7,8 @@ import android.os.Build
 import com.posthog.PostHog
 import com.posthog.android.PostHogAndroid
 import com.posthog.android.PostHogAndroidConfig
+import io.sentry.Sentry
+import io.sentry.android.core.SentryAndroid
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.ui.refreshServerMapDefaults
 import kotlinx.coroutines.CoroutineScope
@@ -36,10 +38,26 @@ class KsykApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        initSentry()
         initPostHog()
         installCrashHandler()
         createNotificationChannels()
         prefetchMapData()
+    }
+
+    private fun initSentry() {
+        runCatching {
+            SentryAndroid.init(this) { options ->
+                options.dsn = BuildConfig.SENTRY_DSN
+                options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}"
+                options.tracesSampleRate = 0.2
+                options.isEnableUserInteractionTracing = true
+                options.isEnableAppLifecycleBreadcrumbs = true
+            }
+            android.util.Log.i("Sentry", "Initialized (release=${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME})")
+        }.onFailure {
+            android.util.Log.w("Sentry", "Init failed: ${it.message}")
+        }
     }
 
     private fun initPostHog() {
@@ -101,6 +119,7 @@ class KsykApp : Application() {
                 pw.flush()
                 log.writeText(sw.toString())
             } catch (_: Throwable) { /* nothing we can do */ }
+            try { Sentry.captureException(throwable) } catch (_: Throwable) {}
             try {
                 PostHog.capture(
                     "app_crash",

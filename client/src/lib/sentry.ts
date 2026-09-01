@@ -9,7 +9,7 @@
 import * as Sentry from "@sentry/react";
 
 const DEFAULT_DSN =
-  "https://307744c2ccba7e5ffa05ec0bb5a9478c@o4512001020133376.ingest.de.sentry.io/4512001025376336";
+  "https://265057853851f81798b8f01ebb2c236a@o4512001020133376.ingest.de.sentry.io/4512012645302352";
 
 const dsn =
   ((import.meta as any).env?.VITE_SENTRY_DSN as string | undefined) ??
@@ -36,7 +36,7 @@ export function initSentry() {
       // uBlock / EasyPrivacy don't strip it. vercel.json rewrites this to
       // o4512001020133376.ingest.de.sentry.io/*. The DSN's project id
       // (4512001025376336) determines the URL suffix Sentry writes.
-      tunnel: "/monitoring/api/4512001025376336/envelope/",
+      tunnel: "/monitoring/api/4512012645302352/envelope/",
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({
@@ -47,17 +47,21 @@ export function initSentry() {
       // In production, sample 20 % of transactions and 100 % of error
       // sessions for session replay. Adjust up when we care more about
       // performance data, down if we hit Sentry quota.
-      tracesSampleRate: 0.2,
-      replaysSessionSampleRate: 0.05,
+      tracesSampleRate: 1.0,
+      replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,
       tracePropagationTargets: [
         "localhost",
         /^https:\/\/(www\.)?ksykmaps\.fi\/api/,
       ],
-      // We filter out the known-transient MapLibre render errors here
-      // so they don't burn Sentry quota. They already flow through our
-      // first-party analytics as `maplibre_transient_error` events.
       beforeSend(event, hint) {
+        // Attach PostHog session replay URL as a tag for easy cross-reference.
+        try {
+          const phReplayUrl = (window as any).posthog?.get_session_replay_url?.();
+          if (phReplayUrl) event.tags = { ...event.tags, posthog_session: phReplayUrl };
+        } catch { /* ignore */ }
+        // Drop known-transient MapLibre render errors — they self-recover
+        // each frame and are already tracked as maplibre_transient_error.
         const err = hint?.originalException as any;
         const msg = String(err?.message || event.message || "");
         const stack = String(err?.stack || "");
@@ -65,7 +69,7 @@ export function initSentry() {
           /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
           /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack)
         ) {
-          return null; // drop
+          return null;
         }
         return event;
       },

@@ -3,6 +3,7 @@ package fi.ksykmaps.data
 import android.os.Build
 import com.posthog.PostHog
 import fi.ksykmaps.BuildConfig
+import io.sentry.Sentry as SentrySDK
 
 /**
  * Centralised PostHog error reporting.
@@ -46,6 +47,7 @@ object ErrorReporter {
             "error_message" to err?.message?.take(200),
             "error_type"    to err?.javaClass?.simpleName,
         ) + extra)
+        if (err != null) runCatching { SentrySDK.captureException(err) }
     }
 
     fun api(event: String, err: Throwable? = null, path: String? = null, extra: Map<String, Any?> = emptyMap()) {
@@ -56,6 +58,7 @@ object ErrorReporter {
             "path"          to path,
             "status_code"   to status,
         ) + extra)
+        if (err != null) runCatching { SentrySDK.captureException(err) }
     }
 
     fun auth(event: String, extra: Map<String, Any?> = emptyMap()) {
@@ -67,5 +70,6 @@ object ErrorReporter {
             "error_message" to err?.message?.take(200),
             "error_type"    to err?.javaClass?.simpleName,
         ) + extra)
+        if (err != null) runCatching { SentrySDK.captureException(err) }
     }
 }

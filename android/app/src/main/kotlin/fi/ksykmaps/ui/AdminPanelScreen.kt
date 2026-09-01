@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -79,47 +80,97 @@ fun AdminPanelScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            if (isFi) "Hallintapaneeli" else "Admin panel",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF6366F1), Color(0xFF7C3AED)),
+                        ),
+                    )
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.AdminPanelSettings, null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp),
                         )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (isFi) "Hallintapaneeli" else "Admin Panel",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                            )
+                            Spacer(Modifier.width(7.dp))
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.White.copy(alpha = 0.22f))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                            ) {
+                                Text(
+                                    "ADMIN",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.8.sp,
+                                    color = Color.White,
+                                )
+                            }
+                        }
                         val email = Api.sessionEmail
                         if (email != null) {
                             Text(
                                 email,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.72f),
                             )
                         }
                     }
-                },
-                actions = {
                     IconButton(onClick = onSignOut) {
                         Icon(
                             Icons.AutoMirrored.Outlined.Logout,
                             contentDescription = if (isFi) "Kirjaudu ulos" else "Sign out",
+                            tint = Color.White.copy(alpha = 0.85f),
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+                }
+            }
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             SectionPills(
                 selected = selectedSection,
                 onSelect = { selectedSection = it },
-                labels = if (isFi)
-                    listOf("Yleiskatsaus", "Aktiviteetti", "Ilmoitukset", "Wi-Fi", "Sijainti", "Käyttäjät", "Toiminnot")
-                else
-                    listOf("Overview", "Activity", "News", "Wi-Fi", "Live", "Users", "Actions"),
+                tabs = if (isFi) listOf(
+                    Icons.Outlined.GridView to "Yleiskatsaus",
+                    Icons.Outlined.BarChart to "Aktiviteetti",
+                    Icons.Outlined.Campaign to "Ilmoitukset",
+                    Icons.Outlined.Wifi to "Wi-Fi",
+                    Icons.Outlined.GpsFixed to "Sijainti",
+                    Icons.Outlined.Group to "Käyttäjät",
+                    Icons.Outlined.Tune to "Toiminnot",
+                ) else listOf(
+                    Icons.Outlined.GridView to "Overview",
+                    Icons.Outlined.BarChart to "Activity",
+                    Icons.Outlined.Campaign to "News",
+                    Icons.Outlined.Wifi to "Wi-Fi",
+                    Icons.Outlined.GpsFixed to "Live",
+                    Icons.Outlined.Group to "Users",
+                    Icons.Outlined.Tune to "Actions",
+                ),
             )
             when (selectedSection) {
                 0 -> AdminOverviewSection(isFi, scope)
@@ -143,28 +194,36 @@ private fun rememberSaveableInt(default: Int) = androidx.compose.runtime.saveabl
 private fun SectionPills(
     selected: Int,
     onSelect: (Int) -> Unit,
-    labels: List<String>,
+    tabs: List<Pair<ImageVector, String>>,
 ) {
     val scroll = rememberScrollState()
     Row(
         Modifier
             .fillMaxWidth()
             .horizontalScroll(scroll)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        labels.forEachIndexed { i, label ->
+        tabs.forEachIndexed { i, (icon, label) ->
             val isSel = selected == i
-            Box(
+            Row(
                 Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         if (isSel) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceContainerHigh
+                        else MaterialTheme.colorScheme.surfaceContainerHigh,
                     )
                     .clickable { onSelect(i) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    icon, null,
+                    modifier = Modifier.size(14.dp),
+                    tint = if (isSel) MaterialTheme.colorScheme.onPrimary
+                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                )
+                Spacer(Modifier.width(5.dp))
                 Text(
                     label,
                     fontSize = 13.sp,
@@ -218,29 +277,69 @@ private fun AdminOverviewSection(isFi: Boolean, scope: kotlinx.coroutines.Corout
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (stats.loading) {
-            item {
-                Row(
+        // System status banner
+        item {
+            val statusOk = !stats.loading && stats.error == null
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        if (statusOk) Color(0xFF10B981).copy(alpha = 0.12f)
+                        else if (stats.loading) MaterialTheme.colorScheme.surfaceContainerLow
+                        else Color(0xFFF59E0B).copy(alpha = 0.12f),
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
                     Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (statusOk) Color(0xFF10B981).copy(alpha = 0.2f)
+                            else if (stats.loading) MaterialTheme.colorScheme.surfaceContainerHigh
+                            else Color(0xFFF59E0B).copy(alpha = 0.2f),
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(
-                        Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(Modifier.width(12.dp))
+                    if (stats.loading) {
+                        CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            if (statusOk) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
+                            null,
+                            tint = if (statusOk) Color(0xFF10B981) else Color(0xFFF59E0B),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
-                        if (isFi) "Ladataan tilastoja…" else "Loading stats…",
+                        when {
+                            stats.loading -> if (isFi) "Ladataan…" else "Loading…"
+                            statusOk -> if (isFi) "Järjestelmä OK" else "System OK"
+                            else -> if (isFi) "Osittainen virhe" else "Partial error"
+                        },
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            stats.loading -> MaterialTheme.colorScheme.onSurface
+                            statusOk -> Color(0xFF059669)
+                            else -> Color(0xFFD97706)
+                        },
                     )
+                    if (!stats.loading) {
+                        Text(
+                            if (isFi) "Kaikki palvelut toiminnassa" else "All services operational",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

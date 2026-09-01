@@ -14,8 +14,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 53
-        versionName = "1.51.0"
+        versionCode = 54
+        versionName = "1.52.0"
 
         // Vercel Attack Challenge Mode bypass — the API client sends this
         // as `x-vercel-protection-bypass` and `x-ksyk-bypass-token`. Add a
@@ -37,6 +37,14 @@ android {
         val posthogHost = System.getenv("POSTHOG_HOST") ?: projectEnv.getProperty("POSTHOG_HOST")
         buildConfigField("String", "POSTHOG_API_KEY", posthogApiKey?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null")
         buildConfigField("String", "POSTHOG_HOST", posthogHost?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null")
+
+        // Sentry Android — override with SENTRY_DSN env var or sentry.dsn in .env
+        val sentryDsn = System.getenv("SENTRY_DSN")
+            ?: (project.findProperty("sentryDsn") as? String)
+            ?: projectEnv.getProperty("SENTRY_DSN")
+            ?: "https://265057853851f81798b8f01ebb2c236a@o4512001020133376.ingest.de.sentry.io/4512012645302352"
+        buildConfigField("String", "SENTRY_DSN", "\"${sentryDsn.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -99,6 +107,7 @@ dependencies {
     val compose = "1.6.0"
 
     implementation("com.posthog:posthog-android:3.+")
+    implementation("io.sentry:sentry-android:8.+")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.activity:activity-compose:1.8.2")

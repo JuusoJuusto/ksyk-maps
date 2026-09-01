@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.61";
+export const APP_VERSION = "4.5.62";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.62",
+    date: "September 2026",
+    title: "Sentry integration, admin panel redesign, all errors to PostHog + Sentry",
+    titleFi: "Sentry-integraatio, hallintapaneelin uudelleensuunnittelu, kaikki virheet PostHogiin ja Sentryyn",
+    highlights: [
+      "**Sentry error tracking (web):** Updated to new Sentry project. PostHog session replay URL is now attached to every Sentry issue for easy cross-reference. `tracesSampleRate: 1.0` to capture all transactions.",
+      "**Sentry error tracking (Android):** Sentry Android SDK added. Crashes, map errors, and API errors now flow to both PostHog and Sentry simultaneously via `ErrorReporter`.",
+      "**Admin panel redesign (Android):** Gradient indigo-violet header with admin badge and email. Section navigation pills now include icons (grid, chart, campaign, wifi, GPS, group, tune). System status banner at top of Overview.",
+    ],
+    highlightsFi: [
+      "**Sentry-virheenseuranta (web):** Päivitetty uuteen Sentry-projektiin. PostHog-istuntotoiston URL liitetään nyt jokaiseen Sentry-ongelmaan helpottamaan ristiviittausta.",
+      "**Sentry-virheenseuranta (Android):** Sentry Android SDK lisätty. Kaatumiset, karttavirheet ja API-virheet kulkevat nyt sekä PostHogiin että Sentryyn `ErrorReporter`in kautta.",
+      "**Hallintapaneelin uudelleensuunnittelu (Android):** Gradienttinen indigovioletti otsikko admin-tunnuksella ja sähköpostilla. Osiopillerit sisältävät nyt ikonit. Järjestelmän tilabanneri Yleiskatsauksen yläreunassa.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.61",
     date: "September 2026",
@@ -36,7 +53,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Tietopaneelit:** Tilastolaatat näyttävät nyt värikoodatut ikonit.",
       "**Tietokantakierto:** Palvelimen määrittämä kartan kierto ladataan käynnistyksessä.",
     ],
-    latest: true,
   },
   {
     version: "4.5.60",
