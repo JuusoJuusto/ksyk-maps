@@ -159,7 +159,7 @@ export async function sendEmail(options: {
       html: options.html,
       text: options.text || options.subject,
     });
-    console.log(`✅ Email sent → ${options.to} (id: ${info.messageId})`);
+    // email sent successfully — do not log recipient address (PII)
     return { success: true, mode: 'email', messageId: info.messageId };
   } catch (error: any) {
     console.error('❌ Email send error:', error.message);
@@ -375,7 +375,6 @@ export async function sendWilmaStudentWelcomeEmail(
       subject: '🎓 Tervetuloa Wilmaan — kirjautumistiedot',
       html: studentHtml,
     });
-    console.log('✅ Wilma welcome → student', studentEmail);
 
     if (parentEmails && parentEmails.length > 0) {
       for (const parentEmail of parentEmails) {
@@ -395,7 +394,6 @@ export async function sendWilmaStudentWelcomeEmail(
             language: 'fi',
           }),
         });
-        console.log('✅ Wilma welcome → parent', parentEmail);
       }
     }
 
