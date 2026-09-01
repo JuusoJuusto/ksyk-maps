@@ -584,13 +584,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  fallback before the real spawn arrives. */}
       {defaultsReady && <CampusMap onReady={onMapReady} />}
       {!defaultsReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-slate-50 to-blue-50/40 dark:from-gray-950 dark:to-slate-900">
-          <div className="relative h-14 w-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-[2.5px] border-blue-100 dark:border-blue-950" />
-            <div className="absolute inset-0 rounded-full border-[2.5px] border-blue-500 dark:border-blue-400 border-t-transparent animate-spin" />
-            <span className="text-[13px] font-black tracking-widest text-blue-500 dark:text-blue-400">K</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#eeeae0] dark:bg-[#0f172a]">
+          <div className="relative h-10 w-10">
+            <div className="absolute inset-0 rounded-full border-2 border-black/8 dark:border-white/8" />
+            <div className="absolute inset-0 rounded-full border-2 border-black/30 dark:border-white/25 border-t-transparent animate-spin" />
           </div>
-          <p className="text-[12px] font-medium text-slate-400 dark:text-gray-600 tracking-wide">Loading campus map…</p>
+          <p className="text-[12px] text-black/40 dark:text-white/30 tracking-wide">Loading map…</p>
         </div>
       )}
 

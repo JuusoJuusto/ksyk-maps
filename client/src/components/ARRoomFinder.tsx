@@ -343,7 +343,6 @@ export function ARRoomFinder() {
 
   const scanQRCode = () => {
     // Simulate QR code scanning for room location
-    console.log('Scanning QR code for precise location...');
   };
 
   return (

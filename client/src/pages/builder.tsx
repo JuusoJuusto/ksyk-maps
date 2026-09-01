@@ -2030,68 +2030,6 @@ function BuilderWorkspace() {
         points: pts,
         ...(isCorridor ? { type: "hallway", colorCode: "#94a3b8" } : {}),
       });
-      // Auto-place spine nav nodes along the corridor's long axis so the
-      // routing graph runs through the entire walkable area, not just the
-      // centroid. Nodes are spaced ~4 m apart (2–10 total) and connected
-      // by edges so Dijkstra can route through bends.
-      // v3.47.0 — nodes are placed through the polygon CENTROID (laterally
-      // centered inside the corridor), NOT corner-to-corner. This keeps
-      // every node away from the polygon boundary so the routing graph
-      // stays in the middle of walkable space.
-      if (isCorridor) {
-        const mPerLat = 111320;
-        const mPerLng = 111320 * Math.cos((centroid.lat * Math.PI) / 180);
-        // Find long-axis direction: two farthest vertices give the spine angle.
-        let fA = pts[0], fB = pts[1], maxDist = 0;
-        for (let i = 0; i < pts.length; i++) {
-          for (let j = i + 1; j < pts.length; j++) {
-            const dx = (pts[j].lng - pts[i].lng) * mPerLng;
-            const dy = (pts[j].lat - pts[i].lat) * mPerLat;
-            const d = Math.sqrt(dx * dx + dy * dy);
-            if (d > maxDist) { maxDist = d; fA = pts[i]; fB = pts[j]; }
-          }
-        }
-        if (maxDist < 0.5) return; // degenerate corridor
-        // Unit direction vector in metre space.
-        const axisDx = (fB.lng - fA.lng) * mPerLng;
-        const axisDy = (fB.lat - fA.lat) * mPerLat;
-        const axisLen = Math.sqrt(axisDx * axisDx + axisDy * axisDy);
-        const ux = axisDx / axisLen;
-        const uy = axisDy / axisLen;
-        // Project every vertex onto the spine axis (relative to centroid)
-        // to find how far the corridor extends in each direction.
-        let minT = Infinity, maxT = -Infinity;
-        for (const p of pts) {
-          const px = (p.lng - centroid.lng) * mPerLng;
-          const py = (p.lat - centroid.lat) * mPerLat;
-          const t = px * ux + py * uy;
-          if (t < minT) minT = t;
-          if (t > maxT) maxT = t;
-        }
-        const span = maxT - minT;
-        // Inset 12% (min 0.5 m, max 1.5 m) so nodes stay inside the polygon.
-        const inset = Math.min(1.5, Math.max(0.5, span * 0.12));
-        const extMin = minT + inset;
-        const extMax = maxT - inset;
-        const nodeCount = Math.max(2, Math.min(10, Math.round(span / 4)));
-        const spineNodes: Array<{ id: string }> = [];
-        for (let k = 0; k < nodeCount; k++) {
-          const s = nodeCount === 1 ? 0.5 : k / (nodeCount - 1);
-          const spineT = extMin + s * (extMax - extMin);
-          // Node lies on the line through the centroid parallel to the long
-          // axis — NEVER at a polygon corner.
-          const node = navGraph.addNode({
-            lat: centroid.lat + (spineT * uy) / mPerLat,
-            lng: centroid.lng + (spineT * ux) / mPerLng,
-            floor,
-            kind: "junction",
-          });
-          spineNodes.push(node);
-        }
-        for (let k = 0; k < spineNodes.length - 1; k++) {
-          navGraph.addEdge(spineNodes[k].id, spineNodes[k + 1].id);
-        }
-      }
       return;
     }
   }, [activeTool, waypoints, orthoEnabled, buildings, createBuilding, createRoom, createHallway, saveFloorShape, floorShapeTarget, roomsQ.data, cameraState.activeFloor, navGraph, setTempLines]);

@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.62";
+export const APP_VERSION = "4.5.63";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.63",
+    date: "September 2026",
+    title: "Production polish: corridor tool fix, debug log cleanup, map loading UX",
+    titleFi: "Tuotantohionta: käytävätyökalu korjattu, debug-lokit poistettu, kartan latauskokemus",
+    highlights: [
+      "**Corridor tool fix:** Drawing a corridor in the builder no longer auto-creates navigation nodes along the corridor spine. Nav nodes must be placed manually with the dedicated node tool.",
+      "**Debug log cleanup:** Removed production console.log calls from BulkEmailConfigDialog and ARRoomFinder.",
+      "**Map loading:** Simplified loading indicator — consistent with map background color, no gradient.",
+    ],
+    highlightsFi: [
+      "**Käytävätyökalu korjattu:** Käytävän piirtäminen rakennustilassa ei enää luo automaattisesti navigointisolmuja.",
+      "**Debug-lokit poistettu:** Poistettu tuotantotason console.log-kutsut BulkEmailConfigDialog- ja ARRoomFinder-komponenteista.",
+      "**Kartan lataus:** Yksinkertaistettu latausilmaisin — yhtenäinen kartan taustavärin kanssa.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.62",
     date: "September 2026",
@@ -28,7 +45,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Sentry-virheenseuranta (Android):** Sentry Android SDK lisätty. Kaatumiset, karttavirheet ja API-virheet kulkevat nyt sekä PostHogiin että Sentryyn `ErrorReporter`in kautta.",
       "**Hallintapaneelin uudelleensuunnittelu (Android):** Gradienttinen indigovioletti otsikko admin-tunnuksella ja sähköpostilla. Osiopillerit sisältävät nyt ikonit. Järjestelmän tilabanneri Yleiskatsauksen yläreunassa.",
     ],
-    latest: true,
   },
   {
     version: "4.5.61",
