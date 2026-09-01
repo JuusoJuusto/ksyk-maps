@@ -56,8 +56,6 @@ function getWeatherFromCode(code: number): { text: string; emoji: string } {
  * Location: Kulosaari, Helsinki (60.187, 25.006)
  */
 export async function fetchFMICurrentWeather(): Promise<FMICurrentWeather> {
-  console.log('🌡️ Fetching REAL weather from Open-Meteo API for Kulosaari, Helsinki');
-  
   try {
     const response = await fetch(WEATHER_API_URL);
     if (!response.ok) {
@@ -84,7 +82,6 @@ export async function fetchFMICurrentWeather(): Promise<FMICurrentWeather> {
       timestamp: current.time
     };
     
-    console.log('✅ REAL weather data fetched:', weatherData);
     return weatherData;
   } catch (error) {
     console.error('❌ Failed to fetch weather:', error);
@@ -96,8 +93,6 @@ export async function fetchFMICurrentWeather(): Promise<FMICurrentWeather> {
  * Fetch 24-hour forecast from Open-Meteo - REAL DATA ONLY
  */
 export async function fetchFMIForecast(): Promise<FMIHourlyForecast[]> {
-  console.log('🌤️ Fetching REAL 24-hour forecast from Open-Meteo API');
-  
   try {
     const response = await fetch(WEATHER_API_URL);
     if (!response.ok) {
@@ -137,7 +132,6 @@ export async function fetchFMIForecast(): Promise<FMIHourlyForecast[]> {
       }
     }
 
-    console.log(`✅ REAL 24-hour forecast fetched: ${forecasts.length} hours`);
     return forecasts;
   } catch (error) {
     console.error('❌ Failed to fetch forecast:', error);
@@ -152,18 +146,11 @@ export async function fetchFMIComprehensiveWeather(): Promise<{
   current: FMICurrentWeather;
   forecast: FMIHourlyForecast[];
 }> {
-  console.log('🌍 Fetching COMPREHENSIVE weather data from Open-Meteo API');
-  
   try {
     const [current, forecast] = await Promise.all([
       fetchFMICurrentWeather(),
       fetchFMIForecast()
     ]);
-
-    console.log('✅ COMPREHENSIVE weather data loaded:', {
-      current: current.temperature + '°C',
-      forecastHours: forecast.length
-    });
 
     return { current, forecast };
   } catch (error) {

@@ -38,15 +38,11 @@ export default function FMIWeatherWidget({
     try {
       setLoading(true);
       setError(null);
-      console.log('🌤️ Loading FMI weather data for Kulosaari, Helsinki...');
-      
       const data = await fetchFMIComprehensiveWeather();
-      
+
       setCurrentWeather(data.current);
       setForecast(data.forecast);
       setLastUpdate(new Date());
-      
-      console.log('✅ FMI weather data loaded successfully!');
     } catch (err) {
       console.error('❌ Failed to load FMI weather:', err);
       setError('Säätietojen lataus epäonnistui (FMI API)');

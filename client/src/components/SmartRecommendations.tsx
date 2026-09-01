@@ -84,21 +84,8 @@ export function SmartRecommendations() {
     return 'text-gray-600 bg-gray-100';
   };
 
-  const handleRecommendationClick = (rec: Recommendation) => {
-    switch (rec.type) {
-      case 'room':
-        // Simulate navigation to room
-        console.log(`Navigating to room ${rec.data?.room}`);
-        break;
-      case 'route':
-        // Simulate showing route
-        console.log(`Showing route: ${rec.data?.from} to ${rec.data?.to}`);
-        break;
-      case 'feature':
-        // Simulate feature activation
-        console.log(`Activating feature: ${rec.data?.feature}`);
-        break;
-    }
+  const handleRecommendationClick = (_rec: Recommendation) => {
+    // No-op: recommendations are display-only until navigation integration is wired
   };
 
   return (

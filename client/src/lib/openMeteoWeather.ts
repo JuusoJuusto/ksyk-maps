@@ -98,8 +98,6 @@ export interface ComprehensiveWeatherData {
  * Returns current, hourly, daily, and 15-minute forecasts
  */
 export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherData> {
-  console.log('🌡️ Fetching COMPREHENSIVE weather data from Open-Meteo API for Kulosaari, Helsinki');
-  
   const response = await fetch(COMPREHENSIVE_API_URL);
   if (!response.ok) {
     throw new Error(`Weather API error: ${response.status}`);
@@ -225,13 +223,6 @@ export async function fetchComprehensiveWeather(): Promise<ComprehensiveWeatherD
       });
     }
   }
-
-  console.log('✅ COMPREHENSIVE weather data fetched:', {
-    current: currentWeather,
-    hourlyCount: hourlyForecasts.length,
-    dailyCount: dailyForecasts.length,
-    minutelyCount: minutelyForecasts.length
-  });
 
   return {
     current: currentWeather,

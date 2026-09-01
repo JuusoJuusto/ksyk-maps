@@ -219,7 +219,6 @@ export function RoomRatingSystem() {
 
   const submitReview = () => {
     // In a real app, this would submit to the backend
-    console.log('Submitting review:', newReview);
     setShowReviewForm(false);
     setNewReview({
       rating: 5,

@@ -72,7 +72,6 @@ class PathfindingEngine {
     this.buildEdgesFromProximity(rooms);
     this.buildEdgesFromConnectors(connectors);
     
-    console.log(`✅ Pathfinding initialized: ${this.nodes.size} nodes, ${this.countEdges()} edges`);
   }
 
   /**

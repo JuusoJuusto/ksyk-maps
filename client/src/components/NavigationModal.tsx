@@ -87,14 +87,10 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     // If same room, no path needed
     if (from.id === to.id) return [from];
     
-    console.log(`🧭 Enhanced pathfinding: ${from.roomNumber} → ${to.roomNumber}`);
-    
     // Get all hallways and stairways (navigation nodes)
-    const navRooms = rooms.filter((r: Room) => 
+    const navRooms = rooms.filter((r: Room) =>
       r.type === 'hallway' || r.type === 'stairway' || r.type === 'elevator' || r.type === 'door'
     );
-    
-    console.log(`🔍 Found ${navRooms.length} navigation nodes`);
     
     // Calculate distance between two rooms (using map positions if available)
     const getDistance = (roomA: Room, roomB: Room): number => {
@@ -166,7 +162,6 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
                 (roomA.type === 'hallway' || roomB.type === 'hallway')) {
               const weight = distance * 1.5; // Penalty for cross-building
               graph.get(roomA.id)?.push({ id: roomB.id, weight, type: 'connector' });
-              console.log(`🔗 Cross-building connector: ${roomA.roomNumber} (${roomA.buildingId}) ↔ ${roomB.roomNumber} (${roomB.buildingId})`);
             }
             // Also allow room-to-hallway connections near building edges
             else if (floorDiff === 0 && distance < 300) {
@@ -220,7 +215,6 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
           curr = cameFrom.get(curr) || '';
         }
         
-        console.log(`✅ Enhanced path found in ${iterations} iterations: ${path.length} steps`);
         return path;
       }
       
@@ -244,7 +238,6 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
       });
     }
     
-    console.log(`❌ No enhanced path found after ${iterations} iterations`);
     return null; // No path found
   };
 

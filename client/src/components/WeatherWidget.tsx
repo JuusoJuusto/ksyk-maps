@@ -31,20 +31,7 @@ export default function WeatherWidget({ widgetId, widgetTitle, customizationMode
   useEffect(() => {
     const loadWeather = async () => {
       try {
-        console.log('🌤️ Fetching COMPREHENSIVE weather data from Open-Meteo API (Kulosaari, Helsinki)...');
-        
         const data = await fetchComprehensiveWeather();
-        
-        console.log('✅ COMPREHENSIVE weather data loaded:', {
-          temperature: data.current.temperature,
-          feelsLike: data.current.feelsLike,
-          windSpeed: data.current.windSpeed,
-          timestamp: data.current.timestamp,
-          hourlyCount: data.hourly.length,
-          dailyCount: data.daily.length,
-          minutelyCount: data.minutely.length
-        });
-        
         setWeatherData(data);
         setWeatherError(null);
       } catch (error) {

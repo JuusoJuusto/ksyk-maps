@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.63";
+export const APP_VERSION = "4.5.64";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.64",
+    date: "September 2026",
+    title: "Production polish: full debug log sweep across weather, navigation, and ticket components",
+    titleFi: "Tuotantohionta: debug-lokien täyskattava siivous sää-, navigointi- ja tiketti-komponenteista",
+    highlights: [
+      "**Debug log sweep:** Removed all remaining production console.log calls from weather libs (fmiWeather, openMeteoWeather, WeatherWidget, FMIWeatherWidget), NavigationModal pathfinding, TicketSystemNew, SmartRecommendations, RoomRatingSystem, WebSocketStatus, pathfinding.ts, and gemini.ts.",
+      "**Gemini init:** Removed module-level console.log calls that executed on every import.",
+      "**Ticket flow:** Cleaned ticket mutation debug logging that was logging ticket form data including user email/name to the browser console.",
+    ],
+    highlightsFi: [
+      "**Debug-lokien siivous:** Poistettu kaikki jäljellä olevat tuotantotason console.log-kutsut sääkirjastoista, NavigationModal-reitityksestä, tikettijärjestelmästä ja muista komponenteista.",
+      "**Gemini-alustus:** Poistettu moduulitason console.log-kutsut, jotka suorittuivat jokaisella importilla.",
+      "**Tikettivirtaus:** Tikettimutaation debug-lokit poistettu — ne kirjoittivat lomakkeen tietoja (sähköposti, nimi) selaimen konsoliin.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.63",
     date: "September 2026",
@@ -28,7 +45,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Debug-lokit poistettu:** Poistettu tuotantotason console.log-kutsut BulkEmailConfigDialog- ja ARRoomFinder-komponenteista.",
       "**Kartan lataus:** Yksinkertaistettu latausilmaisin — yhtenäinen kartan taustavärin kanssa.",
     ],
-    latest: true,
   },
   {
     version: "4.5.62",

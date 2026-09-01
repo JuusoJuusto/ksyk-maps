@@ -36,7 +36,6 @@ export function WebSocketStatus() {
       newWs.onopen = () => {
         setIsConnected(true);
         setConnectionAttempts(0);
-        console.log('WebSocket connected');
       };
 
       newWs.onmessage = (event) => {
@@ -60,7 +59,6 @@ export function WebSocketStatus() {
 
       newWs.onclose = () => {
         setIsConnected(false);
-        console.log('WebSocket disconnected');
         
         // Auto-reconnect after 3 seconds
         setTimeout(() => {
