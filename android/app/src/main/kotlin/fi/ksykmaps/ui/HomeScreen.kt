@@ -83,6 +83,7 @@ fun HomeScreen(
     var currentLesson by remember { mutableStateOf<HomeTimetableLesson?>(null) }
     var nextLesson by remember { mutableStateOf<HomeTimetableLesson?>(null) }
     var todaySchedule by remember { mutableStateOf<List<HomeTimetableLesson>>(emptyList()) }
+    var tomorrowSchedule by remember { mutableStateOf<List<HomeTimetableLesson>>(emptyList()) }
     var hasWilmaSetup by remember { mutableStateOf(false) }
 
     fun reload() {
@@ -106,7 +107,10 @@ fun HomeScreen(
                     val arr = JSONArray(json)
                     val fmt = DateTimeFormatter.ofPattern("HH:mm")
                     val now = LocalTime.now()
-                    val todayDow = LocalDate.now().dayOfWeek.value
+                    val today = LocalDate.now()
+                    val todayDow = today.dayOfWeek.value
+                    // Tomorrow in DayOfWeek values (1=Mon … 7=Sun, wraps Mon after Sun)
+                    val tomorrowDow = (todayDow % 7) + 1
                     // Determine the currently active jakso. Only entries
                     // whose jaksoId matches (or "all") should appear on
                     // the dashboard — otherwise we'd stack lessons from
@@ -114,13 +118,13 @@ fun HomeScreen(
                     // seeing when jakso-2 lessons showed up in jakso 1.
                     val jaksot = try { loadJaksot(ctx) } catch (_: Exception) { emptyList() }
                     val activeJakso = try { activeJaksoId(jaksot) } catch (_: Exception) { null }
-                    val allToday = (0 until arr.length()).mapNotNull { i ->
+                    fun parseEntries(targetDow: Int) = (0 until arr.length()).mapNotNull { i ->
                         val o = arr.getJSONObject(i)
-                        if (o.optInt("dayOfWeek") != todayDow) return@mapNotNull null
+                        if (o.optInt("dayOfWeek") != targetDow) return@mapNotNull null
                         val entryJakso = o.optString("jaksoId", "all").ifBlank { "all" }
                         val jaksoOk = when {
                             entryJakso == "all" -> true
-                            activeJakso == null -> true // no jakso configured → show everything
+                            activeJakso == null -> true
                             else -> entryJakso == activeJakso
                         }
                         if (!jaksoOk) return@mapNotNull null
@@ -133,8 +137,10 @@ fun HomeScreen(
                             o.optString("teacher"),
                         )
                     }.sortedBy { it.startHhmm }
+                    val allToday = parseEntries(todayDow)
                     hasWilmaSetup = arr.length() > 0
                     todaySchedule = allToday
+                    tomorrowSchedule = parseEntries(tomorrowDow)
                     currentLesson = allToday.firstOrNull { e ->
                         val s = runCatching { LocalTime.parse(e.startHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
                         val en = runCatching { LocalTime.parse(e.endHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
@@ -230,7 +236,46 @@ fun HomeScreen(
                     }
                 }
 
-                // Campus overview stat pills — tightened, less loud
+                // Tomorrow preview — shown when today is finished or has no lessons
+                val todayDone = hasWilmaSetup && upcoming.isEmpty()
+                if (todayDone && tomorrowSchedule.isNotEmpty()) {
+                    item { SectionLabel(if (lang == "fi") "Huomenna" else "Tomorrow") }
+                    item {
+                        ScheduleStrip(
+                            lessons = tomorrowSchedule.take(5),
+                            currentSubject = null,
+                            lang = lang,
+                            onOpenTimetable = onOpenTimetable,
+                        )
+                    }
+                } else if (todayDone && hasWilmaSetup) {
+                    // Wilma set up but nothing tomorrow either — light info card
+                    item {
+                        Card(
+                            Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                            elevation = CardDefaults.cardElevation(0.dp),
+                        ) {
+                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Outlined.WbSunny, null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    if (lang == "fi") "Ei tunteja huomenna" else "No lessons tomorrow",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Campus overview stat tiles — colored accent per metric
                 item { SectionLabel(if (lang == "fi") "Kampus" else "Campus") }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -239,6 +284,7 @@ fun HomeScreen(
                             icon = Icons.Outlined.MeetingRoom,
                             value = rooms.toString(),
                             label = if (lang == "fi") "Luokat" else "Rooms",
+                            accent = Color(0xFF3B82F6),
                             onClick = onOpenRooms,
                         )
                         StatPill(
@@ -246,6 +292,7 @@ fun HomeScreen(
                             icon = Icons.Outlined.Business,
                             value = buildings.toString(),
                             label = if (lang == "fi") "Rakennukset" else "Buildings",
+                            accent = Color(0xFF10B981),
                             onClick = onOpenBuildings,
                         )
                         StatPill(
@@ -253,6 +300,7 @@ fun HomeScreen(
                             icon = Icons.Outlined.Campaign,
                             value = announcementCount.toString(),
                             label = if (lang == "fi") "Uutiset" else "News",
+                            accent = Color(0xFFF59E0B),
                             onClick = onOpenAnnouncements,
                         )
                     }
@@ -786,6 +834,7 @@ private fun StatPill(
     icon: ImageVector,
     value: String,
     label: String,
+    accent: Color = MaterialTheme.colorScheme.primary,
     onClick: (() -> Unit)? = null,
 ) {
     Card(
@@ -800,11 +849,15 @@ private fun StatPill(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                icon, null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accent.copy(alpha = 0.13f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = accent, modifier = Modifier.size(18.dp))
+            }
             Text(
                 value,
                 fontSize = 22.sp,

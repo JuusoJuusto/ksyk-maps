@@ -142,4 +142,34 @@ if (shouldInit()) {
   }
 }
 
+// ── Global error capture ──────────────────────────────────────────────
+// These catch non-React errors (MapLibre frame crashes, unhandled promises,
+// third-party script failures) that never pass through ErrorBoundary.
+// PostHog's capture_exceptions:true only covers its own SDK path; we
+// also explicitly send to captureException so errors appear in PostHog
+// Error Tracking with a session replay link.
+if (typeof window !== "undefined" && initialised) {
+  const prevOnError = window.onerror;
+  window.onerror = (msg, src, line, col, err) => {
+    try {
+      const e = err instanceof Error ? err : new Error(String(msg));
+      posthog.captureException?.(e, {
+        extra: { source: src, line, col },
+      });
+    } catch { /* never crash on telemetry */ }
+    if (typeof prevOnError === "function") prevOnError(msg, src, line, col, err);
+    return false;
+  };
+
+  const prevUnhandled = window.onunhandledrejection;
+  window.onunhandledrejection = (ev) => {
+    try {
+      const reason = ev.reason;
+      const e = reason instanceof Error ? reason : new Error(String(reason));
+      posthog.captureException?.(e, { extra: { type: "unhandledrejection" } });
+    } catch { /* never crash on telemetry */ }
+    if (typeof prevUnhandled === "function") prevUnhandled.call(window, ev);
+  };
+}
+
 export default posthog;

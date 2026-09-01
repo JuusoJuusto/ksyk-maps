@@ -48,6 +48,7 @@ import androidx.core.content.ContextCompat
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.AppLog
+import fi.ksykmaps.data.ErrorReporter
 import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -213,6 +214,7 @@ fun MapScreen() {
         } catch (t: Throwable) {
             initFailed = true
             AppLog.error("MapScreen", "MapLibre init failed: ${t.message}")
+            ErrorReporter.map("map_load_failed", t, mapOf("stage" to "maplibre_init"))
         }
     }
 
@@ -287,6 +289,8 @@ fun MapScreen() {
     LaunchedEffect(dataRetry) {
         dataFetching = true
         AppLog.info("MapScreen", "live-fetch start (retry=$dataRetry)")
+        // Refresh server map defaults (bearing/rotation) in parallel with data.
+        withContext(Dispatchers.IO) { runCatching { refreshServerMapDefaults(ctx) } }
         val bDef = withContext(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
         val rDef = withContext(Dispatchers.IO) { runCatching { Api.get("/rooms") } }
         val hDef = withContext(Dispatchers.IO) { runCatching { Api.get("/hallways") } }
@@ -300,6 +304,7 @@ fun MapScreen() {
         }.onFailure {
             offlineMode = buildings.isEmpty()
             AppLog.warn("MapScreen", "buildings live failed: ${it.message?.take(60)}")
+            ErrorReporter.api("api_request_failed", it, "/buildings")
         }
         rDef.onSuccess { j ->
             val fresh = j.jsonArray.mapNotNull { it as? JsonObject }

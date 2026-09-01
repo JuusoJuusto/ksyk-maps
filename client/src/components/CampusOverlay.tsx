@@ -285,9 +285,25 @@ export default function CampusOverlay({
     if (map.isStyleLoaded()) {
       runInstall();
     } else {
+      // `idle` fires only after all style resources (fonts, glyphs, tiles)
+      // are fully applied and the first frame is complete — this eliminates
+      // the iOS race where `styledata` fires mid-hydration and the circle
+      // layer's layout object is undefined when the renderer fires.
       map.once("load", styleReadyHandler);
-      map.once("styledata", styleReadyHandler);
+      map.once("idle", styleReadyHandler);
     }
+    // Swallow MapLibre internal render errors (e.g. circle layer undefined
+    // during a style hot-swap). They self-recover on the next frame.
+    const onMapError = (e: { error?: { message?: string } }) => {
+      const msg = e?.error?.message ?? "";
+      console.warn("[CampusOverlay] MapLibre error:", msg);
+      try {
+        import("@/lib/posthog").then(({ default: ph }) => {
+          ph.capture?.("maplibre_render_error", { message: msg });
+        });
+      } catch { /* ignore */ }
+    };
+    map.on("error", onMapError);
     // Safety net — if for any reason install never fired within 500ms
     // of map ready, poll and try once more. Fixes the sporadic
     // "buildings sometimes don't load on first visit" race.
@@ -452,11 +468,11 @@ export default function CampusOverlay({
       document.removeEventListener("mouseup", onMouseUp);
       cc.classList.remove("ksyk-cursor-hover", "ksyk-cursor-drag");
       poiPopup.remove();
-      // Explicitly detach the load/styledata one-offs so a stale
-      // closure from a previous effect run can't fire after this
-      // one has already re-installed everything with fresh state.
+      // Detach load/idle one-offs so a stale closure from a previous
+      // effect run can't fire after this one re-installs with fresh state.
       map.off("load", styleReadyHandler);
-      map.off("styledata", styleReadyHandler);
+      map.off("idle", styleReadyHandler);
+      map.off("error", onMapError);
       window.clearTimeout(safety);
       window.cancelAnimationFrame(raf);
     };

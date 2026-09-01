@@ -8,6 +8,7 @@ import com.posthog.PostHog
 import com.posthog.android.PostHogAndroid
 import com.posthog.android.PostHogAndroidConfig
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.ui.refreshServerMapDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -72,6 +73,11 @@ class KsykApp : Application() {
             appScope.launch(Dispatchers.IO) {
                 try { Api.get(path) } catch (_: Exception) {}
             }
+        }
+        // Fetch server-defined map defaults (camera centre + rotation/tilt)
+        // so MapScreen uses the admin-configured bearing on first open.
+        appScope.launch(Dispatchers.IO) {
+            try { refreshServerMapDefaults(applicationContext) } catch (_: Exception) {}
         }
     }
 

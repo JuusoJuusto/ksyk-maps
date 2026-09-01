@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.60";
+export const APP_VERSION = "4.5.61";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.61",
+    date: "September 2026",
+    title: "iOS map crash fix, PostHog error tracking, tomorrow's schedule, premium onboarding",
+    titleFi: "iOS-karttakaatuminen korjattu, PostHog-virheenseuranta, huomisen lukujärjestys, premium-perehdytys",
+    highlights: [
+      "**iOS map crash fixed:** `campus-pois-chip` circle layer was installed during style loading (`styledata` event) before fonts/glyphs were hydrated. Replaced with `idle` event which fires only after all resources are ready. A MapLibre error handler now catches any remaining render errors before they reach the React error boundary.",
+      "**PostHog error tracking (web):** Global `window.onerror` and `unhandledrejection` handlers now route non-React errors (MapLibre frame crashes, unhandled promises) to `posthog.captureException`. These were previously invisible in PostHog Error Tracking.",
+      "**PostHog error tracking (Android):** New `ErrorReporter` object centralises all non-crash error events. `map_load_failed`, `api_request_failed`, `api_server_error`, and `authentication_failed` now appear in PostHog with device/version context.",
+      "**Tomorrow's schedule (Android):** When today's lessons are all finished or there are no lessons today, the home screen now shows tomorrow's schedule instead of a blank state.",
+      "**Premium onboarding (Android):** Each onboarding page now has a distinct gradient icon with a per-page accent colour (blue → violet → teal → amber). Page dots animate to match. Button colour follows the page accent.",
+      "**Dashboard widgets (Android):** Stat tiles now show per-metric accent colours (rooms=blue, buildings=green, news=amber) with rounded icon containers instead of a flat monochromatic icon.",
+      "**Database rotation:** `refreshServerMapDefaults()` is now called at app startup and on every map data refresh, so admin-configured bearing/rotation applies from first open.",
+    ],
+    highlightsFi: [
+      "**iOS-karttakaatuminen korjattu:** `campus-pois-chip`-kerros asennettiin ennen fonttien latautumista. Korjattu `idle`-tapahtumalla.",
+      "**PostHog-virheenseuranta (web):** Globaalit `onerror`/`unhandledrejection`-käsittelijät reitittävät kaikki ei-React-virheet PostHogiin.",
+      "**PostHog-virheenseuranta (Android):** Uusi `ErrorReporter`-objekti keskittää kaikki virheraportit PostHogiin.",
+      "**Huomisen lukujärjestys:** Kun päivän tunnit ovat päättyneet, kotinäyttö näyttää huomisen tunnit.",
+      "**Premium-perehdytys:** Jokainen perehdytyssivu saa oman värikorostuksensa.",
+      "**Tietopaneelit:** Tilastolaatat näyttävät nyt värikoodatut ikonit.",
+      "**Tietokantakierto:** Palvelimen määrittämä kartan kierto ladataan käynnistyksessä.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.60",
     date: "August 2026",
@@ -30,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Admin-autentikointi (Android):** GET-pyynnöt eivät sisältäneet auth-tokenia — admin-osiot palauttivat 401. Korjattu.",
       "**Web-reitti-jako:** Kaikki muut sivut paitsi etusivu ladataan lazy-latautumalla.",
     ],
-    latest: true,
   },
   {
     version: "4.5.59",

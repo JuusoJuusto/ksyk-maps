@@ -20,6 +20,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -59,10 +61,16 @@ private const val MPASSID_AUTH_URL =
     "&response_type=code" +
     "&scope=openid+profile+email"
 
+private val ONBOARD_BLUE   = Color(0xFF3B82F6)
+private val ONBOARD_VIOLET = Color(0xFF8B5CF6)
+private val ONBOARD_TEAL   = Color(0xFF0D9488)
+private val ONBOARD_AMBER  = Color(0xFFF59E0B)
+
 private data class OnboardPage(
     val icon: ImageVector,
     val title: String,
     val subtitle: String,
+    val accent: Color = ONBOARD_BLUE,
     val isNamePage: Boolean = false,
     val isWilmaPage: Boolean = false,
 )
@@ -70,31 +78,31 @@ private data class OnboardPage(
 private fun buildPages(lang: String): List<OnboardPage> {
     val fi = lang == "fi"
     return listOf(
-        // 0 — Brand introduction
         OnboardPage(
             icon = Icons.Outlined.Map,
+            accent = ONBOARD_BLUE,
             title = if (fi) "Tervetuloa KSYK Mapsiin" else "Welcome to KSYK Maps",
             subtitle = if (fi) "Navigoi kampuksella, löydä luokat ja seuraa lukujärjestystäsi — kaikki yhdessä paikassa."
                        else "Navigate your campus, find classrooms, and track your timetable — all in one place.",
         ),
-        // 1 — Name entry
         OnboardPage(
             icon = Icons.Outlined.Person,
+            accent = ONBOARD_VIOLET,
             title = if (fi) "Mikä sinun nimesi on?" else "What's your name?",
             subtitle = if (fi) "Personalisoimme kokemuksesi sen perusteella. Voit muuttaa sen myöhemmin asetuksissa."
                        else "We'll personalise your experience. You can change this later in Settings.",
             isNamePage = true,
         ),
-        // 2 — Map intro
         OnboardPage(
             icon = Icons.Outlined.MeetingRoom,
+            accent = ONBOARD_TEAL,
             title = if (fi) "Löydä mikä tahansa huone" else "Find any room",
             subtitle = if (fi) "Etsi huonetta numerolla tai nimellä ja hae reittiohjeet. Live-kartta näyttää täsmälleen mihin mennä."
                        else "Search by room number or name and get directions. The live map shows you exactly where to go.",
         ),
-        // 3 — Wilma / timetable
         OnboardPage(
             icon = Icons.Outlined.CalendarMonth,
+            accent = ONBOARD_AMBER,
             title = if (fi) "Lukujärjestyksesi, aina valmiina" else "Your timetable, always ready",
             subtitle = if (fi) "Tuo Wilma-kalenterisi nähdäksesi lukujärjestyksesi automaattisesti. Voit lisätä tunnit myös manuaalisesti."
                        else "Import your Wilma calendar to see your schedule automatically. Add lessons manually too.",
@@ -168,6 +176,8 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 }
             }
 
+            val currentAccent = pages.getOrNull(pagerState.currentPage)?.accent ?: ONBOARD_BLUE
+
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
@@ -186,9 +196,9 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PageDots(total = pages.size, current = pagerState.currentPage)
+                PageDots(total = pages.size, current = pagerState.currentPage, accent = currentAccent)
 
                 Button(
                     onClick = {
@@ -207,14 +217,16 @@ fun OnboardingScreen(onDone: () -> Unit) {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = currentAccent),
                 ) {
                     Text(
                         if (isLast) (if (fi) "Aloita" else "Get started")
                         else (if (fi) "Seuraava" else "Next"),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
+                        color = Color.White,
                     )
                 }
 
@@ -225,12 +237,14 @@ fun OnboardingScreen(onDone: () -> Unit) {
                             onClick = { showWilmaConnect = true },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, currentAccent.copy(alpha = 0.5f)),
                         ) {
-                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp), tint = currentAccent)
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 if (fi) "Yhdistä Wilma-kalenteri" else "Connect Wilma calendar",
                                 fontSize = 14.sp,
+                                color = currentAccent,
                             )
                         }
 
@@ -266,21 +280,35 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String)
     val fi = lang == "fi"
     val keyboard = LocalSoftwareKeyboardController.current
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 32.dp),
+        Modifier.fillMaxSize().padding(horizontal = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(
-            Modifier.size(100.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+            Modifier
+                .size(120.dp)
+                .clip(RoundedCornerShape(34.dp))
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(ONBOARD_VIOLET.copy(alpha = 0.22f), ONBOARD_VIOLET.copy(alpha = 0.06f)),
+                    )
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                Icons.Outlined.Person,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Box(
+                Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(ONBOARD_VIOLET.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = ONBOARD_VIOLET,
+                )
+            }
         }
 
         Spacer(Modifier.height(32.dp))
@@ -324,59 +352,75 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String)
 @Composable
 private fun OnboardPageContent(page: OnboardPage) {
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 32.dp),
+        Modifier.fillMaxSize().padding(horizontal = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        // Gradient icon ring — larger and more visually impactful than a flat circle
         Box(
-            Modifier.size(100.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+            Modifier
+                .size(120.dp)
+                .clip(RoundedCornerShape(34.dp))
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(page.accent.copy(alpha = 0.22f), page.accent.copy(alpha = 0.06f)),
+                    )
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                page.icon,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Box(
+                Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(page.accent.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    page.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = page.accent,
+                )
+            }
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
 
         Text(
             page.title,
-            fontSize = 24.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,
+            lineHeight = 32.sp,
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         Text(
             page.subtitle,
             fontSize = 15.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 22.sp,
+            lineHeight = 23.sp,
         )
     }
 }
 
 @Composable
-private fun PageDots(total: Int, current: Int) {
+private fun PageDots(total: Int, current: Int, accent: Color = ONBOARD_BLUE) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(total) { i ->
             val isSelected = i == current
-            val width by animateDpAsState(targetValue = if (isSelected) 24.dp else 8.dp, label = "dot")
+            val width by animateDpAsState(targetValue = if (isSelected) 28.dp else 8.dp, label = "dot")
             Box(
                 Modifier
                     .height(8.dp)
                     .width(width)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(4.dp))
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        if (isSelected) accent
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
                     )
             )
         }

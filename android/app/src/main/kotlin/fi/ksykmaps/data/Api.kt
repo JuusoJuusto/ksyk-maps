@@ -1,6 +1,7 @@
 package fi.ksykmaps.data
 
 import fi.ksykmaps.BuildConfig
+import fi.ksykmaps.data.ErrorReporter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import okhttp3.MediaType.Companion.toMediaType
@@ -180,7 +181,13 @@ object Api {
                         val parsed = json.parseToJsonElement(text)
                         parsed.toString()
                     } catch (_: Exception) { text }
-                    throw ApiException(resp.code, niceMsg)
+                    val ex = ApiException(resp.code, niceMsg)
+                    if (resp.code == 401 || resp.code == 403) {
+                        ErrorReporter.auth("authentication_failed", mapOf("path" to path, "status" to resp.code))
+                    } else if (resp.code >= 500) {
+                        ErrorReporter.api("api_server_error", ex, path, mapOf("status" to resp.code))
+                    }
+                    throw ex
                 }
                 return if (text.isEmpty()) json.parseToJsonElement("null") else json.parseToJsonElement(text)
             }
