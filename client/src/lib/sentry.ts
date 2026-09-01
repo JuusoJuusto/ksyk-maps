@@ -62,7 +62,7 @@ export function initSentry() {
         const msg = String(err?.message || event.message || "");
         const stack = String(err?.stack || "");
         if (
-          /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
+          /(Cannot read properties of undefined \(reading '(get|getLayer|0)'\)|undefined is not an object \(evaluating '[^']*(\.(get|getLayer)|\[0\])'\))/.test(msg) &&
           /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack)
         ) {
           return null; // drop

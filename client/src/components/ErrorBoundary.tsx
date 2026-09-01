@@ -43,7 +43,7 @@ class ErrorBoundary extends Component<Props, State> {
     const msg = String(error?.message || '');
     const stack = String(error?.stack || '');
     const isMapLibreRender =
-      /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
+      /(Cannot read properties of undefined \(reading '(get|getLayer|0)'\)|undefined is not an object \(evaluating '[^']*(\.(get|getLayer)|\[0\])'\))/.test(msg) &&
       /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack);
     if (isMapLibreRender) {
       // eslint-disable-next-line no-console
