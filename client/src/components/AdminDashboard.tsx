@@ -621,7 +621,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
     { value: "__builder", label: "Builder", Icon: Box, href: "/builder" as const },
     { value: "tickets", label: "Tickets", Icon: Ticket },
     { value: "logs", label: "Logs", Icon: ScrollText },
-    { value: "analytics", label: "Analytics", Icon: LayoutDashboard },
+    { value: "analytics", label: "Analytics", Icon: TrendingUp },
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
     { value: "notifications", label: "Notifications", Icon: Bell },

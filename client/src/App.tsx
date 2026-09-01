@@ -57,6 +57,7 @@ function OfflineBanner() {
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
   if (!offline) return null;
+  const fi = typeof navigator !== "undefined" && navigator.language.startsWith("fi");
   return (
     <div
       role="status"
@@ -68,7 +69,9 @@ function OfflineBanner() {
         display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
       }}
     >
-      No internet connection — the map works, but live data won't update until you reconnect.
+      {fi
+        ? "Ei internet-yhteyttä — kartta toimii, mutta tiedot päivittyvät vasta yhteyden palauduttua."
+        : "No internet connection — the map works, but live data won't update until you reconnect."}
     </div>
   );
 }

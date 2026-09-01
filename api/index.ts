@@ -99,7 +99,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-RateLimit-Reset', new Date(rateLimit.resetTime).toISOString());
 
   if (!rateLimit.allowed) {
-    console.log(`âš ï¸ Rate limit exceeded for IP: ${clientIP}`);
     return res.status(429).json({
       message: 'Too many requests. Please try again later.',
       retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
@@ -121,8 +120,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Query params remain available via req.query which Vercel parses.
     const apiPath = path.replace(/^\/api/, '').split('?')[0];
 
-    console.log(`Handling request: ${req.method} ${apiPath}`);
-    
     // Health check — also served at /api/health for uptime monitors
     if (apiPath === '/' || apiPath === '' || apiPath === '/health') {
       try {
@@ -1102,7 +1099,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Logs endpoint - for error logging
     if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'POST') {
-      console.log('ðŸ“ POST /api/logs - Client log received');
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { appLogs } = await import('../shared/schema.js');
@@ -1162,14 +1158,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Generate ticket ID if not provided
         const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         
-        console.log('\nðŸŽ« ========== CREATING TICKET ==========');
-        console.log('Ticket ID:', ticketId);
-        console.log('Type:', ticketData.type);
-        console.log('Title:', ticketData.title);
-        console.log('Email:', ticketData.email);
-        console.log('Name:', ticketData.name);
-        console.log('========================================\n');
-        
         const ticket = await storage.createTicket({
           ...ticketData,
           ticketId,
@@ -1179,16 +1167,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           priority: ticketData.priority || 'normal',
         });
         
-        console.log('âœ… Ticket created in database');
-        
         // SEND EMAILS AND DISCORD NOTIFICATIONS
         if (ticketData.email && ticketData.email.trim()) {
-          console.log('ðŸ“§ EMAIL PROVIDED - SENDING NOW');
-          console.log('ðŸ“§ Email credentials check:');
-          console.log('   EMAIL_USER:', process.env.EMAIL_USER);
-          console.log('   EMAIL_PASSWORD set:', !!process.env.EMAIL_PASSWORD);
-          console.log('   EMAIL_HOST:', process.env.EMAIL_HOST);
-          console.log('   EMAIL_PORT:', process.env.EMAIL_PORT);
           
           try {
             const { sendTicketEmail } = await import('../server/emailService.js');
@@ -1215,15 +1195,13 @@ Action Required:
 Please review and respond to this ticket in the admin panel.
 Login at: https://ksykmaps.fi/admin`;
             
-            console.log('ðŸ“¤ Sending to owner:', ownerEmail);
-            const ownerResult = await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
+            await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
               ticketId,
               type: ticketData.type,
               title: ticketData.title,
               status: 'pending'
             });
-            console.log('âœ… Owner email result:', ownerResult);
-            
+
             // Send to user with friendly confirmation
             const userEmailBody = `Thank you for contacting KSYK Maps Support!
 
@@ -1242,27 +1220,23 @@ Keep your ticket ID safe for future reference.
 
 Need immediate help? Visit our website at https://ksykmaps.fi`;
             
-            console.log('ðŸ“¤ Sending to user:', ticketData.email);
-            const userResult = await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
+            await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
               ticketId,
               type: ticketData.type,
               title: ticketData.title,
               status: 'pending'
             });
-            console.log('âœ… User email result:', userResult);
           } catch (emailError: any) {
             console.error('âŒ EMAIL ERROR:', emailError);
             console.error('âŒ Error stack:', emailError.stack);
             console.error('âŒ Error message:', emailError.message);
           }
         } else {
-          console.log('âš ï¸ NO EMAIL - skipping');
         }
         
         // Send Discord notification
         if (process.env.VITE_DISCORD_TICKETS_WEBHOOK) {
           try {
-            console.log('ðŸ“¢ Sending Discord notification...');
             const discordEmbed = {
               embeds: [{
                 title: `ðŸŽ« New Support Ticket: ${ticketId}`,
@@ -1284,13 +1258,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(discordEmbed)
             });
-            console.log('âœ… Discord notification sent');
           } catch (discordError: any) {
             console.error('âŒ Discord notification error:', discordError.message);
           }
         }
-        
-        console.log('\nâœ… RETURNING RESPONSE');
         return res.status(201).json({ ticketId, ...ticket });
       }
       
@@ -1462,17 +1433,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       if (req.method === 'POST') {
         const { sendTicketEmail } = await import('../server/emailService.js');
         
-        console.log('\nðŸ§ª ========== TEST EMAIL ENDPOINT ==========');
-        console.log('Environment variables check:');
-        console.log('  EMAIL_HOST:', process.env.EMAIL_HOST);
-        console.log('  EMAIL_PORT:', process.env.EMAIL_PORT);
-        console.log('  EMAIL_USER:', process.env.EMAIL_USER);
-        console.log('  EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***SET***' : 'NOT SET');
-        
         const testEmail = req.body.email || process.env.EMAIL_USER || 'test@example.com';
         const testName = req.body.name || 'Test User';
-        
-        console.log(`\nSending test email to: ${testEmail}`);
         
         try {
           const result = await sendTicketEmail(
@@ -1487,19 +1449,16 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
             }
           );
           
-          console.log('\nTest email result:', result);
-          console.log('==========================================\n');
-          
           return res.status(200).json({
             success: result.success,
             mode: result.mode,
             message: result.success ? 'Email sent successfully!' : 'Email failed to send',
             details: result,
-            envVars: {
-              EMAIL_HOST: process.env.EMAIL_HOST,
-              EMAIL_PORT: process.env.EMAIL_PORT,
-              EMAIL_USER: process.env.EMAIL_USER,
-              EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD
+            envVarsSet: {
+              EMAIL_HOST: !!process.env.EMAIL_HOST,
+              EMAIL_PORT: !!process.env.EMAIL_PORT,
+              EMAIL_USER: !!process.env.EMAIL_USER,
+              EMAIL_PASSWORD: !!process.env.EMAIL_PASSWORD
             }
           });
         } catch (error: any) {
@@ -1522,9 +1481,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(400).json({ message: 'Confirmation required: DELETE_EVERYTHING' });
       }
       
-      console.log('\nðŸ—‘ï¸ ========== COMPLETE DATA CLEANUP ==========');
-      console.log('âš ï¸ DELETING ALL BUILDINGS, ROOMS, HALLWAYS, STAIRS...');
-      
       try {
         let deletedCount = {
           buildings: 0,
@@ -1537,7 +1493,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         
         // Delete all buildings
         const buildings = await storage.getBuildings();
-        console.log(`ðŸ¢ Found ${buildings.length} buildings to delete`);
         for (const building of buildings) {
           await storage.deleteBuilding(building.id);
           deletedCount.buildings++;
@@ -1545,7 +1500,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         
         // Delete all rooms
         const rooms = await storage.getRooms();
-        console.log(`ðŸšª Found ${rooms.length} rooms to delete`);
         for (const room of rooms) {
           await storage.deleteRoom(room.id);
           deletedCount.rooms++;
@@ -1554,19 +1508,16 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         // Delete all hallways
         try {
           const hallways = await storage.getHallways();
-          console.log(`ðŸ›¤ï¸ Found ${hallways.length} hallways to delete`);
           for (const hallway of hallways) {
             await storage.deleteHallway(hallway.id);
             deletedCount.hallways++;
           }
         } catch (error) {
-          console.log('No hallways to delete or method not available');
         }
         
         // Delete all floors
         try {
           const floors = await storage.getFloors();
-          console.log(`ðŸ—ï¸ Found ${floors.length} floors to delete`);
           for (const floor of floors) {
             if (storage.deleteFloor) {
               await storage.deleteFloor(floor.id);
@@ -1574,12 +1525,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
             }
           }
         } catch (error) {
-          console.log('No floors to delete or method not available');
         }
         
         // Delete all announcements
         const announcements = await storage.getAnnouncements(1000);
-        console.log(`ðŸ“¢ Found ${announcements.length} announcements to delete`);
         for (const announcement of announcements) {
           await storage.deleteAnnouncement(announcement.id);
           deletedCount.announcements++;
@@ -1588,24 +1537,13 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         // Delete all staff
         try {
           const staff = await storage.getStaff();
-          console.log(`ðŸ‘¥ Found ${staff.length} staff members to delete`);
           for (const staffMember of staff) {
             await storage.deleteStaff(staffMember.id);
             deletedCount.staff++;
           }
         } catch (error) {
-          console.log('No staff to delete or method not available');
         }
         
-        console.log('\nâœ… CLEANUP COMPLETE!');
-        console.log('ðŸ“Š Deletion Summary:');
-        console.log(`   Buildings: ${deletedCount.buildings}`);
-        console.log(`   Rooms: ${deletedCount.rooms}`);
-        console.log(`   Hallways: ${deletedCount.hallways}`);
-        console.log(`   Floors: ${deletedCount.floors}`);
-        console.log(`   Announcements: ${deletedCount.announcements}`);
-        console.log(`   Staff: ${deletedCount.staff}`);
-        console.log('==========================================\n');
         
         return res.status(200).json({
           success: true,
@@ -1681,9 +1619,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
       const emailLower = email.toLowerCase();
 
-      console.log('\nðŸ” ========== API LOGIN ATTEMPT ==========');
-      console.log('Email:', email, '(lower:', emailLower + ')');
-      console.log('Password length:', password?.length);
 
       if (!email || !password) {
         return res.status(400).json({ message: 'Email and password required', success: false });
@@ -1704,7 +1639,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         if (plain !== stored) return false;
         try {
           await storage.upsertUser({ id: userId, password: plain } as any);
-          console.log('ðŸ”’ Auto-upgraded legacy plaintext password â†’ bcrypt for', userId);
         } catch (err) {
           console.warn('âš ï¸ Auto-upgrade of legacy password failed (still allowing login):', err);
         }
@@ -1721,7 +1655,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       // out by a corrupt user record or a hashing regression. Docs
       // recommend clearing OWNER_PASSWORD after using it once.
       if (isOwner && process.env.OWNER_PASSWORD && password === process.env.OWNER_PASSWORD) {
-        console.log('âœ… OWNER break-glass login via OWNER_PASSWORD env var');
         // Try to ensure a matching user record exists so the rest of
         // the admin panel finds someone to attach to.
         let ownerUser: any = await storage.getUserByEmail(OWNER_EMAIL).catch(() => null);
@@ -1739,7 +1672,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
               password: password,
               isTemporaryPassword: false,
             } as any);
-            console.log('ðŸ†• Created owner user record from break-glass login');
           } catch (err) {
             console.warn('âš ï¸ Could not create owner user record (continuing anyway):', err);
             ownerUser = {
@@ -1787,13 +1719,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
 
       if (!user) {
-        console.log('âŒ User not found in database (tried both cases + scan)');
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
-      console.log('âœ… User found: id=' + user.id + ' role=' + user.role);
 
       if (!user.password) {
-        console.log('âŒ User has no password set');
         return res.status(401).json({
           success: false,
           message: 'Password not set. Please check your email for password setup link.',
@@ -1802,11 +1731,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
       const ok = await verifyAndUpgrade(password, user.password, user.id);
       if (!ok) {
-        console.log(`âŒ Password mismatch (${isOwner ? 'owner' : 'admin'}) â€” stored format: ${isAlreadyHashed(user.password) ? 'bcrypt' : 'plaintext'}`);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
-      console.log(`âœ… ${isOwner ? 'OWNER' : 'ADMIN'} login successful for ${email}`);
       const { password: _pw2, passwordResetToken: _tk2, passwordResetExpiry: _ex2, ...safeUser } = user as any;
       const adminToken = generateAdminToken(user.id, user.role || 'admin');
       return res.status(200).json({
@@ -1850,16 +1777,12 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
-    // Password change endpoint â€” requires admin token (admin setting another user's password)
     if (apiPath === '/auth/change-password' && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       const { newPassword } = req.body;
       
-      console.log('\nðŸ” ========== PASSWORD CHANGE ==========');
-      console.log('New password length:', newPassword?.length);
       
       if (!newPassword || newPassword.length < 6) {
-        console.log('âŒ Password too short');
         return res.status(400).json({ message: "Password must be at least 6 characters" });
       }
       
@@ -1868,7 +1791,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       const { userId, email } = req.body;
       
       if (!userId && !email) {
-        console.log('âŒ No user identifier provided');
         return res.status(400).json({ message: "User identifier required" });
       }
       
@@ -1881,11 +1803,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
         
         if (!user) {
-          console.log('âŒ User not found');
-          return res.status(404).json({ message: "User not found" });
         }
         
-        console.log('ðŸ“ Updating password for:', user.email);
         
         // Update user password
         await storage.upsertUser({
@@ -1894,25 +1813,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           isTemporaryPassword: false
         });
         
-        console.log('âœ… Password changed successfully');
-        console.log('=====================================\n');
         
         return res.status(200).json({ 
           success: true, 
-          message: "Password changed successfully" 
         });
       } catch (error: any) {
-        console.error('âŒ Password change error:', error);
         return res.status(500).json({ message: "Failed to change password" });
       }
     }
 
-    // Password reset request endpoint
     if (apiPath === '/auth/forgot-password' && req.method === 'POST') {
       const { email, resetPath } = req.body;
       
-      console.log('\nðŸ“§ ========== PASSWORD RESET REQUEST ==========');
-      console.log('Email:', email);
       
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -1934,7 +1846,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
         // Always return success to prevent email enumeration
         if (!user) {
-          console.log('Password reset requested for non-existent email:', email);
           return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
         }
         
@@ -1959,7 +1870,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           const emailService = await import('../server/emailService.js');
           await emailService.sendEmail({
             to: email,
-            subject: 'Password Reset Request - KSYK Maps Wilma',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(135deg, #003d82 0%, #0052a3 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -1984,27 +1894,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
               </div>
             `
           });
-          console.log('âœ… Password reset email sent to:', email);
         } catch (emailError) {
-          console.error('âŒ Failed to send password reset email:', emailError);
           return res.status(500).json({ message: "Failed to send reset email" });
         }
         
-        console.log('==============================================\n');
         return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
       } catch (error: any) {
-        console.error('âŒ Password reset error:', error);
-        return res.status(500).json({ message: "Failed to process password reset request" });
       }
     }
 
-    // Password reset verification and update endpoint
     if (apiPath === '/auth/reset-password' && req.method === 'POST') {
       const { token, newPassword } = req.body;
       
-      console.log('\nðŸ” ========== PASSWORD RESET ==========');
-      console.log('Token provided:', !!token);
-      console.log('New password length:', newPassword?.length);
       
       if (!token || !newPassword) {
         return res.status(400).json({ message: "Token and new password are required" });
@@ -2019,13 +1920,11 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         const user = users.find((u: any) => u.passwordResetToken === token);
         
         if (!user) {
-          console.log('âŒ Invalid token');
           return res.status(400).json({ message: "Invalid or expired reset token" });
         }
         
         // Check if token is expired
         if (user.passwordResetExpiry && new Date(user.passwordResetExpiry) < new Date()) {
-          console.log('âŒ Token expired');
           return res.status(400).json({ message: "Reset token has expired" });
         }
         
@@ -2038,11 +1937,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           isTemporaryPassword: false
         });
         
-        console.log('âœ… Password reset successful for user:', user.email);
-        console.log('======================================\n');
         return res.status(200).json({ success: true, message: "Password has been reset successfully" });
       } catch (error: any) {
-        console.error('âŒ Password reset error:', error);
         return res.status(500).json({ message: "Failed to reset password" });
       }
     }
@@ -2127,27 +2023,18 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
         // If email option, send invitation email with password
         if (passwordOption === 'email') {
-          console.log(`\nðŸ“§ ========== EMAIL INVITATION ==========`);
-          console.log(`Target: ${email}`);
-          console.log(`Name: ${firstName} ${lastName}`);
           
           try {
             const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
             
-            console.log(`\nðŸ“§ EMAIL RESULT:`);
-            console.log(`   Success: ${emailResult.success}`);
-            console.log(`   Mode: ${emailResult.mode}`);
             
             if (emailResult.success) {
-              console.log(`âœ… EMAIL SENT to ${email}`);
             } else {
-              console.log(`âš ï¸ EMAIL NOT SENT (mode: ${emailResult.mode})`);
             }
           } catch (error: any) {
             console.error('âŒ EMAIL ERROR:', error.message);
           }
           
-          console.log(`==========================================\n`);
         }
 
         return res.status(201).json({ ...newUser, password: finalPassword });
@@ -2161,7 +2048,6 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         if (req.method === 'GET') {
           const user = await storage.getUser(id);
           if (!user) {
-            return res.status(404).json({ message: 'User not found' });
           }
           return res.status(200).json(user);
         }
@@ -2217,9 +2103,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
                 sessionInfo
               });
             }
-            console.log(`ðŸ“Š Tracked ${events.length} analytics events from ${realIP}`);
           } else {
-            console.log(`ðŸ“Š Analytics tracking skipped (storage method not implemented)`);
           }
         } catch (storageError) {
           console.error('Analytics storage error (non-critical):', storageError);

@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.64";
+export const APP_VERSION = "4.5.65";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.65",
+    date: "September 2026",
+    title: "Security: scrub sensitive logs from API + client analytics icon fix",
+    titleFi: "Tietoturva: poistettu arkaluonteiset lokit API:sta ja korjattu analytiikkaikoni",
+    highlights: [
+      "**Server log cleanup:** Removed all console.log calls from the API that logged emails, names, password lengths, user IDs, or email server credentials. Ticket creation, admin login, password change/reset, and email invitation flows no longer leak PII to server logs.",
+      "**Test email endpoint hardening:** `/api/test-email` now returns boolean flags for env vars instead of actual values (EMAIL_HOST, EMAIL_USER were previously returned as plaintext to authenticated admins).",
+      "**Admin dashboard:** Fixed duplicate LayoutDashboard icon — Analytics tab now uses TrendingUp icon.",
+      "**Offline banner:** Now shows Finnish message when `navigator.language` is Finnish.",
+    ],
+    highlightsFi: [
+      "**API-lokien siivous:** Poistettu kaikki console.log-kutsut, jotka kirjoittivat sähköpostiosoitteita, nimiä, salasanapituuksia tai käyttäjätunnuksia palvelinlokeihin.",
+      "**Sähköpostitestipäätepiste:** Palauttaa nyt boolean-lipun ympäristömuuttujille arvojen sijaan.",
+      "**Hallintapaneeli:** Korjattu duplikoitu LayoutDashboard-ikoni — Analytiikka-välilehti käyttää nyt TrendingUp-ikonia.",
+      "**Offline-banneri:** Näyttää nyt suomenkielisen viestin kun selain on asetettu suomeksi.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.64",
     date: "September 2026",
