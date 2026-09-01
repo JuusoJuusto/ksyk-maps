@@ -1502,7 +1502,7 @@ private fun DetailSheet(
                 }
             }
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Outlined.Close, null)
+                Icon(Icons.Outlined.Close, contentDescription = if (lang == "fi") "Sulje" else "Close")
             }
         }
         Spacer(Modifier.height(14.dp))

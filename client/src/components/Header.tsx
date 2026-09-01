@@ -213,6 +213,9 @@ export default function Header({
                     ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 )}
+                aria-label={theme === 'dark'
+                  ? (currentLang === 'fi' ? 'Vaihda vaaleaan tilaan' : 'Switch to light mode')
+                  : (currentLang === 'fi' ? 'Vaihda tummaan tilaan' : 'Switch to dark mode')}
                 title={`Theme: ${theme} — click to toggle`}
               >
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

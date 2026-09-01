@@ -10,9 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.65";
+export const APP_VERSION = "4.5.66";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.66",
+    date: "September 2026",
+    title: "Accessibility: bilingual aria-labels on web + Android icon buttons",
+    titleFi: "Saavutettavuus: kaksikieliset aria-labelit webissä ja Android-kuvakepainikkeissa",
+    highlights: [
+      "**Web — theme toggle button:** Added bilingual `aria-label` to the desktop header theme toggle (was only `title`), so screen readers announce 'Switch to dark/light mode' correctly in Finnish and English.",
+      "**Android — back button:** LogsScreen back IconButton now has `contentDescription = 'Back'/'Takaisin'`.",
+      "**Android — close button:** MapScreen detail sheet close IconButton now has `contentDescription = 'Close'/'Sulje'`.",
+      "**Android — dead code removal:** Deleted unused BuildingsScreen.kt (was never mounted in MainActivity).",
+    ],
+    highlightsFi: [
+      "**Web — teematoggle:** Lisätty kaksikielinen `aria-label` otsikkopalkin teematogglelle (oli vain `title`), jotta ruudunlukijat kuulevat 'Vaihda tummaan/vaaleaan tilaan' oikein.",
+      "**Android — takaisin-painike:** LogsScreen-ruudun takaisin-IconButton saa nyt contentDescription-arvon.",
+      "**Android — sulku-painike:** MapScreen-tietopaneelin sulku-IconButton saa nyt contentDescription-arvon.",
+      "**Android — kuollut koodi poistettu:** BuildingsScreen.kt poistettu (ei ollut koskaan käytössä MainActivity:ssa).",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.65",
     date: "September 2026",
@@ -30,7 +49,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Hallintapaneeli:** Korjattu duplikoitu LayoutDashboard-ikoni — Analytiikka-välilehti käyttää nyt TrendingUp-ikonia.",
       "**Offline-banneri:** Näyttää nyt suomenkielisen viestin kun selain on asetettu suomeksi.",
     ],
-    latest: true,
   },
   {
     version: "4.5.64",

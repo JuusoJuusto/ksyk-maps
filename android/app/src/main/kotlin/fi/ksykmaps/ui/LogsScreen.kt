@@ -72,7 +72,7 @@ fun LogsScreen(onBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, null)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = if (isFi) "Takaisin" else "Back")
                     }
                 },
                 actions = {
