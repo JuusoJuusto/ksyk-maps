@@ -112,7 +112,12 @@ export function useNavGraph() {
     writeGraph({ ...g, edges: g.edges.filter((e) => e.id !== id) });
   }, []);
 
+  const updateNode = useCallback((id: string, patch: Partial<Omit<NavNode, "id">>) => {
+    const g = readGraph();
+    writeGraph({ ...g, nodes: g.nodes.map((n) => n.id === id ? { ...n, ...patch } : n) });
+  }, []);
+
   const clear = useCallback(() => writeGraph({ nodes: [], edges: [] }), []);
 
-  return { graph, addNode, removeNode, addEdge, removeEdge, clear };
+  return { graph, addNode, removeNode, updateNode, addEdge, removeEdge, clear };
 }

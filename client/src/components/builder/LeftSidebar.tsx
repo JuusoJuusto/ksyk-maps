@@ -37,7 +37,8 @@ export interface LeftSidebarSelection {
   // doors/stairs/elevators/generic POIs. The builder's own selection
   // dispatch (from BuilderPois' click handler) sets these; the left
   // sidebar's list clicks still only produce building/room/hallway.
-  kind: "building" | "room" | "hallway" | "door" | "stair" | "elevator" | "poi";
+  // v3.50.0 — "node" added so nav-node rows open PropertyPanel.
+  kind: "building" | "room" | "hallway" | "door" | "stair" | "elevator" | "poi" | "node";
   id: string;
 }
 
@@ -404,6 +405,8 @@ function StructureList({
       onSelect({ kind: "hallway", id: it.id });
     } else if (it.kind === "corridor") {
       onSelect({ kind: "room", id: it.id });
+    } else if (it.kind === "navnode") {
+      onSelect({ kind: "node", id: it.id });
     }
     if (it.focusLat != null && it.focusLng != null) {
       try { window.dispatchEvent(new CustomEvent("ksyk:focus-point", { detail: { lat: it.focusLat, lng: it.focusLng, kind: it.kind, id: it.id } })); } catch { /* SSR */ }

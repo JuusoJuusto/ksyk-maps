@@ -41,9 +41,7 @@ export function QRCodeGenerator() {
           text: `Navigate to room ${roomCode} at KSYK`,
           url: qrCodeUrl
         });
-      } catch (error) {
-        console.log('Share failed:', error);
-      }
+      } catch { /* share API unavailable or cancelled by user */ }
     }
   };
 

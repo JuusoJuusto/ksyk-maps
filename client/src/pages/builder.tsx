@@ -1178,6 +1178,19 @@ function BuilderWorkspace() {
           const isCorridor = kind === "room" && hit.properties?.type === "hallway";
           return { kind, id: hit.properties.id, isCorridor };
         };
+        // Nav nodes take priority — they're small dots that sit on top of
+        // other layers and are easy to miss if rooms/buildings win first.
+        const navNodeSelectLayers = ["builder-nav-nodes"].filter((id) => map.getLayer(id));
+        const navNodeSelectHit = navNodeSelectLayers.length
+          ? map.queryRenderedFeatures(e.point, { layers: navNodeSelectLayers })[0]
+          : null;
+        if (navNodeSelectHit && typeof navNodeSelectHit.properties?.id === "string") {
+          clearMultiSelection();
+          setSelection({ kind: "node", id: navNodeSelectHit.properties.id });
+          setSidebarTab("pois");
+          return;
+        }
+
         const pick = tryQuery(roomLayers) ?? tryQuery(hallLayers) ?? tryQuery(bldgLayers);
         // Construction line hit — select the clicked line (for deletion).
         const tempLineLayers = ["builder-temp-lines-line"].filter((id) => map.getLayer(id));
@@ -2527,8 +2540,14 @@ function BuilderWorkspace() {
           .catch(() => toast({ title: "Delete failed", variant: "destructive" }));
         return;
       }
+      case "node": {
+        if (!confirm("Delete this nav node? All connected edges will also be removed.")) return;
+        navGraph.removeNode(selection.id);
+        setSelection(null);
+        return;
+      }
     }
-  }, [selection, deleteBuilding, deleteRoom, deleteHallway, hallwaysQ.data, qc]);
+  }, [selection, deleteBuilding, deleteRoom, deleteHallway, hallwaysQ.data, qc, navGraph]);
 
   /** Duplicate every selected building + room with a small SE offset.
    *  Figma-standard behaviour (⌘D). New polygons register with undo so
@@ -3331,6 +3350,9 @@ function BuilderWorkspace() {
             } else if (selection.kind === "poi") {
               const p = (poisQ.data ?? []).find((x) => (x as { id: string }).id === selection.id);
               if (p) entity = { kind: "poi", data: p as never };
+            } else if (selection.kind === "node") {
+              const n = navGraph.graph.nodes.find((x) => x.id === selection.id);
+              if (n) entity = { kind: "node", data: n };
             }
             if (!entity) return null;
             return (
@@ -3539,6 +3561,9 @@ function BuilderWorkspace() {
               // fitBounds — otherwise focusSelection reads the OLD
               // selectedIds and no-ops.
               setTimeout(focusSelection, 0);
+            } else if (t.kind === "node") {
+              const n = navGraph.graph.nodes.find((x) => x.id === t.id);
+              if (n) handleRef.current?.map.flyTo({ center: [n.lng, n.lat], zoom: 19, duration: 400 });
             }
             setContextMenu(null);
           }}
@@ -3550,6 +3575,9 @@ function BuilderWorkspace() {
             } else if (t.kind === "room") {
               setSelection({ kind: "room", id: t.id });
               setSidebarTab("rooms");
+            } else if (t.kind === "node") {
+              setSelection({ kind: "node", id: t.id });
+              setSidebarTab("pois");
             }
             setContextMenu(null);
           }}
@@ -4243,6 +4271,9 @@ function BuilderContextMenu({
         )}
         {isNode && (
           <>
+            <ContextMenuItem label="Properties" onClick={onProperties} shortcut="Enter" />
+            <ContextMenuItem label="Focus" onClick={onFocus} shortcut="F" />
+            <ContextMenuSeparator />
             <ContextMenuItem label="Route from here" onClick={onRouteFrom} />
             <ContextMenuItem label="Route to here" onClick={onRouteTo} />
             <ContextMenuSeparator />

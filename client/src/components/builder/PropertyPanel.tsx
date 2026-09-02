@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation, Plus } from "lucide-react";
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
-import { useNavGraph } from "@/lib/navGraph";
+import { useNavGraph, type NavNode } from "@/lib/navGraph";
 
 type HistoryRecord = React.RefObject<HistoryRecordFn | undefined>;
 
@@ -57,7 +57,8 @@ export type SelectedEntity =
   | { kind: "door"; data: PointPoi & { isEntrance?: boolean; isExit?: boolean } }
   | { kind: "stair"; data: PointPoi }
   | { kind: "elevator"; data: PointPoi }
-  | { kind: "poi"; data: PointPoi & { kind?: string } };
+  | { kind: "poi"; data: PointPoi & { kind?: string } }
+  | { kind: "node"; data: NavNode };
 
 export interface PointPoi {
   id: string;
@@ -119,8 +120,10 @@ export default function PropertyPanel({ entity, onDelete, onClose, onTabChange, 
   }, [entity.kind, entity.kind === "hallway" ? (entity.data as Hallway).surface : null]);
   // v3.28.1 — point POI kinds (door/stair/elevator/poi) don't have
   // polygon-style, transform, or per-feature metadata knobs yet.
+  // v3.50.0 — nav nodes are the same: properties only.
   const isPointPoi = entity.kind === "door" || entity.kind === "stair" ||
-                     entity.kind === "elevator" || entity.kind === "poi";
+                     entity.kind === "elevator" || entity.kind === "poi" ||
+                     entity.kind === "node";
   const visibleTabs = isPointPoi
     ? TABS.filter((t) => t.id === "props")
     : TABS;
@@ -216,6 +219,7 @@ function KindDot({ entity }: { entity: SelectedEntity }) {
     case "stair":     color = "#f59e0b"; break;
     case "elevator":  color = "#2563eb"; break;
     case "poi":       color = "#8b5cf6"; break;
+    case "node":      color = "#7c3aed"; break;
   }
   return <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ background: color }} />;
 }
@@ -236,6 +240,7 @@ function titleFor(entity: SelectedEntity): string {
   if (entity.kind === "door") return entity.data.isEntrance ? "Entrance" : entity.data.isExit ? "Exit" : "Door";
   if (entity.kind === "stair") return "Stairs";
   if (entity.kind === "elevator") return "Elevator";
+  if (entity.kind === "node") return entity.data.label || `Nav node ${entity.data.id.slice(2, 8)}`;
   return `POI (${entity.data.kind ?? "other"})`;
 }
 
@@ -319,6 +324,7 @@ function PropsTab({ entity, onHistoryRecord }: { entity: SelectedEntity; onHisto
   if (entity.kind === "room") return <RoomProps room={entity.data} onHistoryRecord={onHistoryRecord} />;
   if (entity.kind === "corridor") return <CorridorProps room={entity.data} onHistoryRecord={onHistoryRecord} />;
   if (entity.kind === "hallway") return <HallwayProps hallway={entity.data} onHistoryRecord={onHistoryRecord} />;
+  if (entity.kind === "node") return <NavNodeProps node={entity.data} />;
   // v3.28.1 — point POI forms. All four share the same core (floor +
   // position + delete); doors additionally have isEntrance/isExit
   // toggles; generic POIs have a `kind` string.
@@ -328,6 +334,51 @@ function PropsTab({ entity, onHistoryRecord }: { entity: SelectedEntity; onHisto
     entity.kind === "elevator" ? "elevators" :
     "pois";
   return <PointPoiProps poi={entity.data} kind={entity.kind} resource={resource} />;
+}
+
+/** Inline editor for a localStorage-backed nav graph node. */
+function NavNodeProps({ node }: { node: NavNode }) {
+  const { updateNode } = useNavGraph();
+  const [label, setLabel] = useState(node.label ?? "");
+  const [floor, setFloor] = useState(node.floor);
+  const [kind, setKind] = useState<NavNode["kind"]>(node.kind ?? "junction");
+
+  const dirty = label !== (node.label ?? "") || floor !== node.floor || kind !== (node.kind ?? "junction");
+
+  const save = () => {
+    updateNode(node.id, { label: label.trim() || undefined, floor, kind });
+  };
+
+  return (
+    <div className="space-y-4">
+      <TextField label="Label" value={label} onChange={setLabel} placeholder="e.g. K corridor junction 3" />
+      <NumberField label="Floor" value={floor} onChange={setFloor} min={0} max={10} step={1} />
+      <div className="space-y-1">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Kind</label>
+        <select
+          value={kind}
+          onChange={(e) => setKind(e.target.value as NavNode["kind"])}
+          className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        >
+          <option value="junction">Junction (corridor crossing)</option>
+          <option value="room">Room entrance</option>
+          <option value="stairs">Stairs landing</option>
+          <option value="elevator">Elevator stop</option>
+          <option value="entrance">Building entrance</option>
+        </select>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
+        <p className="text-xs font-mono text-muted-foreground tabular-nums">
+          {node.lat.toFixed(6)}, {node.lng.toFixed(6)}
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          Saved in localStorage — synced to server with the routing API.
+        </p>
+      </div>
+      <DirtySaveButton isDirty={dirty} isPending={false} onSave={save} />
+    </div>
+  );
 }
 
 /** Point-POI editor — one form for door / stair / elevator / poi. */

@@ -10,9 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.67";
+export const APP_VERSION = "4.5.68";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.68",
+    date: "September 2026",
+    title: "Builder: full nav node tool support — select, edit, delete, context menu",
+    titleFi: "Rakentaja: täysi navigointisolmutyökalujen tuki — valinta, muokkaus, poisto, kontekstivalikko",
+    highlights: [
+      "**Nav node selection:** Clicking a nav node in Select mode now selects it and opens the PropertyPanel — previously nodes were invisible to the select tool.",
+      "**Nav node properties:** PropertyPanel now shows a full form for nav nodes: label, floor number, and kind (Junction / Room entrance / Stairs landing / Elevator stop / Building entrance).",
+      "**Nav node delete:** Delete key and the 'Delete' button in PropertyPanel both correctly remove nav nodes (cascading edge removal was already in navGraph.removeNode).",
+      "**Nav node context menu:** Right-clicking a node now shows Properties, Focus, Route from here, Route to here, and Delete — previously only Route from/to and Delete were shown.",
+      "**Sidebar selection:** Clicking a nav node row in the Structure sidebar now selects it and opens PropertyPanel, instead of only flying the camera.",
+      "**`updateNode` hook:** navGraph hook gains `updateNode(id, patch)` for editing node metadata (label, floor, kind) without replacing the full graph.",
+    ],
+    highlightsFi: [
+      "**Navigointisolmun valinta:** Navigointisolmun napsauttaminen valintatilassa avaa nyt ominaisuuspaneelin.",
+      "**Navigointisolmun ominaisuudet:** Ominaisuuspaneelissa on nyt täysi lomake navigointisolmuille: etiketti, kerros ja tyyppi.",
+      "**Navigointisolmun poisto:** Delete-näppäin ja poistopainike toimivat nyt oikein navigointisolmuille.",
+      "**Kontekstivalikko:** Oikealla napsautuksella avautuu nyt Ominaisuudet, Tarkenna, Reitti täältä, Reitti tänne ja Poista.",
+      "**Sivupalkin valinta:** Navigointisolmurivin napsauttaminen avaa nyt ominaisuuspaneelin.",
+      "**`updateNode`-koukku:** navGraph-koukku saa `updateNode(id, patch)` -funktion solmumetadatan muokkaamiseen.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.67",
     date: "September 2026",
@@ -36,7 +59,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Android-versio:** Nostettu 1.53.0 / versionCode 55.",
       "**TypeScript:** Korjattu vanhat `latest:`-duplikaatit changelog-merkinnöissä ja implisiittinen `any` posthog.ts-lataajassa.",
     ],
-    latest: true,
   },
   {
     version: "4.5.66",
