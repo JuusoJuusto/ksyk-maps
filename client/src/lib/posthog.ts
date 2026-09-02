@@ -116,7 +116,7 @@ if (shouldInit()) {
       // it defensively in loaded() in case the SDK ever bypasses the
       // config flag from a URL param we didn't strip.
       disable_toolbar_metrics: true,
-      loaded: (ph) => {
+      loaded: (ph: typeof posthog) => {
         try { (ph as any)?.toolbar?.close?.(); } catch { /* ignore */ }
         // Sync consent state on load.
         try {

@@ -1,4 +1,4 @@
-/** In-app changelog — sync with CHANGELOG.md on GitHub */
+﻿/** In-app changelog — sync with CHANGELOG.md on GitHub */
 
 export type ChangelogEntry = {
   version: string;
@@ -10,9 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.66";
+export const APP_VERSION = "4.5.67";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.67",
+    date: "September 2026",
+    title: "Production polish: map error surface, PostHog event alignment, API security, TS fixes",
+    titleFi: "Tuotantohionta: karttavirheenäyttö, PostHog-tapahtumat, API-tietoturva, TS-korjaukset",
+    highlights: [
+      "**Map load error UI:** CampusMap now surfaces a 'Map unavailable — retry' screen when the GL watchdog fires (6s timeout), instead of silently showing a blank map. Fires `map_load_failed` to PostHog.",
+      "**`map_loaded` event:** Web and Android both now capture `map_loaded` with building/room counts when the map and campus data are first ready.",
+      "**PostHog event alignment:** Android renamed `map_directions_started` → `directions_opened` to match the web. Android gains `map_floor_selected` and `map_loaded` events.",
+      "**API error sanitization:** Outer catch no longer includes `error.message` in the 500 response body. Health check 503 no longer leaks db error details.",
+      "**Android error messages:** `Api.friendly()` now returns clean user-facing strings for 403, 5xx, and unknown errors instead of raw exception `.message`. LunchScreen stops surfacing `localizedMessage`.",
+      "**Android version:** Bumped to 1.53.0 / versionCode 55.",
+      "**TypeScript:** Fixed pre-existing `latest:` duplicate properties in changelog entries and implicit `any` in posthog.ts loader callback.",
+    ],
+    highlightsFi: [
+      "**Kartan latausvirhe:** CampusMap näyttää nyt 'Kartta ei käytettävissä — yritä uudelleen' kun watchdog laukeaa, eikä näytä tyhjää karttaa hiljaisesti.",
+      "**`map_loaded`-tapahtuma:** Web ja Android sieppaavat nyt `map_loaded`-tapahtuman rakennus- ja huonemäärien kanssa.",
+      "**PostHog-tapahtumien yhdenmukaistaminen:** Android uudelleennimesi `map_directions_started` → `directions_opened`. Lisätty `map_floor_selected` ja `map_loaded`.",
+      "**API-virhesaneeraus:** Ulompi catch ei enää sisällä `error.message`-kenttää 500-vastauksessa.",
+      "**Android-virheilmoitukset:** `Api.friendly()` palauttaa nyt siistit käyttäjäystävälliset tekstit poikkeusten sijaan.",
+      "**Android-versio:** Nostettu 1.53.0 / versionCode 55.",
+      "**TypeScript:** Korjattu vanhat `latest:`-duplikaatit changelog-merkinnöissä ja implisiittinen `any` posthog.ts-lataajassa.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.66",
     date: "September 2026",
@@ -30,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Android — sulku-painike:** MapScreen-tietopaneelin sulku-IconButton saa nyt contentDescription-arvon.",
       "**Android — kuollut koodi poistettu:** BuildingsScreen.kt poistettu (ei ollut koskaan käytössä MainActivity:ssa).",
     ],
-    latest: true,
   },
   {
     version: "4.5.65",
@@ -65,7 +89,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Gemini-alustus:** Poistettu moduulitason console.log-kutsut, jotka suorittuivat jokaisella importilla.",
       "**Tikettivirtaus:** Tikettimutaation debug-lokit poistettu — ne kirjoittivat lomakkeen tietoja (sähköposti, nimi) selaimen konsoliin.",
     ],
-    latest: true,
   },
   {
     version: "4.5.63",
@@ -397,7 +420,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     version: "4.5.45",
     date: "August 2026",
     title: "Mobile: map colors fixed, satellite basemap, Vercel bypass, expanded admin panel",
-    latest: false,
     titleFi: "Mobiili: karttavärit korjattu, satelliittinäkymä, Vercel-ohitus, laajennettu hallintapaneeli",
     highlights: [
       "**Buildings and rooms now render on the mobile map** — replaced the data-driven color expression (Expression.toColor(Expression.get(\"color\"))) that was silently failing in MapLibre-Android with hardcoded layer colors (buildings blue, rooms green with per-type tinting via Expression.match on the `type` property, which is well-supported). This is why only walls showed before — walls were the only layer already using a hardcoded color.",
@@ -430,7 +452,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     version: "4.5.43",
     date: "August 2026",
     title: "Mobile: Apple-Maps-style controls; lunch defaults to today; loading + retry states",
-    latest: false,
     titleFi: "Mobiili: Apple Maps -tyyliset kontrollit; lounas näyttää tänään; latautuminen + yritä uudelleen",
     highlights: [
       "**Map controls redesigned in Apple Maps / MazeMap style** — zoom in/out and 3D toggle are now grouped in a single rounded pill with hairline dividers. Added a dedicated 'Fit campus' button that re-centers the map on the buildings when you've wandered off.",
@@ -566,7 +587,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
     version: "4.5.35",
     date: "August 2026",
-    latest: false,
     title: "Notifications: jakso-filtered reminders + HIGH priority; buildings and rooms more visible on map; lunch shows current day; dashboard jakso filter",
     titleFi: "Ilmoitukset: jakso-suodatus + korkea prioriteetti; rakennukset ja huoneet näkyvämpiä kartalla; lounas näyttää tämän päivän; kojelauta jakso-suodatus",
     highlights: [
@@ -583,7 +603,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Lounassivu avautuu tämän päivän kohdalle** — valitsee automaattisesti tämän päivän tai seuraavan päivän jolla on ruoka.",
       "**Kojelauta suodattaa tunnit aktiivisen jakson mukaan** — jakso-2 tunnit eivät enää näy kojelaudalla jakso-1:n aikana.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.34",
@@ -883,7 +903,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Improved: Admin recent errors section has a View all button linking to Logs tab",
       "Bump: Student app 1.12.0 / Admin app 1.1.0",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.15",
@@ -898,7 +918,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "Improved: Home screen greeting is now time-aware (Good morning/afternoon/evening)",
       "Improved: Anonymous users shown as 'Student' instead of 'guest'",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.14",
@@ -3273,3 +3293,4 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
     ],
   },
 ];
+

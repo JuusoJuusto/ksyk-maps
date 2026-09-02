@@ -3,6 +3,7 @@
  * Prevents brute force attacks by limiting failed login attempts
  */
 
+// @ts-expect-error firebase-admin types not installed in this workspace
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Lazy-load Firestore to avoid initialization issues
@@ -227,7 +228,7 @@ export async function cleanupOldLoginAttempts(): Promise<number> {
       .get();
     
     const batch = db.batch();
-    snapshot.docs.forEach(doc => {
+    snapshot.docs.forEach((doc: any) => {
       batch.delete(doc.ref);
     });
     

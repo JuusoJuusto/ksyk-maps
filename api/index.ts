@@ -136,7 +136,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(503).json({
           status: 'degraded',
           db: 'unreachable',
-          error: (err as Error).message,
           ts: new Date().toISOString(),
         });
       }
@@ -3768,9 +3767,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     });
     try { await Promise.all([flushLogs(), posthogFlush()]); } catch { /* ignore */ }
 
-    return res.status(500).json({
-      message: "Internal server error",
-      error: error.message
-    });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 }
+

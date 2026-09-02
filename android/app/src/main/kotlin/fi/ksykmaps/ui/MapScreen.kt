@@ -317,6 +317,14 @@ fun MapScreen() {
             val fresh = j.jsonArray.mapNotNull { it as? JsonObject }
             if (fresh.isNotEmpty() && fresh != hallways) hallways = fresh
         }
+        if (dataRetry == 0 && bDef.isSuccess && rDef.isSuccess) {
+            runCatching {
+                PostHog.capture("map_loaded", properties = mapOf(
+                    "buildings" to buildings.size,
+                    "rooms" to rooms.size,
+                ))
+            }
+        }
         dataFetching = false
     }
 
@@ -570,7 +578,10 @@ fun MapScreen() {
         FloorSelector(
             floors = floorsPresent(rooms, buildings),
             selected = selectedFloor,
-            onSelect = { selectedFloor = it },
+            onSelect = { floor ->
+                selectedFloor = floor
+                runCatching { PostHog.capture("map_floor_selected", properties = mapOf("floor" to floor)) }
+            },
             modifier = Modifier.align(Alignment.CenterStart).padding(start = 14.dp),
         )
 
@@ -608,7 +619,7 @@ fun MapScreen() {
                 lang = lang,
                 onDismiss = { selectedBuilding = null; selectedRoom = null },
                 onNavigate = { target ->
-                    runCatching { PostHog.capture("map_directions_started", properties = mapOf("destination_type" to if (visibleRoom != null) "room" else "building")) }
+                    runCatching { PostHog.capture("directions_opened", properties = mapOf("destination_type" to if (visibleRoom != null) "room" else "building")) }
                     destination = target
                     origin = null
                     originIsMyLoc = true

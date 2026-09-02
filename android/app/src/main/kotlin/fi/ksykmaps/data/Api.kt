@@ -197,12 +197,13 @@ object Api {
     }
 
     fun friendly(e: Throwable): String = when {
-        e is ApiException && e.status == 429 ->
-            "Server is rate-limiting (429). Add a Cloudflare WAF allow rule for header X-KSYK-Client."
-        e is ApiException && e.status == 404 -> "Endpoint not deployed (404)."
+        e is ApiException && e.status == 429 -> "Too many requests — try again in a moment."
+        e is ApiException && e.status == 404 -> "Content not found."
         e is ApiException && e.status == 401 -> "Sign in again."
+        e is ApiException && e.status == 403 -> "You don't have permission to do that."
         e is ApiException && e.status == 0   -> "Couldn't reach the server."
-        else -> e.message ?: "Unknown error"
+        e is ApiException && e.status >= 500 -> "Service temporarily unavailable."
+        else -> "Something went wrong."
     }
 }
 

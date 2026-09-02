@@ -231,6 +231,8 @@ interface CampusMapProps {
   interactive?: boolean;
   /** Show MapLibre's built-in nav control (compass + zoom). */
   showNavigationControl?: boolean;
+  /** Called when the map fails to load (watchdog timeout or GL error). */
+  onLoadError?: () => void;
 }
 
 export default function CampusMap({
@@ -240,6 +242,7 @@ export default function CampusMap({
   pitch,
   interactive = true,
   showNavigationControl = false,
+  onLoadError,
 }: CampusMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -343,6 +346,7 @@ export default function CampusMap({
       // effect will re-run on next mount cycle.
       try { window.dispatchEvent(new CustomEvent("ksyk:map-ready")); }
       catch { /* non-fatal */ }
+      onLoadError?.();
     }, 6000);
 
     map.on("error", (e) => {

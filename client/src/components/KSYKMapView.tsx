@@ -145,6 +145,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const [showNav, setShowNav] = useState(false);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
+  const [mapLoadFailed, setMapLoadFailed] = useState(false);
 
   // ── GPS location (admin campus-map tab only) ─────────────────────
   const [gpsPosition, setGpsPosition] = useState<{ lng: number; lat: number; accuracy: number } | null>(null);
@@ -504,6 +505,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapInstance]);
 
+  // Fire map_loaded once when the GL instance AND campus data are both ready.
+  const mapLoadedFiredRef = useRef(false);
+  useEffect(() => {
+    if (mapLoadedFiredRef.current) return;
+    if (!mapInstance || !campus.buildings.length) return;
+    mapLoadedFiredRef.current = true;
+    posthog.capture("map_loaded", {
+      buildings: campus.buildings.length,
+      rooms: campus.rooms.length,
+    });
+  }, [mapInstance, campus.buildings.length, campus.rooms.length]);
+
   /** Center the camera on the platform default (mobile vs laptop) while
    *  preserving whatever bearing the user has set — clicking Center
    *  shouldn't rip them out of a rotated view. Pitch is preserved too. */
@@ -582,7 +595,29 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {/* v3.27.5 — hold map mount until admin defaults have loaded
        *  (or the 2s timeout fired). Prevents the flash of Kulosaari
        *  fallback before the real spawn arrives. */}
-      {defaultsReady && <CampusMap onReady={onMapReady} />}
+      {defaultsReady && !mapLoadFailed && (
+        <CampusMap
+          onReady={onMapReady}
+          onLoadError={() => {
+            setMapLoadFailed(true);
+            posthog.capture("map_load_failed");
+          }}
+        />
+      )}
+      {mapLoadFailed && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#eeeae0] dark:bg-[#0f172a] text-center p-6">
+          <p className="text-base font-semibold text-gray-800 dark:text-gray-100">Map unavailable</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+            We couldn't load the indoor map. Check your connection and try again.
+          </p>
+          <button
+            onClick={() => { setMapLoadFailed(false); }}
+            className="mt-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {!defaultsReady && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#eeeae0] dark:bg-[#0f172a]">
           <div className="relative h-10 w-10">

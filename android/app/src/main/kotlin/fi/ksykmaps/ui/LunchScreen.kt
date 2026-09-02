@@ -79,8 +79,8 @@ fun LunchScreen() {
                 selectedIdx = bestIdx
                 Analytics.trackLunchView(result.getOrNull(bestIdx)?.label ?: "today")
             } catch (e: Exception) {
-                error = e.localizedMessage ?: "Ruokalistaa ei voitu ladata"
-                Analytics.trackError("LunchScreen", e.localizedMessage ?: "fetch failed")
+                error = if (lang == "fi") "Ruokalistaa ei voitu ladata" else "Couldn't load the menu"
+                Analytics.trackError("LunchScreen", "fetch_failed")
             } finally {
                 loading = false
             }

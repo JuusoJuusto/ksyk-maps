@@ -66,7 +66,7 @@ export function emitLog(
       body: body.slice(0, 2000),
       severityNumber: severityNumber(opts.severity),
       severityText: opts.severity ?? 'info',
-      attributes: opts.attributes ?? {},
+      attributes: (opts.attributes ?? {}) as Record<string, string | number | boolean>,
     })
   } catch { /* observability is best-effort */ }
 }
