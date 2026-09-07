@@ -8,11 +8,13 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     {
-      name: "crossorigin-fix",
+      name: "html-xml-compat",
       transformIndexHtml: {
         order: "post",
         handler(html: string) {
-          return html.replace(/\bcrossorigin\b(?!\s*=)/g, 'crossorigin="anonymous"');
+          return html
+            .replace(/\bcrossorigin\b(?!\s*=)/g, 'crossorigin="anonymous"')
+            .replace(/<(link|meta|base|br|hr|img|input|area|col|embed|param|source|track|wbr)(\b[^>]*[^/])>/g, '<$1$2/>');
         },
       },
     },
