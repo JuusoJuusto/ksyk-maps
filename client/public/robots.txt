@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-login
+Disallow: /admin-ksyk-management-portal
+Disallow: /builder
+Disallow: /api/
+Disallow: /secret-easter-egg
+Disallow: /konami-code-activated
+Disallow: /dev-mode-secret
+
+Sitemap: https://ksykmaps.fi/sitemap.xml

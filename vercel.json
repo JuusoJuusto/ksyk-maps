@@ -19,10 +19,6 @@
       "destination": "https://o4512001020133376.ingest.de.sentry.io/$1"
     },
     {
-      "source": "/google7116ce6c6365eddb.html",
-      "destination": "/google7116ce6c6365eddb.html"
-    },
-    {
       "source": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html",
       "destination": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html"
     },
@@ -33,6 +29,10 @@
     {
       "source": "/security.txt",
       "destination": "/security.txt"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/favicon-32.png"
     },
     {
       "source": "/assets/:file*",
@@ -122,6 +122,45 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
         }
       ]
     },

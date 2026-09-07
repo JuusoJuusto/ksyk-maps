@@ -10,9 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.68";
+export const APP_VERSION = "4.5.69";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.69",
+    date: "September 2026",
+    title: "SEO & performance: sitemap, robots.txt, favicon.ico, font load cut from 26 families to 3",
+    titleFi: "SEO ja suorituskyky: sivustokartta, robots.txt, favicon.ico, fonttilatauspyynöt 26:sta perheestä 3:een",
+    highlights: [
+      "**Sitemap added:** `/sitemap.xml` now lists all public-facing pages (map, support, lunch, HSL). Submitted to Google Search Console.",
+      "**robots.txt added:** `/robots.txt` disallows crawling of admin/builder/API routes and declares the sitemap URL.",
+      "**favicon.ico fixed:** `/favicon.ico` now resolves correctly (was falling through to the SPA catch-all and returning HTML, causing GSC to show no favicon).",
+      "**Font load 90% faster:** Replaced a 26-family Google Fonts request with only the 3 fonts actually used (Inter, JetBrains Mono, Plus Jakarta Sans). Eliminates ~80 unnecessary font file fetches on every page load.",
+      "**Removed duplicate CSS @import:** `index.css` no longer re-imports Inter via `@import` (already loaded faster via HTML `<link>`).",
+      "**GSC 404 fixed:** Removed dead `google7116ce6c6365eddb.html` rewrite that pointed to a missing file, causing a 404 in Google Search Console.",
+    ],
+    highlightsFi: [
+      "**Sivustokartta lisätty:** `/sitemap.xml` listaa nyt kaikki julkiset sivut. Lähetetty Google Search Consoleen.",
+      "**robots.txt lisätty:** `/robots.txt` estää admin/rakentaja/API-reittien indeksoinnin ja ilmoittaa sivustokartan URL:n.",
+      "**favicon.ico korjattu:** `/favicon.ico` toimii nyt oikein eikä enää palauta HTML-sivua ikonin sijaan.",
+      "**Fonttilatauspyynnöt 90 % nopeammat:** 26 fonttiperheestä 3:een (Inter, JetBrains Mono, Plus Jakarta Sans) — poistaa noin 80 tarpeetonta verkkoyhteyttä.",
+      "**Kaksoisimportaus poistettu:** `index.css` ei enää lataa Interiä uudelleen `@import`-komennolla.",
+      "**GSC 404 korjattu:** Poistettu puuttuvan tiedoston rewrite, joka aiheutti 404-virheen Google Search Consolessa.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.68",
     date: "September 2026",
@@ -34,7 +57,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Sivupalkin valinta:** Navigointisolmurivin napsauttaminen avaa nyt ominaisuuspaneelin.",
       "**`updateNode`-koukku:** navGraph-koukku saa `updateNode(id, patch)` -funktion solmumetadatan muokkaamiseen.",
     ],
-    latest: true,
   },
   {
     version: "4.5.67",

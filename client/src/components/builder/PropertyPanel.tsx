@@ -1183,7 +1183,7 @@ function StyleTab({ entity }: { entity: SelectedEntity }) {
   // one somehow reaches this tab (should be blocked by the tab
   // visibility filter), render a placeholder instead of crashing.
   if (entity.kind === "door" || entity.kind === "stair"
-      || entity.kind === "elevator" || entity.kind === "poi") {
+      || entity.kind === "elevator" || entity.kind === "poi" || entity.kind === "node") {
     return <p className="text-xs text-muted-foreground p-4">Point POIs use their kind's default style. Edit position + floor in the Properties tab.</p>;
   }
   const currentColor =
@@ -1478,7 +1478,7 @@ function TransformTab({ entity, activeFloor, onAddFloorShape }: {
   onAddFloorShape?: (floorNum: number) => void;
 }) {
   if (entity.kind === "door" || entity.kind === "stair"
-      || entity.kind === "elevator" || entity.kind === "poi") {
+      || entity.kind === "elevator" || entity.kind === "poi" || entity.kind === "node") {
     return <p className="text-xs text-muted-foreground p-4">Point POIs move by dragging on the map. Coordinates shown in the Properties tab.</p>;
   }
   if (entity.kind === "hallway") {
@@ -1500,7 +1500,7 @@ function TransformTab({ entity, activeFloor, onAddFloorShape }: {
 }
 
 function PolygonTransformForm({ entity, activeFloor, onAddFloorShape }: {
-  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }>;
+  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" | "node" }>;
   activeFloor?: number | null;
   onAddFloorShape?: (floorNum: number) => void;
 }) {
@@ -1679,7 +1679,7 @@ function FloorShapesSection({
   activeFloor,
   onAddFloorShape,
 }: {
-  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" }>;
+  entity: Exclude<SelectedEntity, { kind: "door" | "stair" | "elevator" | "poi" | "hallway" | "node" }>;
   activeFloor: number;
   onAddFloorShape?: (floorNum: number) => void;
 }) {
@@ -1743,7 +1743,7 @@ function FloorShapesSection({
 function CustomTab({ entity }: { entity: SelectedEntity }) {
   const qc = useQueryClient();
   if (entity.kind === "door" || entity.kind === "stair"
-      || entity.kind === "elevator" || entity.kind === "poi") {
+      || entity.kind === "elevator" || entity.kind === "poi" || entity.kind === "node") {
     return <p className="text-xs text-muted-foreground p-4">Custom metadata for point POIs isn't editable via a JSON blob yet — use the Properties tab.</p>;
   }
   const initial = useMemo(() => {
