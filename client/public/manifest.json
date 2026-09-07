@@ -1,7 +1,7 @@
 {
   "name": "KSYK Maps",
   "short_name": "KSYK Maps",
-  "description": "Interactive campus navigation and room finder for KSYK",
+  "description": "The smarter way to navigate KSYK.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
