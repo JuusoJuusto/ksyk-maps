@@ -7,6 +7,15 @@ export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
+    {
+      name: "crossorigin-fix",
+      transformIndexHtml: {
+        order: "post",
+        handler(html: string) {
+          return html.replace(/\bcrossorigin\b(?!\s*=)/g, 'crossorigin="anonymous"');
+        },
+      },
+    },
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
