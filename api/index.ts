@@ -4,7 +4,7 @@ import { emitLog, flushLogs } from '../server/posthogLogger.js';
 import { capture as posthogCapture, flush as posthogFlush } from '../server/posthogNode.js';
 import crypto from 'node:crypto';
 
-// â”€â”€ Stateless admin token (HMAC-signed, 24h TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ Stateless admin token (HMAC-signed, 7-day TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Sessions don't persist across Vercel Lambda cold starts. Instead,
 // the login endpoint issues a signed token that the client stores and
 // sends back via Authorization header on sensitive mutations.
@@ -311,6 +311,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/analytics/rooms â€” top viewed rooms.
     if ((apiPath === '/analytics/rooms' || apiPath.startsWith('/analytics/rooms?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         if ((storage as any).getTopRooms) {
           const data = await (storage as any).getTopRooms();
@@ -324,6 +325,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/analytics/searches â€” recent / top searches.
     if ((apiPath === '/analytics/searches' || apiPath.startsWith('/analytics/searches?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         if ((storage as any).getTopSearches) {
           const data = await (storage as any).getTopSearches();
@@ -337,6 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/analytics/visitors â€” visitor breakdown by device / country.
     if ((apiPath === '/analytics/visitors' || apiPath.startsWith('/analytics/visitors?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         if ((storage as any).getVisitors) {
           const data = await (storage as any).getVisitors();
@@ -519,6 +522,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/analytics/external â€” aggregated CF + Vercel + Firestore stats.
     if ((apiPath === '/analytics/external' || apiPath.startsWith('/analytics/external?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       const range = (req.query.range as string) || '24h';
       const now = new Date().toISOString();
 
@@ -704,6 +708,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/analytics/overview — admin Overview panel counters.
     if (apiPath === '/analytics/overview' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { pageViews, searchAnalytics, appLogs } = await import('../shared/schema.js');
@@ -1166,13 +1171,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Tickets endpoints
     if (apiPath.startsWith('/tickets')) {
       if (apiPath === '/tickets' && req.method === 'GET') {
+        if (!requireAdminAuth(req, res)) return;
         const tickets = await storage.getTickets();
         return res.status(200).json(tickets);
       }
 
       if (apiPath === '/tickets' && req.method === 'POST') {
-        const ticketData = req.body;
-        
+        const ticketData = req.body || {};
+        if (!ticketData.type || typeof ticketData.type !== 'string') {
+          return res.status(400).json({ message: 'type is required' });
+        }
+        if (!ticketData.title || typeof ticketData.title !== 'string') {
+          return res.status(400).json({ message: 'title is required' });
+        }
+        if (!ticketData.description || typeof ticketData.description !== 'string') {
+          return res.status(400).json({ message: 'description is required' });
+        }
+
         // Generate ticket ID if not provided
         const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         
@@ -1289,6 +1304,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         const id = idMatch[1];
 
         if (req.method === 'GET') {
+          if (!requireAdminAuth(req, res)) return;
           try {
             const ticket = await storage.getTicket(id);
             if (!ticket) return res.status(404).json({ message: 'Ticket not found' });

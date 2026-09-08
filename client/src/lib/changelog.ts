@@ -10,9 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.73";
+export const APP_VERSION = "4.5.74";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.74",
+    date: "September 2026",
+    title: "Security hardening: auth guards, input validation, toast notifications",
+    titleFi: "Tietoturvaparannukset: autentikoinnin suojaus, syötteiden validointi, toast-ilmoitukset",
+    highlights: [
+      "**Analytics endpoints secured:** All /api/analytics/* routes now require admin auth — previously readable without credentials.",
+      "**Ticket endpoints secured:** GET /api/tickets and GET /api/tickets/:id now require admin auth.",
+      "**POST /api/tickets input validation:** Explicit checks for required fields prevent 500 errors from missing type/title/description.",
+      "**Navigation toasts:** Route error alerts replaced with toast notifications (no more browser alert() dialogs).",
+      "**Ticket manager toasts:** Ticket action errors now shown as toasts instead of alert() dialogs.",
+    ],
+    highlightsFi: [
+      "**Analytiikkarajapinnat suojattu:** Kaikki /api/analytics/*-reitit vaativat nyt admin-autentikoinnin.",
+      "**Tikettien rajapinnat suojattu:** GET /api/tickets ja GET /api/tickets/:id vaativat nyt admin-autentikoinnin.",
+      "**POST /api/tickets -syötteiden validointi:** Pakolliset kentät tarkistetaan ennen käsittelyä.",
+      "**Navigoinnin toast-ilmoitukset:** Reittausvirheet näytetään nyt toast-ilmoituksina.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.73",
     date: "September 2026",
@@ -28,7 +48,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**favicon.ico lisätty:** Moniresooluutioinen ICO (16/32/48px) löytyy nyt juuresta.",
       "**Uusi kuvaus:** Meta-kuvaus, og:description, manifest ja Android-merkkijonot päivitetty uudelle kaksikieliselle taglinelle.",
     ],
-    latest: true,
   },
   {
     version: "4.5.72",

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
+import { getAdminHeaders } from '@/lib/adminAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const RESPONSE_TEMPLATES = {
   resolved: `Thank you for reporting this issue. We've investigated and resolved the problem.
@@ -108,6 +110,7 @@ KSYK Maps Support Team`,
 export default function TicketManager({ defaultOpenId }: { defaultOpenId?: string } = {}) {
   const queryClient = useQueryClient();
   const { darkMode } = useDarkMode();
+  const { toast } = useToast();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [response, setResponse] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -118,7 +121,7 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: async () => {
-      const res = await fetch('/api/tickets', { credentials: 'include' });
+      const res = await fetch('/api/tickets', { credentials: 'include', headers: getAdminHeaders() });
       if (!res.ok) throw new Error('Failed to fetch tickets');
       return res.json();
     },
@@ -137,7 +140,7 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
         body: JSON.stringify(data),
         credentials: 'include',
       });
@@ -166,7 +169,7 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
       setDeleteConfirm(null);
     },
     onError: () => {
-      alert('Failed to delete ticket. Please try again.');
+      toast({ title: "Delete failed", description: "Failed to delete ticket. Please try again.", variant: "destructive" });
     }
   });
 
@@ -227,7 +230,7 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
         },
       });
     } catch {
-      alert('Failed to send response. Please try again.');
+      toast({ title: "Failed to send", description: "Failed to send response. Please try again.", variant: "destructive" });
     }
   };
 

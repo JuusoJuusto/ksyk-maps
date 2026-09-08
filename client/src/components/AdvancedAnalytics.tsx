@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { getAdminHeaders } from '@/lib/adminAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -34,7 +35,8 @@ export function AdvancedAnalytics() {
     queryKey: ['analytics-searches'],
     queryFn: async () => {
       const response = await fetch('/api/analytics/searches', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminHeaders(),
       });
       if (!response.ok) throw new Error('Failed to fetch top searches');
       return response.json();
@@ -46,7 +48,8 @@ export function AdvancedAnalytics() {
     queryKey: ['analytics-rooms'],
     queryFn: async () => {
       const response = await fetch('/api/analytics/rooms', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminHeaders(),
       });
       if (!response.ok) throw new Error('Failed to fetch popular rooms');
       return response.json();
@@ -58,7 +61,8 @@ export function AdvancedAnalytics() {
     queryKey: ['analytics-visitors'],
     queryFn: async () => {
       const response = await fetch('/api/analytics/visitors', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminHeaders(),
       });
       if (!response.ok) throw new Error('Failed to fetch visitor stats');
       return response.json();

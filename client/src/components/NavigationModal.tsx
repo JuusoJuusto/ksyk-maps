@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Room as SharedRoom, Building as SharedBuilding } from "@ksyk/shared";
 import { fetchList } from "@/lib/fetchList";
+import { useToast } from "@/hooks/use-toast";
 import {
   X,
   Navigation,
@@ -38,6 +39,7 @@ interface Room {
 }
 
 export default function NavigationModal({ isOpen, onClose, onNavigate }: NavigationModalProps) {
+  const { toast } = useToast();
   const [fromQuery, setFromQuery] = useState("");
   const [toQuery, setToQuery] = useState("");
   const [fromResults, setFromResults] = useState<Room[]>([]);
@@ -243,26 +245,26 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
 
   const handleNavigation = () => {
     if (!selectedFrom || !selectedTo) {
-      alert('⚠️ Please select both starting point and destination');
+      toast({ title: "Select rooms", description: "Please select both a starting point and destination.", variant: "destructive" });
       return;
     }
 
     try {
       const fromLabel = `${selectedFrom.roomNumber} - ${selectedFrom.name || selectedFrom.nameEn || 'Room'}`;
       const toLabel = `${selectedTo.roomNumber} - ${selectedTo.name || selectedTo.nameEn || 'Room'}`;
-      
+
       // Find path through hallways/stairways
       let path: Room[] | null = null;
       try {
         path = findPath(selectedFrom, selectedTo);
       } catch (pathError) {
         console.error('Pathfinding error:', pathError);
-        alert(`❌ Error calculating route\n\nThere was a problem finding the path. Please try again or select different rooms.`);
+        toast({ title: "Route error", description: "There was a problem finding the path. Please try again or select different rooms.", variant: "destructive" });
         return;
       }
-      
+
       if (!path || path.length === 0) {
-        alert(`❌ No route found!\n\nCannot find a path between these rooms.\n\nThis might mean:\n• The rooms are in different buildings\n• Missing hallway/stairway connections\n• Rooms are on different floors without stairway access\n\nTry selecting rooms in the same building or on the same floor.`);
+        toast({ title: "No route found", description: "Cannot find a path between these rooms. Try rooms in the same building or on the same floor.", variant: "destructive" });
         return;
       }
       
@@ -321,7 +323,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
     } catch (error) {
       console.error('Navigation error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`❌ Navigation Error\n\n${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
+      toast({ title: "Navigation error", description: errorMessage, variant: "destructive" });
     }
   };
 
