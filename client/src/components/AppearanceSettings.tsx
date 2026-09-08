@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Clock, Save, Globe } from "lucide-react";
 
 export default function AppearanceSettings() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const [timeFormat, setTimeFormat] = useState<'24h' | '12h'>('24h');
   const [language, setLanguage] = useState<'fi' | 'en'>('fi');
@@ -52,12 +54,11 @@ export default function AppearanceSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appearance-settings"] });
-      alert("✅ Asetukset tallennettu!");
-      // Reload page to apply changes
+      toast({ title: "Tallennettu", description: "Asetukset päivitetty." });
       window.location.reload();
     },
     onError: (error: any) => {
-      alert(`❌ Virhe tallennuksessa: ${error.message}`);
+      toast({ title: "Virhe", description: error.message, variant: "destructive" });
     }
   });
 

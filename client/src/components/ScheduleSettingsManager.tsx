@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ interface SpecialSchedule {
 // Schedule Settings Manager Component
 export default function ScheduleSettingsManager() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("periods");
 
   const [periods, setPeriods] = useState<Period[]>([
@@ -98,10 +100,10 @@ export default function ScheduleSettingsManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
-      alert("Lukujarjestysasetukset tallennettu!");
+      toast({ title: "Tallennettu", description: "Lukujärjestysasetukset tallennettu." });
     },
     onError: (error: any) => {
-      alert(`Virhe tallennuksessa: ${error.message}`);
+      toast({ title: "Virhe", description: error.message, variant: "destructive" });
     }
   });
 

@@ -159,6 +159,7 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: getAdminHeaders(),
       });
       if (!res.ok) throw new Error('Failed to delete ticket');
       return res.json();

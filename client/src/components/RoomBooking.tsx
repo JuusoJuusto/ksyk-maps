@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,7 @@ export default function RoomBooking() {
   const { t, i18n } = useTranslation();
   const { darkMode } = useDarkMode();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"search" | "my-bookings" | "favorites">("search");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
@@ -153,10 +155,10 @@ export default function RoomBooking() {
       queryClient.invalidateQueries({ queryKey: ["available-rooms"] });
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
       setSelectedRoom(null);
-      alert("Room booked successfully! ✅");
+      toast({ title: "Room booked", description: "Your booking is confirmed." });
     },
     onError: (error: Error) => {
-      alert(`Booking failed: ${error.message}`);
+      toast({ title: "Booking failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -171,7 +173,7 @@ export default function RoomBooking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
-      alert("Booking cancelled successfully");
+      toast({ title: "Booking cancelled" });
     },
   });
 

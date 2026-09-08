@@ -120,6 +120,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Query params remain available via req.query which Vercel parses.
     const apiPath = path.replace(/^\/api/, '').split('?')[0];
 
+    // Sentry envelope tunnel — proxies POST /api/sentry-tunnel to Sentry's ingest.
+    // Using an API function instead of a Vercel URL rewrite because Sentry's ingest
+    // rejects requests from URL rewrites (403 due to Host/proxy header mismatch).
+    if (apiPath === '/sentry-tunnel') {
+      if (req.method !== 'POST') return res.status(405).end();
+      try {
+        const rawBody: Buffer | string | undefined = (req as any).rawBody ?? req.body;
+        const bodyToSend = Buffer.isBuffer(rawBody)
+          ? rawBody
+          : typeof rawBody === 'string'
+          ? rawBody
+          : JSON.stringify(rawBody ?? '');
+        const sentryRes = await fetch(
+          'https://o4512001020133376.ingest.de.sentry.io/api/4512012645302352/envelope/',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': req.headers['content-type'] || 'application/x-sentry-envelope',
+              'User-Agent': req.headers['user-agent'] || 'ksyk-maps-tunnel',
+            },
+            body: bodyToSend,
+          },
+        );
+        res.status(sentryRes.status);
+        return res.end();
+      } catch {
+        return res.status(500).end();
+      }
+    }
+
     // Health check — also served at /api/health for uptime monitors
     if (apiPath === '/' || apiPath === '' || apiPath === '/health') {
       try {
@@ -1367,6 +1397,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
 
         if (req.method === 'DELETE') {
+          if (!requireAdminAuth(req, res)) return;
           try {
             await storage.deleteTicket(id);
             return res.status(200).json({ success: true, message: 'Ticket deleted successfully' });

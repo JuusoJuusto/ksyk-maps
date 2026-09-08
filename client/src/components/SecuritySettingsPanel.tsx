@@ -66,11 +66,21 @@ export default function SecuritySettingsPanel() {
   const [draft, setDraft] = useState<SecuritySettings>(settings);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings]);
 
-  // Poll every 2 seconds so new access requests appear without refreshing.
+  // Poll every 2 seconds so new access requests appear live.
   useEffect(() => {
     const id = setInterval(loadSecurityFromServer, 2000);
     return () => clearInterval(id);
   }, []);
+
+  // When the server delivers new accessRequests, sync only that field
+  // into draft so the inbox stays live without triggering false-dirty.
+  useEffect(() => {
+    setDraft(prev => {
+      if (JSON.stringify(prev.accessRequests) === JSON.stringify(settings.accessRequests)) return prev;
+      return { ...prev, accessRequests: settings.accessRequests };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.accessRequests]);
 
   const patch =<K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));

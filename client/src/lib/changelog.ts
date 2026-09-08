@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.75";
+export const APP_VERSION = "4.5.76";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.76",
+    date: "September 2026",
+    title: "Sentry API proxy, PostHog CSP fix, ticket delete auth, alert→toast cleanup",
+    titleFi: "Sentry-API-välitys, PostHog CSP-korjaus, lipun poistamisen autentikointi, alert→toast-siivous",
+    highlights: [
+      "**Sentry tunnel rewritten as API proxy:** /api/sentry-tunnel now proxies envelopes server-side — eliminates CORS and 403 errors from the Vercel URL rewrite approach.",
+      "**PostHog analytics restored:** Restoring https://t.ksykmaps.fi to CSP connect-src unblocks all PostHog session recording and event capture.",
+      "**Ticket delete secured:** DELETE /api/tickets/:id now requires admin auth (was unauthenticated).",
+      "**Alert dialogs replaced:** All alert() calls in AppearanceSettings, StaffManager, RoomBooking, and ScheduleSettingsManager replaced with toast notifications.",
+      "**Access requests polling fix:** Security panel no longer shows false 'unsaved changes' warning while auto-refreshing access requests.",
+    ],
+    highlightsFi: [
+      "**Sentry-tunneli kirjoitettu uudelleen:** /api/sentry-tunnel välittää nyt Sentry-kuoret palvelinpuolella — poistaa CORS- ja 403-virheet.",
+      "**PostHog-analytiikka palautettu:** t.ksykmaps.fi palautettu CSP connect-src:ään — istallennukset ja tapahtumat toimivat taas.",
+      "**Lipun poistaminen suojattu:** DELETE /api/tickets/:id vaatii nyt admin-tunnistautumisen.",
+      "**Alert-dialogit korvattu:** Kaikki alert()-kutsut korvattu toast-ilmoituksilla.",
+      "**Pääsypyyntöjen päivitysvirhe korjattu:** Admin-paneeli ei enää näytä väärää 'tallentamattomia muutoksia' -varoitusta.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.75",
     date: "September 2026",
@@ -35,7 +56,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Turva-asetukset ei välimuistita:** /api/security-settings ohittaa CDN-välimuistin.",
       "**Pääsypyynnöt päivittyvät:** Admin-paneeli hakee uudet pyynnöt 2 sekunnin välein.",
     ],
-    latest: true,
   },
   {
     version: "4.5.74",

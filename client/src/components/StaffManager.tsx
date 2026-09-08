@@ -428,7 +428,7 @@ rCase()) ||
       position: member.position || "",
       department: member.department || "",
       officeLocation: member.officeL (error) => {
-      alert("❌ Failed to delete staff member: " + error.message);
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     }
   });
 
@@ -448,7 +448,7 @@ rCase()) ||
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName || !formData.lastName) {
-      alert("Please enter first and last name");
+      toast({ title: "Missing fields", description: "Please enter first and last name.", variant: "destructive" });
       return;
     }
  mber: " + error.message);
@@ -466,7 +466,7 @@ rCase()) ||
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
-      alert("✅ Staff member deleted successfully!");
+      toast({ title: "Deleted", description: "Staff member removed." });
     },
     onError: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -480,17 +480,19 @@ rCase()) ||
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       setEditingStaff(null);
       resetForm();
-      alert("✅ Staff member updated successfully!");
+      toast({ title: "Updated", description: "Staff member updated." });
     },
     onError: (error) => {
-      alert("❌ Failed to update staff me: () => {
+      toast({ title: "Update failed", description: String((error as any)?.message || error), variant: "destructive" });
+    }
+  }); const _addStaffOnSuccess = () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       setIsAddDialogOpen(false);
       resetForm();
-      alert("✅ Staff member added successfully!");
+      toast({ title: "Added", description: "Staff member added." });
     },
     onError: (error) => {
-      alert("❌ Failed to add staff member: " + error.message);
+      toast({ title: "Add failed", description: error.message, variant: "destructive" });
     }
   });
 
@@ -535,12 +537,13 @@ rCase()) ||
     queryFn: async () => {
       const response = await fetch("/api/staff");
       if (!response.ok) throw new Error("Failed t";
-import { 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Building, 
+import { useToast } from "@/hooks/use-toast";
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Building,
   Layers,
   AlertTriangle,
   Search,
@@ -561,6 +564,7 @@ interface Staff {
 
 export default function StaffManager() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingStaff, setEditingStafeQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
