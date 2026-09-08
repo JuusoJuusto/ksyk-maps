@@ -47,72 +47,65 @@ function shell(opts: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light dark">
   <title>${title}</title>
+  <style>
+    @media only screen and (max-width:600px){
+      .email-card{border-radius:0!important}
+      .email-header,.email-body,.email-footer{padding-left:20px!important;padding-right:20px!important}
+      .email-title{font-size:20px!important}
+      .email-cta a{display:block!important;text-align:center!important}
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#f3f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased;">
-  <!-- Hidden preheader -->
-  <div style="display:none;font-size:1px;color:#f3f5f9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    ${preheader}
-  </div>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${preheader}</div>
 
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f3f5f9;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f1f5f9;">
     <tr>
-      <td align="center" style="padding:40px 16px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06),0 12px 32px rgba(15,23,42,0.06);">
+      <td align="center" style="padding:32px 12px 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-card" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,0.07),0 8px 24px rgba(15,23,42,0.07);">
 
-          <!-- Header -->
+          <!-- Header: white with logo -->
           <tr>
-            <td style="padding:32px 36px 28px 36px;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%);">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <td class="email-header" style="padding:28px 36px 24px;background:#ffffff;border-bottom:1px solid #f1f5f9;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <p style="margin:0;color:rgba(255,255,255,0.72);font-size:10px;font-weight:700;letter-spacing:4.5px;text-transform:uppercase;">
-                      KSYK · Maps
-                    </p>
-                    <h1 style="margin:6px 0 0 0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.01em;line-height:1.2;">
-                      ${title}
-                    </h1>
+                    <img src="https://ksykmaps.fi/icon-192.png" width="36" height="36" alt="KSYK Maps" style="border-radius:9px;display:block;border:0;" />
                   </td>
-                  <td align="right" style="vertical-align:middle;width:48px;">
-                    <div style="display:inline-block;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.16);text-align:center;line-height:42px;font-size:20px;">🗺️</div>
+                  <td style="vertical-align:middle;padding-left:10px;">
+                    <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;letter-spacing:-0.01em;">KSYK Maps</p>
+                    <p style="margin:2px 0 0;font-size:11px;color:#94a3b8;">ksykmaps.fi</p>
                   </td>
                 </tr>
               </table>
+              <h1 class="email-title" style="margin:20px 0 0;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#0f172a;line-height:1.3;">${title}</h1>
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
-            <td style="padding:36px 36px 28px 36px;font-size:15px;line-height:1.65;color:#1e293b;">
+            <td class="email-body" style="padding:28px 36px 24px;font-size:15px;line-height:1.65;color:#1e293b;">
               ${body}
               ${cta ? `
-              <div style="text-align:center;margin:32px 0 8px 0;">
-                <a href="${cta.href}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 28px;border-radius:10px;letter-spacing:0.01em;">
-                  ${cta.label} →
-                </a>
-              </div>
-              ` : ''}
+              <div class="email-cta" style="margin:28px 0 4px;">
+                <a href="${cta.href}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:10px;letter-spacing:0.01em;">${cta.label} →</a>
+              </div>` : ''}
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 36px 28px 36px;border-top:1px solid #eef0f5;background:#fafbfd;">
+            <td class="email-footer" style="padding:18px 36px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;">
               <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-                <strong style="color:#475569;">© 2026 KSYK Maps</strong> · Nordbyte Studio · <a href="${APP_URL}" style="color:#3b82f6;text-decoration:none;">ksykmaps.fi</a>
+                <strong style="color:#475569;">© 2026 KSYK Maps</strong> &nbsp;·&nbsp; <a href="${APP_URL}" style="color:#3b82f6;text-decoration:none;">ksykmaps.fi</a>
               </p>
-              <p style="margin:6px 0 0 0;font-size:11px;color:#94a3b8;line-height:1.6;">
-                ${footerCopy}
-                ${language === 'fi' ? '' : ` Need help? <a href="mailto:${SUPPORT_EMAIL}" style="color:#3b82f6;text-decoration:none;">${SUPPORT_EMAIL}</a>`}
+              <p style="margin:5px 0 0;font-size:11px;color:#94a3b8;line-height:1.6;">
+                ${footerCopy}${language === 'fi' ? '' : ` &nbsp;·&nbsp; <a href="mailto:${SUPPORT_EMAIL}" style="color:#3b82f6;text-decoration:none;">${SUPPORT_EMAIL}</a>`}
               </p>
             </td>
           </tr>
         </table>
-
-        <p style="margin:16px 0 0 0;font-size:10px;color:#94a3b8;letter-spacing:0.5px;">
-          KSYK · Maps · ${APP_URL.replace('https://','')}
-        </p>
       </td>
     </tr>
   </table>
@@ -243,7 +236,10 @@ export async function sendTicketEmail(
   // Detect owner vs user from the subject — owner messages start with [KSYK Maps].
   const isOwner = subject.startsWith('[KSYK Maps]');
   const ctaLabel = isOwner ? 'Open ticket in admin panel' : 'Visit KSYK Maps';
-  const ctaHref = isOwner ? ADMIN_URL : APP_URL;
+  const ticketDeepLink = ticketData?.ticketId
+    ? `${APP_URL}/admin/tickets/${ticketData.ticketId}`
+    : ADMIN_URL;
+  const ctaHref = isOwner ? ticketDeepLink : APP_URL;
 
   const statusColors: Record<string, { bg: string; fg: string }> = {
     pending:    { bg: '#fef3c7', fg: '#92400e' },

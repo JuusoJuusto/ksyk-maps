@@ -47,7 +47,7 @@ export function initSentry() {
       // In production, sample 20 % of transactions and 100 % of error
       // sessions for session replay. Adjust up when we care more about
       // performance data, down if we hit Sentry quota.
-      tracesSampleRate: 1.0,
+      tracesSampleRate: 0.1,
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,
       tracePropagationTargets: [

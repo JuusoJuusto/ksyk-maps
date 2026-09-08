@@ -329,7 +329,7 @@ function NotificationsPanel({
   );
 }
 
-export default function AdminDashboard({ section }: { section?: string }) {
+export default function AdminDashboard({ section, openTicketId }: { section?: string; openTicketId?: string }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
@@ -1560,7 +1560,7 @@ export default function AdminDashboard({ section }: { section?: string }) {
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-0 space-y-6">
-          <TicketManager />
+          <TicketManager defaultOpenId={openTicketId} />
         </TabsContent>
 
         <TabsContent value="staff" className="mt-0 space-y-6">

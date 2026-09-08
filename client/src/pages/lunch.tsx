@@ -140,6 +140,12 @@ export default function Lunch() {
   };
 
   useEffect(() => {
+    const prev = document.title;
+    document.title = isFi ? "Ruokalista — KSYK Maps" : "Lunch menu — KSYK Maps";
+    return () => { document.title = prev; };
+  }, [isFi]);
+
+  useEffect(() => {
     fetchMenu();
     trackFeature("lunch_page_viewed", { lang: i18n.language });
     // eslint-disable-next-line react-hooks/exhaustive-deps

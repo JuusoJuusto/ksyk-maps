@@ -12,10 +12,14 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const { darkMode } = useDarkMode();
 
-  // Read the optional :section param from all possible route patterns
+  // Read the optional :section param from all possible route patterns.
+  // /admin/tickets/:ticketId must be checked first — its ticketId overrides
+  // the generic :section and forces the Tickets tab open.
   const [, paramsLong] = useRoute("/admin-ksyk-management-portal/:section");
+  const [, paramsTicket] = useRoute("/admin/tickets/:ticketId");
   const [, paramsShort] = useRoute("/admin/:section");
-  const section = paramsLong?.section ?? paramsShort?.section;
+  const ticketId = paramsTicket?.ticketId;
+  const section = paramsLong?.section ?? (ticketId ? "tickets" : paramsShort?.section);
 
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,7 +121,7 @@ export default function Admin() {
         darkMode ? "bg-gray-950" : "bg-slate-50",
       )}
     >
-      <AdminDashboard section={section} />
+      <AdminDashboard section={section} openTicketId={ticketId} />
     </div>
   );
 }

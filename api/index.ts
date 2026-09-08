@@ -1146,12 +1146,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Tickets endpoints
     if (apiPath.startsWith('/tickets')) {
-      if (req.method === 'GET') {
+      if (apiPath === '/tickets' && req.method === 'GET') {
         const tickets = await storage.getTickets();
         return res.status(200).json(tickets);
       }
-      
-      if (req.method === 'POST') {
+
+      if (apiPath === '/tickets' && req.method === 'POST') {
         const ticketData = req.body;
         
         // Generate ticket ID if not provided

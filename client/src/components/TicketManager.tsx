@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,7 +105,7 @@ Best regards,
 KSYK Maps Support Team`,
 };
 
-export default function TicketManager() {
+export default function TicketManager({ defaultOpenId }: { defaultOpenId?: string } = {}) {
   const queryClient = useQueryClient();
   const { darkMode } = useDarkMode();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -123,6 +123,15 @@ export default function TicketManager() {
       return res.json();
     },
   });
+
+  // Auto-open a specific ticket when arriving from a deep-link email CTA.
+  useEffect(() => {
+    if (!defaultOpenId || tickets.length === 0 || selectedTicket) return;
+    const target = (tickets as any[]).find(
+      (t) => t.ticketId === defaultOpenId || t.id === defaultOpenId,
+    );
+    if (target) setSelectedTicket(target);
+  }, [defaultOpenId, tickets]);
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {

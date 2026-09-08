@@ -142,8 +142,11 @@ function Router() {
        * exists, the panel when authed. Invalid tokens bounce back to the
        * login view automatically (AdminDashboard's gate detects them).
        *
+       * /admin/tickets/:ticketId is listed before /admin/:section so that
+       * wouter matches the deep-link before the generic section handler.
        * Legacy paths redirect via the LegacyAdminRedirect component below
        * so old bookmarks keep working. */}
+      <Route path="/admin/tickets/:ticketId" component={Admin} />
       <Route path="/admin/:section" component={Admin} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin-login" component={LegacyAdminRedirect} />

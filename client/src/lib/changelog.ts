@@ -10,9 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.70";
+export const APP_VERSION = "4.5.71";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.71",
+    date: "September 2026",
+    title: "Admin ticket deep-links, improved emails, Sentry & API fixes",
+    titleFi: "Admin-tikettisyvälinkit, parannetut sähköpostit, Sentry- ja API-korjaukset",
+    highlights: [
+      "**Ticket deep-links:** Support confirmation emails now link directly to `/admin/tickets/:ticketId` so the admin lands on the right ticket with one click.",
+      "**Email redesign:** Removed blue gradient header, added KSYK Maps logo, blue CTA button, mobile-responsive layout.",
+      "**Sentry fix:** Reduced `tracesSampleRate` from 1.0 to 0.1 to prevent quota-related 403 errors.",
+      "**API fix:** `GET /api/tickets/:id` was returning 500 — routing guard now checks exact path `/tickets` before falling through to the single-ticket handler.",
+      "**Lunch page title:** Browser tab now shows 'Ruokalista — KSYK Maps' when on the lunch page.",
+    ],
+    highlightsFi: [
+      "**Tikettisyvälinkit:** Tukisähköpostit linkittävät nyt suoraan `/admin/tickets/:ticketId`-sivulle.",
+      "**Sähköpostiuudistus:** Poistettu sininen gradientti, lisätty KSYK Maps -logo ja mobiiliasettelu.",
+      "**Sentry-korjaus:** Näytteenottoaste laskettu 1.0:sta 0.1:een, jotta Sentry-kiintiö ei täyty.",
+      "**API-korjaus:** `GET /api/tickets/:id` palautti 500 — reititys korjattu.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.70",
     date: "September 2026",
@@ -52,7 +72,7 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Kaksoisimportaus poistettu:** `index.css` ei enää lataa Interiä uudelleen `@import`-komennolla.",
       "**GSC 404 korjattu:** Poistettu puuttuvan tiedoston rewrite, joka aiheutti 404-virheen Google Search Consolessa.",
     ],
-    latest: true,
+    latest: false,
   },
   {
     version: "4.5.68",
