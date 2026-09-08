@@ -711,7 +711,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             darkMode ? "bg-gray-900/90 text-gray-200" : "bg-white/95 text-gray-700",
           )}>
             <Box className="h-4 w-4 text-blue-600" />
-            KSYK · 3D campus
+            KSYK 3D campus
             <span className="text-[10px] font-mono text-gray-400 ml-1">{stats.rooms} rooms · {stats.fps} fps</span>
           </div>
         </div>

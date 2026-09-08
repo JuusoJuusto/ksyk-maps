@@ -72,20 +72,26 @@ export default function SecuritySettingsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Server is authoritative. Save first, then update local snapshot
-      // so the UI never shows "saved!" before the server actually persisted.
       await saveSecurityToServer(draft);
       setAll(draft);
       toast({
         title: "Saved",
         description: "Live for all users — propagates within 60 s.",
       });
-    } catch (e) {
-      toast({
-        title: "Save failed",
-        description: (e as Error).message || "Network or auth error. Try again.",
-        variant: "destructive",
-      });
+    } catch (e: any) {
+      if (e?.status === 401) {
+        toast({
+          title: "Session expired",
+          description: "Your admin session has expired. Sign out and sign back in, then try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Save failed",
+          description: e?.message || "Network or auth error. Try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSaving(false);
     }

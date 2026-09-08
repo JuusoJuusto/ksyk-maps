@@ -118,7 +118,7 @@ export default function AccessLockoutScreen({ decision }: Props) {
           {decision.reasonCode.replace(/-/g, " ").toUpperCase()}
         </span>
         <span className="ml-auto hidden sm:inline opacity-50">
-          KSYK · Maps
+          KSYK Maps
         </span>
       </header>
 
@@ -332,7 +332,7 @@ export default function AccessLockoutScreen({ decision }: Props) {
         "shrink-0 border-t px-5 sm:px-10 py-4 flex items-center justify-between text-[11px]",
         darkMode ? "border-gray-900 text-gray-500" : "border-gray-100 text-gray-400",
       )}>
-        <span>© KSYK · Maps</span>
+        <span>© KSYK Maps</span>
         <a
           href="/admin"
           className={cn(

@@ -100,7 +100,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               "text-[9px] font-bold tracking-[0.42em] uppercase",
               darkMode ? "text-gray-500" : "text-gray-400",
             )}>
-              KSYK · Maps
+              KSYK Maps
             </p>
             <p className={cn(
               "text-xs font-semibold",

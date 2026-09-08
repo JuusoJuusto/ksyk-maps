@@ -658,7 +658,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           />
           <div className="flex-1 min-w-0">
             <p className="text-[9px] font-bold tracking-[0.32em] text-gray-400 dark:text-gray-500 uppercase leading-none">
-              KSYK · Maps
+              KSYK Maps
             </p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mt-0.5">
               Admin
@@ -768,7 +768,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                 />
                 <div className="flex flex-col min-w-0 leading-tight">
                   <span className="text-[9px] font-bold tracking-[0.28em] text-gray-400 dark:text-gray-500 uppercase leading-none">
-                    KSYK · Admin
+                    KSYK Admin
                   </span>
                   <span className="text-xs font-semibold truncate text-gray-900 dark:text-white mt-0.5">
                     {currentUser.name || currentUser.email}

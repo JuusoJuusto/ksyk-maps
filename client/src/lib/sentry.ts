@@ -36,7 +36,7 @@ export function initSentry() {
       // uBlock / EasyPrivacy don't strip it. vercel.json rewrites this to
       // o4512001020133376.ingest.de.sentry.io/*. The DSN's project id
       // (4512001025376336) determines the URL suffix Sentry writes.
-      tunnel: "/monitoring/api/4512012645302352/envelope/",
+      tunnel: "https://t.ksykmaps.fi/monitoring/api/4512012645302352/envelope/",
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({

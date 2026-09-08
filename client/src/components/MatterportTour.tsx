@@ -73,7 +73,7 @@ export default function MatterportTour({ rawUrl, isFi, onClose }: Props) {
             className="text-[9px] font-bold tracking-[0.28em] text-cyan-300/75 uppercase leading-none"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
-            KSYK · {isFi ? "Virtuaalikierros" : "Virtual Tour"}
+            KSYK {isFi ? "Virtuaalikierros" : "Virtual Tour"}
           </p>
           <p className="text-sm font-bold text-white leading-tight mt-0.5 truncate">
             {isFi ? "3D-kävely campuksella" : "3D campus walkthrough"}

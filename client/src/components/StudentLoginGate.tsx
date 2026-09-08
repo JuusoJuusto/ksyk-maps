@@ -133,7 +133,7 @@ export default function StudentLoginGate() {
                 darkMode ? "text-gray-500" : "text-gray-400",
               )}
             >
-              {isFi ? "KSYK · Kartat" : "KSYK · Maps"}
+              {isFi ? "KSYK Kartat" : "KSYK Maps"}
             </p>
             <h2
               id="student-login-gate-title"

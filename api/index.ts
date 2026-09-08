@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/security-settings' && req.method === 'PUT') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { kvSet } = await import('../server/kvStorage.js');
+        const { kvGet, kvSet } = await import('../server/kvStorage.js');
         const src = req.body || {};
         const safeBool = (v: any, fb = false) => typeof v === 'boolean' ? v : fb;
         const safeStr = (v: any, max = 500) => typeof v === 'string' ? v.slice(0, max) : '';
@@ -207,7 +207,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           dryRun: safeBool(src.dryRun),
           updatedAt: new Date().toISOString(),
         };
+        // Capture old state before write so we can detect newly-approved requests.
+        const oldSettings: any = await kvGet('securitySettings').catch(() => null);
         await kvSet('securitySettings', payload);
+        // Send approval emails for requests that just moved from pending → approved.
+        const oldReqs: any[] = Array.isArray(oldSettings?.accessRequests) ? oldSettings.accessRequests : [];
+        const newReqs: any[] = payload.accessRequests;
+        const newlyApproved = newReqs.filter((nr: any) =>
+          nr.status === 'approved' &&
+          oldReqs.some((or: any) => or.id === nr.id && or.status !== 'approved'),
+        );
+        if (newlyApproved.length > 0) {
+          const { sendAccessApprovalEmail } = await import('../server/emailService.js');
+          for (const req of newlyApproved) {
+            if (req.email) {
+              sendAccessApprovalEmail(req.email, req.reason || undefined).catch((e: any) =>
+                console.error('Access approval email error:', e?.message),
+              );
+            }
+          }
+        }
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('security-settings PUT error:', err);
@@ -1268,23 +1287,71 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       const idMatch = apiPath.match(/^\/tickets\/([^\/]+)$/);
       if (idMatch) {
         const id = idMatch[1];
-        
+
         if (req.method === 'GET') {
-          const ticket = await storage.getTicket(id);
-          if (!ticket) {
-            return res.status(404).json({ message: 'Ticket not found' });
+          try {
+            const ticket = await storage.getTicket(id);
+            if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+            return res.status(200).json(ticket);
+          } catch (e: any) {
+            console.error(`GET /api/tickets/${id}:`, e?.message);
+            return res.status(500).json({ message: 'Failed to fetch ticket', error: e?.message });
           }
-          return res.status(200).json(ticket);
         }
-        
+
         if (req.method === 'PUT' || req.method === 'PATCH') {
-          const ticket = await storage.updateTicket(id, req.body);
-          return res.status(200).json(ticket);
+          // Only allow known ticket columns — prevents unknown fields from
+          // causing Drizzle schema errors and returning 500 to the client.
+          const TICKET_WRITABLE = new Set([
+            'status', 'priority', 'response', 'resolvedAt', 'assignedTo',
+          ]);
+          const filtered: Record<string, any> = {};
+          for (const [k, v] of Object.entries(req.body || {})) {
+            if (TICKET_WRITABLE.has(k)) filtered[k] = v;
+          }
+          try {
+            const ticket = await storage.updateTicket(id, filtered);
+
+            // When the admin resolves a ticket with a written response,
+            // email the requester so they know it's been handled.
+            if (
+              filtered.status === 'resolved' &&
+              filtered.response &&
+              ticket.email
+            ) {
+              try {
+                const { sendTicketEmail } = await import('../server/emailService.js');
+                await sendTicketEmail(
+                  ticket.email,
+                  `Your ticket has been resolved: ${ticket.ticketId}`,
+                  filtered.response,
+                  {
+                    ticketId: ticket.ticketId,
+                    type: ticket.type,
+                    title: ticket.title,
+                    status: 'resolved',
+                  },
+                );
+              } catch (emailErr: any) {
+                console.error('Ticket resolution email error:', emailErr.message);
+              }
+            }
+
+            return res.status(200).json(ticket);
+          } catch (e: any) {
+            console.error(`PATCH /api/tickets/${id}:`, e?.message);
+            return res.status(500).json({ message: 'Failed to update ticket', error: e?.message });
+          }
         }
-        
+
         if (req.method === 'DELETE') {
-          await storage.deleteTicket(id);
-          return res.status(200).json({ success: true, message: 'Ticket deleted successfully' });
+          try {
+            await storage.deleteTicket(id);
+            return res.status(200).json({ success: true, message: 'Ticket deleted successfully' });
+          } catch (e: any) {
+            console.error(`DELETE /api/tickets/${id}:`, e?.message);
+            return res.status(500).json({ message: 'Failed to delete ticket' });
+          }
         }
       }
     }

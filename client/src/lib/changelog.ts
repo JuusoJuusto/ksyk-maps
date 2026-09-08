@@ -10,9 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.71";
+export const APP_VERSION = "4.5.72";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.72",
+    date: "September 2026",
+    title: "Premium emails, dot removal, security fix, approval emails",
+    titleFi: "Premium-sähköpostit, pisteiden poisto, tietoturvakorjaus, hyväksyntäsähköpostit",
+    highlights: [
+      "**Premium email redesign:** Wider 680px desktop layout, blue accent stripe, refined typography, improved CTA and footer — consistent across all transactional emails.",
+      "**'KSYK · Maps' dots removed:** Every dot (·) in brand names across the entire app removed — it's just 'KSYK Maps' everywhere now.",
+      "**Security gate session fix:** Save now detects expired admin sessions (401) and shows a clear 'Session expired — sign back in' message instead of a generic error.",
+      "**Access request approval emails:** Approving a lockout-screen access request in the admin panel now automatically sends a confirmation email to the requester.",
+      "**Sentry tunnel fix:** Monitoring now routes through t.ksykmaps.fi instead of the broken relative /monitoring/ path.",
+      "**Ticket PATCH fix:** PATCH /api/tickets/:id 500 errors resolved — field whitelist + try/catch, resolution emails to requester on status=resolved.",
+    ],
+    highlightsFi: [
+      "**Premium-sähköpostiuudistus:** Leveämpi 680px-asettelu, sininen korostuspalkki, hienostunut typografia kaikissa sähköposteissa.",
+      "**'KSYK · Maps' -pisteet poistettu:** Kaikki pistemerkit sovelluksen nimiöissä korjattu — nyt vain 'KSYK Maps'.",
+      "**Tietoturvaistunnon korjaus:** Tallennusvirhe näyttää nyt selkeän 'Istunto vanhentunut' -viestin.",
+      "**Pääsypyyntöjen hyväksyntäsähköpostit:** Lukitusnäytön pyynnön hyväksyminen lähettää nyt sähköpostin pyytäjälle.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.71",
     date: "September 2026",
@@ -31,7 +52,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Sentry-korjaus:** Näytteenottoaste laskettu 1.0:sta 0.1:een, jotta Sentry-kiintiö ei täyty.",
       "**API-korjaus:** `GET /api/tickets/:id` palautti 500 — reititys korjattu.",
     ],
-    latest: true,
   },
   {
     version: "4.5.70",

@@ -53,7 +53,7 @@ export default function Landing() {
       <section className="max-w-5xl mx-auto w-full px-4 sm:px-6 pt-12 sm:pt-20 pb-16">
         <div className="text-center">
           <div className="text-[10px] font-bold tracking-[0.22em] uppercase text-blue-600 dark:text-blue-400 mb-4">
-            KSYK · Kulosaari
+            KSYK Kulosaari
           </div>
           <h2 className="text-[36px] sm:text-[56px] font-bold tracking-[-0.03em] text-gray-900 dark:text-white leading-[1.05] mb-5">
             Find every room.

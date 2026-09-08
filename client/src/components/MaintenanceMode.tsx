@@ -52,7 +52,7 @@ export default function MaintenanceMode({ message }: Props) {
       {/* Bottom corner mark */}
       <div className="absolute bottom-5 inset-x-0 flex justify-center">
         <p className="text-[10px] font-medium tracking-[0.42em] text-gray-300 uppercase">
-          KSYK · Maps
+          KSYK Maps
         </p>
       </div>
     </div>

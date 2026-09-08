@@ -25,10 +25,9 @@ const createTransporter = () => {
 /* ── Shared template helpers ───────────────────────────────────────── */
 
 /**
- * Wrap any HTML body in the KSYK Maps editorial shell — clean Inter-style
- * typography, calm blue gradient header, single accent button, soft footer.
- * The shell is used by every transactional email so the brand stays
- * consistent and recipients learn to trust the look.
+ * Wrap any HTML body in the KSYK Maps premium email shell.
+ * 680px desktop, graceful mobile collapse. Thin blue accent stripe at top,
+ * refined typography, single high-contrast CTA, structured footer.
  */
 function shell(opts: {
   title: string;
@@ -41,6 +40,7 @@ function shell(opts: {
   const footerCopy = language === 'fi'
     ? 'Tämä on automaattinen viesti. Älä vastaa tähän sähköpostiin.'
     : 'This is an automated message. Please do not reply to this email.';
+  const visitLabel = language === 'fi' ? 'Avaa sivusto →' : 'Visit site →';
 
   return `<!DOCTYPE html>
 <html lang="${language}">
@@ -49,62 +49,88 @@ function shell(opts: {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${title}</title>
   <style>
-    @media only screen and (max-width:600px){
-      .email-card{border-radius:0!important}
-      .email-header,.email-body,.email-footer{padding-left:20px!important;padding-right:20px!important}
-      .email-title{font-size:20px!important}
-      .email-cta a{display:block!important;text-align:center!important}
+    @media only screen and (max-width:660px){
+      .email-wrap{padding:0 0 32px!important}
+      .email-card{border-radius:0!important;width:100%!important}
+      .email-header,.email-body,.email-footer{padding-left:24px!important;padding-right:24px!important}
+      .email-title{font-size:22px!important}
+      .btn-cta{display:block!important;text-align:center!important;padding:14px 0!important}
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased;">
-  <div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${preheader}</div>
+<body style="margin:0;padding:0;background:#eef2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased;">
+  <!-- Preheader -->
+  <div style="display:none;font-size:1px;color:#eef2f7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
 
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f1f5f9;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#eef2f7;">
     <tr>
-      <td align="center" style="padding:32px 12px 40px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-card" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,0.07),0 8px 24px rgba(15,23,42,0.07);">
+      <td align="center" class="email-wrap" style="padding:40px 16px 52px;">
 
-          <!-- Header: white with logo -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" class="email-card" style="max-width:680px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 2px 4px rgba(15,23,42,0.05),0 8px 24px rgba(15,23,42,0.09),0 24px 56px rgba(15,23,42,0.05);">
+
+          <!-- Blue accent stripe -->
           <tr>
-            <td class="email-header" style="padding:28px 36px 24px;background:#ffffff;border-bottom:1px solid #f1f5f9;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+            <td style="height:3px;background:linear-gradient(90deg,#1d4ed8 0%,#3b82f6 55%,#93c5fd 100%);line-height:3px;font-size:3px;">&nbsp;</td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td class="email-header" style="padding:32px 48px 28px;background:#ffffff;border-bottom:1px solid #f1f5f9;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <img src="https://ksykmaps.fi/icon-192.png" width="36" height="36" alt="KSYK Maps" style="border-radius:9px;display:block;border:0;" />
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;">
+                          <img src="https://ksykmaps.fi/icon-192.png" width="40" height="40" alt="KSYK Maps" style="border-radius:11px;display:block;border:0;" />
+                        </td>
+                        <td style="vertical-align:middle;padding-left:12px;">
+                          <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;letter-spacing:-0.015em;line-height:1.2;">KSYK Maps</p>
+                          <p style="margin:2px 0 0;font-size:11px;color:#94a3b8;letter-spacing:0.01em;">ksykmaps.fi</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
-                  <td style="vertical-align:middle;padding-left:10px;">
-                    <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;letter-spacing:-0.01em;">KSYK Maps</p>
-                    <p style="margin:2px 0 0;font-size:11px;color:#94a3b8;">ksykmaps.fi</p>
+                  <td align="right" style="vertical-align:middle;">
+                    <a href="${APP_URL}" style="font-size:11px;color:#94a3b8;text-decoration:none;letter-spacing:0.015em;">${visitLabel}</a>
                   </td>
                 </tr>
               </table>
-              <h1 class="email-title" style="margin:20px 0 0;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#0f172a;line-height:1.3;">${title}</h1>
+              <h1 class="email-title" style="margin:26px 0 0;font-size:28px;font-weight:700;letter-spacing:-0.03em;color:#0f172a;line-height:1.2;">${title}</h1>
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
-            <td class="email-body" style="padding:28px 36px 24px;font-size:15px;line-height:1.65;color:#1e293b;">
+            <td class="email-body" style="padding:36px 48px 32px;font-size:15px;line-height:1.72;color:#334155;">
               ${body}
               ${cta ? `
-              <div class="email-cta" style="margin:28px 0 4px;">
-                <a href="${cta.href}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:10px;letter-spacing:0.01em;">${cta.label} →</a>
+              <div style="margin:38px 0 8px;">
+                <a class="btn-cta" href="${cta.href}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 30px;border-radius:10px;letter-spacing:0.015em;">${cta.label}&nbsp;→</a>
               </div>` : ''}
             </td>
           </tr>
 
+          <!-- Footer divider -->
+          <tr>
+            <td style="height:1px;background:#f1f5f9;line-height:1px;font-size:1px;">&nbsp;</td>
+          </tr>
+
           <!-- Footer -->
           <tr>
-            <td class="email-footer" style="padding:18px 36px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;">
-              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-                <strong style="color:#475569;">© 2026 KSYK Maps</strong> &nbsp;·&nbsp; <a href="${APP_URL}" style="color:#3b82f6;text-decoration:none;">ksykmaps.fi</a>
+            <td class="email-footer" style="padding:22px 48px 30px;background:#f8fafc;">
+              <p style="margin:0;font-size:12px;color:#64748b;line-height:1.65;">
+                <strong style="color:#334155;font-weight:600;">© 2026 KSYK Maps</strong>
+                &nbsp;&nbsp;·&nbsp;&nbsp;
+                <a href="${APP_URL}" style="color:#3b82f6;text-decoration:none;">ksykmaps.fi</a>
+                ${language === 'en' ? `&nbsp;&nbsp;·&nbsp;&nbsp;<a href="mailto:${SUPPORT_EMAIL}" style="color:#3b82f6;text-decoration:none;">${SUPPORT_EMAIL}</a>` : ''}
               </p>
               <p style="margin:5px 0 0;font-size:11px;color:#94a3b8;line-height:1.6;">
-                ${footerCopy}${language === 'fi' ? '' : ` &nbsp;·&nbsp; <a href="mailto:${SUPPORT_EMAIL}" style="color:#3b82f6;text-decoration:none;">${SUPPORT_EMAIL}</a>`}
+                ${footerCopy}
               </p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
@@ -113,21 +139,20 @@ function shell(opts: {
 </html>`;
 }
 
-/** Renders the small "info chip" used inline in email bodies. */
-function chip(label: string, value: string, accent = '#2563eb'): string {
-  return `<div style="display:inline-block;margin:0 6px 6px 0;padding:6px 10px;border-radius:8px;background:#f1f5f9;font-size:12px;color:#475569;">
-    <span style="color:#94a3b8;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:10px;margin-right:6px;">${label}</span>
-    <span style="color:${accent};font-weight:700;">${value}</span>
-  </div>`;
+/** Small metadata chip used inline in email bodies. */
+function chip(label: string, value: string, accent = '#1d4ed8'): string {
+  return `<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:7px;background:#f1f5f9;font-size:12px;vertical-align:middle;">
+    <span style="color:#94a3b8;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;font-size:10px;margin-right:5px;">${label}</span><span style="color:${accent};font-weight:700;">${value}</span>
+  </span>`;
 }
 
-/** Big monospace credential block (passwords, ticket IDs). */
+/** Large monospace credential block for passwords, ticket IDs, etc. */
 function credentialBox(label: string, value: string): string {
-  return `<div style="margin:24px 0;padding:24px;border:1.5px dashed #cbd5e1;border-radius:14px;text-align:center;background:#f8fafc;">
-    <p style="margin:0 0 12px 0;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#64748b;">
+  return `<div style="margin:24px 0;padding:28px 24px;border:1px solid #e2e8f0;border-radius:14px;text-align:center;background:#f8fafc;">
+    <p style="margin:0 0 14px 0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#64748b;">
       ${label}
     </p>
-    <p style="margin:0;font-family:'SFMono-Regular','Consolas','Liberation Mono',Menlo,Courier,monospace;font-size:24px;font-weight:700;letter-spacing:0.08em;color:#0f172a;">
+    <p style="margin:0;font-family:'SFMono-Regular','Consolas','Liberation Mono',Menlo,Courier,monospace;font-size:26px;font-weight:700;letter-spacing:0.1em;color:#0f172a;word-break:break-all;">
       ${value}
     </p>
   </div>`;
@@ -295,6 +320,49 @@ export async function sendTicketEmail(
     return { success: true, mode: 'email', messageId: info.messageId };
   } catch (error: any) {
     console.error('❌ Ticket email error:', error.message);
+    return { success: false, error, mode: 'console' };
+  }
+}
+
+/**
+ * Access request approval — sent when an admin approves a lockout-screen request.
+ */
+export async function sendAccessApprovalEmail(email: string, reason?: string) {
+  const transporter = createTransporter();
+  if (!transporter) return { success: false, mode: 'console', error: 'Email not configured' };
+
+  const body = `
+    <p style="margin:0 0 16px 0;color:#334155;">
+      Great news — your request to access <strong>KSYK Maps</strong> has been approved.
+      You can now open the campus map and use all features.
+    </p>
+    ${reason ? `<div style="margin:0 0 20px 0;padding:14px 16px;background:#f8fafc;border-radius:10px;border-left:3px solid #2563eb;">
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#94a3b8;">Your request</p>
+      <p style="margin:4px 0 0;font-size:14px;color:#334155;">${reason}</p>
+    </div>` : ''}
+    <p style="margin:0;font-size:13px;color:#64748b;">
+      If you have any questions, reply to this email or visit ksykmaps.fi.
+    </p>
+  `;
+
+  const html = shell({
+    title: 'Access approved',
+    preheader: 'Your KSYK Maps access request has been approved.',
+    body,
+    cta: { label: 'Open KSYK Maps', href: APP_URL },
+  });
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"KSYK Maps" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: '✅ Your KSYK Maps access has been approved',
+      html,
+      text: `Your request to access KSYK Maps has been approved.\n\nVisit: ${APP_URL}\n\n— KSYK Maps`,
+    });
+    return { success: true, mode: 'email', messageId: info.messageId };
+  } catch (error: any) {
+    console.error('❌ Access approval email error:', error.message);
     return { success: false, error, mode: 'console' };
   }
 }

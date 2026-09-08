@@ -59,7 +59,11 @@ export async function saveSecurityToServer(s: SecuritySettings): Promise<void> {
     credentials: "include",
     body: JSON.stringify(s),
   });
-  if (!r.ok) throw new Error("Failed to save security settings");
+  if (!r.ok) {
+    const err = new Error("Failed to save security settings") as Error & { status: number };
+    err.status = r.status;
+    throw err;
+  }
 }
 
 export function useSecuritySettings() {
