@@ -10,9 +10,26 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.72";
+export const APP_VERSION = "4.5.73";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.73",
+    date: "September 2026",
+    title: "Favicon full-bleed, new description, favicon.ico",
+    titleFi: "Favicon täyttää kehyksen, uusi kuvaus, favicon.ico",
+    highlights: [
+      "**Favicon full-bleed:** Removed ~52px transparent padding from all favicon/icon PNGs so the icon fills the frame — appears larger and crisper in Google Search, browser tabs, and PWA.",
+      "**favicon.ico added:** Multi-resolution ICO (16/32/48px) now served at the root so older clients get the correct icon.",
+      "**New description:** Updated meta description, og:description, twitter:description, manifest, and Android strings.xml to the new bilingual tagline.",
+    ],
+    highlightsFi: [
+      "**Favicon täyttää kehyksen:** Poistettu ~52px läpinäkyvä täyte favicon-PNG-tiedostoista — kuvake näyttää suuremmalta Google-haussa ja selaimen välilehdessä.",
+      "**favicon.ico lisätty:** Moniresooluutioinen ICO (16/32/48px) löytyy nyt juuresta.",
+      "**Uusi kuvaus:** Meta-kuvaus, og:description, manifest ja Android-merkkijonot päivitetty uudelle kaksikieliselle taglinelle.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.72",
     date: "September 2026",
@@ -32,7 +49,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Tietoturvaistunnon korjaus:** Tallennusvirhe näyttää nyt selkeän 'Istunto vanhentunut' -viestin.",
       "**Pääsypyyntöjen hyväksyntäsähköpostit:** Lukitusnäytön pyynnön hyväksyminen lähettää nyt sähköpostin pyytäjälle.",
     ],
-    latest: true,
   },
   {
     version: "4.5.71",
