@@ -1,7 +1,10 @@
 {
+  "id": "/",
   "name": "KSYK Maps",
   "short_name": "KSYK Maps",
   "description": "The smarter way to navigate KSYK.",
+  "lang": "fi",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -15,5 +18,13 @@
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "label": "KSYK Maps campus navigation"
+    }
   ]
 }

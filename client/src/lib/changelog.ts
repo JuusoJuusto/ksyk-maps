@@ -10,9 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.69";
+export const APP_VERSION = "4.5.70";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.70",
+    date: "September 2026",
+    title: "SEO: og:site_name, expanded Finnish keywords, improved manifest",
+    titleFi: "SEO: og:site_name, laajennetut suomenkieliset avainsanat, parannettu manifestti",
+    highlights: [
+      "**og:site_name:** Added `og:site_name` and `og:url` so Google shows 'KSYK Maps' as the site name instead of the raw domain.",
+      "**Keywords expanded:** Added 'kulosaaren yhteiskoulu maps', 'Kulosaaren yhteiskoulu kartta', 'Kulosaari koulu', 'school map' to meta keywords.",
+      "**Twitter cards:** Added `twitter:title` and `twitter:description` tags.",
+      "**Manifest improved:** Added `id`, `lang: fi`, `dir: ltr`, and `screenshots` field to PWA manifest.",
+      "**OG images:** Changed from relative to absolute URLs for better social preview compatibility.",
+    ],
+    highlightsFi: [
+      "**og:site_name:** Google näyttää nyt 'KSYK Maps' sivustonimen domainin sijaan.",
+      "**Avainsanat laajennettu:** Lisätty 'kulosaaren yhteiskoulu maps', 'Kulosaaren yhteiskoulu kartta' jne.",
+      "**Manifestti:** Lisätty id, lang, dir ja screenshots-kenttä.",
+    ],
+  },
   {
     version: "4.5.69",
     date: "September 2026",
