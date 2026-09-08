@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">KSYK Maps</string>
+    <string name="app_description">The smarter way to navigate KSYK.</string>
     <string name="widget_description">Shows your next lesson for quick glance</string>
     <string name="widget_current_lesson_description">Shows the lesson currently in progress</string>
     <string name="widget_today_schedule_description">Shows today\'s upcoming lessons at a glance</string>
