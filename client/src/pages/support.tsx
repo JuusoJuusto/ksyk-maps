@@ -22,6 +22,7 @@ import {
   Loader2, LifeBuoy, Send, Ticket, Copy, ArrowRight,
 } from "lucide-react";
 import Header from "@/components/Header";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { analytics } from "@/lib/analytics-sdk";
 import posthog from "@/lib/posthog";
 
@@ -143,6 +144,7 @@ export default function Support() {
   if (submitted) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <AnnouncementBanner />
         <Header />
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-lg">
@@ -208,6 +210,7 @@ export default function Support() {
   // ── Form ───────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <AnnouncementBanner />
       <Header />
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-2xl">

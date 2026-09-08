@@ -46,8 +46,8 @@ export interface AccessDecision {
     | "default";
   /** Human-readable reason for admin previews / lockout screen. */
   reason: string;
-  /** Set when the time-window rule fires. */
-  nextOpen?: string;
+  /** Set when the time-window rule fires. Bilingual. */
+  nextOpen?: { fi: string; en: string };
   /** Set when the IP rule fires. */
   blockedIp?: string;
 }
@@ -184,7 +184,7 @@ export function ipMatchesCidr(ip: string, cidr: string): boolean {
 }
 
 /** Find the next time the school is open — used for "opens at" hint. */
-function findNextOpen(settings: SecuritySettings, now: Date): string | undefined {
+function findNextOpen(settings: SecuritySettings, now: Date): { fi: string; en: string } | undefined {
   for (let i = 0; i < 8; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() + i);
@@ -195,10 +195,14 @@ function findNextOpen(settings: SecuritySettings, now: Date): string | undefined
     if (i === 0 && timeHM(now) >= win.close) continue;
     if (i === 0 && timeHM(now) >= win.open) continue;
     const FI_DAYS: Record<string, string> = { mon: "Ma", tue: "Ti", wed: "Ke", thu: "To", fri: "Pe", sat: "La", sun: "Su" };
-    const label = i === 0 ? `tänään klo ${win.open}` :
-                  i === 1 ? `huomenna klo ${win.open}` :
-                  `${FI_DAYS[day] ?? day.toUpperCase()} ${win.open}`;
-    return label;
+    const EN_DAYS: Record<string, string> = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
+    const fi = i === 0 ? `tänään klo ${win.open}` :
+               i === 1 ? `huomenna klo ${win.open}` :
+               `${FI_DAYS[day] ?? day.toUpperCase()} klo ${win.open}`;
+    const en = i === 0 ? `today at ${win.open}` :
+               i === 1 ? `tomorrow at ${win.open}` :
+               `${EN_DAYS[day] ?? day.toUpperCase()} at ${win.open}`;
+    return { fi, en };
   }
   return undefined;
 }

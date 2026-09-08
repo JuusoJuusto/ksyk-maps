@@ -113,13 +113,7 @@ export default function AccessLockoutScreen({ decision }: Props) {
           )} />
           {isFi ? "Pääsy rajoitettu" : "Access restricted"}
         </span>
-        <span className="hidden sm:inline opacity-30">·</span>
-        <span className="hidden sm:inline opacity-70">
-          {decision.reasonCode.replace(/-/g, " ").toUpperCase()}
-        </span>
-        <span className="ml-auto hidden sm:inline opacity-50">
-          KSYK Maps
-        </span>
+        <span className="ml-auto opacity-50">KSYK Maps</span>
       </header>
 
       {/* ── Body ────────────────────────────────────────────────────── */}
@@ -130,38 +124,55 @@ export default function AccessLockoutScreen({ decision }: Props) {
             <img
               src="/favicon-128.png"
               alt="KSYK Maps"
-              width={48}
-              height={48}
-              className="h-12 w-12 object-contain mb-5"
+              width={80}
+              height={80}
+              className="h-20 w-20 object-contain mb-4"
             />
-            <div className={cn(
-              "h-10 w-10 rounded-full flex items-center justify-center mb-6",
-              darkMode ? "bg-blue-950/40" : "bg-blue-50",
+            <p className={cn(
+              "text-[10px] font-bold tracking-[0.22em] uppercase mb-6",
+              darkMode ? "text-gray-500" : "text-gray-400",
             )}>
-              <Icon className={cn(
-                "h-4 w-4",
-                darkMode ? "text-blue-400" : "text-blue-600",
-              )} strokeWidth={2} />
+              KSYK Maps
+            </p>
+
+            <div className={cn(
+              "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold mb-5",
+              decision.reasonCode === "outside-hours" || decision.reasonCode === "holiday"
+                ? (darkMode ? "bg-amber-950/40 text-amber-400" : "bg-amber-50 text-amber-700")
+                : (darkMode ? "bg-red-950/40 text-red-400" : "bg-red-50 text-red-700"),
+            )}>
+              <Icon className="h-3 w-3" strokeWidth={2.5} />
+              {isFi ? "Pääsy rajoitettu" : "Access restricted"}
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
-              {isFi ? "Suljettu juuri nyt." : "Closed for now."}
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-[-0.03em] leading-[1.05]">
+              {isFi ? "Suljettu juuri nyt." : "Closed right now."}
             </h1>
 
             <p className={cn(
               "mt-4 max-w-md text-sm sm:text-base leading-relaxed",
               darkMode ? "text-gray-400" : "text-gray-500",
             )}>
-              {decision.reason}
+              {isFi
+                ? decision.reasonCode === "outside-hours"
+                  ? "Sovellus on käytössä vain koulupäivinä ja kouluaikana."
+                  : decision.reasonCode === "holiday"
+                  ? "Tänään on loma tai vapaapäivä."
+                  : decision.reasonCode === "off-network"
+                  ? "Olet koulun verkon ulkopuolella."
+                  : decision.reasonCode === "guest-login-required"
+                  ? "Kirjaudu sisään @ksyk.fi-tunnuksella täyden pääsyn saamiseksi."
+                  : decision.reason
+                : decision.reason}
             </p>
 
             {decision.nextOpen && (
               <div className={cn(
-                "mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold",
-                darkMode ? "bg-gray-900 text-gray-300" : "bg-gray-100 text-gray-700",
+                "mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold",
+                darkMode ? "bg-gray-900 text-gray-200 ring-1 ring-gray-800" : "bg-gray-100 text-gray-800 ring-1 ring-gray-200",
               )}>
-                <Clock className="h-3.5 w-3.5" />
-                {isFi ? "Avoinna" : "Opens"} {decision.nextOpen}
+                <Clock className="h-3.5 w-3.5 opacity-70" />
+                {isFi ? "Avoinna" : "Opens"} {decision.nextOpen[isFi ? "fi" : "en"]}
               </div>
             )}
           </div>

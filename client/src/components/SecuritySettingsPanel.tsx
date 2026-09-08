@@ -6,9 +6,9 @@
  * real traffic (dry-run mode).
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useSecuritySettings, saveSecurityToServer } from "@/hooks/useSecuritySettings";
+import { useSecuritySettings, saveSecurityToServer, loadSecurityFromServer } from "@/hooks/useSecuritySettings";
 import { evaluateAccess } from "@/lib/accessControl";
 import {
   DAY_KEYS,
@@ -66,7 +66,13 @@ export default function SecuritySettingsPanel() {
   const [draft, setDraft] = useState<SecuritySettings>(settings);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings]);
 
-  const patch = <K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) =>
+  // Poll every 2 seconds so new access requests appear without refreshing.
+  useEffect(() => {
+    const id = setInterval(loadSecurityFromServer, 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  const patch =<K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
   const handleSave = async () => {
@@ -471,7 +477,7 @@ function DecisionPreview({ draft }: { draft: SecuritySettings }) {
           </span>
           <p className="text-xs flex-1 min-w-0">
             {decision.reason}
-            {decision.nextOpen && <span className="block mt-1 text-muted-foreground">Opens {decision.nextOpen}</span>}
+            {decision.nextOpen && <span className="block mt-1 text-muted-foreground">Opens {decision.nextOpen.en}</span>}
           </p>
         </div>
       </CardContent>

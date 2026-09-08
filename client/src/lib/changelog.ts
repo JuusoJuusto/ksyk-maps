@@ -10,9 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.74";
+export const APP_VERSION = "4.5.75";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.75",
+    date: "September 2026",
+    title: "Sentry tunnel fix, bilingual lockout screen, premium redesign, caching fix",
+    titleFi: "Sentry-tunnelin korjaus, kaksikielinen lukitusnäyttö, premium-uudistus, välimuistikorjaus",
+    highlights: [
+      "**Sentry tunnel restored:** Reverted to same-origin /monitoring/ proxy (Vercel rewrites) — fixes CORS errors that broke error reporting.",
+      "**Bilingual lockout screen:** 'Opens tomorrow at 07:30' now shows in the correct language (was mixing Finnish time with English prefix).",
+      "**Lockout screen redesign:** Bigger logo, compact reason chip, bolder headline, better mobile layout.",
+      "**Security settings no-cache:** /api/security-settings now bypasses CDN cache — gate changes propagate immediately instead of waiting 30 minutes.",
+      "**Access requests live updates:** Security panel polls for new access requests every 2 seconds.",
+      "**Announcement bar on /support:** Banner now visible on the support ticket page.",
+      "**Ticket PATCH fixes:** Admin auth required on PATCH, resolvedAt string properly coerced to Date.",
+      "**Favicon reverted:** Restored original padding on all icon PNGs; removed favicon.ico.",
+    ],
+    highlightsFi: [
+      "**Sentry-tunneli korjattu:** Palautettu same-origin /monitoring/-välityspalvelin — korjaa CORS-virheet.",
+      "**Kaksikielinen lukitusnäyttö:** 'Avoinna huomenna klo 07:30' näytetään oikealla kielellä.",
+      "**Lukitusnäytön uudistus:** Suurempi logo, kompakti syy-chip, rohkeampi otsikko.",
+      "**Turva-asetukset ei välimuistita:** /api/security-settings ohittaa CDN-välimuistin.",
+      "**Pääsypyynnöt päivittyvät:** Admin-paneeli hakee uudet pyynnöt 2 sekunnin välein.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.74",
     date: "September 2026",
@@ -31,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**POST /api/tickets -syötteiden validointi:** Pakolliset kentät tarkistetaan ennen käsittelyä.",
       "**Navigoinnin toast-ilmoitukset:** Reittausvirheet näytetään nyt toast-ilmoituksina.",
     ],
-    latest: true,
   },
   {
     version: "4.5.73",

@@ -1316,14 +1316,20 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
 
         if (req.method === 'PUT' || req.method === 'PATCH') {
+          if (!requireAdminAuth(req, res)) return;
           // Only allow known ticket columns — prevents unknown fields from
           // causing Drizzle schema errors and returning 500 to the client.
+          // assignedTo excluded: it has a FK constraint to users.id.
           const TICKET_WRITABLE = new Set([
-            'status', 'priority', 'response', 'resolvedAt', 'assignedTo',
+            'status', 'priority', 'response', 'resolvedAt',
           ]);
           const filtered: Record<string, any> = {};
           for (const [k, v] of Object.entries(req.body || {})) {
             if (TICKET_WRITABLE.has(k)) filtered[k] = v;
+          }
+          // Coerce resolvedAt ISO string to Date so Drizzle/Postgres accepts it.
+          if (typeof filtered.resolvedAt === 'string') {
+            filtered.resolvedAt = new Date(filtered.resolvedAt);
           }
           try {
             const ticket = await storage.updateTicket(id, filtered);
