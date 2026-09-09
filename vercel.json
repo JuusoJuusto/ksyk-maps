@@ -15,10 +15,6 @@
       "destination": "/api"
     },
     {
-      "source": "/ph/:path*",
-      "destination": "https://us.i.posthog.com/:path*"
-    },
-    {
       "source": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html",
       "destination": "/googlevUBd9f2wMyl7J57qZ_eZCbgf6T5ELUYwrTPs-A-hl7I.html"
     },

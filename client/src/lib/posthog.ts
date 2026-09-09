@@ -29,11 +29,12 @@
 import posthog from "posthog-js/dist/module.full.no-external";
 
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
-// Same-origin proxy — Vercel rewrites /ph/* → us.i.posthog.com/* server-side.
-// No CORS issue because the request stays on the same domain.
+// Same-origin API proxy — /api/ph/* is handled by api/index.ts which
+// forwards to us.i.posthog.com server-side. Vercel URL rewrites can't
+// forward POST bodies to external URLs (they silently become GET/405).
 const PROXY_HOST = typeof window !== "undefined"
-  ? `${window.location.protocol}//${window.location.host}/ph`
-  : "https://www.ksykmaps.fi/ph";
+  ? `${window.location.protocol}//${window.location.host}/api/ph`
+  : "https://www.ksykmaps.fi/api/ph";
 const UI_HOST = "https://us.posthog.com";
 
 const projectToken =

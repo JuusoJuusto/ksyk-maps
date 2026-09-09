@@ -10,9 +10,21 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.77";
+export const APP_VERSION = "4.5.78";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.78",
+    date: "September 2026",
+    title: "PostHog proxy fixed: API function instead of Vercel rewrite",
+    titleFi: "PostHog-välitys korjattu: API-funktio Vercel-uudelleenohjauksen sijaan",
+    highlights: [
+      "**PostHog 405 errors fixed:** Vercel URL rewrites silently convert POST to GET for external URL destinations — all PostHog event and session recording POSTs returned 405. Replaced with a server-side proxy in api/index.ts (/api/ph/* → us.i.posthog.com/*) that correctly forwards method, headers, and body.",
+    ],
+    highlightsFi: [
+      "**PostHog 405-virheet korjattu:** Vercel-uudelleenohjaukset muuntavat POST-pyynnöt GET:iksi ulkoisille URL-osoitteille. Korvattu palvelinpuolen välityspalvelimella api/index.ts:ssä.",
+    ],
+  },
   {
     version: "4.5.77",
     date: "September 2026",
