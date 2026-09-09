@@ -105,6 +105,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
   
+  // Capture body before sanitization — proxy handlers (Sentry tunnel) need
+  // the original bytes. sanitizeObject strips < > and other chars which
+  // corrupts Sentry envelopes and binary session recording blobs.
+  const _presanitizedBody = req.body;
+
   // Sanitize request body for POST/PUT/PATCH requests
   if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method || '')) {
     req.body = sanitizeObject(req.body);
@@ -120,45 +125,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Query params remain available via req.query which Vercel parses.
     const apiPath = path.replace(/^\/api/, '').split('?')[0];
 
-    // PostHog proxy — /api/ph/* → https://us.i.posthog.com/*
-    // Vercel URL rewrites don't forward POST bodies to external URLs (GET only),
-    // so we proxy server-side. This also keeps the PostHog host first-party.
-    if (apiPath.startsWith('/ph/')) {
-      const phPath = apiPath.slice(3); // strip /ph → /e/, /s/, /flags/, etc.
-      const qs = (req.url || '').split('?')[1] ?? '';
-      const phUrl = `https://us.i.posthog.com${phPath}${qs ? '?' + qs : ''}`;
-      try {
-        const rawBody = (req as any).rawBody ?? req.body;
-        const bodyToSend = (req.method === 'GET' || req.method === 'HEAD')
-          ? undefined
-          : Buffer.isBuffer(rawBody)
-            ? rawBody
-            : typeof rawBody === 'string'
-              ? rawBody
-              : JSON.stringify(rawBody ?? '');
-        const phRes = await fetch(phUrl, {
-          method: req.method || 'GET',
-          headers: {
-            'Content-Type': req.headers['content-type'] || 'application/json',
-            'User-Agent': req.headers['user-agent'] || 'ksyk-maps-posthog-proxy',
-          },
-          body: bodyToSend,
-        });
-        const buf = Buffer.from(await phRes.arrayBuffer());
-        res.status(phRes.status);
-        const ct = phRes.headers.get('content-type');
-        if (ct) res.setHeader('Content-Type', ct);
-        return res.end(buf);
-      } catch { return res.status(502).end(); }
-    }
-
     // Sentry envelope tunnel — proxies POST /api/sentry-tunnel to Sentry's ingest.
-    // Using an API function instead of a Vercel URL rewrite because Sentry's ingest
-    // rejects requests from URL rewrites (403 due to Host/proxy header mismatch).
+    // Uses _presanitizedBody so sanitizeObject() doesn't strip < > from stack traces.
     if (apiPath === '/sentry-tunnel') {
       if (req.method !== 'POST') return res.status(405).end();
       try {
-        const rawBody: Buffer | string | undefined = (req as any).rawBody ?? req.body;
+        const rawBody: Buffer | string | undefined = _presanitizedBody;
         const bodyToSend = Buffer.isBuffer(rawBody)
           ? rawBody
           : typeof rawBody === 'string'

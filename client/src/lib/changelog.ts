@@ -10,9 +10,23 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.78";
+export const APP_VERSION = "4.5.79";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.79",
+    date: "September 2026",
+    title: "Sentry tunnel body fix, PostHog reverted to t.ksykmaps.fi",
+    titleFi: "Sentry-tunnelin korjaus, PostHog palautettu t.ksykmaps.fiin",
+    highlights: [
+      "**Sentry tunnel 403 fixed:** sanitizeObject() was stripping < > from Sentry envelope bodies (stack traces, component names) before they reached the tunnel — corrupting the payload Sentry received. Body is now saved before sanitization and used raw in the tunnel.",
+      "**PostHog reverted to t.ksykmaps.fi:** Removed the /api/ph/* server-side proxy which introduced new 400 errors. PostHog goes through the existing t.ksykmaps.fi reverse proxy as originally intended.",
+    ],
+    highlightsFi: [
+      "**Sentry-tunnelin 403 korjattu:** sanitizeObject() poisti < >-merkit Sentry-kuoren rungosta ennen tunnelia — korruptoi hyötykuorman. Runko tallennetaan nyt ennen sanitointia.",
+      "**PostHog palautettu t.ksykmaps.fiin:** Poistettu /api/ph/*-välityspalvelin joka aiheutti 400-virheitä.",
+    ],
+  },
   {
     version: "4.5.78",
     date: "September 2026",
