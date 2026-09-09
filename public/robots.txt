@@ -1,5 +1,17 @@
 User-agent: *
 Allow: /
+Allow: /api/buildings
+Allow: /api/rooms
+Allow: /api/pois
+Allow: /api/announcements
+Allow: /api/map-package/published
+Allow: /api/doors
+Allow: /api/elevators
+Allow: /api/hallways
+Allow: /api/layers
+Allow: /api/map-defaults
+Allow: /api/stairs
+Allow: /api/client-info
 Disallow: /admin
 Disallow: /admin/
 Disallow: /admin-login

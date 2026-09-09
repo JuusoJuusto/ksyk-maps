@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "default-src 'self'",
       `script-src 'self' 'unsafe-inline' ${process.env.POSTHOG_CSP_SCRIPT_SRC ?? ''}`.trim(),
       "style-src 'self' 'unsafe-inline'",
-      `connect-src 'self' ${process.env.VITE_POSTHOG_HOST ?? ''}`.trim(),
+      `connect-src 'self' ${process.env.POSTHOG_HOST ?? ''}`.trim(),
       "worker-src 'self' blob:",
     ].join('; '),
   );
@@ -1298,7 +1298,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
         
         // Send Discord notification
-        if (process.env.VITE_DISCORD_TICKETS_WEBHOOK) {
+        if (process.env.DISCORD_TICKETS_WEBHOOK) {
           try {
             const discordEmbed = {
               embeds: [{
@@ -1316,7 +1316,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
               }]
             };
             
-            await fetch(process.env.VITE_DISCORD_TICKETS_WEBHOOK, {
+            await fetch(process.env.DISCORD_TICKETS_WEBHOOK, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(discordEmbed)

@@ -63,6 +63,39 @@
     <meta name="twitter:description" content="Eksyitkö KSYKissä? Ei hätää. KSYK Maps auttaa sinua löytämään perille luokkaasi. / Lost in KSYK? Don't worry. KSYK Maps will help you find your way to your classroom." />
     <meta name="twitter:image" content="https://ksykmaps.fi/icon-512.png" />
     <title>KSYK Maps</title>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://ksykmaps.fi/#website",
+          "url": "https://ksykmaps.fi/",
+          "name": "KSYK Maps",
+          "description": "Campus navigation for Kulosaaren yhteiskoulu",
+          "inLanguage": ["fi", "en"]
+        },
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://ksykmaps.fi/#school",
+          "name": "Kulosaaren yhteiskoulu",
+          "alternateName": "KSYK",
+          "url": "https://www.ksyk.fi",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Helsinki",
+            "addressCountry": "FI"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 60.187,
+            "longitude": 25.006
+          },
+          "hasMap": "https://ksykmaps.fi/"
+        }
+      ]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">

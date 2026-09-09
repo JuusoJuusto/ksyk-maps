@@ -10,9 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.76";
+export const APP_VERSION = "4.5.77";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.77",
+    date: "September 2026",
+    title: "PostHog same-origin proxy, VITE_ rename, CSP tile fix, SEO improvements",
+    titleFi: "PostHog same-origin -välitys, VITE_-uudelleennimeäminen, CSP-korjaus, SEO-parannukset",
+    highlights: [
+      "**PostHog moved to same-origin proxy:** /ph/* Vercel rewrites now forward to us.i.posthog.com server-side — eliminates the t.ksykmaps.fi CORS errors on /array/ and /flags/ endpoints.",
+      "**VITE_ env vars renamed:** VITE_DISCORD_TICKETS_WEBHOOK and VITE_POSTHOG_HOST renamed in server code to prevent accidental client-bundle inclusion. Rename in Vercel env vars dashboard too.",
+      "**Carto + Stadia added to CSP:** connect-src was missing https://*.basemaps.cartocdn.com and tiles.stadiamaps.com — tile requests silently failed CSP when those providers were selected.",
+      "**robots.txt:** Added Allow: lines for 12 read-only API endpoints so Googlebot can fetch the data the map renders. Blocked endpoints remain blocked.",
+      "**Sitemap:** Added /directory (room list page — best chance to rank for classroom searches).",
+      "**JSON-LD structured data:** Added School + WebSite schema to index.html for rich search results.",
+    ],
+    highlightsFi: [
+      "**PostHog same-origin -välitys:** /ph/*-Vercel-uudelleenohjaukset välittävät nyt us.i.posthog.comiin palvelinpuolella — poistaa CORS-virheet.",
+      "**VITE_-ympäristömuuttujat uudelleennimetty:** Estää vahingollinen sisällytys asiakaspaketissa.",
+      "**Carto + Stadia CSP:hen:** connect-src ei sisältänyt näitä karttapalvelimia.",
+      "**robots.txt:** Allow-rivit 12 vain luku -API-polulle Googlebotille.",
+      "**Sivukartta:** /directory lisätty.",
+      "**JSON-LD:** Koulu + WebSite -rakenne lisätty.",
+    ],
+    latest: true,
+  },
   {
     version: "4.5.76",
     date: "September 2026",
@@ -32,7 +55,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Alert-dialogit korvattu:** Kaikki alert()-kutsut korvattu toast-ilmoituksilla.",
       "**Pääsypyyntöjen päivitysvirhe korjattu:** Admin-paneeli ei enää näytä väärää 'tallentamattomia muutoksia' -varoitusta.",
     ],
-    latest: true,
   },
   {
     version: "4.5.75",

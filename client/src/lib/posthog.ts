@@ -29,7 +29,11 @@
 import posthog from "posthog-js/dist/module.full.no-external";
 
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
-const PROXY_HOST = "https://t.ksykmaps.fi";
+// Same-origin proxy — Vercel rewrites /ph/* → us.i.posthog.com/* server-side.
+// No CORS issue because the request stays on the same domain.
+const PROXY_HOST = typeof window !== "undefined"
+  ? `${window.location.protocol}//${window.location.host}/ph`
+  : "https://www.ksykmaps.fi/ph";
 const UI_HOST = "https://us.posthog.com";
 
 const projectToken =
