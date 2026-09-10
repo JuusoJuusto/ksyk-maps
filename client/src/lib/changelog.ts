@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.83";
+export const APP_VERSION = "4.5.84";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.84",
+    date: "September 2026",
+    title: "Room popup compact, logo fix, /support links, schedule dedup, /landing route",
+    titleFi: "Huonekortti kompaktimpi, logo korjattu, /support-linkit, aikataulu-dedup, /landing-reitti",
+    latest: true,
+    highlights: [
+      "**Room popup compact:** FeatureInfoSheet is now 21rem wide (was 30rem) with a smaller icon chip, tighter header padding, and a smaller action button row. Mobile sheet opens at peek snap by default. Photo max-height reduced to 9rem.",
+      "**Loading logo fixed:** Branding pointed at a non-existent file (ksyk_logo_old-no_bg (1).png). Now uses ksykmaps_logo_new_new.png which actually exists in public/.",
+      "**Landing page routed:** /landing is now a proper route — previously the landing.tsx redesign was unreachable because it was never registered in App.tsx.",
+      "**Support link everywhere:** Settings About tab, 404 page, and mobile menu all link to /support instead of inline dialogs.",
+      "**Schedule deduplication:** syncCalendar now deduplicates events by UID before saving to localStorage so syncing no longer stacks duplicate entries.",
+    ],
+    highlightsFi: [
+      "**Huonekortti kompaktimpi:** FeatureInfoSheet on nyt 21rem leveä (oli 30rem), pienempi ikonikupla, tiiviimpi otsikkopadding ja pienempi toimintopainikkeiden rivi.",
+      "**Latauslogo korjattu:** Branding viittasi olemattomaan tiedostoon. Nyt käytetään ksykmaps_logo_new_new.png joka löytyy public/-kansiosta.",
+      "**Landing-sivu reititty:** /landing on nyt reitti — aiemmin landing.tsx-uudistus ei ollut saavutettavissa, koska sitä ei rekisteröity App.tsx:ssä.",
+      "**Tuki-linkki kaikkialle:** Asetukset-paneelin Tietoja-välilehti, 404-sivu ja mobiilivalikko linkittävät /support-sivulle.",
+      "**Aikataulu-deduplikaatio:** syncCalendar deduplikoi tapahtumat UID:n perusteella ennen tallennusta, joten synkronointi ei enää pinoa duplikaatteja.",
+    ],
+  },
   {
     version: "4.5.83",
     date: "September 2026",
     title: "Landing page redesign — stats, full features grid, how-it-works",
     titleFi: "Etusivun uudistus — tilastot, koko ominaisuusruudukko, käyttöönotto-ohjeet",
-    latest: true,
+    latest: false,
     highlights: [
       "**Landing page expanded:** Added stats bar (6+ buildings, 200+ rooms, 2 languages, 3D), 8-card features grid (map, navigation, search, lunch, HSL, directory, bilingual, access), how-it-works 3-step section with second CTA, dark-mode toggle in the landing header, and a proper footer with navigation links.",
       "**ShoppingCart icon removed:** Stray unused import cleaned from FeatureInfoSheet.",

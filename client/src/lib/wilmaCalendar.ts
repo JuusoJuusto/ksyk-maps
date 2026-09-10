@@ -81,7 +81,14 @@ function loadCache(): CalendarEvent[] | null {
 
 function saveCache(events: CalendarEvent[]): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+    // Deduplicate by UID so re-syncing never stacks duplicate events.
+    const seen = new Set<string>();
+    const deduped = events.filter(e => {
+      if (seen.has(e.uid)) return false;
+      seen.add(e.uid);
+      return true;
+    });
+    localStorage.setItem(CACHE_KEY, JSON.stringify(deduped));
     localStorage.setItem(CACHE_TS_KEY, String(Date.now()));
   } catch { /* quota exceeded is OK */ }
 }

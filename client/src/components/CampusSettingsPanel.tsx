@@ -411,6 +411,13 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     <Button
                       variant="outline"
                       className="w-full rounded-xl"
+                      onClick={() => window.location.href = "/support"}
+                    >
+                      {isFi ? "Tuki ja palaute" : "Support & feedback"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl"
                       onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
                     >
                       {isFi ? "Muutosloki GitHubissa" : "Changelog on GitHub"}

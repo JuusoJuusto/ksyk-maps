@@ -19,8 +19,8 @@ export const KSYK_MAPS_LOGO_ULTRA = KSYK_MAPS_LOGO_MASTER;
 
 export const KSYK_MAPS_LOGO_ALT = "KSYK Maps";
 
-/** Spinning loader — classic owl (no background) */
-export const KSYK_LOADER_LOGO_FILE = "ksyk_logo_old-no_bg (1).png";
+/** Spinning loader — uses the new logo (old file no longer exists in public/) */
+export const KSYK_LOADER_LOGO_FILE = "ksykmaps_logo_new_new.png";
 export const KSYK_LOADER_LOGO = `/${encodeURI(KSYK_LOADER_LOGO_FILE)}`;
 export const KSYK_LOADER_LOGO_ALT = "KSYK Maps";
 

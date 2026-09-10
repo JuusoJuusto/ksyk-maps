@@ -59,7 +59,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const photoUrl = featurePhotoUrl(feature);
 
   // ── Mobile snap / drag ───────────────────────────────────────────────
-  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
+  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("peek");
   const dragStartYRef = useRef<number | null>(null);
   const dragStartSnapRef = useRef<typeof mobileSnap>("half");
 
@@ -103,11 +103,11 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       aria-label={`${feature.kind} info`}
       className={cn(
         "fixed z-40 flex flex-col overflow-hidden",
-        "bg-white dark:bg-gray-950",
+        "bg-white dark:bg-gray-900",
         // Mobile: bottom sheet
-        "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.15)]",
-        // Desktop: centered card bottom-6
-        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-6 sm:rounded-3xl sm:shadow-2xl sm:w-[min(90vw,30rem)]",
+        "left-0 right-0 bottom-0 rounded-t-2xl shadow-[0_-2px_24px_rgba(0,0,0,0.12)]",
+        // Desktop: compact centered card bottom-4
+        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-4 sm:rounded-2xl sm:shadow-[0_8px_32px_rgba(0,0,0,0.18)] sm:w-[min(88vw,21rem)]",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -132,38 +132,38 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       </div>
 
       {/* ── Compact header ────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 pt-3 sm:pt-4">
-        <div className="flex items-start gap-3">
-          {/* Colored icon chip */}
+      <div className="shrink-0 px-3.5 pt-2.5 sm:pt-3">
+        <div className="flex items-center gap-2.5">
+          {/* Colored icon chip — compact */}
           <div
-            className="h-11 w-11 rounded-2xl shrink-0 flex items-center justify-center mt-0.5"
-            style={{ background: color + "1a" }}
+            className="h-8 w-8 rounded-xl shrink-0 flex items-center justify-center"
+            style={{ background: color + "18" }}
           >
             <span style={{ color }}>
-              <KindIcon feature={feature} size={22} />
+              <KindIcon feature={feature} size={15} />
             </span>
           </div>
 
           {/* Name + type + floor */}
-          <div className="flex-1 min-w-0 py-0.5">
-            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1 mb-0.5">
               <span
-                className="text-[10px] font-bold tracking-[0.14em] uppercase leading-none"
+                className="text-[9px] font-bold tracking-[0.15em] uppercase leading-none"
                 style={{ color }}
               >
                 {featureKindLabel(feature, lang)}
               </span>
               {typeof floor === "number" && (
-                <span className="text-[10px] font-semibold text-muted-foreground bg-black/6 dark:bg-white/10 px-1.5 py-0.5 rounded-md leading-none">
-                  {fi ? `Kerros ${floor}` : `Floor ${floor}`}
+                <span className="text-[9px] font-semibold text-muted-foreground/70 leading-none">
+                  · {fi ? `Kerros ${floor}` : `Floor ${floor}`}
                 </span>
               )}
             </div>
-            <h2 className="text-[18px] font-bold leading-snug text-foreground line-clamp-2">
+            <h2 className="text-[14px] font-bold leading-tight text-foreground line-clamp-1">
               {title}
             </h2>
             {subtitle && (
-              <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1 leading-snug">
+              <p className="text-[11px] text-muted-foreground leading-tight line-clamp-1">
                 {subtitle}
               </p>
             )}
@@ -173,24 +173,27 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 h-8 w-8 rounded-full bg-black/6 dark:bg-white/10 flex items-center justify-center text-foreground hover:bg-black/10 dark:hover:bg-white/15 transition-colors mt-0.5"
+            className="shrink-0 h-7 w-7 rounded-full bg-black/6 dark:bg-white/10 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-black/10 dark:hover:bg-white/15 transition-colors"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* ── Action buttons — above the scroll so always visible at peek ─ */}
+      {/* ── Divider ───────────────────────────────────────────────────── */}
+      <div className="shrink-0 mx-3.5 mt-2.5 h-px bg-black/6 dark:bg-white/8" />
+
+      {/* ── Action buttons — above scroll so always visible at peek ─── */}
       {showActions && (
-        <div className="shrink-0 px-4 pt-3 pb-1 flex gap-2">
+        <div className="shrink-0 px-3.5 py-2 flex gap-1.5">
           {canUseRouting && (
             <button
               type="button"
               onClick={() => onRouteTo(feature)}
-              className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white flex items-center justify-center gap-1.5 text-[13px] font-semibold transition-all shadow-sm shadow-blue-600/20"
+              className="flex-1 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all shadow-sm shadow-blue-600/25"
             >
-              <Navigation2 className="h-3.5 w-3.5 shrink-0" />
+              <Navigation2 className="h-3 w-3 shrink-0" />
               {fi ? "Reittiohjeet" : "Directions"}
             </button>
           )}
@@ -199,32 +202,34 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
               href={scheduleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white flex items-center justify-center gap-1.5 text-[13px] font-semibold transition-all shadow-sm shadow-emerald-500/20"
+              className={cn(
+                "h-8 rounded-xl flex items-center justify-center gap-1 text-[12px] font-semibold transition-all active:scale-[0.97]",
+                canUseRouting
+                  ? "px-3 bg-black/5 dark:bg-white/10 text-foreground hover:bg-black/10 dark:hover:bg-white/15"
+                  : "flex-1 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20",
+              )}
             >
-              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-              {scheduleLabel}
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              {!canUseRouting && scheduleLabel}
             </a>
           )}
         </div>
       )}
 
-      {/* ── Divider ───────────────────────────────────────────────────── */}
-      <div className="shrink-0 mx-4 mt-3 h-px bg-black/6 dark:bg-white/8" />
-
       {/* ── Scrollable: optional photo + metadata ────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {photoUrl && (
-          <div className="px-4 pt-3">
+          <div className="px-3.5 pt-1">
             <img
               src={photoUrl}
               alt={title}
               loading="lazy"
-              className="w-full rounded-2xl object-cover max-h-48"
+              className="w-full rounded-xl object-cover max-h-36"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
             />
           </div>
         )}
-        <div className="px-4 pt-3 pb-4">
+        <div className="px-3.5 pt-2 pb-3">
           <MetadataRows feature={feature} />
         </div>
       </div>
