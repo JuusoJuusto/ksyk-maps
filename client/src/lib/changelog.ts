@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.80";
+export const APP_VERSION = "4.5.81";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.81",
+    date: "September 2026",
+    title: "Sentry tunnel stream fix, Google Translate CSP, room panel centered",
+    titleFi: "Sentry-tunnelin stream-korjaus, Google Translate CSP, huonekortti keskitetty",
+    latest: true,
+    highlights: [
+      "**Sentry tunnel 403 root cause fixed:** Vercel only auto-parses req.body for application/json and form data. Sentry envelopes (application/x-sentry-envelope) left req.body undefined — we now stream-read the raw bytes directly from the request so the full envelope reaches Sentry intact.",
+      "**Google Translate unblocked:** Added https://translate.googleapis.com to CSP connect-src so English translation on the lunch page works again.",
+      "**Room info panel centered:** FeatureInfoSheet moved from left-panel back to center-bottom floating card (30 rem wide, sm:bottom-6 sm:left-1/2) to match MazeMap's popup style.",
+    ],
+    highlightsFi: [
+      "**Sentry-tunnelin 403 juurisyy korjattu:** Vercel jäsensi vain JSON/form-runkoja — Sentryn envelope jäi req.body=undefined ja lähetettiin tyhjänä. Korjattu lukemalla tavut suoraan request-streamista.",
+      "**Google Translate avattu:** Lisätty https://translate.googleapis.com CSP connect-src -direktiiviin.",
+      "**Huonekortti keskitetty:** FeatureInfoSheet palautettu vasemmalta paneeliksi takaisin MazeMap-tyyliseksi center-bottom -kortiksi.",
+    ],
+  },
   {
     version: "4.5.80",
     date: "September 2026",
     title: "MazeMap-style room panel, lunch page redesign",
     titleFi: "MazeMap-tyylinen huonekortti, ruokalistan uusi ilme",
-    latest: true,
+    latest: false,
     highlights: [
       "**Room panel is now a left-side panel on desktop:** FeatureInfoSheet moved from bottom-center float to a fixed left-rail panel (MazeMap style) on sm+ screens. Mobile bottom-sheet snap behaviour unchanged.",
       "**Lunch page redesigned:** Warm editorial aesthetic — amber accent, day strip with date numbers, clean menu card with coloured category dots instead of icon boxes.",

@@ -126,16 +126,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiPath = path.replace(/^\/api/, '').split('?')[0];
 
     // Sentry envelope tunnel — proxies POST /api/sentry-tunnel to Sentry's ingest.
-    // Uses _presanitizedBody so sanitizeObject() doesn't strip < > from stack traces.
+    // Root cause of 403: Vercel only auto-parses req.body for application/json and
+    // application/x-www-form-urlencoded. Sentry sends application/x-sentry-envelope
+    // so req.body is always undefined — we must stream-read the raw bytes ourselves.
     if (apiPath === '/sentry-tunnel') {
       if (req.method !== 'POST') return res.status(405).end();
       try {
-        const rawBody: Buffer | string | undefined = _presanitizedBody;
-        const bodyToSend = Buffer.isBuffer(rawBody)
-          ? rawBody
-          : typeof rawBody === 'string'
-          ? rawBody
-          : JSON.stringify(rawBody ?? '');
+        const rawBytes = await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = [];
+          req.on('data', (chunk: unknown) => {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+          });
+          req.on('end', () => resolve(Buffer.concat(chunks)));
+          req.on('error', reject);
+        });
+        // If stream was already consumed (unlikely for non-JSON), fall back.
+        const bodyToSend: Buffer | string =
+          rawBytes.length > 0
+            ? rawBytes
+            : Buffer.isBuffer(_presanitizedBody)
+              ? _presanitizedBody
+              : typeof _presanitizedBody === 'string'
+                ? _presanitizedBody
+                : Buffer.from('');
+        if ((bodyToSend as Buffer).length === 0 && (bodyToSend as string).length === 0) {
+          return res.status(400).end();
+        }
         const sentryRes = await fetch(
           'https://o4512001020133376.ingest.de.sentry.io/api/4512012645302352/envelope/',
           {

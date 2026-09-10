@@ -91,15 +91,15 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       aria-label={`${feature.kind} info`}
       className={cn(
         "fixed z-40 overflow-hidden flex flex-col",
-        // Mobile: bottom sheet
+        // Mobile: full-width bottom sheet
         "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.18)]",
-        // Desktop: left-side panel — MazeMap style
-        "sm:left-3 sm:top-16 sm:bottom-3 sm:right-auto sm:rounded-3xl sm:shadow-2xl sm:w-80",
+        // Desktop: centered card — MazeMap style (bottom-center, not left rail)
+        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-6 sm:rounded-3xl sm:shadow-2xl sm:w-[min(90vw,30rem)]",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         maxHeight: typeof window !== "undefined" && window.innerWidth >= 640
-          ? undefined
+          ? "min(52rem, 80dvh)"
           : `min(52rem, ${mobileMaxH}, calc(100dvh - 5rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))`,
         transition: "max-height 260ms cubic-bezier(0.32, 0.72, 0, 1)",
         background: "transparent",
