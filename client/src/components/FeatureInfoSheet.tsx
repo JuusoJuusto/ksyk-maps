@@ -12,7 +12,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   X, MapPin, Compass, Users, User, Layers as LayersIcon, Info,
   Navigation2, Clock, Phone, Mail, ExternalLink, Building2, DoorOpen,
-  BookOpen, Dumbbell, ShoppingCart, Trees, Warehouse, Coffee,
+  BookOpen, Dumbbell, Trees, Warehouse, Coffee,
   ChevronRight, Minus, Utensils, Lock, ArrowUpDown, Mic2, FlipVertical2,
   LayoutDashboard, Wrench, Droplets,
 } from "lucide-react";
@@ -531,5 +531,4 @@ function ContactRows({ contact }: { contact: { hours?: string; phone?: string; e
 }
 
 // Unused but kept for type-checking
-const _unused = ShoppingCart;
 const _Coffee = Coffee;
