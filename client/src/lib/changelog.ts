@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.84";
+export const APP_VERSION = "4.5.85";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.85",
+    date: "September 2026",
+    title: "MazeMap popup style, loading fix, landing page removed",
+    titleFi: "MazeMap-huonekortti, latauspalkki korjattu, landing poistettu",
+    latest: true,
+    highlights: [
+      "**MazeMap popup:** Room info sheet now shows a colored circular pin icon instead of a type chip. No divider between name and actions. Flat icon-only secondary button + full-width blue Directions CTA.",
+      "**Loading freeze fixed:** Progress bar no longer resets from 92% back to 16%. Uses an asymptotic curve that approaches 90% smoothly without any visible jump.",
+      "**Landing page removed:** /landing route and the landing.tsx page have been removed. The main app is the entry point.",
+    ],
+    highlightsFi: [
+      "**MazeMap-huonekortti:** Huonekortissa näkyy nyt värillinen pyöreä pin-ikoni tyyppisirun sijaan. Ei erotinta nimen ja toimintojen välissä. Litteä ikonipainike + täysilevyinen sininen Reittiohjeet-painike.",
+      "**Latauspalkki korjattu:** Palkki ei enää hyppää takaisin 16%:iin 92%:n jälkeen. Käyttää asymptootista käyrää joka lähestyy 90% tasaisesti.",
+      "**Landing-sivu poistettu:** /landing-reitti ja landing.tsx on poistettu. Pääsovellus on ainoa sisääntulopiste.",
+    ],
+  },
   {
     version: "4.5.84",
     date: "September 2026",
     title: "Room popup compact, logo fix, /support links, schedule dedup, /landing route",
     titleFi: "Huonekortti kompaktimpi, logo korjattu, /support-linkit, aikataulu-dedup, /landing-reitti",
-    latest: true,
+    latest: false,
     highlights: [
       "**Room popup compact:** FeatureInfoSheet is now 21rem wide (was 30rem) with a smaller icon chip, tighter header padding, and a smaller action button row. Mobile sheet opens at peek snap by default. Photo max-height reduced to 9rem.",
       "**Loading logo fixed:** Branding pointed at a non-existent file (ksyk_logo_old-no_bg (1).png). Now uses ksykmaps_logo_new_new.png which actually exists in public/.",

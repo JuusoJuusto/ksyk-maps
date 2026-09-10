@@ -119,7 +119,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
     >
       {/* ── Mobile drag handle ────────────────────────────────────────── */}
       <div
-        className="sm:hidden flex justify-center pt-2.5 shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+        className="sm:hidden flex justify-center pt-2 pb-0 shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
         onPointerDown={onHandlePointerDown}
         onPointerMove={onHandlePointerMove}
         onPointerUp={onHandlePointerUp}
@@ -128,89 +128,83 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         role="button"
         aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
       >
-        <span className="h-1 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+        <span className="h-[3px] w-9 rounded-full bg-black/12 dark:bg-white/15" />
       </div>
 
-      {/* ── Compact header ────────────────────────────────────────────── */}
-      <div className="shrink-0 px-3.5 pt-2.5 sm:pt-3">
-        <div className="flex items-center gap-2.5">
-          {/* Colored icon chip — compact */}
+      {/* ── MazeMap-style header: colored pin + name + location ───────── */}
+      <div className="shrink-0 px-3.5 pt-3 pb-0">
+        <div className="flex items-start gap-3">
+          {/* Colored circular pin — MazeMap style */}
           <div
-            className="h-8 w-8 rounded-xl shrink-0 flex items-center justify-center"
-            style={{ background: color + "18" }}
+            className="h-9 w-9 rounded-full shrink-0 flex items-center justify-center shadow-sm mt-0.5"
+            style={{ background: color }}
           >
-            <span style={{ color }}>
-              <KindIcon feature={feature} size={15} />
-            </span>
+            <MapPin className="h-4 w-4 text-white" fill="rgba(255,255,255,0.25)" strokeWidth={2.5} />
           </div>
 
-          {/* Name + type + floor */}
+          {/* Name + type/floor subtitle */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 mb-0.5">
-              <span
-                className="text-[9px] font-bold tracking-[0.15em] uppercase leading-none"
-                style={{ color }}
-              >
-                {featureKindLabel(feature, lang)}
-              </span>
-              {typeof floor === "number" && (
-                <span className="text-[9px] font-semibold text-muted-foreground/70 leading-none">
-                  · {fi ? `Kerros ${floor}` : `Floor ${floor}`}
-                </span>
-              )}
-            </div>
-            <h2 className="text-[14px] font-bold leading-tight text-foreground line-clamp-1">
+            <h2 className="text-[15px] font-bold leading-tight text-gray-900 dark:text-white line-clamp-2">
               {title}
             </h2>
-            {subtitle && (
-              <p className="text-[11px] text-muted-foreground leading-tight line-clamp-1">
-                {subtitle}
-              </p>
-            )}
+            <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+              {[
+                featureKindLabel(feature, lang),
+                typeof floor === "number" ? (fi ? `Kerros ${floor}` : `Floor ${floor}`) : null,
+              ].filter(Boolean).join(" · ")}
+              {subtitle ? ` · ${subtitle}` : ""}
+            </p>
           </div>
 
-          {/* Close button */}
+          {/* Close */}
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 h-7 w-7 rounded-full bg-black/6 dark:bg-white/10 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-black/10 dark:hover:bg-white/15 transition-colors"
+            className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/6 dark:hover:bg-white/10 transition-colors"
             aria-label="Close"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
           </button>
         </div>
       </div>
 
-      {/* ── Divider ───────────────────────────────────────────────────── */}
-      <div className="shrink-0 mx-3.5 mt-2.5 h-px bg-black/6 dark:bg-white/8" />
-
-      {/* ── Action buttons — above scroll so always visible at peek ─── */}
+      {/* ── MazeMap-style action row — no divider, flush under name ──── */}
       {showActions && (
-        <div className="shrink-0 px-3.5 py-2 flex gap-1.5">
-          {canUseRouting && (
-            <button
-              type="button"
-              onClick={() => onRouteTo(feature)}
-              className="flex-1 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all shadow-sm shadow-blue-600/25"
-            >
-              <Navigation2 className="h-3 w-3 shrink-0" />
-              {fi ? "Reittiohjeet" : "Directions"}
-            </button>
-          )}
-          {scheduleUrl && (
+        <div className="shrink-0 px-3 pt-2.5 pb-0.5 flex gap-1.5 items-center">
+          {/* Secondary icon buttons (flat, no fill) */}
+          {scheduleUrl && canUseRouting && (
             <a
               href={scheduleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                "h-8 rounded-xl flex items-center justify-center gap-1 text-[12px] font-semibold transition-all active:scale-[0.97]",
-                canUseRouting
-                  ? "px-3 bg-black/5 dark:bg-white/10 text-foreground hover:bg-black/10 dark:hover:bg-white/15"
-                  : "flex-1 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20",
-              )}
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-black/6 dark:hover:bg-white/10 hover:text-gray-800 dark:hover:text-gray-100 transition-colors active:scale-[0.95]"
+              aria-label={scheduleLabel}
+              title={scheduleLabel}
             >
-              <ExternalLink className="h-3 w-3 shrink-0" />
-              {!canUseRouting && scheduleLabel}
+              <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />
+            </a>
+          )}
+          {/* Primary CTA — grows to fill remaining space */}
+          {canUseRouting && (
+            <button
+              type="button"
+              onClick={() => onRouteTo(feature)}
+              className="flex-1 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all"
+            >
+              <Navigation2 className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+              {fi ? "Reittiohjeet" : "Directions"}
+            </button>
+          )}
+          {/* Fallback: schedule only, no routing */}
+          {!canUseRouting && scheduleUrl && (
+            <a
+              href={scheduleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all"
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+              {scheduleLabel}
             </a>
           )}
         </div>

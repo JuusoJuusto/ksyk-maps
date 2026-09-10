@@ -34,10 +34,8 @@ export default function LoadingSpinner({
 
   useEffect(() => {
     const progressId = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 92) return 16;
-        return Math.min(92, p + 3 + Math.random() * 5);
-      });
+      // Asymptotic approach: accelerates early, slows near 90%, never resets.
+      setProgress((p) => p + (90 - p) * 0.08 + Math.random() * 0.5);
     }, 320);
     const stageId = setInterval(() => {
       setStageIndex((i) => (i + 1) % loadStages.length);

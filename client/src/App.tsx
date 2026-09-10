@@ -45,7 +45,6 @@ const DevModeEasterEgg    = lazy(() => import("@/pages/dev-mode"));
 const NotFound            = lazy(() => import("@/pages/not-found"));
 const BuilderPage         = lazy(() => import("@/pages/builder"));
 const Support             = lazy(() => import("@/pages/support"));
-const Landing             = lazy(() => import("@/pages/landing"));
 import "./lib/i18n";
 
 function OfflineBanner() {
@@ -163,7 +162,7 @@ function Router() {
       <Route path="/support" component={Support} />
       {/* Alias so error boundaries + old bookmarks find the same page. */}
       <Route path="/report" component={Support} />
-      <Route path="/landing" component={Landing} />
+
 
       {/* Easter eggs */}
       <Route path="/secret-easter-egg" component={EasterEgg} />
