@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.81";
+export const APP_VERSION = "4.5.82";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.82",
+    date: "September 2026",
+    title: "MazeMap-style room card, stairs hidden from panel, loading screen improved",
+    titleFi: "MazeMap-tyylinen huonekortti, portaat piilotettu, latausnäyttö parannettu",
+    latest: true,
+    highlights: [
+      "**Room info card redesigned (MazeMap-style):** Compact white card with colored icon chip, room name, type badge and floor badge in a single header row. Action buttons (Directions, Schedule) placed above the scroll area so they are always visible at the peek snap point on small phones.",
+      "**Stairs removed from info panel:** Clicking a stairwell polygon on the map no longer opens a room info card (stairs are not navigable rooms).",
+      "**Loading screen cleaned up:** Static logo replaces the counter-spinning animation; thinner arc spinner; slim progress bar; less visual noise while the map loads.",
+    ],
+    highlightsFi: [
+      "**Huonekortti uudistettu (MazeMap-tyyli):** Kompakti valkoinen kortti värillisellä ikonipalalla, huoneen nimellä, tyyppi- ja kerrosmerkinnällä samalla rivillä. Toimintopainikkeet (Reitti, Aikataulu) siirretty scrollattavan alueen yläpuolelle — näkyvät aina peek-snap-kohdassa.",
+      "**Portaat poistettu infopaneelista:** Porrasmultikulmion klikkaus ei enää avaa huonekortia.",
+      "**Latausnäyttö siistiytyi:** Staattinen logo korvaa vastakkaisen pyörimisanimaation; ohuempi kaari-spinner; ohut edistymispalkki.",
+    ],
+  },
   {
     version: "4.5.81",
     date: "September 2026",
     title: "Sentry tunnel stream fix, Google Translate CSP, room panel centered",
     titleFi: "Sentry-tunnelin stream-korjaus, Google Translate CSP, huonekortti keskitetty",
-    latest: true,
+    latest: false,
     highlights: [
       "**Sentry tunnel 403 root cause fixed:** Vercel only auto-parses req.body for application/json and form data. Sentry envelopes (application/x-sentry-envelope) left req.body undefined — we now stream-read the raw bytes directly from the request so the full envelope reaches Sentry intact.",
       "**Google Translate unblocked:** Added https://translate.googleapis.com to CSP connect-src so English translation on the lunch page works again.",

@@ -1,9 +1,12 @@
 /**
- * FeatureInfoSheet — click-to-inspect panel for a room / building /
- * hallway on the public map. Premium MazeMap + Apple-style design.
+ * FeatureInfoSheet — click-to-inspect panel for a room / building / hallway.
  *
- * Mobile: swipeable bottom sheet with three snap points.
- * Desktop (sm+): floating card anchored to bottom-center.
+ * Layout (MazeMap-compact style):
+ *   Mobile: swipeable bottom sheet, 3 snap points (peek 38dvh / half 62dvh / full 88dvh).
+ *   Desktop (sm+): centered floating card bottom-6, 30rem wide.
+ *
+ * Critical fix: "Get directions" button is placed ABOVE the scrollable
+ * metadata area so it remains visible even at the peek snap point.
  */
 import { useState, useRef, useEffect } from "react";
 import {
@@ -35,6 +38,7 @@ interface FeatureInfoSheetProps {
 export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: FeatureInfoSheetProps) {
   const { i18n } = useTranslation();
   const lang = i18n.language;
+  const fi = lang === "fi";
   const title = featureTitle(feature, lang);
   const subtitle = featureSubtitle(feature, lang);
   const color = featureColor(feature);
@@ -43,8 +47,6 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const canUseSchedules = isFeatureAllowed("schedules", accessDecision, secSettings);
   const canUseRouting = isFeatureAllowed("routing", accessDecision, secSettings);
 
-  // Record this view in the recent-searches store so it appears in the
-  // search dropdown's "Recent" section the next time the user searches.
   useEffect(() => {
     if (feature.kind === "room") {
       recordPick({ kind: "room", room: feature.entity as never, building: null });
@@ -53,8 +55,10 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feature.kind, (feature.entity as { id: string }).id]);
+
   const photoUrl = featurePhotoUrl(feature);
 
+  // ── Mobile snap / drag ───────────────────────────────────────────────
   const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
   const dragStartYRef = useRef<number | null>(null);
   const dragStartSnapRef = useRef<typeof mobileSnap>("half");
@@ -83,17 +87,26 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
     mobileSnap === "peek" ? "38dvh" :
     mobileSnap === "half" ? "62dvh" : "88dvh";
 
-  const isWall = feature.kind === "hallway" && feature.entity.surface === "wall";
+  // ── Schedule action (rooms only) ─────────────────────────────────────
+  const sched = feature.kind === "room"
+    ? (feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null })
+    : null;
+  const scheduleUrl = canUseSchedules ? sched?.scheduleUrl?.trim() || undefined : undefined;
+  const scheduleLabel = sched?.scheduleLabel?.trim() || (fi ? "Avaa lukujärjestys" : "Open schedule");
+
+  const floor = feature.kind === "room" ? (feature.entity as Room).floor : null;
+  const showActions = feature.kind !== "hallway" && (canUseRouting || !!scheduleUrl);
 
   return (
     <div
       role="dialog"
       aria-label={`${feature.kind} info`}
       className={cn(
-        "fixed z-40 overflow-hidden flex flex-col",
-        // Mobile: full-width bottom sheet
-        "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.18)]",
-        // Desktop: centered card — MazeMap style (bottom-center, not left rail)
+        "fixed z-40 flex flex-col overflow-hidden",
+        "bg-white dark:bg-gray-950",
+        // Mobile: bottom sheet
+        "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.15)]",
+        // Desktop: centered card bottom-6
         "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-6 sm:rounded-3xl sm:shadow-2xl sm:w-[min(90vw,30rem)]",
       )}
       style={{
@@ -102,156 +115,118 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           ? "min(52rem, 80dvh)"
           : `min(52rem, ${mobileMaxH}, calc(100dvh - 5rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))`,
         transition: "max-height 260ms cubic-bezier(0.32, 0.72, 0, 1)",
-        background: "transparent",
       }}
     >
-      {/* ── Header ─────────────────────────────────────────────────── */}
-      {photoUrl ? (
-        /* Photo header */
-        <div className="relative shrink-0 h-44 overflow-hidden rounded-t-3xl sm:rounded-t-3xl bg-slate-100 dark:bg-slate-800">
-          {/* Mobile drag handle */}
+      {/* ── Mobile drag handle ────────────────────────────────────────── */}
+      <div
+        className="sm:hidden flex justify-center pt-2.5 shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+        onPointerDown={onHandlePointerDown}
+        onPointerMove={onHandlePointerMove}
+        onPointerUp={onHandlePointerUp}
+        onPointerCancel={onHandlePointerCancel}
+        onClick={cycleSnap}
+        role="button"
+        aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
+      >
+        <span className="h-1 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+      </div>
+
+      {/* ── Compact header ────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 pt-3 sm:pt-4">
+        <div className="flex items-start gap-3">
+          {/* Colored icon chip */}
           <div
-            className="sm:hidden absolute top-0 left-1/2 -translate-x-1/2 z-10 flex justify-center pt-3 pb-6 cursor-grab active:cursor-grabbing touch-none select-none w-28"
-            onPointerDown={onHandlePointerDown}
-            onPointerMove={onHandlePointerMove}
-            onPointerUp={onHandlePointerUp}
-            onPointerCancel={onHandlePointerCancel}
-            onClick={cycleSnap}
-            role="button"
-            aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
+            className="h-11 w-11 rounded-2xl shrink-0 flex items-center justify-center mt-0.5"
+            style={{ background: color + "1a" }}
           >
-            <span className="h-[5px] w-10 rounded-full bg-white/50 shadow-sm" />
-          </div>
-          <img
-            src={photoUrl}
-            alt={title}
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "linear-gradient(180deg,rgba(0,0,0,.4) 0%,rgba(0,0,0,0) 35%,rgba(0,0,0,0) 50%,rgba(0,0,0,.7) 100%)" }}
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-3 right-3 z-20 h-8 w-8 rounded-full flex items-center justify-center text-white bg-black/40 hover:bg-black/60 backdrop-blur-md transition-all shadow"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="absolute bottom-3 left-4 right-12">
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase mb-1.5"
-              style={{ background: color + "dd", color: "#fff" }}
-            >
-              <KindIcon feature={feature} size={10} />
-              {featureKindLabel(feature, lang)}
+            <span style={{ color }}>
+              <KindIcon feature={feature} size={22} />
             </span>
-            <h2 className="text-[17px] font-bold text-white leading-tight drop-shadow-md line-clamp-2">{title}</h2>
-            {subtitle && <p className="text-[11px] text-white/80 mt-0.5 drop-shadow">{subtitle}</p>}
           </div>
-        </div>
-      ) : (
-        /* Color gradient header — fills the empty space with the room/building accent color */
-        <div
-          className="relative shrink-0 overflow-hidden rounded-t-3xl sm:rounded-t-3xl"
-          style={{
-            background: `linear-gradient(145deg, ${color} 0%, ${color}bb 50%, ${color}88 100%)`,
-            paddingBottom: "3rem",
-          }}
-        >
-          {/* Mobile drag handle — pill area only so it doesn't block the close button */}
-          <div className="sm:hidden flex justify-center pt-3 pb-1">
-            <div
-              className="px-8 py-1.5 cursor-grab active:cursor-grabbing touch-none select-none"
-              onPointerDown={onHandlePointerDown}
-              onPointerMove={onHandlePointerMove}
-              onPointerUp={onHandlePointerUp}
-              onPointerCancel={onHandlePointerCancel}
-              onClick={cycleSnap}
-              role="button"
-              aria-label={`Sheet size: ${mobileSnap}. Tap to resize.`}
-            >
-              <span className="block h-[5px] w-10 rounded-full bg-white/35 shadow-sm" />
+
+          {/* Name + type + floor */}
+          <div className="flex-1 min-w-0 py-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+              <span
+                className="text-[10px] font-bold tracking-[0.14em] uppercase leading-none"
+                style={{ color }}
+              >
+                {featureKindLabel(feature, lang)}
+              </span>
+              {typeof floor === "number" && (
+                <span className="text-[10px] font-semibold text-muted-foreground bg-black/6 dark:bg-white/10 px-1.5 py-0.5 rounded-md leading-none">
+                  {fi ? `Kerros ${floor}` : `Floor ${floor}`}
+                </span>
+              )}
             </div>
+            <h2 className="text-[18px] font-bold leading-snug text-foreground line-clamp-2">
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1 leading-snug">
+                {subtitle}
+              </p>
+            )}
           </div>
 
           {/* Close button */}
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-3.5 right-3.5 z-10 h-8 w-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+            className="shrink-0 h-8 w-8 rounded-full bg-black/6 dark:bg-white/10 flex items-center justify-center text-foreground hover:bg-black/10 dark:hover:bg-white/15 transition-colors mt-0.5"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
+        </div>
+      </div>
 
-          {/* Content */}
-          <div className="px-5 pt-3 sm:pt-5 pb-1">
-            <div className="flex items-center gap-2 flex-wrap mb-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.16em] uppercase px-2.5 py-1 rounded-full bg-white/20 text-white">
-                <KindIcon feature={feature} size={11} />
-                {featureKindLabel(feature, lang)}
-              </span>
-              {feature.kind === "room" && typeof feature.entity.floor === "number" && (
-                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-white/15 text-white/85">
-                  {i18n.language === "fi" ? `Kerros ${feature.entity.floor}` : `Floor ${feature.entity.floor}`}
-                </span>
-              )}
-            </div>
-            <h2 className="text-[22px] sm:text-[24px] font-bold text-white leading-tight line-clamp-2 drop-shadow-sm">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="text-[13px] text-white/75 mt-1.5 leading-snug">{subtitle}</p>
-            )}
-          </div>
+      {/* ── Action buttons — above the scroll so always visible at peek ─ */}
+      {showActions && (
+        <div className="shrink-0 px-4 pt-3 pb-1 flex gap-2">
+          {canUseRouting && (
+            <button
+              type="button"
+              onClick={() => onRouteTo(feature)}
+              className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white flex items-center justify-center gap-1.5 text-[13px] font-semibold transition-all shadow-sm shadow-blue-600/20"
+            >
+              <Navigation2 className="h-3.5 w-3.5 shrink-0" />
+              {fi ? "Reittiohjeet" : "Directions"}
+            </button>
+          )}
+          {scheduleUrl && (
+            <a
+              href={scheduleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white flex items-center justify-center gap-1.5 text-[13px] font-semibold transition-all shadow-sm shadow-emerald-500/20"
+            >
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              {scheduleLabel}
+            </a>
+          )}
         </div>
       )}
 
-      {/* ── White body card — lifts over gradient ─────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl -mt-5 overflow-hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        {/* Scrollable content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4">
+      {/* ── Divider ───────────────────────────────────────────────────── */}
+      <div className="shrink-0 mx-4 mt-3 h-px bg-black/6 dark:bg-white/8" />
+
+      {/* ── Scrollable: optional photo + metadata ────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        {photoUrl && (
+          <div className="px-4 pt-3">
+            <img
+              src={photoUrl}
+              alt={title}
+              loading="lazy"
+              className="w-full rounded-2xl object-cover max-h-48"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            />
+          </div>
+        )}
+        <div className="px-4 pt-3 pb-4">
           <MetadataRows feature={feature} />
         </div>
-
-        {/* Action buttons */}
-        {(feature.kind !== "hallway" || isWall) ? (
-          feature.kind !== "hallway" ? (
-            <div className="shrink-0 px-4 pb-4 pt-3 space-y-2 border-t border-black/8 dark:border-white/10">
-              {/* Schedule button — rooms only, hidden when schedules restricted */}
-              {canUseSchedules && feature.kind === "room" && (() => {
-                const sched = feature.entity as unknown as { scheduleUrl?: string | null; scheduleLabel?: string | null };
-                if (!sched.scheduleUrl?.trim()) return null;
-                const label = sched.scheduleLabel?.trim() || (i18n.language === "fi" ? "Avaa lukujärjestys" : "Open schedule");
-                return (
-                  <a
-                    href={sched.scheduleUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-[46px] rounded-2xl font-semibold bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white shadow-sm shadow-emerald-500/30 flex items-center justify-center gap-2 text-[14px] transition-all"
-                  >
-                    <ExternalLink className="h-4 w-4 shrink-0" />
-                    {label}
-                  </a>
-                );
-              })()}
-              {canUseRouting && (
-              <button
-                type="button"
-                onClick={() => onRouteTo(feature)}
-                className="w-full h-[46px] rounded-2xl font-semibold bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-sm shadow-blue-600/30 flex items-center justify-center gap-2 text-[14px] transition-all"
-              >
-                <Navigation2 className="h-4 w-4 shrink-0" />
-                {i18n.language === "fi" ? "Reittiohjeet" : "Get directions"}
-              </button>
-              )}
-            </div>
-          ) : null
-        ) : null}
       </div>
     </div>
   );
@@ -346,7 +321,6 @@ function featureColor(f: ClickedFeature): string {
     if (t === "hallway") return "#94a3b8";
     return "#059669";
   }
-  // Hallway / wall
   if (f.entity.surface === "wall") return "#374151";
   if (f.entity.surface === "inner-wall") return "#6b7280";
   return "#d97706";
@@ -463,13 +437,13 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
   const h = feature.entity;
   const surfaceLabel = (s: string) => {
     const map: Record<string, { fi: string; en: string }> = {
-      wall:       { fi: "Ulkoseinä",    en: "Exterior wall" },
-      "inner-wall": { fi: "Väliseinä",  en: "Inner wall" },
-      concrete:   { fi: "Betoni",       en: "Concrete" },
-      carpet:     { fi: "Matto",        en: "Carpet" },
-      tile:       { fi: "Laatta",       en: "Tile" },
-      gravel:     { fi: "Sora",         en: "Gravel" },
-      asphalt:    { fi: "Asfaltti",     en: "Asphalt" },
+      wall:         { fi: "Ulkoseinä",    en: "Exterior wall" },
+      "inner-wall": { fi: "Väliseinä",    en: "Inner wall" },
+      concrete:     { fi: "Betoni",       en: "Concrete" },
+      carpet:       { fi: "Matto",        en: "Carpet" },
+      tile:         { fi: "Laatta",       en: "Tile" },
+      gravel:       { fi: "Sora",         en: "Gravel" },
+      asphalt:      { fi: "Asfaltti",     en: "Asphalt" },
     };
     const entry = map[s];
     return entry ? (fi ? entry.fi : entry.en) : capitalise(s);
@@ -487,7 +461,6 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
     </>
   );
 }
-
 
 function InfoRow({
   label,
@@ -557,5 +530,6 @@ function ContactRows({ contact }: { contact: { hours?: string; phone?: string; e
   );
 }
 
-// Unused but kept for type-checking — ShoppingCart imported for potential future use
+// Unused but kept for type-checking
 const _unused = ShoppingCart;
+const _Coffee = Coffee;
