@@ -10,9 +10,24 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.79";
+export const APP_VERSION = "4.5.80";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.80",
+    date: "September 2026",
+    title: "MazeMap-style room panel, lunch page redesign",
+    titleFi: "MazeMap-tyylinen huonekortti, ruokalistan uusi ilme",
+    latest: true,
+    highlights: [
+      "**Room panel is now a left-side panel on desktop:** FeatureInfoSheet moved from bottom-center float to a fixed left-rail panel (MazeMap style) on sm+ screens. Mobile bottom-sheet snap behaviour unchanged.",
+      "**Lunch page redesigned:** Warm editorial aesthetic — amber accent, day strip with date numbers, clean menu card with coloured category dots instead of icon boxes.",
+    ],
+    highlightsFi: [
+      "**Huonekortti nyt vasemmalla paneelilla työpöydällä:** FeatureInfoSheet siirtyi alapaneelista kiinteäksi vasemman reunan paneliksi (MazeMap-tyyli) sm+-näytöillä. Mobiilinapaytys ennallaan.",
+      "**Ruokalista uudistettu:** Lämmin editoriaalinen ilme — amber-korostus, päiväkaista päivänumeroilla, siisti ruokakortti värillisillä kategoriapisteillä.",
+    ],
+  },
   {
     version: "4.5.79",
     date: "September 2026",
@@ -60,7 +75,6 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
       "**Sivukartta:** /directory lisätty.",
       "**JSON-LD:** Koulu + WebSite -rakenne lisätty.",
     ],
-    latest: true,
   },
   {
     version: "4.5.76",

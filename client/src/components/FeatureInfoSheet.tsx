@@ -93,13 +93,14 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         "fixed z-40 overflow-hidden flex flex-col",
         // Mobile: bottom sheet
         "left-0 right-0 bottom-0 rounded-t-3xl shadow-[0_-4px_32px_rgba(0,0,0,0.18)]",
-        // Desktop: floating card bottom-center
-        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-4",
-        "sm:w-[min(92vw,26rem)] sm:rounded-3xl sm:shadow-2xl",
+        // Desktop: left-side panel — MazeMap style
+        "sm:left-3 sm:top-16 sm:bottom-3 sm:right-auto sm:rounded-3xl sm:shadow-2xl sm:w-80",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        maxHeight: `min(52rem, ${mobileMaxH}, calc(100dvh - 5rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))`,
+        maxHeight: typeof window !== "undefined" && window.innerWidth >= 640
+          ? undefined
+          : `min(52rem, ${mobileMaxH}, calc(100dvh - 5rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))`,
         transition: "max-height 260ms cubic-bezier(0.32, 0.72, 0, 1)",
         background: "transparent",
       }}
@@ -157,8 +158,8 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <div
           className="relative shrink-0 overflow-hidden rounded-t-3xl sm:rounded-t-3xl"
           style={{
-            background: `linear-gradient(145deg, ${color} 0%, ${color}cc 60%, ${color}99 100%)`,
-            paddingBottom: "2.5rem",
+            background: `linear-gradient(145deg, ${color} 0%, ${color}bb 50%, ${color}88 100%)`,
+            paddingBottom: "3rem",
           }}
         >
           {/* Mobile drag handle — pill area only so it doesn't block the close button */}
