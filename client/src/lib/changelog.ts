@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.82";
+export const APP_VERSION = "4.5.83";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.83",
+    date: "September 2026",
+    title: "Landing page redesign — stats, full features grid, how-it-works",
+    titleFi: "Etusivun uudistus — tilastot, koko ominaisuusruudukko, käyttöönotto-ohjeet",
+    latest: true,
+    highlights: [
+      "**Landing page expanded:** Added stats bar (6+ buildings, 200+ rooms, 2 languages, 3D), 8-card features grid (map, navigation, search, lunch, HSL, directory, bilingual, access), how-it-works 3-step section with second CTA, dark-mode toggle in the landing header, and a proper footer with navigation links.",
+      "**ShoppingCart icon removed:** Stray unused import cleaned from FeatureInfoSheet.",
+    ],
+    highlightsFi: [
+      "**Etusivua laajennettu:** Lisätty tilastopalkki, 8-ruutuinen ominaisuusruudukko, 3-vaiheinen käyttöönotto-osio toisella toimintokutsulla, tummapainiketta laskeutumissivun otsikossa ja asianmukainen alatunniste.",
+      "**ShoppingCart-ikoni poistettu:** Käyttämätön tuonti siivottu FeatureInfoSheetistä.",
+    ],
+  },
   {
     version: "4.5.82",
     date: "September 2026",
     title: "MazeMap-style room card, stairs hidden from panel, loading screen improved",
     titleFi: "MazeMap-tyylinen huonekortti, portaat piilotettu, latausnäyttö parannettu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Room info card redesigned (MazeMap-style):** Compact white card with colored icon chip, room name, type badge and floor badge in a single header row. Action buttons (Directions, Schedule) placed above the scroll area so they are always visible at the peek snap point on small phones.",
       "**Stairs removed from info panel:** Clicking a stairwell polygon on the map no longer opens a room info card (stairs are not navigable rooms).",
