@@ -21,6 +21,10 @@ import {
   LifeBuoy,
   Sparkles,
   ScrollText,
+  Smartphone,
+  Globe,
+  School,
+  Code2,
 } from "lucide-react";
 import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
@@ -360,48 +364,94 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
             )}
 
             {tab === "about" && (
-              <Card className={cn(
-                "border-0 shadow-lg rounded-2xl overflow-hidden",
-                darkMode ? "bg-gray-800/80" : "bg-white/95",
-              )}>
-                <CardHeader className="text-center sm:text-left pb-3">
-                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mb-1">
-                    <KSYKLogo size="lg" className="drop-shadow-md" />
-                    <div>
-                      <CardTitle className="text-xl sm:text-2xl">KSYK Maps</CardTitle>
-                      <CardDescription className="text-sm sm:text-base mt-0.5">
-                        {isFi ? "Kampuskartta" : "Campus navigation"} · v{APP_VERSION}
-                      </CardDescription>
+              <div className="space-y-4">
+                {/* Identity card */}
+                <Card className={cn(
+                  "border-0 shadow-lg rounded-2xl overflow-hidden",
+                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                )}>
+                  <CardContent className="pt-6 pb-5">
+                    <div className="flex flex-col items-center text-center gap-3">
+                      <KSYKLogo size="xl" className="drop-shadow-lg" />
+                      <div>
+                        <h2 className={cn("text-2xl font-bold tracking-tight", darkMode ? "text-white" : "text-gray-900")}>
+                          KSYK Maps
+                        </h2>
+                        <p className={cn("text-sm mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+                          {isFi ? "Kampuskartta ja navigointi" : "Campus map & navigation"}
+                        </p>
+                      </div>
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold",
+                        darkMode ? "bg-blue-950/60 text-blue-300" : "bg-blue-50 text-blue-700"
+                      )}>
+                        v{APP_VERSION}
+                      </span>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <p className={cn("text-sm leading-relaxed text-center sm:text-left", darkMode ? "text-gray-300" : "text-gray-600")}>
-                    {isFi
-                      ? "Interaktiivinen karttasovellus Kulosaaren yhteiskoululle. Löydä rakennukset A, U, K, M, R ja B – huonehaku, lukujärjestykset ja opasteet."
-                      : "Interactive campus map for Kulosaaren yhteiskoulu. Find wings A, U, K, M, R, and B — with room search, timetables, and navigation."}
-                  </p>
+                  </CardContent>
+                </Card>
 
-                  <div className="grid sm:grid-cols-2 gap-3 text-center text-sm">
+                {/* App info rows */}
+                <Card className={cn(
+                  "border-0 shadow-lg rounded-2xl overflow-hidden",
+                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                )}>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
                     {[
-                      { label: isFi ? "Versio" : "Version", value: APP_VERSION },
-                      { label: isFi ? "Koulu" : "School", value: "KSYK" },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className={cn("p-3 rounded-xl border", darkMode ? "border-gray-700 bg-gray-900/50" : "border-gray-100 bg-slate-50")}
-                      >
-                        <p className="text-xs text-muted-foreground">{item.label}</p>
-                        <p className="font-bold mt-0.5">{item.value}</p>
+                      {
+                        icon: Globe,
+                        iconBg: "bg-blue-500",
+                        label: isFi ? "Verkkoversio" : "Web version",
+                        value: `v${APP_VERSION}`,
+                      },
+                      {
+                        icon: Smartphone,
+                        iconBg: "bg-green-500",
+                        label: isFi ? "Android-versio" : "Android version",
+                        value: "v1.55.0",
+                      },
+                      {
+                        icon: School,
+                        iconBg: "bg-orange-500",
+                        label: isFi ? "Koulu" : "School",
+                        value: "Kulosaaren yhteiskoulu",
+                      },
+                    ].map(({ icon: Icon, iconBg, label, value }) => (
+                      <div key={label} className="flex items-center gap-3 px-4 py-3.5">
+                        <span className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 text-white", iconBg)}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                          {label}
+                        </span>
+                        <span className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                          {value}
+                        </span>
                       </div>
                     ))}
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <Separator />
+                {/* Description */}
+                <Card className={cn(
+                  "border-0 shadow-lg rounded-2xl overflow-hidden",
+                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                )}>
+                  <CardContent className="p-4">
+                    <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-300" : "text-gray-600")}>
+                      {isFi
+                        ? "KSYK Maps on interaktiivinen karttasovellus Kulosaaren yhteiskoululle. Sovellus tarjoaa reaaliaikaisen pohjapiirroksen, huonehaun, lukujärjestysnäkymän sekä opastuksen koulun siipien A, U, K, M, R ja B välillä."
+                        : "KSYK Maps is an interactive campus navigation app for Kulosaaren yhteiskoulu. It provides a real-time floor plan, room search, timetable view, and navigation between wings A, U, K, M, R, and B."}
+                    </p>
+                  </CardContent>
+                </Card>
 
-                  <CampusChangelog isFi={isFi} compact />
-
-                  <div className={cn("rounded-2xl overflow-hidden divide-y", darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]")}>
+                {/* Links */}
+                <Card className={cn(
+                  "border-0 shadow-lg rounded-2xl overflow-hidden",
+                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                )}>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
                     <button
                       type="button"
                       onClick={() => window.location.href = "/support"}
@@ -419,6 +469,21 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     </button>
                     <button
                       type="button"
+                      onClick={() => setTab("changelog")}
+                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
+                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
+                      )}
+                    >
+                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500 text-white">
+                        <ScrollText className="h-4 w-4" />
+                      </span>
+                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                        {isFi ? "Versiohistoria" : "Version history"}
+                      </span>
+                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
                       className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
                         darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
@@ -428,17 +493,52 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                         <ExternalLink className="h-4 w-4" />
                       </span>
                       <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                        {isFi ? "Muutosloki GitHubissa" : "Changelog on GitHub"}
+                        {isFi ? "Lähdekoodi GitHubissa" : "Source code on GitHub"}
                       </span>
                       <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
                     </button>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <p className="text-xs text-center text-muted-foreground pt-2">
-                    © {new Date().getFullYear()} KSYK Maps
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Credits */}
+                <Card className={cn(
+                  "border-0 shadow-lg rounded-2xl overflow-hidden",
+                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                )}>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500 text-white">
+                        <Code2 className="h-4 w-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                          {isFi ? "Kartta" : "Map engine"}
+                        </p>
+                        <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>
+                          MapLibre GL · OpenStreetMap
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-sky-500 text-white">
+                        <Sparkles className="h-4 w-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                          {isFi ? "Käyttöliittymä" : "Interface"}
+                        </p>
+                        <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>
+                          React · Tailwind CSS · shadcn/ui
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <p className="text-xs text-center text-muted-foreground pb-2">
+                  © {new Date().getFullYear()} KSYK Maps
+                </p>
+              </div>
             )}
           </div>
         </div>

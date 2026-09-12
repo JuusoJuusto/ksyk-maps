@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.89";
+export const APP_VERSION = "4.5.90";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.90",
+    date: "September 2026",
+    title: "About page redesign, Android crash fix (v1.55.0)",
+    titleFi: "Tietoja-sivun uudelleensuunnittelu, Android-kaatumiskorjaus (v1.55.0)",
+    latest: true,
+    highlights: [
+      "**About page redesign:** Completely reworked — shows campus info, platform versions, credits, and OS-native-style grouped info rows. Removed the redundant embedded changelog from About (dedicated Changelog tab still available).",
+      "**Android crash fix (v1.55.0):** Crash handler is now installed before analytics init. PostHog setup is wrapped in runCatching so SDK issues can never crash the app at startup.",
+    ],
+    highlightsFi: [
+      "**Tietoja-sivu uusittu:** Täysin uudistettu — näyttää kampustiedot, alustaversiot, tekijätiedot ja iOS-tyylisesti ryhmitellyt tietorivit. Redundantti kompakti muutosloki poistettu Tietoja-välilehdeltä.",
+      "**Android-kaatumiskorjaus (v1.55.0):** Kaatumiskäsittelijä asennetaan nyt ennen analytiikan alustusta. PostHog-alustus on suojattu runCatching-lohkolla.",
+    ],
+  },
   {
     version: "4.5.89",
     date: "September 2026",
     title: "Map stability, admin panel consistency, design cleanup",
     titleFi: "Kartan vakaus, hallintapaneelin yhtenäisyys, ulkoasun siistiminen",
-    latest: true,
+    latest: false,
     highlights: [
       "**MapLibre defensive fix:** GPS layer cleanup now null-checks the map instance before attempting removeLayer/removeSource, preventing an edge-case crash on rapid unmounts.",
       "**Admin panel consistency:** KPI card accent bars and icon bubbles converted from gradient to solid colors, matching the iOS-style design language used throughout the app. User avatar also simplified to a flat color.",
