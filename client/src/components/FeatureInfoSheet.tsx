@@ -388,6 +388,12 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
 
   if (feature.kind === "building") {
     const b = feature.entity;
+    const hasInfo = b.description || b.address || typeof b.floors === "number" || Object.keys(contact).length > 0;
+    if (!hasInfo) return (
+      <p className="text-sm text-muted-foreground py-3 text-center">
+        {fi ? "Lisätietoja ei saatavilla" : "No additional information available"}
+      </p>
+    );
     return (
       <>
         {b.description && <InfoRow label={fi ? "Tietoja" : "About"}>{b.description}</InfoRow>}
@@ -405,6 +411,15 @@ function MetadataRows({ feature }: { feature: ClickedFeature }) {
   }
   if (feature.kind === "room") {
     const r = feature.entity;
+    const hasInfo = r.description || r.roomNumber || r.teacher ||
+      (typeof r.capacity === "number" && r.capacity > 0) ||
+      (r.tags && r.tags.length > 0) ||
+      Object.keys(contact).length > 0;
+    if (!hasInfo) return (
+      <p className="text-sm text-muted-foreground py-3 text-center">
+        {fi ? "Lisätietoja ei saatavilla" : "No additional information available"}
+      </p>
+    );
     return (
       <>
         {r.description && <InfoRow label={fi ? "Tietoja" : "About"}>{r.description}</InfoRow>}

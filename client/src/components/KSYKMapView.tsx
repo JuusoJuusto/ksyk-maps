@@ -879,7 +879,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       </div>
 
       {showNav && (
-        <Suspense fallback={null}>
+        <Suspense fallback={
+          <div className="fixed z-40 left-0 right-0 bottom-0 sm:left-3 sm:right-auto sm:top-32 sm:bottom-auto sm:w-[min(92vw,28rem)] bg-card rounded-t-[28px] sm:rounded-2xl border-t sm:border border-border shadow-xl flex items-center justify-center gap-2 py-5">
+            <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
+            <span className="text-sm text-muted-foreground">Loading directions…</span>
+          </div>
+        }>
           <NavigationPanel
             map={mapInstance}
             onClose={() => setShowNav(false)}
@@ -944,7 +949,12 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {/* Feature info sheet — click a room/building on the map to
        *  inspect it and get one-tap directions there. */}
       {clickedFeature && (
-        <Suspense fallback={null}>
+        <Suspense fallback={
+          <div className="fixed z-40 left-0 right-0 bottom-0 rounded-t-2xl sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-4 sm:rounded-2xl sm:w-[min(88vw,21rem)] bg-white dark:bg-gray-900 shadow-[0_-2px_24px_rgba(0,0,0,0.12)] sm:shadow-[0_8px_32px_rgba(0,0,0,0.18)] flex items-center justify-center gap-2 py-6">
+            <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
+            <span className="text-sm text-muted-foreground">Loading…</span>
+          </div>
+        }>
           <FeatureInfoSheet
             feature={clickedFeature}
             onClose={() => setClickedFeature(null)}
