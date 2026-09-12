@@ -291,6 +291,29 @@ fun MapScreen() {
         AppLog.info("MapScreen", "live-fetch start (retry=$dataRetry)")
         // Refresh server map defaults (bearing/rotation) in parallel with data.
         withContext(Dispatchers.IO) { runCatching { refreshServerMapDefaults(ctx) } }
+        // On first launch apply the now-fresh server bearing to the live map.
+        // The map camera initialises before this fetch completes, so without
+        // this correction the map always starts at 0° (north) regardless of
+        // the admin-configured bearing.
+        if (dataRetry == 0) {
+            val fresh = loadServerMapDefaults(ctx)
+            val m = mapRef
+            if (fresh != null && m != null) {
+                val cam = m.cameraPosition
+                if (Math.abs((cam?.bearing ?: 0.0) - fresh.bearing) > 0.5) {
+                    m.animateCamera(
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.Builder()
+                                .target(cam?.target ?: KSYK_CENTER)
+                                .zoom(cam?.zoom ?: KSYK_ZOOM)
+                                .bearing(fresh.bearing)
+                                .tilt(cam?.tilt ?: 0.0)
+                                .build()
+                        ), 600
+                    )
+                }
+            }
+        }
         val bDef = withContext(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
         val rDef = withContext(Dispatchers.IO) { runCatching { Api.get("/rooms") } }
         val hDef = withContext(Dispatchers.IO) { runCatching { Api.get("/hallways") } }

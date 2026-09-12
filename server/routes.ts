@@ -25,6 +25,14 @@ import { registerMapRoutes } from "./mapRoutes";
 import { registerEasterEggRoutes } from "./easterEggRoutes";
 import { registerTelemetryRoutes } from "./telemetryRoutes";
 import bcrypt from "bcrypt";
+import crypto from "node:crypto";
+
+function generateAdminToken(userId: string, role: string): string {
+  const secret = process.env.SESSION_SECRET || 'ksyk-insecure-fallback-set-session-secret-in-vercel';
+  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 604_800_000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
 
 const BCRYPT_ROUNDS = 12;
 
@@ -284,7 +292,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'owner' } });
           console.log('✅ Owner logged in');
           console.log('=====================================\n');
-          return res.json({ success: true, user: safeUser(ownerUser as Record<string, unknown>), requirePasswordChange: false });
+          const ownerAdminToken = generateAdminToken((ownerUser as any).id || 'owner-admin-user', (ownerUser as any).role || 'owner');
+          return res.json({ success: true, user: safeUser(ownerUser as Record<string, unknown>), requirePasswordChange: false, adminToken: ownerAdminToken });
         });
         return;
       }
@@ -374,10 +383,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'user' } });
         console.log('✅ User logged in');
         console.log('=====================================\n');
+        const userAdminToken = generateAdminToken((user as any).id, (user as any).role || 'admin');
         return res.json({
           success: true,
           user: safeUser(user as Record<string, unknown>),
-          requirePasswordChange: user.isTemporaryPassword || false
+          requirePasswordChange: user.isTemporaryPassword || false,
+          adminToken: userAdminToken,
         });
       });
       

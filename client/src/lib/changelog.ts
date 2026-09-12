@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.93";
+export const APP_VERSION = "4.5.94";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.94",
+    date: "September 2026",
+    title: "Android map bearing fix, admin activity 401 fix",
+    titleFi: "Android-kartan suuntakorjaus, admin-aktiviteetti 401 -korjaus",
+    latest: true,
+    highlights: [
+      "**Bug fix: Android map now starts at the admin-configured bearing.** The map camera was initialising before the settings fetch completed, causing the map to always open facing north (0°). The server bearing is now applied after the first settings refresh.",
+      "**Bug fix: Android admin activity panel no longer returns 401.** The Express login endpoint now returns a signed HMAC admin token (matching the Vercel handler), so the Android client stores and sends it on subsequent admin API calls.",
+    ],
+    highlightsFi: [
+      "**Bugikorjaus: Android-kartta käynnistyy nyt admin-konfiguroidussa suunnassa.** Kamerasijainti alustettiin ennen asetusten hakemista, minkä vuoksi kartta avautui aina pohjoiseen (0°). Palvelimen suunta sovelletaan nyt ensimmäisen haun jälkeen.",
+      "**Bugikorjaus: Android-admin-aktiviteettipaneeli ei enää palauta 401.** Express-kirjautuminen palauttaa nyt allekirjoitetun HMAC-admin-tokenin, jotta Android-asiakas voi lähettää sen admin-API-kutsuissa.",
+    ],
+  },
   {
     version: "4.5.93",
     date: "September 2026",
     title: "Mobile navigation fix, admin auth fix, onboarding improvements",
     titleFi: "Mobiilinavigoinnin korjaus, admin-autentikoinnin korjaus, perehdytyksen parannukset",
-    latest: true,
+    latest: false,
     highlights: [
       "**Bug fix: mobile map navigation no longer loses destination.** Eliminated the 60 ms race condition where the `ksyk:route-to` event could fire before the lazy-loaded NavigationPanel had mounted. Destination is now passed as a prop.",
       "**Bug fix: Käyttäjät / Aktiviteetit returned 401 in admin panel.** All `/api/users` fetch calls now include `credentials: 'include'` so the `ksyk_auth` session cookie is sent alongside the Bearer token.",
