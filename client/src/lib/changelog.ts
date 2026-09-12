@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.86";
+export const APP_VERSION = "4.5.87";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.87",
+    date: "September 2026",
+    title: "Mobile menu redesign, clean header nav, remove gradients",
+    titleFi: "Mobiilivalikko uusittu, puhtaampi otsikko, gradientit poistettu",
+    latest: true,
+    highlights: [
+      "**Mobile menu redesign:** Quick-access rows replaced heavy colored cards with iOS Settings-style rows — solid icon bubble, label, chevron. Much cleaner and more native-feeling. Support link added.",
+      "**Desktop nav simplified:** Lunch and HSL header buttons dropped the orange/green outline styles for clean icon+text links that match the overall header.",
+      "**Gradients removed:** The app wrapper and settings overlay no longer use pointless gradient backgrounds — both were invisible behind the full-screen map and caused a visible flash on settings open.",
+    ],
+    highlightsFi: [
+      "**Mobiilivalikko uusittu:** Pikavalintarivit korvaavat raskaat värilliset kortit iOS-Asetukset-tyylisillä riveillä — kiinteä ikonikupla, teksti, nuoli. Paljon siistimpi ja natiivimpi.",
+      "**Otsikkonäkymä yksinkertaistunut:** Ruokalista ja HSL pudottivat oranssin/vihreän outline-tyylin puhtaisiin ikoni+teksti-linkkeihin.",
+      "**Gradientit poistettu:** Sovelluksen wrapper ja asetukset-overlay eivät enää käytä turhia gradienttitaustoja.",
+    ],
+  },
   {
     version: "4.5.86",
     date: "September 2026",
     title: "Vercel security fix, bundle splits for framer-motion, lucide, date-fns",
     titleFi: "Vercel-tietoturvakorjaus, bundle-splittaus framer-motionille, lucidelle ja date-fnsille",
-    latest: true,
+    latest: false,
     highlights: [
       "**API cache security fix:** /api/* routes no longer carry a public CDN cache header. Previously all API responses (including admin and auth routes) could be served from Vercel's edge cache for up to 30 minutes.",
       "**Bundle splits:** framer-motion, lucide-react, and date-fns now live in their own vendor chunks. Repeat visitors loading unrelated pages no longer re-download these libraries when other chunks change.",

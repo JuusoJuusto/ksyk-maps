@@ -61,12 +61,7 @@ export default function KSYKMapsHome() {
 
   return (
     <div
-      className={cn(
-        "ksykmaps-app flex flex-col overflow-hidden",
-        darkMode
-          ? "bg-gradient-to-b from-gray-950 via-gray-900 to-slate-900"
-          : "bg-gradient-to-b from-slate-50 via-white to-blue-50/40",
-      )}
+      className={cn("ksykmaps-app flex flex-col overflow-hidden", darkMode ? "bg-gray-950" : "bg-white")}
       style={{
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top, 0px)",
@@ -97,12 +92,8 @@ export default function KSYKMapsHome() {
         {settingsOpen && (
           <div
             className={cn(
-              // z-50 puts it above the map-edge button stack (z-40) so the
-              // 4 map controls don't leak through into the Settings screen.
               "absolute inset-0 z-50 overflow-y-auto overscroll-contain",
-              darkMode
-                ? "bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950"
-                : "bg-gradient-to-b from-slate-50 via-white to-blue-50/30",
+              darkMode ? "bg-gray-950" : "bg-white",
             )}
           >
             <Suspense fallback={null}>

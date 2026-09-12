@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Monitor, Sparkles } from "lucide-react";
+import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Monitor, Sparkles, ChevronRight, LifeBuoy } from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 import { trackFeature } from "@/lib/analytics";
@@ -240,21 +240,23 @@ export default function Header({
 
               {!isInAdminPanel && (
                 <>
-                  <Link href="/lunch">
-                    <Button variant="outline" size="sm" className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100 font-semibold shadow-sm" data-testid="button-lunch">
-                      🍽️<span className="hidden xl:inline ml-1">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
-                    </Button>
+                  <Link href="/lunch" data-testid="button-lunch">
+                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+                      <UtensilsCrossed className="h-4 w-4" strokeWidth={2} />
+                      <span className="hidden xl:inline">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
+                    </button>
                   </Link>
-                  <Link href="/hsl">
-                    <Button variant="outline" size="sm" className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100 font-semibold shadow-sm" data-testid="button-hsl">
-                      HSL
-                    </Button>
+                  <Link href="/hsl" data-testid="button-hsl">
+                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+                      <Bus className="h-4 w-4" strokeWidth={2} />
+                      <span className="hidden xl:inline">HSL</span>
+                    </button>
                   </Link>
                   {onOpenSettings && (
-                    <Button variant="outline" size="sm" onClick={onOpenSettings} className="gap-1 font-semibold shadow-sm" data-testid="button-settings">
-                      <Settings className="h-4 w-4" />
+                    <button onClick={onOpenSettings} data-testid="button-settings" className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+                      <Settings className="h-4 w-4" strokeWidth={2} />
                       <span className="hidden xl:inline">{currentLang === "fi" ? "Asetukset" : "Settings"}</span>
-                    </Button>
+                    </button>
                   )}
                 </>
               )}
@@ -426,85 +428,60 @@ export default function Header({
           <div className="w-full max-w-2xl mx-auto px-4 py-4 space-y-5">
             {!isInAdminPanel ? (
               <>
-                {/* ── Quick access — flat colored rows ────────────── */}
-                <section className="space-y-3">
-                  {/* Row: Map settings — KSYK blue */}
-                  {onOpenSettings && (
-                    <button
-                      onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
-                      className={cn(
-                        "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl text-left transition-all active:scale-[0.98]",
-                        darkMode
-                          ? "bg-blue-950/40 hover:bg-blue-900/50 border border-blue-900/40 text-blue-100"
-                          : "bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900",
-                      )}
-                    >
-                      <div className={cn(
-                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode ? "bg-blue-900/60" : "bg-blue-100",
-                      )}>
-                        <Settings className={cn("h-5 w-5", darkMode ? "text-blue-300" : "text-blue-600")} strokeWidth={2} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[15px] font-semibold leading-tight">
+                {/* ── Quick access — iOS Settings-style rows ──────── */}
+                <section>
+                  <div className={cn(
+                    "rounded-2xl overflow-hidden divide-y",
+                    darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]",
+                  )}>
+                    {onOpenSettings && (
+                      <button
+                        onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
+                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06]"
+                      >
+                        <div className="h-9 w-9 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
+                          <Settings className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                        </div>
+                        <span className="flex-1 text-[15px] font-medium text-foreground">
                           {currentLang === 'fi' ? 'Asetukset' : 'Map settings'}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
+                      </button>
+                    )}
+                    <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
+                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
+                        <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0">
+                          <UtensilsCrossed className="h-[18px] w-[18px] text-white" strokeWidth={2} />
                         </div>
-                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-blue-300/70" : "text-blue-700/60")}>
-                          {currentLang === 'fi' ? 'Näkymä, kerros, 3D' : 'View, floor, 3D'}
-                        </div>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Row: Lunch — KSYK orange */}
-                  <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                    <div className={cn(
-                      "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl transition-all active:scale-[0.98] cursor-pointer",
-                      darkMode
-                        ? "bg-orange-950/40 hover:bg-orange-900/50 border border-orange-900/40 text-orange-100"
-                        : "bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900",
-                    )}>
-                      <div className={cn(
-                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode ? "bg-orange-900/60" : "bg-orange-100",
-                      )}>
-                        <UtensilsCrossed className={cn("h-5 w-5", darkMode ? "text-orange-300" : "text-orange-600")} strokeWidth={2} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[15px] font-semibold leading-tight">
+                        <span className="flex-1 text-[15px] font-medium text-foreground">
                           {t('quickActions.lunch')}
-                        </div>
-                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-orange-300/70" : "text-orange-700/60")}>
-                          {currentLang === 'fi' ? 'Tänään ja koko viikko' : 'Today & this week'}
-                        </div>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
                       </div>
-                    </div>
-                  </Link>
-
-                  {/* Row: Transport — KSYK green */}
-                  <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                    <div className={cn(
-                      "w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl transition-all active:scale-[0.98] cursor-pointer",
-                      darkMode
-                        ? "bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-900/40 text-emerald-100"
-                        : "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900",
-                    )}>
-                      <div className={cn(
-                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                        darkMode ? "bg-emerald-900/60" : "bg-emerald-100",
-                      )}>
-                        <Bus className={cn("h-5 w-5", darkMode ? "text-emerald-300" : "text-emerald-600")} strokeWidth={2} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[15px] font-semibold leading-tight">
+                    </Link>
+                    <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
+                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
+                        <div className="h-9 w-9 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+                          <Bus className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                        </div>
+                        <span className="flex-1 text-[15px] font-medium text-foreground">
                           {t('quickActions.transport')}
-                        </div>
-                        <div className={cn("text-[11px] mt-0.5", darkMode ? "text-emerald-300/70" : "text-emerald-700/60")}>
-                          {currentLang === 'fi' ? 'HSL aikataulut & linjat' : 'HSL schedules & routes'}
-                        </div>
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    <Link href="/support" onClick={() => setShowMobileMenu(false)}>
+                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
+                        <div className="h-9 w-9 rounded-xl bg-purple-500 flex items-center justify-center shrink-0">
+                          <LifeBuoy className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                        </div>
+                        <span className="flex-1 text-[15px] font-medium text-foreground">
+                          {currentLang === 'fi' ? 'Tuki' : 'Support'}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
+                      </div>
+                    </Link>
+                  </div>
                 </section>
 
                 {/* ── Appearance — segmented control ────────────── */}
@@ -606,60 +583,42 @@ export default function Header({
                 </div>
               </>
             ) : (
-              // ─── Admin-panel variant — same simple KSYK-color rows ───
+              // ─── Admin-panel variant ────────────────────────────────
               <>
-                <section className="space-y-2">
-                  <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                    <div className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
-                      darkMode
-                        ? "bg-orange-950/40 hover:bg-orange-900/50 border border-orange-900/40 text-orange-100"
-                        : "bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900",
-                    )}>
-                      <UtensilsCrossed className={cn(
-                        "h-5 w-5 shrink-0",
-                        darkMode ? "text-orange-300" : "text-orange-600",
-                      )} strokeWidth={2} />
-                      <span className="text-[15px] font-semibold flex-1">
-                        {t('quickActions.lunch')}
-                      </span>
-                    </div>
-                  </Link>
-
-                  <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                    <div className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors active:scale-[0.98] cursor-pointer",
-                      darkMode
-                        ? "bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-900/40 text-emerald-100"
-                        : "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900",
-                    )}>
-                      <Bus className={cn(
-                        "h-5 w-5 shrink-0",
-                        darkMode ? "text-emerald-300" : "text-emerald-600",
-                      )} strokeWidth={2} />
-                      <span className="text-[15px] font-semibold flex-1">
-                        {t('quickActions.transport')}
-                      </span>
-                    </div>
-                  </Link>
-
-                  <button
-                    onClick={() => { handleLogout(); setShowMobileMenu(false); }}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-colors active:scale-[0.98]",
-                      darkMode
-                        ? "bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-100"
-                        : "bg-red-50 hover:bg-red-100 border border-red-200 text-red-900",
-                    )}
-                  >
-                    <LogOut className={cn(
-                      "h-5 w-5 shrink-0",
-                      darkMode ? "text-red-300" : "text-red-600",
-                    )} strokeWidth={2} />
-                    <span className="text-[15px] font-semibold flex-1">
-                      {t('logout')}
-                    </span>
-                  </button>
+                <section>
+                  <div className={cn(
+                    "rounded-2xl overflow-hidden divide-y",
+                    darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]",
+                  )}>
+                    <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
+                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
+                        <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0">
+                          <UtensilsCrossed className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                        </div>
+                        <span className="flex-1 text-[15px] font-medium text-foreground">{t('quickActions.lunch')}</span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
+                      </div>
+                    </Link>
+                    <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
+                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
+                        <div className="h-9 w-9 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+                          <Bus className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                        </div>
+                        <span className="flex-1 text-[15px] font-medium text-foreground">{t('quickActions.transport')}</span>
+                        <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => { handleLogout(); setShowMobileMenu(false); }}
+                      className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-all active:bg-black/[0.06] dark:active:bg-white/[0.06]"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-red-500 flex items-center justify-center shrink-0">
+                        <LogOut className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+                      </div>
+                      <span className="flex-1 text-[15px] font-medium text-foreground">{t('logout')}</span>
+                      <ChevronRight className="h-4 w-4 text-black/20 dark:text-white/20 shrink-0" />
+                    </button>
+                  </div>
                 </section>
 
                 <section className="space-y-2">
