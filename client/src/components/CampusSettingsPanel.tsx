@@ -3,11 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Sun,
@@ -19,6 +17,8 @@ import {
   Accessibility,
   Info,
   ChevronLeft,
+  ChevronRight,
+  LifeBuoy,
   Sparkles,
   ScrollText,
 } from "lucide-react";
@@ -75,12 +75,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
     description?: string;
     children: React.ReactNode;
   }) => (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-4 py-3.5 px-4 rounded-2xl transition-colors",
-        darkMode ? "bg-gray-800/50 hover:bg-gray-800/70" : "bg-slate-50/90 hover:bg-white"
-      )}
-    >
+    <div className="flex items-center justify-between gap-4 py-3.5 px-4">
       <div className="min-w-0 flex-1">
         <Label className="text-sm font-semibold">{label}</Label>
         {description && (
@@ -320,7 +315,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     {isFi ? "Tee sovelluksesta helppolukuisempi" : "Make the app easier to read"}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-0">
+                <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
                   <SettingRow
                     label={isFi ? "Korkea kontrasti" : "High contrast map"}
                     description={isFi ? "Kirkkaammat värit ja terävämmät ääriviivat" : "Brighter colors and sharper edges"}
@@ -369,7 +364,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 "border-0 shadow-lg rounded-2xl overflow-hidden",
                 darkMode ? "bg-gray-800/80" : "bg-white/95",
               )}>
-                <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
                 <CardHeader className="text-center sm:text-left pb-3">
                   <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mb-1">
                     <KSYKLogo size="lg" className="drop-shadow-md" />
@@ -407,22 +401,37 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                   <CampusChangelog isFi={isFi} compact />
 
-                  <div className="flex flex-col gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-xl"
+                  <div className={cn("rounded-2xl overflow-hidden divide-y", darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]")}>
+                    <button
+                      type="button"
                       onClick={() => window.location.href = "/support"}
+                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
+                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
+                      )}
                     >
-                      {isFi ? "Tuki ja palaute" : "Support & feedback"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-xl"
+                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-purple-500 text-white">
+                        <LifeBuoy className="h-4 w-4" />
+                      </span>
+                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                        {isFi ? "Tuki ja palaute" : "Support & feedback"}
+                      </span>
+                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
+                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
+                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
+                      )}
                     >
-                      {isFi ? "Muutosloki GitHubissa" : "Changelog on GitHub"}
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </Button>
+                      <span className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-800 text-white")}>
+                        <ExternalLink className="h-4 w-4" />
+                      </span>
+                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                        {isFi ? "Muutosloki GitHubissa" : "Changelog on GitHub"}
+                      </span>
+                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
+                    </button>
                   </div>
 
                   <p className="text-xs text-center text-muted-foreground pt-2">

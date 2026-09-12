@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.87";
+export const APP_VERSION = "4.5.88";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.88",
+    date: "September 2026",
+    title: "Settings panel redesign — grouped rows, no gradient, iOS-style links",
+    titleFi: "Asetuspaneeli uusittu — ryhmitetyt rivit, ei gradienttia, iOS-tyylinen navigointi",
+    latest: true,
+    highlights: [
+      "**Settings panel polish:** Accessibility rows now render as a proper grouped list with dividers instead of individual floating cards.",
+      "**About tab improved:** Removed the decorative gradient bar. Support and GitHub links are now iOS-style tappable rows with icon bubbles and chevron arrows.",
+    ],
+    highlightsFi: [
+      "**Asetuspaneeli viimeistelty:** Saavutettavuusrivit näkyvät nyt asianmukaisena ryhmiteltynä listana erottimilla yksittäisten kelluvien korttien sijaan.",
+      "**Tietoja-välilehti parannettu:** Dekoratiivinen gradienttipalkki poistettu. Tuki- ja GitHub-linkit ovat nyt iOS-tyylisiä napautettavia rivejä ikonikuplilla ja nuolilla.",
+    ],
+  },
   {
     version: "4.5.87",
     date: "September 2026",
     title: "Mobile menu redesign, clean header nav, remove gradients",
     titleFi: "Mobiilivalikko uusittu, puhtaampi otsikko, gradientit poistettu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Mobile menu redesign:** Quick-access rows replaced heavy colored cards with iOS Settings-style rows — solid icon bubble, label, chevron. Much cleaner and more native-feeling. Support link added.",
       "**Desktop nav simplified:** Lunch and HSL header buttons dropped the orange/green outline styles for clean icon+text links that match the overall header.",
