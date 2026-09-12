@@ -146,6 +146,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   }, [selectedFloor]);
 
   const [showNav, setShowNav] = useState(false);
+  const [pendingRouteTo, setPendingRouteTo] = useState<ClickedFeature | null>(null);
   const [clickedFeature, setClickedFeature] = useState<ClickedFeature | null>(null);
   const [highlightPolygon, setHighlightPolygon] = useState<LatLng[] | null>(null);
   const [mapLoadFailed, setMapLoadFailed] = useState(false);
@@ -478,19 +479,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     }
   }, [campus]);
 
-  /** Handoff to NavigationPanel — opens it (if closed) and fires an
-   *  event carrying the destination. NavigationPanel listens and
-   *  prefills the To field. */
+  /** Handoff to NavigationPanel — opens it and passes the destination
+   *  as a prop so there is no race between the lazy-loaded chunk
+   *  mounting and the event being dispatched. */
   const handleRouteTo = useCallback((f: ClickedFeature) => {
     posthog.capture("directions_opened", { destination_type: f.kind, entry_point: "feature_info_sheet" });
+    setPendingRouteTo(f);
     setShowNav(true);
     setClickedFeature(null);
-    // Defer so NavigationPanel is mounted before we dispatch.
-    setTimeout(() => {
-      try {
-        window.dispatchEvent(new CustomEvent("ksyk:route-to", { detail: f }));
-      } catch { /* SSR / old browser — non-fatal */ }
-    }, 60);
   }, []);
 
   const toggle3D = useCallback(() => {
@@ -892,6 +888,8 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             map={mapInstance}
             onClose={() => setShowNav(false)}
             searchActive={!!searchQuery.trim()}
+            pendingRouteTo={pendingRouteTo}
+            onPendingRouteHandled={() => setPendingRouteTo(null)}
           />
         </Suspense>
       )}

@@ -515,7 +515,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await fetch("/api/users", { headers: getAdminHeaders() });
+      const response = await fetch("/api/users", { headers: getAdminHeaders(), credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
     },
@@ -844,6 +844,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             analytics: { title: "Analytics", description: "Cloudflare + Vercel + Firestore visitor metrics in one place.", Icon: TrendingUp },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
+            notifications: { title: "Notifications", description: "Send push notifications to all app users.", Icon: Bell },
             beacons: { title: "Wi-Fi Positioning", description: "Calibrate indoor positioning fingerprints. Live — POST /api/wifi/locate is active.", Icon: Radio },
             "2fa": { title: "Two-Factor Auth", description: "Enroll and manage 2FA for your account.", Icon: Shield },
             settings: { title: "Settings", description: "App name, branding, and danger zone.", Icon: Settings },
@@ -1073,7 +1074,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                             <p className="text-[11px] text-muted-foreground">{b.floors} floor{b.floors !== 1 ? "s" : ""} · {roomCount} room{roomCount !== 1 ? "s" : ""}</p>
                           </div>
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${b.isActive ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-gray-200 text-gray-400"}`}>
-                            {b.isActive ? "Active" : "Off"}
+                            {b.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </div>
                       );
@@ -1359,6 +1360,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                 const response = await fetch(`/api/users/${editingUser.id}`, {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+                                  credentials: 'include',
                                   body: JSON.stringify(editingUser)
                                 });
                                 
@@ -1386,6 +1388,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                 const response = await fetch('/api/users', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+                                  credentials: 'include',
                                   body: JSON.stringify(newUser)
                                 });
                                 
@@ -1458,8 +1461,8 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   )}
 
                   {/* Users Table */}
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <table className="w-full">
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden overflow-x-auto">
+                    <table className="w-full min-w-[520px]">
                       <thead className="bg-gray-50/80 dark:bg-gray-800/60">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
@@ -1503,7 +1506,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                       className="h-7 px-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700"
                                       onClick={async () => {
                                         try {
-                                          const r = await fetch(`/api/users/${user.id}`, { method: "DELETE", headers: getAdminHeaders() });
+                                          const r = await fetch(`/api/users/${user.id}`, { method: "DELETE", headers: getAdminHeaders(), credentials: "include" });
                                           if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Failed"); }
                                           toast({ title: "User deleted" });
                                           queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -1765,9 +1768,11 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                     Cancel
                   </Button>
                   <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                    disabled={createStaffMutation.isPending || updateStaffMutation.isPending}
                     onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}>
-                    <Save className="h-3.5 w-3.5 mr-1.5" />
-                    {editingStaff ? "Update" : "Add"} Member
+                    {(createStaffMutation.isPending || updateStaffMutation.isPending)
+                      ? <><span className="h-3 w-3 mr-1.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />Saving…</>
+                      : <><Save className="h-3.5 w-3.5 mr-1.5" />{editingStaff ? "Update" : "Add"} Member</>}
                   </Button>
                 </div>
               </CardContent>

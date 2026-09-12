@@ -10,15 +10,48 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.92";
+export const APP_VERSION = "4.5.93";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.93",
+    date: "September 2026",
+    title: "Mobile navigation fix, admin auth fix, onboarding improvements",
+    titleFi: "Mobiilinavigoinnin korjaus, admin-autentikoinnin korjaus, perehdytyksen parannukset",
+    latest: true,
+    highlights: [
+      "**Bug fix: mobile map navigation no longer loses destination.** Eliminated the 60 ms race condition where the `ksyk:route-to` event could fire before the lazy-loaded NavigationPanel had mounted. Destination is now passed as a prop.",
+      "**Bug fix: Käyttäjät / Aktiviteetit returned 401 in admin panel.** All `/api/users` fetch calls now include `credentials: 'include'` so the `ksyk_auth` session cookie is sent alongside the Bearer token.",
+      "**UX: NavigationPanel starts collapsed (peek) on mobile.** Sheet no longer covers the map when directions are opened.",
+      "**UX: fitBounds accounts for bottom sheet height on mobile.** Route no longer clips behind the sheet.",
+      "**UX: dropdown search closes on touch outside.** `touchstart` listener added alongside `mousedown`.",
+      "**UX: Admin notifications tab has a section header.** Consistent with all other tabs.",
+      "**UX: Staff save button shows loading state.** Disabled and shows spinner while mutation is in-flight.",
+      "**UX: Buildings 'Off' label changed to 'Inactive'.** Consistent with Users and Staff status labels.",
+      "**UX: Users table scrolls horizontally on narrow screens.** No more clipping on 320–375 px devices.",
+      "**Android: notification permission asked after onboarding.** System dialog no longer appears mid-onboarding.",
+      "**Android: back button navigates through onboarding pages.** Previously pressed back would exit the app.",
+      "**Android: keyboard Next advances to the next onboarding page.** Name field no longer just hides the keyboard.",
+      "**Android: removed broken mpassId login button from onboarding.** Placeholder client_id caused a dead OAuth flow.",
+      "**Android: Skip hidden on last onboarding page.** Primary CTA is the only exit point on the final page.",
+    ],
+    highlightsFi: [
+      "**Bugikorjaus: mobiilinavigointi ei enää menetä kohdetta.** Poistettu 60 ms kilpailutilanne, jossa `ksyk:route-to` -tapahtuma saattoi laukaista ennen NavigationPanelin latautumista.",
+      "**Bugikorjaus: Käyttäjät / Aktiviteetit palauttivat 401 admin-paneelissa.** Kaikki `/api/users`-kutsut sisältävät nyt `credentials: 'include'`.",
+      "**UX: NavigationPanel käynnistyy pienennettynä (peek) mobiilissa.** Sheet ei enää peitä karttaa avattaessa.",
+      "**UX: fitBounds ottaa huomioon bottom sheetin korkeuden mobiilissa.**",
+      "**UX: Dropdown-haku sulkeutuu koskettamalla ulkopuolelta.**",
+      "**Android: ilmoituslupa pyydetään perehdytyksen jälkeen.**",
+      "**Android: takaisin-nappi navigoi perehdytyssivujen välillä.**",
+      "**Android: rikkinäinen mpassId-kirjautumispainike poistettu perehdytyksestä.**",
+    ],
+  },
   {
     version: "4.5.92",
     date: "September 2026",
     title: "Security hardening, UX fixes, bug fixes",
     titleFi: "Tietoturvaparannukset, UX-korjaukset, bugikorjaukset",
-    latest: true,
+    latest: false,
     highlights: [
       "**Security: password fields stripped from all API responses.** Login, 2FA, and GET /api/users no longer include password hashes in the response body.",
       "**Security: change-password and reset-password now hash before storing.** The Vercel API handler was storing plaintext passwords — fixed to use bcrypt via passwordUtils.",

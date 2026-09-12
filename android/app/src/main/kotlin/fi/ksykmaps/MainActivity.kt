@@ -177,10 +177,12 @@ private fun AppShell() {
     // Ask for POST_NOTIFICATIONS on Android 13+ once per install. Without
     // this the lesson-reminder and announcement notifications are dropped
     // silently by the OS — which is what caused "notifications don't work".
+    // Wait until onboarding is complete so the dialog doesn't appear mid-onboarding.
     val notifPermLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { /* result ignored — retried automatically next launch if declined */ }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(onboardingDone) {
+        if (!onboardingDone) return@LaunchedEffect
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
                 ctx, android.Manifest.permission.POST_NOTIFICATIONS

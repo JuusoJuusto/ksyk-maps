@@ -1,15 +1,13 @@
 package fi.ksykmaps.ui
 
 import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -53,13 +51,6 @@ private fun markOnboardingDone(ctx: Context) {
     ctx.getSharedPreferences(PREFS_ONBOARD, Context.MODE_PRIVATE)
         .edit().putBoolean(KEY_DONE, true).apply()
 }
-
-private const val MPASSID_AUTH_URL =
-    "https://mpass-proxy.csc.fi/idp/profile/oidc/authorize" +
-    "?client_id=ksykmaps-placeholder" +
-    "&redirect_uri=fi.ksykmaps%3A%2F%2Fauth%2Fcallback" +
-    "&response_type=code" +
-    "&scope=openid+profile+email"
 
 private val ONBOARD_BLUE   = Color(0xFF3B82F6)
 private val ONBOARD_VIOLET = Color(0xFF8B5CF6)
@@ -129,6 +120,11 @@ fun OnboardingScreen(onDone: () -> Unit) {
     // WilmaConnectScreen inline before marking onboarding complete.
     var showWilmaConnect by remember { mutableStateOf(false) }
 
+    // Back swipe / button: go to previous page, or do nothing on first page.
+    BackHandler(enabled = pagerState.currentPage > 0) {
+        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+    }
+
     if (showWilmaConnect) {
         WilmaConnectScreen(
             onBack = { showWilmaConnect = false },
@@ -152,27 +148,29 @@ fun OnboardingScreen(onDone: () -> Unit) {
         Column(
             Modifier.fillMaxSize().padding(pad),
         ) {
-            // Skip (top-right)
+            // Skip — hidden on the last page so the primary CTA is the only exit.
             Box(Modifier.fillMaxWidth().padding(end = 12.dp, top = 8.dp)) {
-                TextButton(
-                    onClick = {
-                        if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
-                        markOnboardingDone(ctx)
-                        runCatching {
-                            PostHog.capture(
-                                "onboarding_completed",
-                                properties = mapOf("completion_method" to "skipped"),
-                            )
-                        }
-                        onDone()
-                    },
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                ) {
-                    Text(
-                        if (fi) "Ohita" else "Skip",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                    )
+                if (!isLast) {
+                    TextButton(
+                        onClick = {
+                            if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
+                            markOnboardingDone(ctx)
+                            runCatching {
+                                PostHog.capture(
+                                    "onboarding_completed",
+                                    properties = mapOf("completion_method" to "skipped"),
+                                )
+                            }
+                            onDone()
+                        },
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    ) {
+                        Text(
+                            if (fi) "Ohita" else "Skip",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                        )
+                    }
                 }
             }
 
@@ -184,7 +182,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
             ) { page ->
                 val p = pages[page]
                 if (p.isNamePage) {
-                    NamePage(name = nameInput, onNameChange = { nameInput = it }, lang = lang)
+                    NamePage(
+                        name = nameInput,
+                        onNameChange = { nameInput = it },
+                        lang = lang,
+                        onNext = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                    )
                 } else {
                     OnboardPageContent(p)
                 }
@@ -230,44 +233,21 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     )
                 }
 
-                // Last page: Wilma connect + mpassId options
+                // Last page: Wilma connect option
                 AnimatedVisibility(visible = isLast) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(
-                            onClick = { showWilmaConnect = true },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, currentAccent.copy(alpha = 0.5f)),
-                        ) {
-                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp), tint = currentAccent)
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (fi) "Yhdistä Wilma-kalenteri" else "Connect Wilma calendar",
-                                fontSize = 14.sp,
-                                color = currentAccent,
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                if (nameInput.isNotBlank()) saveUserName(ctx, nameInput)
-                                try {
-                                    CustomTabsIntent.Builder()
-                                        .setShowTitle(true)
-                                        .build()
-                                        .launchUrl(ctx, Uri.parse(MPASSID_AUTH_URL))
-                                } catch (_: Exception) {}
-                            },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                        ) {
-                            Icon(Icons.Outlined.School, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (fi) "Kirjaudu mpassId:llä" else "Sign in with mpassId",
-                                fontSize = 14.sp,
-                            )
-                        }
+                    OutlinedButton(
+                        onClick = { showWilmaConnect = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, currentAccent.copy(alpha = 0.5f)),
+                    ) {
+                        Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp), tint = currentAccent)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (fi) "Yhdistä Wilma-kalenteri" else "Connect Wilma calendar",
+                            fontSize = 14.sp,
+                            color = currentAccent,
+                        )
                     }
                 }
             }
@@ -276,7 +256,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
 }
 
 @Composable
-private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String) {
+private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String, onNext: () -> Unit = {}) {
     val fi = lang == "fi"
     val keyboard = LocalSoftwareKeyboardController.current
     Column(
@@ -342,8 +322,8 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String)
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { keyboard?.hide(); onNext() }),
             leadingIcon = { Icon(Icons.Outlined.Person, null) },
         )
     }

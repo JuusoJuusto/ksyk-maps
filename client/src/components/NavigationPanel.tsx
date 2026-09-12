@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigation2, X, ArrowRightLeft, MapPin, Clock, Footprints, Accessibility, ArrowUpRight, ArrowUp, ArrowUpLeft, CornerDownRight, CornerDownLeft, ChevronsUp, ChevronsDown, Flag, PlayCircle, Layers as LayersIcon } from "lucide-react";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import type { Building, Room, LatLng } from "@ksyk/shared";
+import type { ClickedFeature } from "@/components/FeatureInfoSheet";
 import { buildRoomSearchIndex, polygonCentroid, haversineMeters } from "@ksyk/shared";
 import {
   buildGraph, buildNavGraph, findPath,
@@ -34,6 +35,11 @@ interface NavigationPanelProps {
   /** When the header search dropdown is up, we collapse to a compact
    *  bar so the two panels don't stack on top of each other. */
   searchActive?: boolean;
+  /** Destination pre-filled by "Directions here" on a feature — avoids
+   *  the 60 ms setTimeout race on mobile where the lazy chunk may not
+   *  have mounted before the event fires. */
+  pendingRouteTo?: ClickedFeature | null;
+  onPendingRouteHandled?: () => void;
 }
 
 type Endpoint =
@@ -64,7 +70,7 @@ const ROUTE_ENDS_LAYER_ID = "nav-route-ends-layer";
 const ROUTE_STEPS_SOURCE_ID = "nav-route-steps";
 const ROUTE_STEPS_LAYER_ID = "nav-route-steps-layer";
 
-export default function NavigationPanel({ map, onClose, searchActive = false }: NavigationPanelProps) {
+export default function NavigationPanel({ map, onClose, searchActive = false, pendingRouteTo, onPendingRouteHandled }: NavigationPanelProps) {
   // Measure header height so the desktop panel sits right under it.
   const [headerBottom, setHeaderBottom] = useState<number>(120);
   useEffect(() => {
@@ -100,7 +106,8 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
   }, []);
 
   // 3-snap mobile sheet: peek = Google Maps style compact bar, half = inputs + summary, full = turn-by-turn.
-  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("half");
+  // Start at "peek" so the sheet doesn't cover the map on open; snaps to "half" when a destination is set.
+  const [mobileSnap, setMobileSnap] = useState<"peek" | "half" | "full">("peek");
   const dragStartYRef = useRef<number | null>(null);
 
   // Prefers /api/map-package/published when the admin has published;
@@ -146,6 +153,23 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     window.addEventListener("ksyk:route-to", onRouteTo);
     return () => window.removeEventListener("ksyk:route-to", onRouteTo);
   }, [buildings]);
+
+  // Apply destination from prop — fires immediately on mount when a
+  // pendingRouteTo is passed, eliminating the lazy-load race condition.
+  useEffect(() => {
+    if (!pendingRouteTo) return;
+    if (pendingRouteTo.kind === "building") {
+      setTo({ kind: "building", building: pendingRouteTo.entity });
+    } else if (pendingRouteTo.kind === "room") {
+      const room = pendingRouteTo.entity;
+      const b = buildings.find((x) => x.id === room.buildingId) ?? null;
+      setTo({ kind: "room", room, building: b });
+    }
+    // Hallways are not valid nav destinations — ignored.
+    if (isSmall) setMobileSnap("half");
+    onPendingRouteHandled?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRouteTo]);
 
   // Build the campus navigation graph once per data change. Excludes
   // walls (surface="wall") — those are barriers, not walkable.
@@ -403,12 +427,16 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
       }
 
       // Fit the FULL route bounds (every vertex), preserving rotation + pitch.
+      // On mobile the bottom sheet covers ~50dvh, so use an asymmetric
+      // padding object to keep the route in the visible area above the sheet.
       const lngs = route.coords.map((c) => c.lng);
       const lats = route.coords.map((c) => c.lat);
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+      const bottomPad = isMobile ? Math.round(window.innerHeight * 0.55) : 100;
       map.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
         {
-          padding: 100,
+          padding: isMobile ? { top: 80, bottom: bottomPad, left: 60, right: 60 } : 100,
           duration: 600,
           bearing: map.getBearing(),
           pitch: map.getPitch(),
@@ -906,12 +934,17 @@ function EndpointField({ label, color, value, onChange, index }: EndpointFieldPr
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: MouseEvent | TouchEvent) => {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = "touches" in e ? e.touches[0]?.target : (e as MouseEvent).target;
+      if (!rootRef.current.contains(target as Node)) setOpen(false);
     };
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
+    window.addEventListener("mousedown", onDown as EventListener);
+    window.addEventListener("touchstart", onDown as EventListener, { passive: true });
+    return () => {
+      window.removeEventListener("mousedown", onDown as EventListener);
+      window.removeEventListener("touchstart", onDown as EventListener);
+    };
   }, [open]);
 
   const displayValue = value ? endpointLabel(value) : query;
