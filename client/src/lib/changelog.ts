@@ -49,8 +49,8 @@ export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
     version: "4.5.91",
     date: "September 2026",
-    title: "Android startup crash fix (v1.56.0)",
-    titleFi: "Android-käynnistyskaatumiskorjaus (v1.56.0)",
+    title: "Android startup crash fix attempt 2 (v1.56.0–v1.57.0)",
+    titleFi: "Android-käynnistyskaatumiskorjausyritys 2 (v1.56.0–v1.57.0)",
     latest: false,
     highlights: [
       "**Android crash fix (v1.56.0 — critical):** Root cause found: `SentryNdkPreloadProvider` was running before `Application.onCreate()` with the highest possible ContentProvider priority (`initOrder=2000000000`), loading native .so files via JNI before our crash handler could install. This caused an `UnsatisfiedLinkError` crash on startup that our previous `runCatching` fix could not intercept. Fixed by removing this provider via manifest merge override — Sentry still initializes fully in `KsykApp`.",
