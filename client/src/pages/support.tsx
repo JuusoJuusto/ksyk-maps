@@ -143,13 +143,12 @@ export default function Support() {
   // ── Success screen ─────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
         <AnnouncementBanner />
         <Header />
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-lg">
             <Card className="border border-emerald-200/60 dark:border-emerald-900/40 shadow-xl">
-              <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
               <CardContent className="pt-8 pb-8 text-center">
                 <div className="mx-auto mb-5 h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/50 ring-1 ring-emerald-200 dark:ring-emerald-900/50 flex items-center justify-center">
                   <CheckCircle className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
@@ -209,13 +208,12 @@ export default function Support() {
 
   // ── Form ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
       <AnnouncementBanner />
       <Header />
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-2xl">
           <Card className="border border-slate-200/70 dark:border-slate-800 shadow-xl">
-            <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500" />
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-900/50 flex items-center justify-center">
