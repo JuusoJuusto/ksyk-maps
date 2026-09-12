@@ -472,7 +472,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   
 
   // Fetch data
-  const { data: buildings = [] } = useQuery({
+  const { data: buildings = [], isLoading: buildingsLoading, isError: buildingsError } = useQuery({
     queryKey: ["buildings"],
     queryFn: async () => {
       const response = await fetch("/api/buildings");
@@ -481,7 +481,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
     },
   });
 
-  const { data: rooms = [] } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading, isError: roomsError } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
       const response = await fetch("/api/rooms");
@@ -490,7 +490,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
     },
   });
 
-  const { data: staff = [] } = useQuery({
+  const { data: staff = [], isLoading: staffLoading } = useQuery({
     queryKey: ["staff"],
     queryFn: async () => {
       const response = await fetch("/api/staff");
@@ -499,7 +499,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
     },
   });
 
-  const { data: announcements = [] } = useQuery({
+  const { data: announcements = [], isLoading: announcementsLoading } = useQuery({
     queryKey: ["announcements"],
     queryFn: async () => {
       const response = await fetch("/api/announcements?limit=50");
@@ -507,6 +507,9 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
       return response.json();
     },
   });
+
+  const isLoadingOverview = buildingsLoading || roomsLoading || staffLoading || announcementsLoading;
+  const hasDataError = buildingsError || roomsError;
 
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
@@ -892,6 +895,11 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             return (
               <>
                 {/* KPI cards */}
+                {hasDataError && (
+                  <div className="col-span-full px-4 py-2 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-sm text-red-700 dark:text-red-400">
+                    Some data failed to load. Check your connection and refresh.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: "Buildings", value: (buildings as any[])?.length ?? 0, bar: "bg-blue-500", iconBg: "bg-blue-500", icon: Building, tab: "__builder", sub: null },
@@ -909,8 +917,11 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-                              <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
-                              {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
+                              {isLoadingOverview
+                                ? <div className="h-9 w-16 mt-1 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                                : <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
+                              }
+                              {sub && !isLoadingOverview && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
                             </div>
                             <div className={`p-2 rounded-xl ${iconBg} text-white shrink-0`}>
                               <Icon className="h-5 w-5" />

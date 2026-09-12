@@ -2136,11 +2136,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
+      const allowedTicketFields = ['status', 'response', 'priority', 'assignedTo', 'title', 'description'];
+      const updateData: Record<string, any> = { updatedAt: new Date().toISOString() };
+      for (const field of allowedTicketFields) {
+        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+      }
       const oldTicket = await storage.getTicket(req.params.id);
-      const ticket = await storage.updateTicket(req.params.id, {
-        ...req.body,
-        updatedAt: new Date().toISOString()
-      });
+      const ticket = await storage.updateTicket(req.params.id, updateData);
       
       // Send email notification if status changed
       if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
@@ -2184,21 +2186,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await logError(error, 'DELETE /api/tickets/:id');
       res.status(500).json({ message: 'Failed to delete ticket' });
-    }
-  });
-
-  app.delete('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      await storage.deleteTicket(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting ticket:", error);
-      res.status(500).json({ message: "Failed to delete ticket" });
     }
   });
 
@@ -2453,6 +2440,10 @@ https://ksykmaps.fi
 
   app.put('/api/map-defaults', isAuthenticated, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const allowed = [
         'osmCenterLat', 'osmCenterLng', 'osmDefaultZoom', 'osmMinZoom',
         'osmMaxZoom', 'osmRotationDeg', 'osmPitchDeg', 'osmTileTheme',
