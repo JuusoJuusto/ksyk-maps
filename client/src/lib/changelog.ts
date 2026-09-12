@@ -10,15 +10,48 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.91";
+export const APP_VERSION = "4.5.92";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.92",
+    date: "September 2026",
+    title: "Security hardening, UX fixes, bug fixes",
+    titleFi: "Tietoturvaparannukset, UX-korjaukset, bugikorjaukset",
+    latest: true,
+    highlights: [
+      "**Security: password fields stripped from all API responses.** Login, 2FA, and GET /api/users no longer include password hashes in the response body.",
+      "**Security: change-password and reset-password now hash before storing.** The Vercel API handler was storing plaintext passwords — fixed to use bcrypt via passwordUtils.",
+      "**Security: reset token is now cryptographically secure.** Switched from `Math.random()` to `crypto.randomBytes(32)` for password reset tokens.",
+      "**Security: data cleanup endpoint requires owner role.** Previously any admin could invoke it; now restricted to owner only.",
+      "**Bug fix: floor 0 selected on load when no floor param in URL.** `Number(null) === 0` was causing the floor selector to show floor 0 (empty) instead of the default floor.",
+      "**Bug fix: builder autosave restore was broken.** The 'Restore draft' button was calling `discardDraft()` instead of restoring — fixed to apply the draft to the map.",
+      "**Bug fix: NavigationPanel memory leak.** `map.once('load')` listener was not cleaned up on effect teardown, causing stale route overlays.",
+      "**Bug fix: navigation path length crash.** Guard against empty path array when computing route distance.",
+      "**UX: directory page loading states.** All three tabs (Rooms, Staff, Buildings) now show skeleton placeholders while data loads instead of flashing empty states.",
+      "**UX: announcement mutations now toast on error.** Create/update/delete failures are surfaced to the admin instead of silently failing.",
+      "**UX: support form shows error toast on submission failure.** Previously showed nothing if the POST failed.",
+      "**UX: admin users table Status badge is now data-driven.** Inactive users no longer show 'Active'.",
+      "**UX: analytics tab added to admin URL routing.** Was functional in-session but not bookmarkable.",
+    ],
+    highlightsFi: [
+      "**Tietoturva: salasanakentät poistettu API-vastauksista.** Kirjautuminen, 2FA ja GET /api/users eivät enää sisällä salasanahashe responssissa.",
+      "**Tietoturva: salasanan vaihto ja nollaus hashaavat ennen tallennusta.** Vercel-API-käsittelijä tallensi salasanat selkotekstinä — korjattu käyttämään bcrypt:iä.",
+      "**Tietoturva: nollaustunnus on nyt kryptografisesti turvallinen.** Vaihdettu `Math.random()`:sta `crypto.randomBytes(32)`:een.",
+      "**Tietoturva: datan siivousendpoint vaatii omistajaoikeuden.** Aiemmin mikä tahansa admin pystyi kutsumaan sitä.",
+      "**Bugikorjaus: kerros 0 valittiin latauksessa ilman floor-parametria.** `Number(null) === 0` aiheutti kerroksen 0 valinnan oletuksen sijaan.",
+      "**Bugikorjaus: rakentajan automaattitallennus oli rikki.** 'Palauta luonnos' -painike kutsui `discardDraft()`:ia palautuksen sijaan.",
+      "**Bugikorjaus: NavigationPanel-muistivuoto korjattu.** `map.once('load')` -kuuntelija ei siivottu efektin teardownissa.",
+      "**UX: hakemistosivu näyttää latausanimaatiot.** Kaikki kolme välilehteä näyttävät luurankopaikkavaraukset latauksen aikana.",
+      "**UX: ilmoitusmutaatiot näyttävät toast-virheen.** Luo/päivitä/poista-virheet näkyvät nyt adminille.",
+    ],
+  },
   {
     version: "4.5.91",
     date: "September 2026",
     title: "Android startup crash fix (v1.56.0)",
     titleFi: "Android-käynnistyskaatumiskorjaus (v1.56.0)",
-    latest: true,
+    latest: false,
     highlights: [
       "**Android crash fix (v1.56.0 — critical):** Root cause found: `SentryNdkPreloadProvider` was running before `Application.onCreate()` with the highest possible ContentProvider priority (`initOrder=2000000000`), loading native .so files via JNI before our crash handler could install. This caused an `UnsatisfiedLinkError` crash on startup that our previous `runCatching` fix could not intercept. Fixed by removing this provider via manifest merge override — Sentry still initializes fully in `KsykApp`.",
     ],

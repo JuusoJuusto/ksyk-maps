@@ -3401,10 +3401,15 @@ function BuilderWorkspace() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => autosave.discardDraft()}
+                  onClick={async () => {
+                    if (autosave.pendingDraft) {
+                      await applyImport(autosave.pendingDraft.snapshot);
+                      autosave.discardDraft();
+                    }
+                  }}
                   className="text-[11px] font-semibold px-2 py-1 rounded-md bg-white text-blue-700 hover:bg-blue-50"
                 >
-                  Keep working
+                  Restore draft
                 </button>
               </div>
             </div>

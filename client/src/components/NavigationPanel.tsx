@@ -204,8 +204,8 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
           kind: "graph" as const,
           coords,
           distanceMeters: path.totalDistanceMeters
-            + haversineMeters(a, path.path[0].position)
-            + haversineMeters(b, path.path[path.path.length - 1].position),
+            + (path.path.length > 0 ? haversineMeters(a, path.path[0].position) : 0)
+            + (path.path.length > 0 ? haversineMeters(b, path.path[path.path.length - 1].position) : 0),
           floors: path.segments.map((s) => s.floor),
           // Keep the raw Route around so we can annotate it into
           // turn-by-turn hints without re-running A*.
@@ -418,7 +418,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false }: 
     if (map.isStyleLoaded()) upsertLine();
     else map.once("load", upsertLine);
     return () => {
-      // Route lifetime = component lifetime. On unmount, clear.
+      map.off("load", upsertLine);
     };
   }, [map, route, turnHints]);
 

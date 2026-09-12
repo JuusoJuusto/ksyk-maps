@@ -25,6 +25,7 @@ import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { analytics } from "@/lib/analytics-sdk";
 import posthog from "@/lib/posthog";
+import { useToast } from "@/hooks/use-toast";
 
 type TicketType = "bug" | "feature" | "support" | "question";
 type Priority = "low" | "normal" | "high" | "critical";
@@ -55,6 +56,7 @@ export default function Support() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
   const [ticketId, setTicketId] = useState("");
   const [copiedId, setCopiedId] = useState(false);
 
@@ -112,8 +114,9 @@ export default function Support() {
       analytics.featureUsed("support", "completed", { type, priority });
       try { posthog.capture?.("support_ticket_created", { type, priority, ticketId: id }); } catch { /* ignore */ }
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       analytics.error(err, { area: "support-form" });
+      toast({ title: "Failed to submit ticket", description: "Please try again or email us directly.", variant: "destructive" });
     },
   });
 

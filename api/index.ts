@@ -1945,10 +1945,14 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         }
         
         
+        // Hash password before storing
+        const { hashPassword } = await import('../server/passwordUtils.js');
+        const hashedPassword = await hashPassword(newPassword);
+
         // Update user password
         await storage.upsertUser({
           id: user.id,
-          password: newPassword,
+          password: hashedPassword,
           isTemporaryPassword: false
         });
         
@@ -1988,8 +1992,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
         }
         
-        // Generate reset token (valid for 1 hour)
-        const resetToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        // Generate cryptographically secure reset token (valid for 1 hour)
+        const resetToken = crypto.randomBytes(32).toString('hex');
         const resetExpiry = Date.now() + 3600000; // 1 hour
         
         // Store reset token
@@ -2067,10 +2071,12 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           return res.status(400).json({ message: "Reset token has expired" });
         }
         
-        // Update password and clear reset token
+        // Hash password before storing, then clear reset token
+        const { hashPassword: hashPw } = await import('../server/passwordUtils.js');
+        const hashedNewPassword = await hashPw(newPassword);
         await storage.upsertUser({
           id: user.id,
-          password: newPassword,
+          password: hashedNewPassword,
           passwordResetToken: null,
           passwordResetExpiry: null,
           isTemporaryPassword: false

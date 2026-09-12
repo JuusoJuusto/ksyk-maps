@@ -119,7 +119,7 @@ const ADMIN_BASE = "/admin";
 // concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "tickets","logs","staff","announcements","notifications","beacons","2fa","settings",
+  "tickets","logs","analytics","staff","announcements","notifications","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -1487,7 +1487,11 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge className="bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300">Active</Badge>
+                              <Badge className={user.isActive !== false
+                                ? "bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"}>
+                                {user.isActive !== false ? "Active" : "Inactive"}
+                              </Badge>
                             </td>
                             <td className="px-4 py-3">
                               {user.email !== "JuusoJuusto112@gmail.com" ? (

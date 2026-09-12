@@ -28,6 +28,12 @@ import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = 12;
 
+/** Strip password hash from user row before sending to the client. */
+function safeUser<T extends Record<string, unknown>>(u: T): Omit<T, 'password'> {
+  const { password: _pw, ...rest } = u;
+  return rest as Omit<T, 'password'>;
+}
+
 /** Compare a plaintext password against a stored value.
  *  Supports both bcrypt hashes ($2b$…) and legacy plaintext.
  *  On a successful plaintext match the hash is written back to DB automatically. */
@@ -198,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      res.json(user);
+      res.json(user ? safeUser(user as Record<string, unknown>) : user);
     } catch (error) {
       await logError(error, 'GET /api/auth/user', { userId: req.user?.claims?.sub });
       res.status(500).json({ message: "Failed to fetch user" });
@@ -278,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'owner' } });
           console.log('✅ Owner logged in');
           console.log('=====================================\n');
-          return res.json({ success: true, user: ownerUser, requirePasswordChange: false });
+          return res.json({ success: true, user: safeUser(ownerUser as Record<string, unknown>), requirePasswordChange: false });
         });
         return;
       }
@@ -370,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('=====================================\n');
         return res.json({
           success: true,
-          user: user,
+          user: safeUser(user as Record<string, unknown>),
           requirePasswordChange: user.isTemporaryPassword || false
         });
       });
@@ -561,7 +567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'success',
           sessionId: null
         });
-        res.json({ success: true, user, usedBackupCode: isBackup });
+        res.json({ success: true, user: safeUser(user as Record<string, unknown>), usedBackupCode: isBackup });
       });
     } catch (error) {
       console.error('Error completing 2FA login:', error);
@@ -1407,7 +1413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(await storage.getAllUsers(limit, offset));
+      const users = await storage.getAllUsers(limit, offset);
+      res.json(Array.isArray(users) ? users.map((u: Record<string, unknown>) => safeUser(u)) : users);
     } catch (error) {
       await logError(error, 'GET /api/users', { isAuthenticated: req.isAuthenticated() });
       res.status(500).json({ message: "Failed to fetch users" });
@@ -3150,12 +3157,12 @@ https://ksykmaps.fi
   app.post('/api/admin/cleanup-all', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user || user.role !== 'owner') {
+        return res.status(403).json({ message: "Owner access required" });
       }
 
       const { confirmDelete } = req.body;
-      
+
       if (confirmDelete !== 'DELETE_EVERYTHING') {
         return res.status(400).json({ message: 'Confirmation required: DELETE_EVERYTHING' });
       }

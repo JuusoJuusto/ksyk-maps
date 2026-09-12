@@ -83,8 +83,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
-    const f = Number(p.get("floor"));
-    if (Number.isFinite(f)) setSelectedFloor(f);
+    const raw = p.get("floor");
+    if (raw !== null) {
+      const f = Number(raw);
+      if (Number.isFinite(f)) setSelectedFloor(f);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { getAdminHeaders } from "@/lib/adminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Announcement {
 export default function AnnouncementManager() {
   const queryClient = useQueryClient();
   const { darkMode } = useDarkMode();
+  const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -53,7 +55,7 @@ export default function AnnouncementManager() {
     expiresAt: ""
   });
 
-  const { data: announcements = [] } = useQuery({
+  const { data: announcements = [], isLoading: isLoadingAnnouncements } = useQuery({
     queryKey: ["announcements"],
     queryFn: async () => {
       const response = await fetch("/api/announcements?limit=50");
@@ -75,7 +77,11 @@ export default function AnnouncementManager() {
     onSuccess: () => {
       posthog.capture("announcement_created", { priority: formData.priority });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast({ title: "Announcement created" });
       resetForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to create announcement", description: error.message, variant: "destructive" });
     },
   });
 
@@ -92,7 +98,11 @@ export default function AnnouncementManager() {
     onSuccess: () => {
       posthog.capture("announcement_updated", { priority: formData.priority });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast({ title: "Announcement updated" });
       resetForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update announcement", description: error.message, variant: "destructive" });
     },
   });
 
@@ -107,6 +117,10 @@ export default function AnnouncementManager() {
     onSuccess: () => {
       posthog.capture("announcement_deleted");
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast({ title: "Announcement deleted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to delete announcement", description: error.message, variant: "destructive" });
     },
   });
 
@@ -494,7 +508,13 @@ export default function AnnouncementManager() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          {announcements.length === 0 ? (
+          {isLoadingAnnouncements ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-20 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              ))}
+            </div>
+          ) : announcements.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <Megaphone className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg">No announcements yet</p>
