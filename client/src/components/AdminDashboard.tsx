@@ -356,6 +356,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   const adminBase = ADMIN_BASE;
 
   const navigate = (tab: string) => {
+    if (tab === "__builder") { setLocation("/builder"); return; }
     setActiveTab(tab);
     const path = tab === "overview" ? adminBase : `${adminBase}/${tab}`;
     setLocation(path);

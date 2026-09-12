@@ -1939,9 +1939,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/tickets', rateLimiters.general, async (req, res) => {
     try {
       const ticketData = req.body;
-      
+
+      // Basic input validation
+      const { type, title, description } = ticketData;
+      if (!type || typeof type !== 'string' || type.length > 50) {
+        return res.status(400).json({ message: "Invalid or missing type" });
+      }
+      if (!title || typeof title !== 'string' || title.trim().length < 3 || title.length > 200) {
+        return res.status(400).json({ message: "Title must be 3–200 characters" });
+      }
+      if (!description || typeof description !== 'string' || description.trim().length < 10 || description.length > 5000) {
+        return res.status(400).json({ message: "Description must be 10–5000 characters" });
+      }
+      if (ticketData.email && (typeof ticketData.email !== 'string' || ticketData.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ticketData.email))) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+
       // Generate ticket ID if not provided
-      const ticketId = ticketData.ticketId || `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
       console.log('\n🎫 ========== CREATING TICKET ==========');
       console.log('Ticket ID:', ticketId);
