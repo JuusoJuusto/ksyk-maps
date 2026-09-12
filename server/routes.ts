@@ -2380,12 +2380,16 @@ https://ksykmaps.fi
   });
 
   // Test email endpoint (admin-only)
-  app.post('/api/test-email-simple', isAuthenticated, async (req, res) => {
+  app.post('/api/test-email-simple', isAuthenticated, async (req: any, res) => {
     try {
+      const caller = await storage.getUser(req.user.claims.sub);
+      if (!caller || (caller.role !== 'admin' && caller.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
       const { email } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ message: "Email address required" });
+      if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: "Valid email address required" });
       }
 
       console.log('📧 Sending test email to:', email);
