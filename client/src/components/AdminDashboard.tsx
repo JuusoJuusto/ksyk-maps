@@ -724,7 +724,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
         {currentUser && (
           <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-[11px] font-bold shadow-sm shadow-blue-600/30">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-sm shadow-blue-500/30">
                 {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
@@ -894,17 +894,17 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, accent: "from-blue-500 to-indigo-500", icon: Building, tab: "__builder", sub: null },
-                    { label: "Rooms", value: total || (rooms as any[]).length, accent: "from-emerald-500 to-teal-500", icon: MapPin, tab: "__builder", sub: total > 0 ? `${availPct}% available` : null },
-                    { label: "Staff", value: (staff as any[])?.length ?? 0, accent: "from-amber-500 to-orange-500", icon: IdCard, tab: "staff", sub: null },
-                    { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, accent: "from-rose-500 to-pink-500", icon: Megaphone, tab: "announcements", sub: "active" },
-                  ].map(({ label, value, accent, icon: Icon, tab, sub }) => (
+                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, bar: "bg-blue-500", iconBg: "bg-blue-500", icon: Building, tab: "__builder", sub: null },
+                    { label: "Rooms", value: total || (rooms as any[]).length, bar: "bg-emerald-500", iconBg: "bg-emerald-500", icon: MapPin, tab: "__builder", sub: total > 0 ? `${availPct}% available` : null },
+                    { label: "Staff", value: (staff as any[])?.length ?? 0, bar: "bg-amber-500", iconBg: "bg-amber-500", icon: IdCard, tab: "staff", sub: null },
+                    { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, bar: "bg-rose-500", iconBg: "bg-rose-500", icon: Megaphone, tab: "announcements", sub: "active" },
+                  ].map(({ label, value, bar, iconBg, icon: Icon, tab, sub }) => (
                     <button key={label} type="button"
                       onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
                       className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-2xl active:scale-[0.98] transition-transform"
                       aria-label={`Go to ${label} tab`}>
                       <Card className="relative overflow-hidden border-0 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 hover:ring-blue-200 dark:hover:ring-blue-900/50 transition-all duration-200 cursor-pointer">
-                        <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+                        <div className={`absolute inset-x-0 top-0 h-1 ${bar}`} />
                         <CardContent className="p-4 md:p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
@@ -912,7 +912,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                               <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
                               {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
                             </div>
-                            <div className={`p-2 rounded-xl bg-gradient-to-br ${accent} text-white shrink-0`}>
+                            <div className={`p-2 rounded-xl ${iconBg} text-white shrink-0`}>
                               <Icon className="h-5 w-5" />
                             </div>
                           </div>
@@ -1814,7 +1814,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   {(staff as Staff[]).map((member) => (
                     <div key={member.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold shadow-sm">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-xs font-bold shadow-sm">
                           {(member.firstName?.[0] ?? "").toUpperCase()}{(member.lastName?.[0] ?? "").toUpperCase()}
                         </div>
                         <div className="min-w-0">

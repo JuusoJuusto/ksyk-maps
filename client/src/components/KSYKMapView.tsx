@@ -262,9 +262,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         gpsDotRef.current = null;
       }
       try {
-        if (mapInstance.getLayer("ksyk-gps-accuracy-fill")) mapInstance.removeLayer("ksyk-gps-accuracy-fill");
-        if (mapInstance.getLayer("ksyk-gps-accuracy-line")) mapInstance.removeLayer("ksyk-gps-accuracy-line");
-        if (mapInstance.getSource("ksyk-gps-accuracy")) mapInstance.removeSource("ksyk-gps-accuracy");
+        if (mapInstance) {
+          if (mapInstance.getLayer("ksyk-gps-accuracy-fill")) mapInstance.removeLayer("ksyk-gps-accuracy-fill");
+          if (mapInstance.getLayer("ksyk-gps-accuracy-line")) mapInstance.removeLayer("ksyk-gps-accuracy-line");
+          if (mapInstance.getSource("ksyk-gps-accuracy")) mapInstance.removeSource("ksyk-gps-accuracy");
+        }
       } catch { /* style may have changed */ }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

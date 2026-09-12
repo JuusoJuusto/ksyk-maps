@@ -225,7 +225,7 @@ export default function AnnouncementManager() {
           "shadow-lg border",
           darkMode ? "border-blue-800 bg-gray-900" : "border-blue-200 bg-white"
         )}>
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl">
+          <CardHeader className="bg-blue-600 text-white rounded-t-xl">
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center">
                 <Megaphone className="h-5 w-5 mr-2" />

@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.88";
+export const APP_VERSION = "4.5.89";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.89",
+    date: "September 2026",
+    title: "Map stability, admin panel consistency, design cleanup",
+    titleFi: "Kartan vakaus, hallintapaneelin yhtenäisyys, ulkoasun siistiminen",
+    latest: true,
+    highlights: [
+      "**MapLibre defensive fix:** GPS layer cleanup now null-checks the map instance before attempting removeLayer/removeSource, preventing an edge-case crash on rapid unmounts.",
+      "**Admin panel consistency:** KPI card accent bars and icon bubbles converted from gradient to solid colors, matching the iOS-style design language used throughout the app. User avatar also simplified to a flat color.",
+      "**Gradient audit complete:** All decorative gradient bars removed from user-facing cards and panels. Admin portal pages retain intentional gradient styling as a distinct context.",
+    ],
+    highlightsFi: [
+      "**MapLibre-puolustuskorjaus:** GPS-tason siivous tarkistaa nyt karttainstanssin null-arvon ennen removeLayer/removeSource-kutsuja, estäen reunatapauksen kaatumisen nopeiden unmount-tilanteiden yhteydessä.",
+      "**Hallintapaneelin yhtenäisyys:** KPI-korttien aksenttirimet ja ikonikuplat muutettu gradientista kiinteiksi väreiksi, vastaten sovelluksessa käytettyä iOS-tyylisiä suunnittelukieltä.",
+      "**Gradienttitarkastus valmis:** Kaikki koristeelliset gradienttirimet poistettu käyttäjälle näkyvistä korteista ja paneeleista.",
+    ],
+  },
   {
     version: "4.5.88",
     date: "September 2026",
     title: "Settings panel redesign — grouped rows, no gradient, iOS-style links",
     titleFi: "Asetuspaneeli uusittu — ryhmitetyt rivit, ei gradienttia, iOS-tyylinen navigointi",
-    latest: true,
+    latest: false,
     highlights: [
       "**Settings panel polish:** Accessibility rows now render as a proper grouped list with dividers instead of individual floating cards.",
       "**About tab improved:** Removed the decorative gradient bar. Support and GitHub links are now iOS-style tappable rows with icon bubbles and chevron arrows.",

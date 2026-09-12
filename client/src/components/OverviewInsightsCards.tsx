@@ -76,15 +76,15 @@ export default function OverviewInsightsCards() {
       {/* Today's counters row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "Pageviews", value: today.pageviews, Icon: Eye, ring: "from-blue-500 to-indigo-500" },
-          { label: "Feature uses", value: today.featureUses, Icon: Zap, ring: "from-amber-500 to-orange-500" },
-          { label: "Searches", value: today.searches, Icon: SearchIcon, ring: "from-emerald-500 to-teal-500" },
-        ].map(({ label, value, Icon, ring }) => (
+          { label: "Pageviews", value: today.pageviews, Icon: Eye, bar: "bg-blue-500", iconBg: "bg-blue-500" },
+          { label: "Feature uses", value: today.featureUses, Icon: Zap, bar: "bg-amber-500", iconBg: "bg-amber-500" },
+          { label: "Searches", value: today.searches, Icon: SearchIcon, bar: "bg-emerald-500", iconBg: "bg-emerald-500" },
+        ].map(({ label, value, Icon, bar, iconBg }) => (
           <Card
             key={label}
             className="relative overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card"
           >
-            <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${ring}`} />
+            <div className={`absolute inset-x-0 top-0 h-1 ${bar}`} />
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -95,7 +95,7 @@ export default function OverviewInsightsCards() {
                     {value}
                   </p>
                 </div>
-                <div className={`p-2 rounded-xl bg-gradient-to-br ${ring} text-white shrink-0`}>
+                <div className={`p-2 rounded-xl ${iconBg} text-white shrink-0`}>
                   <Icon className="h-5 w-5" />
                 </div>
               </div>

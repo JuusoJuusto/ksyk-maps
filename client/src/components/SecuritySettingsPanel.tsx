@@ -126,10 +126,10 @@ export default function SecuritySettingsPanel() {
     <div className="space-y-5">
       {/* Hero strip */}
       <Card className="border-0 shadow-md overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
               <Shield className="h-5 w-5" />
             </div>
             <div className="flex-1">

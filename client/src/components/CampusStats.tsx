@@ -149,7 +149,7 @@ export default function CampusStats() {
 
       {/* Room Type Breakdown */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <CardHeader className="bg-blue-600 text-white">
           <CardTitle className="flex items-center">
             <MapPin className="mr-2 h-6 w-6" />
             Room Type Distribution
@@ -180,7 +180,7 @@ export default function CampusStats() {
       {/* Quick Insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+          <CardHeader className="bg-emerald-600 text-white">
             <CardTitle className="flex items-center">
               <TrendingUp className="mr-2 h-5 w-5" />
               Campus Insights
@@ -211,7 +211,7 @@ export default function CampusStats() {
         </Card>
 
         <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+          <CardHeader className="bg-purple-600 text-white">
             <CardTitle className="flex items-center">
               <Clock className="mr-2 h-5 w-5" />
               System Activity
