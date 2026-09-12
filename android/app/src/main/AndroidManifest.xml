@@ -117,5 +117,14 @@
                 android:resource="@xml/today_schedule_widget_info" />
         </receiver>
 
+        <!-- SentryNdkPreloadProvider runs at initOrder=2000000000, before Application.onCreate()
+             and before our crash handler installs. It loads native .so via JNI which can fail
+             with UnsatisfiedLinkError when extractNativeLibs=false. Removing it here prevents
+             the pre-Application crash; Sentry still initializes fully in KsykApp.initSentry(). -->
+        <provider
+            android:name="io.sentry.ndk.SentryNdkPreloadProvider"
+            android:authorities="${applicationId}.SentryNdkPreloadProvider"
+            tools:node="remove" />
+
     </application>
 </manifest>

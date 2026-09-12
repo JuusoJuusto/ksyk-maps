@@ -10,15 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.90";
+export const APP_VERSION = "4.5.91";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.5.91",
+    date: "September 2026",
+    title: "Android startup crash fix (v1.56.0)",
+    titleFi: "Android-käynnistyskaatumiskorjaus (v1.56.0)",
+    latest: true,
+    highlights: [
+      "**Android crash fix (v1.56.0 — critical):** Root cause found: `SentryNdkPreloadProvider` was running before `Application.onCreate()` with the highest possible ContentProvider priority (`initOrder=2000000000`), loading native .so files via JNI before our crash handler could install. This caused an `UnsatisfiedLinkError` crash on startup that our previous `runCatching` fix could not intercept. Fixed by removing this provider via manifest merge override — Sentry still initializes fully in `KsykApp`.",
+    ],
+    highlightsFi: [
+      "**Android-kaatumiskorjaus (v1.56.0 — kriittinen):** Juurisyy löytyi: `SentryNdkPreloadProvider` käynnistyi ennen `Application.onCreate()`-metodia korkeimmalla mahdollisella ContentProvider-prioriteetilla (`initOrder=2000000000`), ladaten natiiveja .so-tiedostoja JNI:n kautta ennen kuin kaatumiskäsittelijä ehti asentua. Tämä aiheutti `UnsatisfiedLinkError`-kaatumisen käynnistyksessä, jota aiempi `runCatching`-korjaus ei pystynyt sieppaamaan. Korjattu poistamalla kyseinen provider manifestin yhdistämisylivoimalla — Sentry alustuu edelleen täysin `KsykApp`issa.",
+    ],
+  },
+  {
     version: "4.5.90",
     date: "September 2026",
-    title: "About page redesign, Android crash fix (v1.55.0)",
-    titleFi: "Tietoja-sivun uudelleensuunnittelu, Android-kaatumiskorjaus (v1.55.0)",
-    latest: true,
+    title: "About page redesign, Android crash fix attempt (v1.55.0)",
+    titleFi: "Tietoja-sivun uudelleensuunnittelu, Android-kaatumiskorjausyritys (v1.55.0)",
+    latest: false,
     highlights: [
       "**About page redesign:** Completely reworked — shows campus info, platform versions, credits, and OS-native-style grouped info rows. Removed the redundant embedded changelog from About (dedicated Changelog tab still available).",
       "**Android crash fix (v1.55.0):** Crash handler is now installed before analytics init. PostHog setup is wrapped in runCatching so SDK issues can never crash the app at startup.",
