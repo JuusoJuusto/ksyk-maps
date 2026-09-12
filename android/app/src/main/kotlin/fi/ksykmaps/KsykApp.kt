@@ -38,9 +38,9 @@ class KsykApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        installCrashHandler()   // must be first so subsequent init crashes get logged
         initSentry()
         initPostHog()
-        installCrashHandler()
         createNotificationChannels()
         prefetchMapData()
     }
@@ -65,24 +65,28 @@ class KsykApp : Application() {
             android.util.Log.w("PostHog", "POSTHOG_API_KEY not configured — analytics disabled")
             return
         }
-        val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
-        val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
-            sessionReplay = true
-            sessionReplayConfig.maskAllImages = false
-            sessionReplayConfig.maskAllTextInputs = true
+        runCatching {
+            val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
+            val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
+                sessionReplay = true
+                sessionReplayConfig.maskAllImages = false
+                sessionReplayConfig.maskAllTextInputs = true
+            }
+            PostHogAndroid.setup(this, config)
+            android.util.Log.i("PostHog", "Initialized (host configured, session replay on)")
+            PostHog.capture(
+                "app_started",
+                properties = mapOf(
+                    "platform"    to "android",
+                    "app_version" to BuildConfig.VERSION_NAME,
+                    "version_code" to BuildConfig.VERSION_CODE,
+                    "android_sdk" to Build.VERSION.SDK_INT,
+                    "device"      to "${Build.MANUFACTURER} ${Build.MODEL}",
+                ),
+            )
+        }.onFailure {
+            android.util.Log.w("PostHog", "Init failed: ${it.message}")
         }
-        PostHogAndroid.setup(this, config)
-        android.util.Log.i("PostHog", "Initialized (host configured, session replay on)")
-        PostHog.capture(
-            "app_started",
-            properties = mapOf(
-                "platform"    to "android",
-                "app_version" to BuildConfig.VERSION_NAME,
-                "version_code" to BuildConfig.VERSION_CODE,
-                "android_sdk" to Build.VERSION.SDK_INT,
-                "device"      to "${Build.MANUFACTURER} ${Build.MODEL}",
-            ),
-        )
     }
 
     private fun prefetchMapData() {
