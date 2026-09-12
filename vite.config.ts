@@ -54,16 +54,19 @@ export default defineConfig({
           // Large libraries that are only needed on specific routes get
           // their own chunks so the public map page doesn't pay for them.
           if (id.includes("node_modules")) {
-            if (id.includes("posthog-js"))     return "vendor-posthog";
+            if (id.includes("posthog-js"))                 return "vendor-posthog";
             if (id.includes("maplibre-gl") || id.includes("maplibre"))
-                                               return "vendor-maplibre";
+                                                           return "vendor-maplibre";
+            if (id.includes("framer-motion"))              return "vendor-motion";
             if (id.includes("@radix-ui") || id.includes("cmdk"))
-                                               return "vendor-radix";
+                                                           return "vendor-radix";
             if (id.includes("recharts") || id.includes("d3-"))
-                                               return "vendor-charts";
+                                                           return "vendor-charts";
             if (id.includes("react-query") || id.includes("@tanstack"))
-                                               return "vendor-query";
-            if (id.includes("i18next"))         return "vendor-i18n";
+                                                           return "vendor-query";
+            if (id.includes("i18next"))                    return "vendor-i18n";
+            if (id.includes("lucide-react"))               return "vendor-icons";
+            if (id.includes("date-fns"))                   return "vendor-dates";
           }
         },
       },

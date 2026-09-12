@@ -183,20 +183,11 @@
       ]
     },
     {
-      "source": "/api/security-settings",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/api/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=1800, stale-while-revalidate=3600"
+          "value": "no-store, no-cache, must-revalidate"
         }
       ]
     }

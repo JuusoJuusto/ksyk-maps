@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.85";
+export const APP_VERSION = "4.5.86";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.86",
+    date: "September 2026",
+    title: "Vercel security fix, bundle splits for framer-motion, lucide, date-fns",
+    titleFi: "Vercel-tietoturvakorjaus, bundle-splittaus framer-motionille, lucidelle ja date-fnsille",
+    latest: true,
+    highlights: [
+      "**API cache security fix:** /api/* routes no longer carry a public CDN cache header. Previously all API responses (including admin and auth routes) could be served from Vercel's edge cache for up to 30 minutes.",
+      "**Bundle splits:** framer-motion, lucide-react, and date-fns now live in their own vendor chunks. Repeat visitors loading unrelated pages no longer re-download these libraries when other chunks change.",
+    ],
+    highlightsFi: [
+      "**API-välimuistin tietoturvakorjaus:** /api/*-reitit eivät enää kuljeta julkista CDN-välimuistiotsikkoa. Aiemmin kaikki API-vastaukset (mukaan lukien admin- ja autentikointireitit) saattoivat tulla Vercelin reunavälimuistista jopa 30 minuuttia.",
+      "**Bundle-splittaus:** framer-motion, lucide-react ja date-fns ovat nyt omissa vendor-chunkeissaan. Uudelleenvierailijat eivät enää lataa näitä uudelleen, kun muut chunkit muuttuvat.",
+    ],
+  },
   {
     version: "4.5.85",
     date: "September 2026",
     title: "MazeMap popup style, loading fix, landing page removed",
     titleFi: "MazeMap-huonekortti, latauspalkki korjattu, landing poistettu",
-    latest: true,
+    latest: false,
     highlights: [
       "**MazeMap popup:** Room info sheet now shows a colored circular pin icon instead of a type chip. No divider between name and actions. Flat icon-only secondary button + full-width blue Directions CTA.",
       "**Loading freeze fixed:** Progress bar no longer resets from 92% back to 16%. Uses an asymptotic curve that approaches 90% smoothly without any visible jump.",
