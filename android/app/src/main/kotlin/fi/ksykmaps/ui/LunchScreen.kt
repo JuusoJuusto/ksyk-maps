@@ -164,7 +164,7 @@ fun LunchScreen() {
                                         ) {
                                             Text(
                                                 if (lang == "fi") "Tänään" else "Today",
-                                                fontSize = 10.sp,
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = MaterialTheme.colorScheme.primary,
                                             )
@@ -427,7 +427,7 @@ private fun DayPillRow(
             ) {
                 Text(
                     abbrev,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = when {
                         isSelected -> MaterialTheme.colorScheme.onPrimary

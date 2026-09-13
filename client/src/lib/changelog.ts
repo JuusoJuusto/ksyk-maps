@@ -10,15 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.94";
+export const APP_VERSION = "4.5.95";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.95",
+    date: "September 2026",
+    title: "Android UX rehaul v1.60.0",
+    titleFi: "Android-käyttöliittymän uudistus v1.60.0",
+    latest: true,
+    highlights: [
+      "**Navigation simplified: Admin moved from bottom bar to Settings.** The bottom tab bar now always has exactly 5 tabs (Home, Map, Timetable, Lunch, Settings). Admins access the admin panel through a dedicated row in Settings → Account.",
+      "**Onboarding shortened to 2 screens.** The two passive instruction pages (room finder, timetable) were removed. New users go Welcome → Name → straight into the app. The Wilma calendar connect option appears on the name page.",
+      "**Admin panel gradient header removed.** The indigo-to-violet gradient bar is replaced with a clean surface-coloured TopAppBar using the primary colour for the icon and badge. Sign-out now requires confirmation.",
+      "**'Delete all local data' added to Settings.** A single destructive action in Settings → Storage clears all SharedPreferences, DataStore, cache, and session data, then restarts onboarding.",
+      "**Accessibility fixes.** Several text labels below the 11sp minimum were bumped: LoadingScreen progress %, LunchScreen day abbreviations, and the 'Today' badge.",
+      "**AnnouncementsScreen date labels now respect language.** Finnish users see 'Alkaen / Asti / Julkaistu' instead of hardcoded English strings.",
+      "**Admin section pill touch targets enlarged** to meet the 48dp minimum tap target.",
+    ],
+    highlightsFi: [
+      "**Navigaatio yksinkertaistettu: Admin siirretty alanavigaatiosta asetuksiin.** Alanavigaatiopalkissa on nyt aina tasan 5 välilehteä. Ylläpitäjät pääsevät hallintapaneeliin Asetukset → Tili -osion kautta.",
+      "**Perehdytys lyhennetty 2 sivuun.** Kaksi passiivista ohjesivu (huonehaku, lukujärjestys) poistettu. Uudet käyttäjät siirtyvät Tervetuloa → Nimi → suoraan sovellukseen.",
+      "**Admin-paneelin gradienttiotsikko poistettu.** Indigosta violettiin -gradientti korvattu selkeällä TopAppBarilla.",
+      "**'Poista kaikki tiedot' lisätty asetuksiin.** Tuhoava toiminto Asetukset → Tallennustila poistaa kaikki tiedot ja käynnistää perehdytyksen uudelleen.",
+      "**Saavutettavuuskorjaukset.** Useita alle 11sp tekstikokoja nostettu minimiin.",
+      "**Päivämäärätekstit ilmoituksissa noudattavat nyt kieliasetusta.**",
+    ],
+  },
   {
     version: "4.5.94",
     date: "September 2026",
     title: "Android map bearing fix, admin activity 401 fix",
     titleFi: "Android-kartan suuntakorjaus, admin-aktiviteetti 401 -korjaus",
-    latest: true,
+    latest: false,
     highlights: [
       "**Bug fix: Android map now starts at the admin-configured bearing.** The map camera was initialising before the settings fetch completed, causing the map to always open facing north (0°). The server bearing is now applied after the first settings refresh.",
       "**Bug fix: Android admin activity panel no longer returns 401.** The Express login endpoint now returns a signed HMAC admin token (matching the Vercel handler), so the Android client stores and sends it on subsequent admin API calls.",

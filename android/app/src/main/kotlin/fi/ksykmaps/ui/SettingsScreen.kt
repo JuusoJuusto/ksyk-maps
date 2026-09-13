@@ -1,5 +1,6 @@
 package fi.ksykmaps.ui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
+import fi.ksykmaps.data.Session
 
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
@@ -71,6 +73,8 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     onSignIn: () -> Unit = {},
     onOpenLogs: () -> Unit = {},
+    onOpenAdmin: () -> Unit = {},
+    onResetAll: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
@@ -83,6 +87,7 @@ fun SettingsScreen(
     var activeEgg by remember { mutableStateOf<String?>(null) }
     var cacheBytes by remember { mutableStateOf(DiskCache.sizeBytes()) }
     var clearing by remember { mutableStateOf(false) }
+    var showResetAllConfirm by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf(getUserName(ctx)) }
     var editingName by remember { mutableStateOf(false) }
     var themeMode by remember { mutableStateOf(ThemeState.mode) }
@@ -219,6 +224,17 @@ fun SettingsScreen(
                             clearing = false
                         },
                     )
+                    RowDivider()
+                    ActionGroupRow(
+                        icon = Icons.Outlined.DeleteForever,
+                        iconTint = MaterialTheme.colorScheme.error,
+                        title = if (isFi) "Poista kaikki tiedot" else "Delete all local data",
+                        subtitle = if (isFi) "Palauttaa sovelluksen alkutilaan"
+                                   else "Resets the app to its initial state",
+                        actionLabel = if (isFi) "Poista" else "Delete",
+                        actionEnabled = true,
+                        onAction = { showResetAllConfirm = true },
+                    )
                 }
             }
 
@@ -247,7 +263,7 @@ fun SettingsScreen(
             // ── Account ────────────────────────────────────────────
             item {
                 SettingsGroup(title = if (isFi) "Tili" else "Account") {
-                    val isAdmin = fi.ksykmaps.data.Session.adminState.value
+                    val isAdmin = Session.adminState.value
                     if (Api.sessionEmail != null) {
                         LinkGroupRow(
                             icon = if (isAdmin) Icons.Outlined.AdminPanelSettings
@@ -261,8 +277,19 @@ fun SettingsScreen(
                             else
                                 (if (isFi) "Kirjautunut sisään"
                                  else "Signed in"),
-                            onClick = { /* Non-destructive tap — sign-out has its own row */ },
+                            onClick = { },
                         )
+                        if (isAdmin) {
+                            RowDivider()
+                            LinkGroupRow(
+                                icon = Icons.Outlined.AdminPanelSettings,
+                                iconTint = MaterialTheme.colorScheme.primary,
+                                title = if (isFi) "Hallintapaneeli" else "Admin Panel",
+                                subtitle = if (isFi) "Avaa ylläpitonäkymä"
+                                           else "Open the admin dashboard",
+                                onClick = onOpenAdmin,
+                            )
+                        }
                         RowDivider()
                         LinkGroupRow(
                             icon = Icons.AutoMirrored.Outlined.Logout,
@@ -332,6 +359,61 @@ fun SettingsScreen(
 
             item { Spacer(Modifier.height(16.dp)) }
         }
+    }
+
+    if (showResetAllConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetAllConfirm = false },
+            shape = RoundedCornerShape(20.dp),
+            icon = {
+                Icon(Icons.Outlined.DeleteForever, null, tint = MaterialTheme.colorScheme.error)
+            },
+            title = {
+                Text(
+                    if (isFi) "Poistetaanko kaikki tiedot?" else "Delete all local data?",
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
+            text = {
+                Text(
+                    if (isFi) "Tämä poistaa kaikki asetukset, välimuistin, lukujärjestyksen ja kirjautumistiedot. Toimintoa ei voi peruuttaa."
+                    else "This removes all settings, cache, timetable entries, and account data. This cannot be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetAllConfirm = false
+                        listOf(
+                            "ksyk_prefs", "ksyk_onboarding", "ksyk_server_map",
+                            "ksyk_cam", "ksyk_widget", "ksyk_wilma", "ksyk_session",
+                        ).forEach { name ->
+                            ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
+                                .edit().clear().apply()
+                        }
+                        Session.clear(ctx)
+                        DiskCache.clear()
+                        runCatching {
+                            ctx.filesDir.parentFile
+                                ?.resolve("datastore/ksyk_schedule.preferences_pb")
+                                ?.delete()
+                        }
+                        runCatching { java.io.File(ctx.filesDir, "last_crash.txt").delete() }
+                        onResetAll()
+                    },
+                ) {
+                    Text(
+                        if (isFi) "Poista kaikki" else "Delete all",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetAllConfirm = false }) {
+                    Text(if (isFi) "Peruuta" else "Cancel")
+                }
+            },
+        )
     }
 
     if (activeEgg != null) {

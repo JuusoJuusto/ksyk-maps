@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -76,57 +75,85 @@ fun AdminPanelScreen(
     val scope = rememberCoroutineScope()
 
     var selectedSection by rememberSaveableInt(0)
+    var showSignOutConfirm by remember { mutableStateOf(false) }
+
+    if (showSignOutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSignOutConfirm = false },
+            shape = RoundedCornerShape(20.dp),
+            icon = {
+                Icon(Icons.AutoMirrored.Outlined.Logout, null,
+                    tint = MaterialTheme.colorScheme.error)
+            },
+            title = {
+                Text(
+                    if (isFi) "Kirjaudu ulos?" else "Sign out?",
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
+            text = {
+                Text(
+                    if (isFi) "Sinut kirjataan ulos hallintapaneelista tällä laitteella."
+                    else "You will be signed out of the admin panel on this device.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showSignOutConfirm = false; onSignOut() }) {
+                    Text(
+                        if (isFi) "Kirjaudu ulos" else "Sign out",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutConfirm = false }) {
+                    Text(if (isFi) "Peruuta" else "Cancel")
+                }
+            },
+        )
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color(0xFF6366F1), Color(0xFF7C3AED)),
-                        ),
-                    )
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            TopAppBar(
+                navigationIcon = {
                     Box(
                         Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.18f)),
+                            .padding(start = 12.dp)
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.Outlined.AdminPanelSettings, null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
+                },
+                title = {
+                    Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 if (isFi) "Hallintapaneeli" else "Admin Panel",
                                 fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Spacer(Modifier.width(7.dp))
                             Box(
                                 Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.White.copy(alpha = 0.22f))
-                                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(horizontal = 5.dp, vertical = 2.dp),
                             ) {
                                 Text(
                                     "ADMIN",
-                                    fontSize = 8.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 0.8.sp,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -134,20 +161,25 @@ fun AdminPanelScreen(
                         if (email != null) {
                             Text(
                                 email,
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.72f),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-                    IconButton(onClick = onSignOut) {
+                },
+                actions = {
+                    IconButton(onClick = { showSignOutConfirm = true }) {
                         Icon(
                             Icons.AutoMirrored.Outlined.Logout,
                             contentDescription = if (isFi) "Kirjaudu ulos" else "Sign out",
-                            tint = Color.White.copy(alpha = 0.85f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
@@ -214,6 +246,7 @@ private fun SectionPills(
                         else MaterialTheme.colorScheme.surfaceContainerHigh,
                     )
                     .clickable { onSelect(i) }
+                    .heightIn(min = 48.dp)
                     .padding(horizontal = 14.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

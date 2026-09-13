@@ -143,7 +143,7 @@ fun AnnouncementsScreen() {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(items) { a ->
-                        AnnouncementCard(a, onClick = {
+                        AnnouncementCard(a, isFi = lang == "fi", onClick = {
                             val type = (a["type"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: "info"
                             runCatching { PostHog.capture("announcement_opened", properties = mapOf("announcement_type" to type)) }
                             selectedForDetail = a
@@ -155,12 +155,12 @@ fun AnnouncementsScreen() {
     }
 
     selectedForDetail?.let { a ->
-        AnnouncementDetailSheet(a) { selectedForDetail = null }
+        AnnouncementDetailSheet(a, isFi = lang == "fi") { selectedForDetail = null }
     }
 }
 
 @Composable
-private fun AnnouncementCard(a: JsonObject, onClick: () -> Unit) {
+private fun AnnouncementCard(a: JsonObject, isFi: Boolean = false, onClick: () -> Unit) {
     val title = (a["title"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: ""
     val body = ((a["content"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
         ?: (a["body"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
@@ -197,7 +197,7 @@ private fun AnnouncementCard(a: JsonObject, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val rangeText = formatRange(startDate, endDate, createdAt)
+                val rangeText = formatRange(startDate, endDate, createdAt, isFi)
                 if (rangeText.isNotBlank()) {
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -221,7 +221,7 @@ private fun AnnouncementCard(a: JsonObject, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AnnouncementDetailSheet(a: JsonObject, onDismiss: () -> Unit) {
+private fun AnnouncementDetailSheet(a: JsonObject, isFi: Boolean = false, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val title = (a["title"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: "Untitled"
     val body = ((a["content"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
@@ -244,7 +244,7 @@ private fun AnnouncementDetailSheet(a: JsonObject, onDismiss: () -> Unit) {
             TypeChip(type)
             Spacer(Modifier.height(12.dp))
             Text(title, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-            val range = formatRange(startDate, endDate, createdAt)
+            val range = formatRange(startDate, endDate, createdAt, isFi)
             if (range.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -308,16 +308,16 @@ private fun typeColor(type: String): Color = when (type.lowercase()) {
     else      -> Color(0xFF2563EB)
 }
 
-private fun formatRange(start: String?, end: String?, created: String?): String {
+private fun formatRange(start: String?, end: String?, created: String?, isFi: Boolean): String {
     val s = parseDate(start)
     val e = parseDate(end)
     val c = parseDate(created)
     val fmt = DateTimeFormatter.ofPattern("d MMM yyyy")
     return when {
         s != null && e != null -> "${s.format(fmt)} – ${e.format(fmt)}"
-        s != null              -> "From ${s.format(fmt)}"
-        e != null              -> "Until ${e.format(fmt)}"
-        c != null              -> "Posted ${c.format(fmt)}"
+        s != null              -> if (isFi) "Alkaen ${s.format(fmt)}" else "From ${s.format(fmt)}"
+        e != null              -> if (isFi) "Asti ${e.format(fmt)}" else "Until ${e.format(fmt)}"
+        c != null              -> if (isFi) "Julkaistu ${c.format(fmt)}" else "Posted ${c.format(fmt)}"
         else                   -> ""
     }
 }

@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -54,8 +53,6 @@ private fun markOnboardingDone(ctx: Context) {
 
 private val ONBOARD_BLUE   = Color(0xFF3B82F6)
 private val ONBOARD_VIOLET = Color(0xFF8B5CF6)
-private val ONBOARD_TEAL   = Color(0xFF0D9488)
-private val ONBOARD_AMBER  = Color(0xFFF59E0B)
 
 private data class OnboardPage(
     val icon: ImageVector,
@@ -63,7 +60,6 @@ private data class OnboardPage(
     val subtitle: String,
     val accent: Color = ONBOARD_BLUE,
     val isNamePage: Boolean = false,
-    val isWilmaPage: Boolean = false,
 )
 
 private fun buildPages(lang: String): List<OnboardPage> {
@@ -83,21 +79,6 @@ private fun buildPages(lang: String): List<OnboardPage> {
             subtitle = if (fi) "Personalisoimme kokemuksesi sen perusteella. Voit muuttaa sen myöhemmin asetuksissa."
                        else "We'll personalise your experience. You can change this later in Settings.",
             isNamePage = true,
-        ),
-        OnboardPage(
-            icon = Icons.Outlined.MeetingRoom,
-            accent = ONBOARD_TEAL,
-            title = if (fi) "Löydä mikä tahansa huone" else "Find any room",
-            subtitle = if (fi) "Etsi huonetta numerolla tai nimellä ja hae reittiohjeet. Live-kartta näyttää täsmälleen mihin mennä."
-                       else "Search by room number or name and get directions. The live map shows you exactly where to go.",
-        ),
-        OnboardPage(
-            icon = Icons.Outlined.CalendarMonth,
-            accent = ONBOARD_AMBER,
-            title = if (fi) "Lukujärjestyksesi, aina valmiina" else "Your timetable, always ready",
-            subtitle = if (fi) "Tuo Wilma-kalenterisi nähdäksesi lukujärjestyksesi automaattisesti. Voit lisätä tunnit myös manuaalisesti."
-                       else "Import your Wilma calendar to see your schedule automatically. Add lessons manually too.",
-            isWilmaPage = true,
         ),
     )
 }
@@ -266,29 +247,17 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String,
     ) {
         Box(
             Modifier
-                .size(120.dp)
-                .clip(RoundedCornerShape(34.dp))
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(ONBOARD_VIOLET.copy(alpha = 0.22f), ONBOARD_VIOLET.copy(alpha = 0.06f)),
-                    )
-                ),
+                .size(80.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(ONBOARD_VIOLET.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(ONBOARD_VIOLET.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = ONBOARD_VIOLET,
-                )
-            }
+            Icon(
+                Icons.Outlined.Person,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = ONBOARD_VIOLET,
+            )
         }
 
         Spacer(Modifier.height(32.dp))
@@ -336,32 +305,19 @@ private fun OnboardPageContent(page: OnboardPage) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Gradient icon ring — larger and more visually impactful than a flat circle
         Box(
             Modifier
-                .size(120.dp)
-                .clip(RoundedCornerShape(34.dp))
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(page.accent.copy(alpha = 0.22f), page.accent.copy(alpha = 0.06f)),
-                    )
-                ),
+                .size(80.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(page.accent.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(page.accent.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    page.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = page.accent,
-                )
-            }
+            Icon(
+                page.icon,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = page.accent,
+            )
         }
 
         Spacer(Modifier.height(36.dp))

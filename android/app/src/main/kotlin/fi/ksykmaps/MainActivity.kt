@@ -254,7 +254,7 @@ private fun AppShell() {
     Scaffold(
         bottomBar = {
             if (subScreen == null) {
-                BottomBar(selectedTab, lang, isAdmin) { tab ->
+                BottomBar(selectedTab, lang) { tab ->
                     selectedTab = tab
                     subScreen = null
                 }
@@ -322,9 +322,11 @@ private fun AppShell() {
                             onOpenBeaconCapture = { subScreen = "beaconCapture" },
                         )
                         selectedTab == "settings" -> SettingsScreen(
-                            onSignOut = { Session.clear(ctx) },
-                            onSignIn  = { showLogin = true },
+                            onSignOut  = { Session.clear(ctx) },
+                            onSignIn   = { showLogin = true },
                             onOpenLogs = { subScreen = "logs" },
+                            onOpenAdmin = { selectedTab = "admin"; subScreen = null },
+                            onResetAll = { onboardingDone = false },
                         )
                     }
                 }
@@ -339,35 +341,21 @@ private fun AppShell() {
 private fun BottomBar(
     selectedTab: String,
     lang: String,
-    isAdmin: Boolean,
     onTabSelected: (String) -> Unit,
 ) {
-    // When signed in as admin, a fifth "Admin" tab appears between Lunch and
-    // Settings. Compressed labels (Timetable → Tunnit already short) keep the
-    // bar readable even at 6 items on narrow phones.
-    val baseFi = listOf(
-        Tab("home",      "Koti",          Icons.Outlined.Home),
-        Tab("map",       "Kartta",        Icons.Outlined.Map),
-        Tab("timetable", "Tunnit",        Icons.Outlined.CalendarMonth),
-        Tab("lunch",     "Lounas",        Icons.Outlined.Restaurant),
-    )
-    val baseEn = listOf(
+    val tabs = if (lang == "fi") listOf(
+        Tab("home",      "Koti",      Icons.Outlined.Home),
+        Tab("map",       "Kartta",    Icons.Outlined.Map),
+        Tab("timetable", "Tunnit",    Icons.Outlined.CalendarMonth),
+        Tab("lunch",     "Lounas",    Icons.Outlined.Restaurant),
+        Tab("settings",  "Asetukset", Icons.Outlined.Settings),
+    ) else listOf(
         Tab("home",      "Home",      Icons.Outlined.Home),
         Tab("map",       "Map",       Icons.Outlined.Map),
         Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth),
         Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant),
-    )
-    val tail = if (lang == "fi") listOf(
-        Tab("settings",  "Asetukset",     Icons.Outlined.Settings),
-    ) else listOf(
         Tab("settings",  "Settings",  Icons.Outlined.Settings),
     )
-    val adminTab = if (isAdmin) listOf(
-        Tab("admin",
-            if (lang == "fi") "Hallinta" else "Admin",
-            Icons.Outlined.AdminPanelSettings)
-    ) else emptyList()
-    val tabs = (if (lang == "fi") baseFi else baseEn) + adminTab + tail
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,

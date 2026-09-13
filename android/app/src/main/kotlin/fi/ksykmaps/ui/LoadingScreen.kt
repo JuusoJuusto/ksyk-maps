@@ -146,7 +146,7 @@ fun LoadingScreen(onFinished: () -> Unit) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "${(animatedProgress * 100).toInt()}%",
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 )
             }
