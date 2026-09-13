@@ -26,6 +26,7 @@ import android.content.Context
 import fi.ksykmaps.data.Api
 import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -95,9 +96,10 @@ fun TimetableScreen(
     val todayDow = remember { todayDow() }
     var selectedDow by remember { mutableIntStateOf(todayDow) }
     val isToday = selectedDow == todayDow
-    val nowMins = hhmm(nowHhmm())
+    var nowMins by remember { mutableIntStateOf(hhmm(nowHhmm())) }
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
+    var loading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
@@ -111,6 +113,15 @@ fun TimetableScreen(
             rooms = r.jsonArray.mapNotNull { it as? JsonObject }
         } catch (_: Exception) {
             rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
+        }
+        loading = false
+    }
+
+    // Keep nowMins live — progress bars and countdowns update every 30s
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000L)
+            nowMins = hhmm(nowHhmm())
         }
     }
 
@@ -175,6 +186,19 @@ fun TimetableScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Loading skeleton — shown while the initial data fetch is in flight
+            if (loading) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
+                    }
+                }
+                return@LazyColumn
+            }
+
             // Wilma calendar banner — compact, only when relevant
             if (!wilmaConnected.value) {
                 item { WilmaConnectBanner(onConnect = onOpenWilmaConnect, lang = lang) }

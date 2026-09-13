@@ -3,6 +3,7 @@ package fi.ksykmaps.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.BuildConfig
@@ -80,7 +84,35 @@ fun SettingsScreen(
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
 
-    var notificationsEnabled by remember { mutableStateOf(false) }
+    fun isNotifGranted() = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        androidx.core.app.ActivityCompat.checkSelfPermission(
+            ctx, android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    } else true
+
+    var notificationsEnabled by remember { mutableStateOf(isNotifGranted()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) notificationsEnabled = isNotifGranted()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    fun openNotifSettings() {
+        try {
+            val intent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+            } else {
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", ctx.packageName, null))
+            }
+            ctx.startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
     var dynamicColour by remember { mutableStateOf(prefs.getBoolean("dynamic_colour", true)) }
     var eggTaps by remember { mutableIntStateOf(0) }
     var eggsFound by remember { mutableIntStateOf(prefs.getInt(KEY_EGGS_FOUND, 0)) }
@@ -170,7 +202,7 @@ fun SettingsScreen(
                         subtitle = if (isFi) "Kuulutukset ja koulun uutiset"
                                    else "Announcements and school news",
                         checked = notificationsEnabled,
-                        onCheckedChange = { notificationsEnabled = it },
+                        onCheckedChange = { openNotifSettings() },
                     )
                     RowDivider()
                     ActionGroupRow(

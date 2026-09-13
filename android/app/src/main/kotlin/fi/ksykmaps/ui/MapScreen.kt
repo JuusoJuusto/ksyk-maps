@@ -618,6 +618,58 @@ fun MapScreen() {
             OfflineChip(lang = lang, onRetry = { dataRetry++ })
         }
 
+        // ── Active route banner — always visible when directions are on ─
+        AnimatedVisibility(
+            visible = destination != null,
+            enter = slideInVertically { -it } + fadeIn(),
+            exit = slideOutVertically { -it } + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 72.dp),
+        ) {
+            destination?.let { dest ->
+                val destName = nameOf(dest, lang)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primary,
+                    shadowElevation = 4.dp,
+                ) {
+                    Row(
+                        Modifier.padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.DirectionsWalk,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (lang == "fi") "Reitti → $destName" else "Route → $destName",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                destination = null
+                                origin = null
+                                originIsMyLoc = false
+                            },
+                            modifier = Modifier.size(28.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.Close,
+                                contentDescription = if (lang == "fi") "Peruuta reitti" else "Cancel route",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // ── Current lesson chip (jakso-filtered) ────────────────────
         CurrentLessonChip(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),

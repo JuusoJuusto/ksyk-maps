@@ -241,40 +241,41 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String,
     val fi = lang == "fi"
     val keyboard = LocalSoftwareKeyboardController.current
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 36.dp),
+        Modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(
             Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(ONBOARD_VIOLET.copy(alpha = 0.15f)),
+                .size(100.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(ONBOARD_VIOLET.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Outlined.Person,
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(52.dp),
                 tint = ONBOARD_VIOLET,
             )
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
 
         Text(
             if (fi) "Mikä sinun nimesi on?" else "What's your name?",
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,
+            lineHeight = 34.sp,
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
 
         Text(
-            if (fi) "Personalisoimme kokemuksesi sen perusteella. Voit muuttaa sen myöhemmin asetuksissa."
-            else "We'll personalise your experience. You can change this later in Settings.",
+            if (fi) "Käytämme nimeäsi tervehdyksiin. Voit muuttaa sen asetuksissa."
+            else "We'll use your name for greetings. You can change it in Settings.",
             fontSize = 15.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -290,10 +291,15 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String,
             placeholder = { Text(if (fi) "esim. Juuso" else "e.g. Juuso") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(16.dp),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { keyboard?.hide(); onNext() }),
             leadingIcon = { Icon(Icons.Outlined.Person, null) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ONBOARD_VIOLET,
+                focusedLabelColor = ONBOARD_VIOLET,
+                cursorColor = ONBOARD_VIOLET,
+            ),
         )
     }
 }

@@ -51,7 +51,15 @@ object Api {
         .header("x-vercel-protection-bypass", BuildConfig.BYPASS_TOKEN)
         .header("x-vercel-set-bypass-cookie", "samesitenone")
         .header("x-ksyk-bypass-token", BuildConfig.BYPASS_TOKEN)
-        .apply { if (includeAuth) adminToken?.let { header("Authorization", "Bearer $it") } }
+        .apply {
+            if (includeAuth) adminToken?.let {
+                header("Authorization", "Bearer $it")
+                // Vercel may strip the Authorization header on redirects; send
+                // the same token in a custom header so requireAdminAuth() on the
+                // server can fall through to the x-admin-token check.
+                header("x-admin-token", it)
+            }
+        }
 
     @Throws(ApiException::class)
     fun get(path: String): JsonElement {

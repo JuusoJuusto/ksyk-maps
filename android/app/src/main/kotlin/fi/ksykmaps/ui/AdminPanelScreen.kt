@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.data.ApiException
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
 import com.posthog.PostHog
@@ -204,13 +205,14 @@ fun AdminPanelScreen(
                     Icons.Outlined.Tune to "Actions",
                 ),
             )
+            val onSessionExpired: () -> Unit = { onSignOut() }
             when (selectedSection) {
                 0 -> AdminOverviewSection(isFi, scope)
-                1 -> AdminActivitySection(isFi)
+                1 -> AdminActivitySection(isFi, onSessionExpired)
                 2 -> AdminAnnouncementsSection(isFi, scope)
                 3 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
                 4 -> AdminLiveSection(isFi)
-                5 -> AdminUsersSection(isFi)
+                5 -> AdminUsersSection(isFi, onSessionExpired)
                 6 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
             }
         }
@@ -1405,7 +1407,7 @@ private fun AdminAnnouncementsSection(
 // ── Users section ─────────────────────────────────────────────────────
 
 @Composable
-private fun AdminUsersSection(isFi: Boolean) {
+private fun AdminUsersSection(isFi: Boolean, onSessionExpired: () -> Unit = {}) {
     var users by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -1417,7 +1419,10 @@ private fun AdminUsersSection(isFi: Boolean) {
             runCatching {
                 val arr = Api.get("/users").jsonArray
                 users = arr.mapNotNull { it as? JsonObject }
-            }.onFailure { error = it.message ?: "load failed" }
+            }.onFailure { t ->
+                error = if (t is ApiException && t.status == 401) "401"
+                        else Api.friendly(t)
+            }
         }
         loading = false
     }
@@ -1458,11 +1463,30 @@ private fun AdminUsersSection(isFi: Boolean) {
         }
         if (error != null) {
             item {
-                Text(
-                    "⚠ $error",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                if (error == "401") {
+                    SessionExpiredCard(isFi = isFi, onReLogin = onSessionExpired)
+                } else {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Warning, null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            error!!,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
             }
         }
         items(users) { u ->
@@ -1657,7 +1681,7 @@ private data class ActivityStats(
 )
 
 @Composable
-private fun AdminActivitySection(isFi: Boolean) {
+private fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {}) {
     var rows by remember { mutableStateOf<List<ActivityRow>>(emptyList()) }
     var stats by remember { mutableStateOf<ActivityStats?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -1713,7 +1737,10 @@ private fun AdminActivitySection(isFi: Boolean) {
             rowsResult to statsResult
         }
         fetched.first.onSuccess { rows = it; error = null }
-            .onFailure { error = it.message }
+            .onFailure { t ->
+                error = if (t is ApiException && t.status == 401) "401"
+                        else Api.friendly(t)
+            }
         fetched.second.onSuccess { stats = it }
         loading = false
     }
@@ -1857,11 +1884,30 @@ private fun AdminActivitySection(isFi: Boolean) {
         }
         error?.let { err ->
             item {
-                Text(
-                    (if (isFi) "Virhe: " else "Error: ") + err,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                )
+                if (err == "401") {
+                    SessionExpiredCard(isFi = isFi, onReLogin = onSessionExpired)
+                } else {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Warning, null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            (if (isFi) "Virhe: " else "Error: ") + err,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
             }
         }
         if (!loading && rows.isEmpty() && error == null) {
@@ -1975,4 +2021,63 @@ private fun formatShortTime(iso: String): String {
             else -> "${delta / 86_400}d"
         }
     } catch (_: Throwable) { iso.take(19) }
+}
+
+@Composable
+private fun SessionExpiredCard(isFi: Boolean, onReLogin: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Lock, null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    if (isFi) "Istunto vanhentunut" else "Session expired",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    if (isFi) "Kirjaudu uudelleen jatkaaksesi" else "Sign in again to continue",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f),
+                )
+            }
+        }
+        Button(
+            onClick = onReLogin,
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            ),
+        ) {
+            Icon(Icons.Outlined.Login, null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (isFi) "Kirjaudu uudelleen" else "Sign in again",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
+        }
+    }
 }

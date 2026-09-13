@@ -59,10 +59,13 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
     val scroll = rememberScrollState()
+    LanguageState.init(ctx)
+    val lang = LanguageState.current ?: "fi"
+    val fi = lang == "fi"
 
     fun attemptLogin() {
         if (email.isBlank() || password.isBlank()) {
-            status = "Email and password required."
+            status = if (fi) "Sähköposti ja salasana vaaditaan." else "Email and password required."
             return
         }
         loading = true; status = null
@@ -86,14 +89,14 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 } else {
                     status = obj["message"]?.let {
                         if (it is JsonPrimitive) it.contentOrNull else it.toString()
-                    } ?: "Invalid credentials."
+                    } ?: if (fi) "Virheelliset tunnistetiedot." else "Invalid credentials."
                 }
             } catch (e: ApiException) {
                 status = when (e.status) {
-                    401, 400 -> "Wrong email or password."
-                    403 -> "Your account doesn't have admin access."
-                    429 -> "Server is busy — please try again in a moment."
-                    0   -> "Couldn't reach the server. Check your internet."
+                    401, 400 -> if (fi) "Väärä sähköposti tai salasana." else "Wrong email or password."
+                    403 -> if (fi) "Tililläsi ei ole järjestelmänvalvojan oikeuksia." else "Your account doesn't have admin access."
+                    429 -> if (fi) "Palvelin on ruuhkautunut — yritä hetken päästä uudelleen." else "Server is busy — please try again in a moment."
+                    0   -> if (fi) "Palvelimeen ei saatu yhteyttä. Tarkista internet-yhteys." else "Couldn't reach the server. Check your internet."
                     else -> Api.friendly(e)
                 }
             } catch (e: Exception) {
@@ -145,13 +148,14 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Sign in",
+                if (fi) "Kirjaudu sisään" else "Sign in",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                "Use the same credentials as the desktop admin.",
+                if (fi) "Käytä samoja tunnuksia kuin verkkoselaimen hallinnassa."
+                else "Use the same credentials as the desktop admin.",
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -161,7 +165,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; status = null },
-                label = { Text("Email") },
+                label = { Text(if (fi) "Sähköposti" else "Email") },
                 leadingIcon = { Icon(Icons.Outlined.Email, null) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
@@ -181,13 +185,16 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; status = null },
-                label = { Text("Password") },
+                label = { Text(if (fi) "Salasana" else "Password") },
                 leadingIcon = { Icon(Icons.Outlined.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { pwVisible = !pwVisible }) {
                         Icon(
                             if (pwVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            contentDescription = if (pwVisible) "Hide password" else "Show password",
+                            contentDescription = if (pwVisible)
+                                if (fi) "Piilota salasana" else "Hide password"
+                            else
+                                if (fi) "Näytä salasana" else "Show password",
                         )
                     }
                 },
@@ -245,9 +252,9 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                         color = Color.White,
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text("Signing in…", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(if (fi) "Kirjaudutaan…" else "Signing in…", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 } else {
-                    Text("Sign in", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(if (fi) "Kirjaudu" else "Sign in", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 }
             }
 
@@ -258,7 +265,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    "Connected to",
+                    if (fi) "YHDISTETTY" else "CONNECTED TO",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
