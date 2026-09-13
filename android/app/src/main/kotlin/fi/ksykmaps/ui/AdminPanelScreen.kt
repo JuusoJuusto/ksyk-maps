@@ -1002,6 +1002,7 @@ private fun AdminActionsSection(
 
     // Broadcast push state
     var showBroadcastDialog by remember { mutableStateOf(false) }
+    var broadcastTitle by remember { mutableStateOf("") }
     var broadcastMsg by remember { mutableStateOf("") }
     var broadcasting by remember { mutableStateOf(false) }
 
@@ -1014,9 +1015,9 @@ private fun AdminActionsSection(
 
     LaunchedEffect(Unit) {
         runCatching {
-            val res = withContext(Dispatchers.IO) { Api.get("/admin/maintenance") }
-            maintenanceEnabled = res.jsonObject["enabled"]?.jsonPrimitive?.boolean ?: false
-        }
+            val res = withContext(Dispatchers.IO) { Api.get("/settings") }
+            maintenanceEnabled = res.jsonObject["maintenanceMode"]?.jsonPrimitive?.boolean ?: false
+        }.onFailure { maintenanceEnabled = false }
     }
 
     if (showBroadcastDialog) {
@@ -1025,41 +1026,76 @@ private fun AdminActionsSection(
             icon = { Icon(Icons.Outlined.Campaign, null, tint = Color(0xFF8B5CF6)) },
             title = { Text(if (isFi) "Lähetä kaikille" else "Broadcast to all") },
             text = {
-                OutlinedTextField(
-                    value = broadcastMsg,
-                    onValueChange = { broadcastMsg = it },
-                    label = { Text(if (isFi) "Viesti" else "Message") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false,
-                    maxLines = 4,
-                    enabled = !broadcasting,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = broadcastTitle,
+                        onValueChange = { broadcastTitle = it },
+                        label = { Text(if (isFi) "Otsikko" else "Title") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !broadcasting,
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                    OutlinedTextField(
+                        value = broadcastMsg,
+                        onValueChange = { broadcastMsg = it },
+                        label = { Text(if (isFi) "Viesti" else "Message") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        maxLines = 4,
+                        enabled = !broadcasting,
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF8B5CF6).copy(alpha = 0.1f))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Info, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (isFi) "Julkaistaan ilmoituksena kaikille käyttäjille"
+                            else "Posted as an announcement to all users",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (broadcastMsg.isBlank()) return@TextButton
+                        if (broadcastTitle.isBlank() || broadcastMsg.isBlank()) return@TextButton
                         broadcasting = true
                         scope.launch {
                             val res = runCatching {
                                 withContext(Dispatchers.IO) {
-                                    Api.post("/admin/notify/push", buildJsonObject {
-                                        put("message", broadcastMsg.trim())
+                                    Api.post("/announcements", buildJsonObject {
+                                        put("title", broadcastTitle.trim())
+                                        put("content", broadcastMsg.trim())
+                                        put("type", "urgent")
+                                        put("audience", "all")
+                                        put("active", true)
+                                        put("pinned", true)
                                     })
                                 }
                             }
                             broadcasting = false
                             showBroadcastDialog = false
+                            broadcastTitle = ""
                             broadcastMsg = ""
                             lastActionIsError = res.isFailure
                             lastAction = if (res.isSuccess)
-                                if (isFi) "Viesti lähetetty kaikille laitteille" else "Broadcast sent to all devices"
+                                if (isFi) "Ilmoitus lähetetty kaikille" else "Announcement sent to all"
                             else
                                 (if (isFi) "Lähetys epäonnistui" else "Broadcast failed") +
                                     ": " + Api.friendly(res.exceptionOrNull() ?: Exception())
                         }
                     },
-                    enabled = !broadcasting && broadcastMsg.isNotBlank(),
+                    enabled = !broadcasting && broadcastTitle.isNotBlank() && broadcastMsg.isNotBlank(),
                 ) {
                     if (broadcasting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                     else Text(if (isFi) "Lähetä" else "Send")
@@ -1285,7 +1321,7 @@ private fun AdminActionsSection(
                             scope.launch {
                                 val mOk = runCatching {
                                     withContext(Dispatchers.IO) {
-                                        Api.post("/admin/maintenance", buildJsonObject { put("enabled", newVal) })
+                                        Api.put("/settings", buildJsonObject { put("maintenanceMode", newVal) })
                                     }
                                 }.onSuccess { maintenanceEnabled = newVal }.isSuccess
                                 maintenanceLoading = false
@@ -1955,10 +1991,11 @@ private fun AdminUsersSection(isFi: Boolean, onSessionExpired: () -> Unit = {}) 
 private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> Unit) {
     val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("user") }
-    var sendInvite by remember { mutableStateOf(false) }
+    var sendInvite by remember { mutableStateOf(true) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showPassword by remember { mutableStateOf(false) }
@@ -1978,8 +2015,8 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .padding(4.dp),
                 ) {
-                    listOf(false to (if (isFi) "Luo salasanalla" else "Set password"),
-                           true  to (if (isFi) "Lähetä kutsu" else "Send invite"))
+                    listOf(true  to (if (isFi) "Lähetä kutsu" else "Send invite"),
+                           false to (if (isFi) "Aseta salasana" else "Set password"))
                         .forEach { (inv, label) ->
                             Box(
                                 Modifier
@@ -2003,12 +2040,38 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
                     shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 )
-                OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text(if (isFi) "Nimi (valinnainen)" else "Name (optional)") },
-                    singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
-                )
-                if (!sendInvite) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = firstName, onValueChange = { firstName = it; error = null },
+                        label = { Text(if (isFi) "Etunimi" else "First name") },
+                        singleLine = true, shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = lastName, onValueChange = { lastName = it; error = null },
+                        label = { Text(if (isFi) "Sukunimi" else "Last name") },
+                        singleLine = true, shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (sendInvite) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Email, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isFi) "Käyttäjä saa sähköpostiin väliaikaisen salasanan"
+                            else "User receives a temporary password by email",
+                            fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
                     OutlinedTextField(
                         value = password, onValueChange = { password = it; error = null },
                         label = { Text(if (isFi) "Salasana" else "Password") },
@@ -2021,23 +2084,6 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     )
-                } else {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Outlined.Email, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (isFi) "Käyttäjä saa sähköpostin kirjautumislinkin kanssa"
-                            else "User receives an email with a sign-in link",
-                            fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
                 // ── Role chips ─────────────────────────────────────────
                 Text(if (isFi) "Rooli" else "Role", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -2067,28 +2113,25 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
             Button(
                 onClick = {
                     if (email.isBlank()) { error = if (isFi) "Sähköposti puuttuu" else "Email required"; return@Button }
+                    if (firstName.isBlank()) { error = if (isFi) "Etunimi puuttuu" else "First name required"; return@Button }
+                    if (lastName.isBlank()) { error = if (isFi) "Sukunimi puuttuu" else "Last name required"; return@Button }
                     if (!sendInvite && password.isBlank()) { error = if (isFi) "Salasana puuttuu" else "Password required"; return@Button }
                     submitting = true
                     scope.launch {
                         val ok = withContext(Dispatchers.IO) {
-                            if (sendInvite) {
-                                runCatching {
-                                    Api.post("/users/invite", buildJsonObject {
-                                        put("email", email.trim())
-                                        if (name.isNotBlank()) put("name", name.trim())
-                                        put("role", role)
-                                    })
-                                }.onFailure { t -> error = Api.friendly(t) }.isSuccess
-                            } else {
-                                runCatching {
-                                    Api.post("/users", buildJsonObject {
-                                        put("email", email.trim())
-                                        if (name.isNotBlank()) put("name", name.trim())
+                            runCatching {
+                                Api.post("/users", buildJsonObject {
+                                    put("email", email.trim())
+                                    put("firstName", firstName.trim())
+                                    put("lastName", lastName.trim())
+                                    put("role", role)
+                                    if (sendInvite) {
+                                        put("passwordOption", "email")
+                                    } else {
                                         put("password", password)
-                                        put("role", role)
-                                    })
-                                }.onFailure { t -> error = Api.friendly(t) }.isSuccess
-                            }
+                                    }
+                                })
+                            }.onFailure { t -> error = Api.friendly(t) }.isSuccess
                         }
                         submitting = false
                         if (ok) onAdded()
@@ -2097,7 +2140,7 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
                 enabled = !submitting,
             ) {
                 if (submitting) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color.White)
-                else Text(if (sendInvite) (if (isFi) "Lähetä kutsu" else "Send invite") else (if (isFi) "Luo" else "Create"))
+                else Text(if (sendInvite) (if (isFi) "Lähetä kutsu" else "Send invite") else (if (isFi) "Luo käyttäjä" else "Create user"))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !submitting) { Text(if (isFi) "Peruuta" else "Cancel") } },

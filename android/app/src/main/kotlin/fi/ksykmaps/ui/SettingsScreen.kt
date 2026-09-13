@@ -205,6 +205,41 @@ fun SettingsScreen(
                         onCheckedChange = { openNotifSettings() },
                     )
                     RowDivider()
+                    // Android 12 exact-alarm prompt (API 31-32 only — API 33+ uses USE_EXACT_ALARM which is auto-granted)
+                    if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.S ||
+                        android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.S_V2) {
+                        val am = remember { ctx.getSystemService(android.app.AlarmManager::class.java) }
+                        val canExact = remember { mutableStateOf(am?.canScheduleExactAlarms() ?: true) }
+                        val lifecycleOwner2 = LocalLifecycleOwner.current
+                        DisposableEffect(lifecycleOwner2) {
+                            val obs = LifecycleEventObserver { _, event ->
+                                if (event == Lifecycle.Event.ON_RESUME) canExact.value = am?.canScheduleExactAlarms() ?: true
+                            }
+                            lifecycleOwner2.lifecycle.addObserver(obs)
+                            onDispose { lifecycleOwner2.lifecycle.removeObserver(obs) }
+                        }
+                        if (!canExact.value) {
+                            ActionGroupRow(
+                                icon = Icons.Outlined.Alarm,
+                                iconTint = Color(0xFFF59E0B),
+                                title = if (isFi) "Tarkat tunti-ilmoitukset" else "Exact lesson reminders",
+                                subtitle = if (isFi) "Salli tarkat hälytykset ajoissa saapumiseen"
+                                           else "Allow exact alarms for on-time reminders",
+                                actionLabel = if (isFi) "Salli" else "Allow",
+                                onAction = {
+                                    try {
+                                        ctx.startActivity(
+                                            android.content.Intent(
+                                                android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                                android.net.Uri.fromParts("package", ctx.packageName, null),
+                                            )
+                                        )
+                                    } catch (_: Exception) {}
+                                },
+                            )
+                            RowDivider()
+                        }
+                    }
                     ActionGroupRow(
                         icon = Icons.Outlined.NotificationsActive,
                         iconTint = MaterialTheme.colorScheme.primary,
@@ -234,16 +269,19 @@ fun SettingsScreen(
                         icon = Icons.Outlined.Feedback,
                         iconTint = Color(0xFF8B5CF6),
                         title = if (isFi) "Anna palautetta" else "Give feedback",
-                        subtitle = if (isFi) "Kerro mitä voisi parantaa" else "Tell us what could be better",
+                        subtitle = "ksykmaps.fi/support",
                         onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("juuso.kaikula@gmail.com"))
-                                    putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps ${if (isFi) "palaute" else "feedback"}")
-                                }
-                                ctx.startActivity(intent)
-                            } catch (_: Exception) {}
+                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/support"))) } catch (_: Exception) {}
+                        },
+                    )
+                    RowDivider()
+                    LinkGroupRow(
+                        icon = Icons.Outlined.BugReport,
+                        iconTint = Color(0xFFEF4444),
+                        title = if (isFi) "Ilmoita viasta" else "Report a bug",
+                        subtitle = if (isFi) "Avaa tukisivu selaimessa" else "Open support page in browser",
+                        onClick = {
+                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/support"))) } catch (_: Exception) {}
                         },
                     )
                 }
