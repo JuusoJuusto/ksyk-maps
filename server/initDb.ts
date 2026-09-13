@@ -194,6 +194,26 @@ export async function ensureSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_audit_created_at  ON audit_logs (created_at);
       CREATE INDEX IF NOT EXISTS idx_audit_action      ON audit_logs (action);
       CREATE INDEX IF NOT EXISTS idx_audit_admin       ON audit_logs (admin_user_id);
+
+      CREATE TABLE IF NOT EXISTS app_feedback (
+        id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        category    varchar   NOT NULL DEFAULT 'general',
+        message     text      NOT NULL,
+        app_version varchar,
+        device_info varchar,
+        created_at  timestamp DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON app_feedback (created_at);
+
+      CREATE TABLE IF NOT EXISTS app_bug_reports (
+        id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        description text      NOT NULL,
+        steps       text,
+        app_version varchar,
+        device_info varchar,
+        created_at  timestamp DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON app_bug_reports (created_at);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.
