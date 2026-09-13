@@ -20,9 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Refresh
@@ -275,6 +277,8 @@ fun MapScreen() {
     var destination by remember { mutableStateOf<JsonObject?>(null) }
     var origin by remember { mutableStateOf<JsonObject?>(null) }
     var originIsMyLoc by remember { mutableStateOf(false) }
+    var showOriginSearch by remember { mutableStateOf(false) }
+    var originSearchQuery by remember { mutableStateOf("") }
     var myLocation by remember { mutableStateOf<LatLng?>(null) }
 
     // Wi-Fi indoor position — flows from the shared WifiPositioning state.
@@ -333,14 +337,14 @@ fun MapScreen() {
         dataFetching = false
     }
 
-    // Apply server-configured bearing once map + style + fresh prefs are all ready.
-    // Keyed on all three so it re-fires whichever arrives last.
+    // Safety-net: once settings are fresh AND style is ready, ensure bearing matches server.
+    // The onStyleLoaded path covers the normal case; this catches timing edge cases
+    // where the /settings fetch completes after style was already loaded.
     LaunchedEffect(mapRef, styleReady, serverDefaultsFetched) {
         val m = mapRef ?: return@LaunchedEffect
         if (!styleReady) return@LaunchedEffect
         if (!serverDefaultsFetched) return@LaunchedEffect
         val fresh = loadServerMapDefaults(ctx) ?: return@LaunchedEffect
-        if (fresh.bearing == 0.0) return@LaunchedEffect
         val cam = m.cameraPosition
         if (Math.abs((cam?.bearing ?: 0.0) - fresh.bearing) > 0.5) {
             m.animateCamera(
@@ -351,9 +355,9 @@ fun MapScreen() {
                         .bearing(fresh.bearing)
                         .tilt(cam?.tilt ?: 0.0)
                         .build()
-                ), 600
+                ), 400
             )
-            AppLog.info("MapScreen", "bearing correction applied: ${fresh.bearing}°")
+            AppLog.info("MapScreen", "bearing safety-net applied: ${fresh.bearing}°")
         }
     }
 
@@ -378,31 +382,27 @@ fun MapScreen() {
     }
 
     // First-time auto-fit — once buildings arrive and the map is ready.
-    // Uses getCameraForLatLngBounds so we can inject the server bearing instead
-    // of letting newLatLngBounds silently reset it to 0°.
+    // Always uses getCameraForLatLngBounds so server bearing is preserved.
+    // newLatLngBounds resets bearing to 0° and is intentionally never called here.
     LaunchedEffect(buildings, mapRef) {
         val m = mapRef ?: return@LaunchedEffect
         if (MapHolder.autofitDone) return@LaunchedEffect
         if (buildings.isEmpty()) return@LaunchedEffect
         val bounds = boundsOf(buildings) ?: return@LaunchedEffect
         val serverBearing = loadServerMapDefaults(ctx)?.bearing ?: 0.0
-        if (serverBearing != 0.0) {
-            val fitted = m.getCameraForLatLngBounds(bounds, intArrayOf(80, 80, 80, 80))
-            m.animateCamera(
-                CameraUpdateFactory.newCameraPosition(
-                    CameraPosition.Builder()
-                        .target(fitted?.target ?: KSYK_CENTER)
-                        .zoom(fitted?.zoom ?: KSYK_ZOOM)
-                        .bearing(serverBearing)
-                        .tilt(0.0)
-                        .build()
-                ), 700
-            )
-        } else {
-            m.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 80), 700)
-        }
+        val fitted = m.getCameraForLatLngBounds(bounds, intArrayOf(80, 80, 80, 80))
+        m.animateCamera(
+            CameraUpdateFactory.newCameraPosition(
+                CameraPosition.Builder()
+                    .target(fitted?.target ?: KSYK_CENTER)
+                    .zoom(fitted?.zoom ?: KSYK_ZOOM)
+                    .bearing(serverBearing)
+                    .tilt(0.0)
+                    .build()
+            ), 700
+        )
         MapHolder.autofitDone = true
-        AppLog.info("MapScreen", "initial auto-fit done")
+        AppLog.info("MapScreen", "initial auto-fit done bearing=${serverBearing}°")
     }
 
     // Route rendering — straight line origin → dest (upgrade to A* later).
@@ -639,52 +639,180 @@ fun MapScreen() {
             OfflineChip(lang = lang, onRetry = { dataRetry++ })
         }
 
-        // ── Active route banner — always visible when directions are on ─
+        // ── Active route card — shows FROM → TO, lets user change origin ─
         AnimatedVisibility(
             visible = destination != null,
             enter = slideInVertically { -it } + fadeIn(),
             exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 72.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 72.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
         ) {
             destination?.let { dest ->
-                val destName = nameOf(dest, lang)
                 Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primary,
-                    shadowElevation = 4.dp,
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 6.dp,
                 ) {
-                    Row(
-                        Modifier.padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.DirectionsWalk,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            if (lang == "fi") "Reitti → $destName" else "Route → $destName",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = {
-                                destination = null
-                                origin = null
-                                originIsMyLoc = false
-                            },
-                            modifier = Modifier.size(28.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.Close,
-                                contentDescription = if (lang == "fi") "Peruuta reitti" else "Cancel route",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(16.dp),
-                            )
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                        if (showOriginSearch) {
+                            // ── Origin search mode ────────────────────
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Search, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedTextField(
+                                    value = originSearchQuery,
+                                    onValueChange = { originSearchQuery = it },
+                                    placeholder = { Text(if (lang == "fi") "Hae lähtöpaikka…" else "Search origin…", fontSize = 13.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    ),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                IconButton(onClick = { showOriginSearch = false; originSearchQuery = "" },
+                                    modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Outlined.Close, null, modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            // GPS option — always visible
+                            Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            origin = null; originIsMyLoc = true
+                                            showOriginSearch = false; originSearchQuery = ""
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(Icons.Outlined.MyLocation, null,
+                                        tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(if (lang == "fi") "Sijaintisi (GPS)" else "Your location (GPS)",
+                                        fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                // Room/building search results — only when query is non-empty
+                                if (originSearchQuery.isNotBlank()) {
+                                val q = originSearchQuery.trim().lowercase()
+                                val originRoomHits = rooms.filter { r ->
+                                    val label = roomLabel(r).lowercase()
+                                    val num = (r["roomNumber"] as? JsonPrimitive)?.contentOrNull?.lowercase().orEmpty()
+                                    label.contains(q) || num.contains(q)
+                                }.take(5)
+                                val originBuildingHits = buildings.filter { b ->
+                                    nameOf(b, lang).lowercase().contains(q) || shortName(b).lowercase().contains(q)
+                                }.take(3)
+                                (originRoomHits + originBuildingHits).forEach { item ->
+                                    val isRoom = item.containsKey("roomNumber") || item.containsKey("floor")
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                origin = item; originIsMyLoc = false
+                                                showOriginSearch = false; originSearchQuery = ""
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            if (isRoom) Icons.Outlined.MeetingRoom else Icons.Outlined.Business,
+                                            null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            if (isRoom) roomLabel(item) else nameOf(item, lang),
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                                } // end if (originSearchQuery.isNotBlank())
+                        } else {
+                            // ── Route display mode ────────────────────
+                            // FROM row
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { showOriginSearch = true }
+                                    .padding(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Outlined.MyLocation, null,
+                                    tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    when {
+                                        originIsMyLoc && myLocation != null -> if (lang == "fi") "Sijaintisi" else "Your location"
+                                        originIsMyLoc -> if (lang == "fi") "Sijaintisi (haetaan…)" else "Your location (finding…)"
+                                        origin != null -> nameOf(origin!!, lang)
+                                        else -> if (lang == "fi") "Napauta valitaksesi lähtöpaikka" else "Tap to set origin"
+                                    },
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (!originIsMyLoc && origin == null)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Icon(Icons.Outlined.Search, null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp))
+                            }
+                            // Connecting line
+                            Row(Modifier.padding(start = 11.dp)) {
+                                Box(
+                                    Modifier
+                                        .width(2.dp)
+                                        .height(14.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+                            }
+                            // TO row
+                            Row(
+                                Modifier.fillMaxWidth().padding(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Outlined.LocationOn, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    nameOf(dest, lang),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                IconButton(
+                                    onClick = {
+                                        destination = null; origin = null
+                                        originIsMyLoc = false
+                                    },
+                                    modifier = Modifier.size(28.dp),
+                                ) {
+                                    Icon(Icons.Outlined.Close,
+                                        contentDescription = if (lang == "fi") "Peruuta reitti" else "Cancel route",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp))
+                                }
+                            }
                         }
                     }
                 }
@@ -783,6 +911,24 @@ private fun MapCanvas(
 
                 map.setStyle(Style.Builder().fromJson(STYLE_OSM)) { style ->
                     installCampusLayers(style, initialBuildings, initialRooms, initialHallways, initialFloor)
+                    // CRITICAL: setStyle() resets the camera bearing to 0° internally.
+                    // Re-apply the server-configured bearing synchronously here before
+                    // signalling styleReady — this is the only guaranteed-last write.
+                    val serverCam = loadServerMapDefaults(context)
+                    if (serverCam != null && serverCam.bearing != 0.0) {
+                        val cam = map.cameraPosition
+                        map.moveCamera(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.Builder()
+                                    .target(cam?.target ?: serverCam.target)
+                                    .zoom(cam?.zoom ?: serverCam.zoom)
+                                    .bearing(serverCam.bearing)
+                                    .tilt(serverCam.tilt)
+                                    .build()
+                            )
+                        )
+                        AppLog.info("MapScreen", "style-loaded bearing applied: ${serverCam.bearing}°")
+                    }
                     onStyleLoaded()
                 }
 
@@ -811,6 +957,7 @@ private fun MapCanvas(
                     false
                 }
 
+                var lastReportedBearing = 0.0
                 map.addOnCameraIdleListener {
                     val cam = map.cameraPosition
                     savePersistedCamera(
@@ -820,10 +967,15 @@ private fun MapCanvas(
                         cam.zoom, cam.bearing, cam.tilt,
                     )
                     onCameraIdle(false)
+                    lastReportedBearing = cam.bearing
                     onBearingChanged(cam.bearing)
                 }
                 map.addOnCameraMoveListener {
-                    onBearingChanged(map.cameraPosition.bearing)
+                    val b = map.cameraPosition.bearing
+                    if (kotlin.math.abs(b - lastReportedBearing) > 1.0) {
+                        lastReportedBearing = b
+                        onBearingChanged(b)
+                    }
                 }
             }
             mv.onStart(); mv.onResume()

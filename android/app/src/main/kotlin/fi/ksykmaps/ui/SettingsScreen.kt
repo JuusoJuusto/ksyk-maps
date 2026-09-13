@@ -223,11 +223,26 @@ fun SettingsScreen(
                     LinkGroupRow(
                         icon = Icons.Outlined.Public,
                         iconTint = Color(0xFF06B6D4),
-                        title = if (isFi) "Avaa verkkosivusto" else "Open the website",
+                        title = if (isFi) "Avaa verkkosivusto" else "Open website",
                         subtitle = "ksykmaps.fi",
                         onClick = {
+                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi"))) } catch (_: Exception) {}
+                        },
+                    )
+                    RowDivider()
+                    LinkGroupRow(
+                        icon = Icons.Outlined.Feedback,
+                        iconTint = Color(0xFF8B5CF6),
+                        title = if (isFi) "Anna palautetta" else "Give feedback",
+                        subtitle = if (isFi) "Kerro mitä voisi parantaa" else "Tell us what could be better",
+                        onClick = {
                             try {
-                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi")))
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("mailto:")
+                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("juuso.kaikula@gmail.com"))
+                                    putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps ${if (isFi) "palaute" else "feedback"}")
+                                }
+                                ctx.startActivity(intent)
                             } catch (_: Exception) {}
                         },
                     )
@@ -272,22 +287,33 @@ fun SettingsScreen(
 
             // ── Diagnostics ────────────────────────────────────────
             item {
-                val errorCount = fi.ksykmaps.data.AppLog.entriesState.value
-                    .count { it.level == fi.ksykmaps.data.AppLog.Level.ERROR ||
-                             it.level == fi.ksykmaps.data.AppLog.Level.WARN }
+                val logEntries by fi.ksykmaps.data.AppLog.entriesState
+                val errorCount = logEntries.count {
+                    it.level == fi.ksykmaps.data.AppLog.Level.ERROR ||
+                    it.level == fi.ksykmaps.data.AppLog.Level.WARN
+                }
                 SettingsGroup(title = if (isFi) "Diagnostiikka" else "Diagnostics") {
                     LinkGroupRow(
                         icon = Icons.Outlined.BugReport,
                         iconTint = if (errorCount > 0) Color(0xFFEF4444)
                                    else MaterialTheme.colorScheme.primary,
                         title = if (isFi) "Sovelluslokit" else "App logs",
-                        subtitle = if (errorCount > 0)
-                            (if (isFi) "$errorCount virhettä tai varoitusta"
-                             else "$errorCount errors or warnings")
-                        else
-                            (if (isFi) "Katso viimeaikaiset tapahtumat"
-                             else "See recent app activity"),
+                        subtitle = when {
+                            errorCount > 0 -> if (isFi) "$errorCount virhettä tai varoitusta" else "$errorCount errors or warnings"
+                            logEntries.isEmpty() -> if (isFi) "Ei lokimerkintöjä vielä" else "No log entries yet"
+                            else -> if (isFi) "${logEntries.size} tapahtumaa · kaikki ok" else "${logEntries.size} events · all ok"
+                        },
                         onClick = onOpenLogs,
+                    )
+                    RowDivider()
+                    ActionGroupRow(
+                        icon = Icons.Outlined.CleaningServices,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = if (isFi) "Tyhjennä lokit" else "Clear logs",
+                        subtitle = if (isFi) "Poistaa kaikki laitteen lokit" else "Remove all local log entries",
+                        actionLabel = if (isFi) "Tyhjennä" else "Clear",
+                        actionEnabled = logEntries.isNotEmpty(),
+                        onAction = { fi.ksykmaps.data.AppLog.clear() },
                     )
                 }
             }

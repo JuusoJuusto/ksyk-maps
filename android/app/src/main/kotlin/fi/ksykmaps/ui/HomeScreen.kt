@@ -194,6 +194,39 @@ fun HomeScreen(
                     }
                 }
 
+                // Offline banner — shown when API failed
+                if (!apiOk && !loading) {
+                    item {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.12f))
+                                .clickable { refreshing = true; reload() }
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.CloudOff, null,
+                                tint = Color(0xFFF59E0B), modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (lang == "fi") "Ei yhteyttä palvelimeen" else "No server connection",
+                                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFF59E0B),
+                                )
+                                Text(
+                                    if (lang == "fi") "Näytetään välimuistista · Napauta päivittääksesi"
+                                    else "Showing cached data · Tap to refresh",
+                                    fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(Icons.Outlined.Refresh, null,
+                                tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
                 // Quick action chip row — horizontal, Google Maps "explore" style
                 item {
                     QuickChipRow(

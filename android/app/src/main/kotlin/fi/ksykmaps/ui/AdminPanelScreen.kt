@@ -49,6 +49,7 @@ import androidx.core.content.ContextCompat
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.ApiException
+import fi.ksykmaps.data.AppLog
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
 import com.posthog.PostHog
@@ -997,6 +998,7 @@ private fun AdminActionsSection(
     var clearing by remember { mutableStateOf(false) }
     var refreshingCdn by remember { mutableStateOf(false) }
     var lastAction by remember { mutableStateOf<String?>(null) }
+    var lastActionIsError by remember { mutableStateOf(false) }
 
     // Broadcast push state
     var showBroadcastDialog by remember { mutableStateOf(false) }
@@ -1049,10 +1051,12 @@ private fun AdminActionsSection(
                             broadcasting = false
                             showBroadcastDialog = false
                             broadcastMsg = ""
+                            lastActionIsError = res.isFailure
                             lastAction = if (res.isSuccess)
                                 if (isFi) "Viesti lähetetty kaikille laitteille" else "Broadcast sent to all devices"
                             else
-                                if (isFi) "Lähetys epäonnistui" else "Broadcast failed"
+                                (if (isFi) "Lähetys epäonnistui" else "Broadcast failed") +
+                                    ": " + Api.friendly(res.exceptionOrNull() ?: Exception())
                         }
                     },
                     enabled = !broadcasting && broadcastMsg.isNotBlank(),
@@ -1145,6 +1149,7 @@ private fun AdminActionsSection(
                 actionText = if (isFi) "Lähetä" else "Send",
                 onAction = {
                     try { sendTestNotification(ctx, isFi) } catch (_: Exception) {}
+                    lastActionIsError = false
                     lastAction = if (isFi) "Testi-ilmoitus lähetetty" else "Test notification sent"
                 },
             )
@@ -1197,6 +1202,7 @@ private fun AdminActionsSection(
                             runCatching { Api.get("/hallways") }
                         }
                         refreshingCdn = false
+                        lastActionIsError = false
                         lastAction = if (isFi) "Välimuisti päivitetty" else "Cache refreshed"
                     }
                 },
@@ -1227,10 +1233,12 @@ private fun AdminActionsSection(
                             withContext(Dispatchers.IO) { Api.post("/admin/cache/purge", buildJsonObject {}) }
                         }
                         purging = false
+                        lastActionIsError = res.isFailure
                         lastAction = if (res.isSuccess)
                             if (isFi) "Palvelinvälimuisti tyhjennetty" else "Server cache purged"
                         else
-                            if (isFi) "Tyhjennys epäonnistui" else "Purge failed"
+                            (if (isFi) "Tyhjennys epäonnistui" else "Purge failed") +
+                                ": " + Api.friendly(res.exceptionOrNull() ?: Exception())
                     }
                 },
             )
@@ -1275,16 +1283,18 @@ private fun AdminActionsSection(
                         onCheckedChange = { newVal ->
                             maintenanceLoading = true
                             scope.launch {
-                                runCatching {
+                                val mOk = runCatching {
                                     withContext(Dispatchers.IO) {
                                         Api.post("/admin/maintenance", buildJsonObject { put("enabled", newVal) })
                                     }
-                                }.onSuccess { maintenanceEnabled = newVal }
+                                }.onSuccess { maintenanceEnabled = newVal }.isSuccess
                                 maintenanceLoading = false
-                                lastAction = if (newVal)
-                                    if (isFi) "Huoltotila käytössä" else "Maintenance mode ON"
-                                else
-                                    if (isFi) "Huoltotila poistettu" else "Maintenance mode OFF"
+                                lastActionIsError = !mOk
+                                lastAction = when {
+                                    mOk && newVal -> if (isFi) "Huoltotila käytössä" else "Maintenance mode ON"
+                                    mOk -> if (isFi) "Huoltotila poistettu" else "Maintenance mode OFF"
+                                    else -> if (isFi) "Huoltotilan muutos epäonnistui" else "Maintenance update failed"
+                                }
                             }
                         },
                     )
@@ -1330,17 +1340,25 @@ private fun AdminActionsSection(
         // ── Last action feedback ──
         if (lastAction != null) {
             item {
+                val feedbackColor = if (lastActionIsError) Color(0xFFEF4444) else Color(0xFF10B981)
+                val feedbackIcon = if (lastActionIsError) Icons.Outlined.Error else Icons.Outlined.CheckCircle
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                        .background(feedbackColor.copy(alpha = 0.12f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(18.dp))
+                    Icon(feedbackIcon, null, tint = feedbackColor, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text(lastAction!!, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF10B981))
+                    Text(
+                        lastAction!!,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = feedbackColor,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -1940,53 +1958,137 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("user") }
+    var sendInvite by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showPassword by remember { mutableStateOf(false) }
 
     AlertDialog(
-        onDismissRequest = onDismiss, shape = RoundedCornerShape(20.dp),
+        onDismissRequest = { if (!submitting) onDismiss() },
+        shape = RoundedCornerShape(20.dp),
         icon = { Icon(Icons.Outlined.PersonAdd, null) },
         title = { Text(if (isFi) "Lisää käyttäjä" else "Add user", fontWeight = FontWeight.SemiBold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = email, onValueChange = { email = it; error = null }, label = { Text("Email") }, singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(if (isFi) "Nimi" else "Name") }, singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth())
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // ── Mode toggle ────────────────────────────────────────
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(4.dp),
+                ) {
+                    listOf(false to (if (isFi) "Luo salasanalla" else "Set password"),
+                           true  to (if (isFi) "Lähetä kutsu" else "Send invite"))
+                        .forEach { (inv, label) ->
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(if (sendInvite == inv) MaterialTheme.colorScheme.surface else Color.Transparent)
+                                    .clickable { sendInvite = inv; error = null }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                                    color = if (sendInvite == inv) MaterialTheme.colorScheme.onSurface
+                                            else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                }
+                // ── Fields ─────────────────────────────────────────────
                 OutlinedTextField(
-                    value = password, onValueChange = { password = it; error = null },
-                    label = { Text(if (isFi) "Salasana" else "Password") }, singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = { IconButton(onClick = { showPassword = !showPassword }) { Icon(if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, null, modifier = Modifier.size(18.dp)) } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    value = email, onValueChange = { email = it; error = null },
+                    label = { Text("Email") }, singleLine = true,
+                    shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 )
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it },
+                    label = { Text(if (isFi) "Nimi (valinnainen)" else "Name (optional)") },
+                    singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
+                )
+                if (!sendInvite) {
+                    OutlinedTextField(
+                        value = password, onValueChange = { password = it; error = null },
+                        label = { Text(if (isFi) "Salasana" else "Password") },
+                        singleLine = true, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, null, modifier = Modifier.size(18.dp))
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    )
+                } else {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Email, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isFi) "Käyttäjä saa sähköpostin kirjautumislinkin kanssa"
+                            else "User receives an email with a sign-in link",
+                            fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                // ── Role chips ─────────────────────────────────────────
                 Text(if (isFi) "Rooli" else "Role", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("user" to (if (isFi) "Käyttäjä" else "User"), "moderator" to (if (isFi) "Mod." else "Mod."), "admin" to "Admin").forEach { (r, label) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("user" to (if (isFi) "Käyttäjä" else "User"),
+                           "moderator" to (if (isFi) "Moderaattori" else "Moderator"),
+                           "admin" to "Admin").forEach { (r, label) ->
                         val isSel = role == r
                         val c = when (r) { "admin" -> Color(0xFF10B981); "moderator" -> Color(0xFF8B5CF6); else -> MaterialTheme.colorScheme.primary }
-                        Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (isSel) c else c.copy(alpha = 0.12f)).clickable { role = r }.padding(horizontal = 10.dp, vertical = 5.dp)) {
-                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSel) Color.White else c)
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSel) c else c.copy(alpha = 0.12f))
+                                .clickable { role = r }
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        ) {
+                            Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (isSel) Color.White else c)
                         }
                     }
                 }
-                error?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
+                error?.let {
+                    Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (email.isBlank() || password.isBlank()) { error = if (isFi) "Täytä pakolliset kentät" else "Fill required fields"; return@Button }
+                    if (email.isBlank()) { error = if (isFi) "Sähköposti puuttuu" else "Email required"; return@Button }
+                    if (!sendInvite && password.isBlank()) { error = if (isFi) "Salasana puuttuu" else "Password required"; return@Button }
                     submitting = true
                     scope.launch {
                         val ok = withContext(Dispatchers.IO) {
-                            runCatching {
-                                Api.post("/users", buildJsonObject {
-                                    put("email", email.trim())
-                                    if (name.isNotBlank()) put("name", name.trim())
-                                    put("password", password)
-                                    put("role", role)
-                                })
-                            }.onFailure { t -> error = Api.friendly(t) }.isSuccess
+                            if (sendInvite) {
+                                runCatching {
+                                    Api.post("/users/invite", buildJsonObject {
+                                        put("email", email.trim())
+                                        if (name.isNotBlank()) put("name", name.trim())
+                                        put("role", role)
+                                    })
+                                }.onFailure { t -> error = Api.friendly(t) }.isSuccess
+                            } else {
+                                runCatching {
+                                    Api.post("/users", buildJsonObject {
+                                        put("email", email.trim())
+                                        if (name.isNotBlank()) put("name", name.trim())
+                                        put("password", password)
+                                        put("role", role)
+                                    })
+                                }.onFailure { t -> error = Api.friendly(t) }.isSuccess
+                            }
                         }
                         submitting = false
                         if (ok) onAdded()
@@ -1995,10 +2097,10 @@ private fun AddUserDialog(isFi: Boolean, onDismiss: () -> Unit, onAdded: () -> U
                 enabled = !submitting,
             ) {
                 if (submitting) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color.White)
-                else Text(if (isFi) "Luo" else "Create")
+                else Text(if (sendInvite) (if (isFi) "Lähetä kutsu" else "Send invite") else (if (isFi) "Luo" else "Create"))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(if (isFi) "Peruuta" else "Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !submitting) { Text(if (isFi) "Peruuta" else "Cancel") } },
     )
 }
 
@@ -2245,6 +2347,8 @@ private fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {
     var sourceFilter by remember { mutableStateOf<String?>(null) } // null = all
     var levelFilter by remember { mutableStateOf<String?>(null) }
     var refreshTick by remember { mutableIntStateOf(0) }
+    var showMobile by remember { mutableStateOf(false) }
+    val localLogs by AppLog.entriesState
 
     LaunchedEffect(refreshTick, sourceFilter, levelFilter) {
         loading = true
@@ -2415,6 +2519,38 @@ private fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {
             }
         }
 
+        // ── Source toggle: Server vs Mobile ─────────────────────────
+        item {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(4.dp),
+            ) {
+                listOf(false to (if (isFi) "Palvelin" else "Server"), true to (if (isFi) "Mobiili" else "Mobile"))
+                    .forEach { (isMobile, label) ->
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(if (showMobile == isMobile) MaterialTheme.colorScheme.surface else Color.Transparent)
+                                .clickable { showMobile = isMobile }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (showMobile == isMobile) MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+            }
+        }
+
         // ── Event stream ─────────────────────────────────────────────
         item {
             Row(
@@ -2423,62 +2559,118 @@ private fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    if (isFi) "Tapahtumat" else "Events",
+                    if (showMobile) (if (isFi) "Laitteen lokit" else "Device logs")
+                    else (if (isFi) "Tapahtumat" else "Events"),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (loading) CircularProgressIndicator(
+                    if (!showMobile && loading) CircularProgressIndicator(
                         Modifier.size(14.dp), strokeWidth = 2.dp,
                     )
                     Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = { refreshTick++ }) {
-                        Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(20.dp))
+                    if (!showMobile) {
+                        IconButton(onClick = { refreshTick++ }) {
+                            Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(20.dp))
+                        }
+                    } else {
+                        IconButton(onClick = { AppLog.clear() }) {
+                            Icon(Icons.Outlined.DeleteSweep, null, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
         }
-        error?.let { err ->
-            item {
-                if (err == "401") {
-                    SessionExpiredCard(isFi = isFi, onReLogin = onSessionExpired)
-                } else {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Outlined.Warning, null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp),
-                        )
+        if (showMobile) {
+            val filtered = localLogs.let { logs ->
+                levelFilter?.let { lf -> logs.filter { it.level.name.lowercase() == lf } } ?: logs
+            }
+            if (filtered.isEmpty()) {
+                item {
+                    Text(
+                        if (isFi) "Ei lokimerkintöjä." else "No log entries.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 12.dp),
+                    )
+                }
+            }
+            items(filtered, key = { it.timestampMs }) { entry ->
+                val badgeColor = when (entry.level) {
+                    AppLog.Level.ERROR -> MaterialTheme.colorScheme.error
+                    AppLog.Level.WARN -> MaterialTheme.colorScheme.tertiary
+                    AppLog.Level.DEBUG -> MaterialTheme.colorScheme.outline
+                    else -> MaterialTheme.colorScheme.primary
+                }
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(12.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(width = 44.dp, height = 20.dp).clip(RoundedCornerShape(6.dp))
+                                .background(badgeColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(entry.level.name, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = badgeColor)
+                        }
                         Spacer(Modifier.width(8.dp))
+                        Text(entry.tag.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.weight(1f))
                         Text(
-                            (if (isFi) "Virhe: " else "Error: ") + err,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 12.sp,
+                            run {
+                                val delta = (System.currentTimeMillis() - entry.timestampMs) / 1000
+                                when { delta < 60 -> "${delta}s"; delta < 3600 -> "${delta / 60}m"; else -> "${delta / 3600}h" }
+                            },
+                            fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(entry.message, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        } else {
+            error?.let { err ->
+                item {
+                    if (err == "401") {
+                        SessionExpiredCard(isFi = isFi, onReLogin = onSessionExpired)
+                    } else {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.Warning, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                (if (isFi) "Virhe: " else "Error: ") + err,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }
-        }
-        if (!loading && rows.isEmpty() && error == null) {
-            item {
-                Text(
-                    if (isFi) "Ei tapahtumia valituilla suodattimilla."
-                    else "No events matching the filters.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 12.dp),
-                )
+            if (!loading && rows.isEmpty() && error == null) {
+                item {
+                    Text(
+                        if (isFi) "Ei tapahtumia valituilla suodattimilla."
+                        else "No events matching the filters.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 12.dp),
+                    )
+                }
             }
-        }
-        items(rows, key = { it.id }) { row ->
-            ActivityRowCard(row)
+            items(rows, key = { it.id }) { row ->
+                ActivityRowCard(row)
+            }
         }
     }
 }
