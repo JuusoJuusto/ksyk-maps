@@ -266,6 +266,10 @@ fun MapScreen() {
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
     var styleReady by remember { mutableStateOf(false) }
     var mapBearing by remember { mutableStateOf(0.0) }
+    // Set to true once the live /settings fetch has saved fresh prefs.
+    // Used as a LaunchedEffect key so bearing correction fires regardless
+    // of whether getMapAsync or the network call wins the race.
+    var serverDefaultsFetched by remember { mutableStateOf(false) }
 
     // Directions: destination room/building + optional origin.
     var destination by remember { mutableStateOf<JsonObject?>(null) }
@@ -291,29 +295,7 @@ fun MapScreen() {
         AppLog.info("MapScreen", "live-fetch start (retry=$dataRetry)")
         // Refresh server map defaults (bearing/rotation) in parallel with data.
         withContext(Dispatchers.IO) { runCatching { refreshServerMapDefaults(ctx) } }
-        // On first launch apply the now-fresh server bearing to the live map.
-        // The map camera initialises before this fetch completes, so without
-        // this correction the map always starts at 0° (north) regardless of
-        // the admin-configured bearing.
-        if (dataRetry == 0) {
-            val fresh = loadServerMapDefaults(ctx)
-            val m = mapRef
-            if (fresh != null && m != null) {
-                val cam = m.cameraPosition
-                if (Math.abs((cam?.bearing ?: 0.0) - fresh.bearing) > 0.5) {
-                    m.animateCamera(
-                        CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.Builder()
-                                .target(cam?.target ?: KSYK_CENTER)
-                                .zoom(cam?.zoom ?: KSYK_ZOOM)
-                                .bearing(fresh.bearing)
-                                .tilt(cam?.tilt ?: 0.0)
-                                .build()
-                        ), 600
-                    )
-                }
-            }
-        }
+        serverDefaultsFetched = true
         val bDef = withContext(Dispatchers.IO) { runCatching { Api.get("/buildings") } }
         val rDef = withContext(Dispatchers.IO) { runCatching { Api.get("/rooms") } }
         val hDef = withContext(Dispatchers.IO) { runCatching { Api.get("/hallways") } }
@@ -351,6 +333,30 @@ fun MapScreen() {
         dataFetching = false
     }
 
+    // Apply server-configured bearing once map + style + fresh prefs are all ready.
+    // Keyed on all three so it re-fires whichever arrives last.
+    LaunchedEffect(mapRef, styleReady, serverDefaultsFetched) {
+        val m = mapRef ?: return@LaunchedEffect
+        if (!styleReady) return@LaunchedEffect
+        if (!serverDefaultsFetched) return@LaunchedEffect
+        val fresh = loadServerMapDefaults(ctx) ?: return@LaunchedEffect
+        if (fresh.bearing == 0.0) return@LaunchedEffect
+        val cam = m.cameraPosition
+        if (Math.abs((cam?.bearing ?: 0.0) - fresh.bearing) > 0.5) {
+            m.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(cam?.target ?: KSYK_CENTER)
+                        .zoom(cam?.zoom ?: KSYK_ZOOM)
+                        .bearing(fresh.bearing)
+                        .tilt(cam?.tilt ?: 0.0)
+                        .build()
+                ), 600
+            )
+            AppLog.info("MapScreen", "bearing correction applied: ${fresh.bearing}°")
+        }
+    }
+
     // ── Data → GeoJSON sync ───────────────────────────────────────────
     // Every time data OR selected floor OR style-ready changes, push the
     // filtered FeatureCollection into the source. This does NOT touch
@@ -372,16 +378,31 @@ fun MapScreen() {
     }
 
     // First-time auto-fit — once buildings arrive and the map is ready.
+    // Uses getCameraForLatLngBounds so we can inject the server bearing instead
+    // of letting newLatLngBounds silently reset it to 0°.
     LaunchedEffect(buildings, mapRef) {
         val m = mapRef ?: return@LaunchedEffect
         if (MapHolder.autofitDone) return@LaunchedEffect
         if (buildings.isEmpty()) return@LaunchedEffect
-        val bounds = boundsOf(buildings)
-        if (bounds != null) {
+        val bounds = boundsOf(buildings) ?: return@LaunchedEffect
+        val serverBearing = loadServerMapDefaults(ctx)?.bearing ?: 0.0
+        if (serverBearing != 0.0) {
+            val fitted = m.getCameraForLatLngBounds(bounds, intArrayOf(80, 80, 80, 80))
+            m.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(fitted?.target ?: KSYK_CENTER)
+                        .zoom(fitted?.zoom ?: KSYK_ZOOM)
+                        .bearing(serverBearing)
+                        .tilt(0.0)
+                        .build()
+                ), 700
+            )
+        } else {
             m.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 80), 700)
-            MapHolder.autofitDone = true
-            AppLog.info("MapScreen", "initial auto-fit done")
         }
+        MapHolder.autofitDone = true
+        AppLog.info("MapScreen", "initial auto-fit done")
     }
 
     // Route rendering — straight line origin → dest (upgrade to A* later).

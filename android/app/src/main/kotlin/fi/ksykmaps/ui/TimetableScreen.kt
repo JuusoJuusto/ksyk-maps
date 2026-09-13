@@ -36,6 +36,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.*
 
 @Serializable
@@ -94,8 +95,10 @@ fun TimetableScreen(
     var editEntry by remember { mutableStateOf<ScheduleEntry?>(null) }
     var rooms by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     val todayDow = remember { todayDow() }
-    var selectedDow by remember { mutableIntStateOf(todayDow) }
-    val isToday = selectedDow == todayDow
+    val isWeekend = todayDow in 6..7
+    var weekOffset by remember { mutableIntStateOf(if (isWeekend) 1 else 0) }
+    var selectedDow by remember { mutableIntStateOf(if (isWeekend) 1 else todayDow) }
+    val isToday = selectedDow == todayDow && weekOffset == 0
     var nowMins by remember { mutableIntStateOf(hhmm(nowHhmm())) }
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
@@ -209,7 +212,7 @@ fun TimetableScreen(
             // Large date header — Apple Calendar style
             item {
                 val today = LocalDate.now()
-                val diff = selectedDow - todayDow
+                val diff = (selectedDow - todayDow) + weekOffset * 7
                 val selectedDate = today.plusDays(diff.toLong())
                 val monthDay = selectedDate.format(
                     DateTimeFormatter.ofPattern(
@@ -239,7 +242,7 @@ fun TimetableScreen(
                     }
                     if (!isToday) {
                         FilledTonalButton(
-                            onClick = { selectedDow = todayDow },
+                            onClick = { selectedDow = todayDow; weekOffset = 0 },
                             shape = RoundedCornerShape(24.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         ) {
@@ -258,7 +261,9 @@ fun TimetableScreen(
                 DaySelector(
                     selected = selectedDow,
                     today = todayDow,
+                    weekOffset = weekOffset,
                     onSelect = { selectedDow = it },
+                    onWeekChange = { weekOffset = it },
                     countByDow = countByDow,
                     lang = lang,
                 )
@@ -762,7 +767,9 @@ private fun JaksoSelector(
 private fun DaySelector(
     selected: Int,
     today: Int,
+    weekOffset: Int,
     onSelect: (Int) -> Unit,
+    onWeekChange: (Int) -> Unit,
     countByDow: Map<Int, Int>,
     lang: String,
 ) {
@@ -771,64 +778,107 @@ private fun DaySelector(
     else
         listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val todayDate = remember { LocalDate.now() }
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        labels.forEachIndexed { i, label ->
-            val dow = i + 1
-            val diff = dow - todayDate.dayOfWeek.value
-            val date = todayDate.plusDays(diff.toLong())
-            val count = countByDow[dow] ?: 0
-            val isSelected = selected == dow
-            val isToday = dow == today
-            Column(
-                Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        when {
-                            isSelected -> MaterialTheme.colorScheme.primary
-                            isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                            else -> Color.Transparent
-                        }
-                    )
-                    .clickable { onSelect(dow) }
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
+    val weekStart = todayDate.with(DayOfWeek.MONDAY).plusWeeks(weekOffset.toLong())
+    val isoWeek = weekStart.get(WeekFields.ISO.weekOfWeekBasedYear())
+    val weekEnd = weekStart.plusDays(4) // Friday
+    val weekRangeLabel = "${weekStart.dayOfMonth}.–${weekEnd.dayOfMonth}.${weekEnd.monthValue}."
+
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Week navigation row
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            IconButton(onClick = { onWeekChange(weekOffset - 1) }, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Outlined.ChevronLeft,
+                    contentDescription = if (lang == "fi") "Edellinen viikko" else "Previous week",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    label,
-                    fontSize = 10.sp,
+                    "Vk $isoWeek",
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = when {
-                        isSelected -> MaterialTheme.colorScheme.onPrimary
-                        isToday -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color = if (weekOffset == 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    date.dayOfMonth.toString(),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        isSelected -> MaterialTheme.colorScheme.onPrimary
-                        isToday -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
+                    weekRangeLabel,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Box(
+            }
+            IconButton(onClick = { onWeekChange(weekOffset + 1) }, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Outlined.ChevronRight,
+                    contentDescription = if (lang == "fi") "Seuraava viikko" else "Next week",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        // Day pill row
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            labels.forEachIndexed { i, label ->
+                val dow = i + 1
+                val date = weekStart.plusDays((dow - 1).toLong())
+                val count = countByDow[dow] ?: 0
+                val isSelected = selected == dow
+                val isToday = dow == today && weekOffset == 0
+                Column(
                     Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(
-                            if (count > 0)
-                                (if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                 else MaterialTheme.colorScheme.primary).copy(alpha = 0.6f)
-                            else Color.Transparent
+                            when {
+                                isSelected -> MaterialTheme.colorScheme.primary
+                                isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                else -> Color.Transparent
+                            }
                         )
-                )
+                        .clickable { onSelect(dow) }
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        label,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isToday -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                    Text(
+                        date.dayOfMonth.toString(),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isToday -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                    Box(
+                        Modifier
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (count > 0)
+                                    (if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                     else MaterialTheme.colorScheme.primary).copy(alpha = 0.6f)
+                                else Color.Transparent
+                            )
+                    )
+                }
             }
         }
     }

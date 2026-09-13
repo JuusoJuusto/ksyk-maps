@@ -998,11 +998,92 @@ private fun AdminActionsSection(
     var refreshingCdn by remember { mutableStateOf(false) }
     var lastAction by remember { mutableStateOf<String?>(null) }
 
+    // Broadcast push state
+    var showBroadcastDialog by remember { mutableStateOf(false) }
+    var broadcastMsg by remember { mutableStateOf("") }
+    var broadcasting by remember { mutableStateOf(false) }
+
+    // Server cache purge
+    var purging by remember { mutableStateOf(false) }
+
+    // Maintenance mode
+    var maintenanceEnabled by remember { mutableStateOf<Boolean?>(null) }
+    var maintenanceLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        runCatching {
+            val res = withContext(Dispatchers.IO) { Api.get("/admin/maintenance") }
+            maintenanceEnabled = res.jsonObject["enabled"]?.jsonPrimitive?.boolean ?: false
+        }
+    }
+
+    if (showBroadcastDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!broadcasting) showBroadcastDialog = false },
+            icon = { Icon(Icons.Outlined.Campaign, null, tint = Color(0xFF8B5CF6)) },
+            title = { Text(if (isFi) "Lähetä kaikille" else "Broadcast to all") },
+            text = {
+                OutlinedTextField(
+                    value = broadcastMsg,
+                    onValueChange = { broadcastMsg = it },
+                    label = { Text(if (isFi) "Viesti" else "Message") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 4,
+                    enabled = !broadcasting,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (broadcastMsg.isBlank()) return@TextButton
+                        broadcasting = true
+                        scope.launch {
+                            val res = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    Api.post("/admin/notify/push", buildJsonObject {
+                                        put("message", broadcastMsg.trim())
+                                    })
+                                }
+                            }
+                            broadcasting = false
+                            showBroadcastDialog = false
+                            broadcastMsg = ""
+                            lastAction = if (res.isSuccess)
+                                if (isFi) "Viesti lähetetty kaikille laitteille" else "Broadcast sent to all devices"
+                            else
+                                if (isFi) "Lähetys epäonnistui" else "Broadcast failed"
+                        }
+                    },
+                    enabled = !broadcasting && broadcastMsg.isNotBlank(),
+                ) {
+                    if (broadcasting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    else Text(if (isFi) "Lähetä" else "Send")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBroadcastDialog = false }, enabled = !broadcasting) {
+                    Text(if (isFi) "Peruuta" else "Cancel")
+                }
+            },
+        )
+    }
+
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // ── Section: Web tools ──
+        item {
+            Text(
+                if (isFi) "Verkkotyökalut" else "Web tools",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+            )
+        }
         item {
             ActionCard(
                 icon = Icons.Outlined.Public,
@@ -1043,6 +1124,53 @@ private fun AdminActionsSection(
                 },
             )
         }
+
+        // ── Section: Notifications ──
+        item {
+            Text(
+                if (isFi) "Ilmoitukset" else "Notifications",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp),
+            )
+        }
+        item {
+            ActionCard(
+                icon = Icons.Outlined.NotificationsActive,
+                iconColor = Color(0xFF10B981),
+                title = if (isFi) "Testaa push-ilmoitus" else "Test push notification",
+                subtitle = if (isFi) "Varmista että ilmoitukset toimivat tällä laitteella"
+                           else "Verify notifications work on this device",
+                actionText = if (isFi) "Lähetä" else "Send",
+                onAction = {
+                    try { sendTestNotification(ctx, isFi) } catch (_: Exception) {}
+                    lastAction = if (isFi) "Testi-ilmoitus lähetetty" else "Test notification sent"
+                },
+            )
+        }
+        item {
+            ActionCard(
+                icon = Icons.Outlined.Campaign,
+                iconColor = Color(0xFF8B5CF6),
+                title = if (isFi) "Lähetä kaikille" else "Broadcast push",
+                subtitle = if (isFi) "Lähetä push-viesti kaikille laitteille"
+                           else "Send a push message to every registered device",
+                actionText = if (isFi) "Kirjoita" else "Compose",
+                onAction = { showBroadcastDialog = true },
+            )
+        }
+
+        // ── Section: Server ──
+        item {
+            Text(
+                if (isFi) "Palvelin" else "Server",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp),
+            )
+        }
         item {
             ActionCard(
                 icon = Icons.Outlined.Refresh,
@@ -1051,7 +1179,7 @@ private fun AdminActionsSection(
                 subtitle = if (isFi) "Tyhjennä levyvälimuisti ja hae tuoreet tiedot"
                            else "Clear disk cache and fetch fresh data",
                 actionText = when {
-                    clearing || refreshingCdn -> if (isFi) "…" else "…"
+                    clearing || refreshingCdn -> "…"
                     else -> if (isFi) "Päivitä" else "Refresh"
                 },
                 actionEnabled = !clearing && !refreshingCdn,
@@ -1085,18 +1213,121 @@ private fun AdminActionsSection(
         }
         item {
             ActionCard(
-                icon = Icons.Outlined.NotificationsActive,
-                iconColor = Color(0xFF10B981),
-                title = if (isFi) "Testaa push-ilmoitus" else "Test push notification",
-                subtitle = if (isFi) "Varmista että ilmoitukset toimivat tällä laitteella"
-                           else "Verify notifications work on this device",
-                actionText = if (isFi) "Lähetä" else "Send",
+                icon = Icons.Outlined.DeleteSweep,
+                iconColor = Color(0xFFEF4444),
+                title = if (isFi) "Tyhjennä palvelinvälimuisti" else "Purge server cache",
+                subtitle = if (isFi) "Pakottaa palvelimen hakemaan tuoreimmat tiedot uudelleen"
+                           else "Forces the server to drop its cached responses",
+                actionText = if (purging) "…" else if (isFi) "Tyhjennä" else "Purge",
+                actionEnabled = !purging,
                 onAction = {
-                    try { sendTestNotification(ctx, isFi) } catch (_: Exception) {}
-                    lastAction = if (isFi) "Testi-ilmoitus lähetetty" else "Test notification sent"
+                    purging = true
+                    scope.launch {
+                        val res = runCatching {
+                            withContext(Dispatchers.IO) { Api.post("/admin/cache/purge", buildJsonObject {}) }
+                        }
+                        purging = false
+                        lastAction = if (res.isSuccess)
+                            if (isFi) "Palvelinvälimuisti tyhjennetty" else "Server cache purged"
+                        else
+                            if (isFi) "Tyhjennys epäonnistui" else "Purge failed"
+                    }
                 },
             )
         }
+        item {
+            val on = maintenanceEnabled
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape)
+                        .background(Color(0xFFF97316).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Outlined.Build, null,
+                        tint = Color(0xFFF97316), modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (isFi) "Huoltotila" else "Maintenance mode",
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        if (isFi) "Estää muiden kirjautumisen sovellukseen"
+                        else "Blocks non-admin logins across the app",
+                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 14.sp,
+                    )
+                }
+                if (maintenanceLoading || on == null) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Switch(
+                        checked = on,
+                        onCheckedChange = { newVal ->
+                            maintenanceLoading = true
+                            scope.launch {
+                                runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        Api.post("/admin/maintenance", buildJsonObject { put("enabled", newVal) })
+                                    }
+                                }.onSuccess { maintenanceEnabled = newVal }
+                                maintenanceLoading = false
+                                lastAction = if (newVal)
+                                    if (isFi) "Huoltotila käytössä" else "Maintenance mode ON"
+                                else
+                                    if (isFi) "Huoltotila poistettu" else "Maintenance mode OFF"
+                            }
+                        },
+                    )
+                }
+            }
+        }
+
+        // ── Section: App info ──
+        item {
+            Text(
+                if (isFi) "Sovellustiedot" else "App info",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp),
+            )
+        }
+        item {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Info, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(if (isFi) "Versiotiedot" else "Build info",
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
+                InfoRow(if (isFi) "Versio" else "Version", fi.ksykmaps.BuildConfig.VERSION_NAME)
+                InfoRow(if (isFi) "Versiokoodi" else "Version code", fi.ksykmaps.BuildConfig.VERSION_CODE.toString())
+                InfoRow(if (isFi) "Paketti" else "Package", ctx.packageName)
+                InfoRow(if (isFi) "Laite" else "Device",
+                    "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                InfoRow("Android", android.os.Build.VERSION.RELEASE)
+            }
+        }
+
+        // ── Last action feedback ──
         if (lastAction != null) {
             item {
                 Row(
@@ -1107,45 +1338,39 @@ private fun AdminActionsSection(
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Outlined.CheckCircle, null,
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(18.dp),
-                    )
+                    Icon(Icons.Outlined.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        lastAction!!,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF10B981),
-                    )
+                    Text(lastAction!!, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF10B981))
                 }
             }
         }
+
+        // ── Sign out ──
         item {
             Spacer(Modifier.height(4.dp))
             OutlinedButton(
                 onClick = onSignOut,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
             ) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.Logout, null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
-                )
+                Icon(Icons.AutoMirrored.Outlined.Logout, null,
+                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    if (isFi) "Kirjaudu ulos" else "Sign out",
-                    color = MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text(if (isFi) "Kirjaudu ulos" else "Sign out",
+                    color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
             }
         }
         item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
