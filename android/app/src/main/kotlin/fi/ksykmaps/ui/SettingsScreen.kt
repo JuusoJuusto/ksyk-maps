@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -395,7 +396,7 @@ fun SettingsScreen(
                         )
                     } else {
                         LinkGroupRow(
-                            icon = Icons.Outlined.Login,
+                            icon = Icons.AutoMirrored.Outlined.Login,
                             iconTint = MaterialTheme.colorScheme.primary,
                             title = if (isFi) "Kirjaudu sisään" else "Sign in",
                             subtitle = if (isFi) "Valinnainen — vain hallintapaneeliin"

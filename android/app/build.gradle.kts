@@ -14,8 +14,8 @@ android {
         applicationId = "fi.ksykmaps"
         minSdk = 26
         targetSdk = 34
-        versionCode = 69
-        versionName = "1.67.0"
+        versionCode = 70
+        versionName = "1.68.0"
 
         // Vercel Attack Challenge Mode bypass — the API client sends this
         // as `x-vercel-protection-bypass` and `x-ksyk-bypass-token`. Add a

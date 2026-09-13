@@ -20,7 +20,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation, Plus } from "lucide-react";
+import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation, Plus, Link2, Unlink, Zap } from "lucide-react";
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
 import { useNavGraph, type NavNode } from "@/lib/navGraph";
@@ -338,7 +338,7 @@ function PropsTab({ entity, onHistoryRecord }: { entity: SelectedEntity; onHisto
 
 /** Inline editor for a localStorage-backed nav graph node. */
 function NavNodeProps({ node }: { node: NavNode }) {
-  const { updateNode } = useNavGraph();
+  const { graph, updateNode, removeNode, addEdge, removeEdge } = useNavGraph();
   const [label, setLabel] = useState(node.label ?? "");
   const [floor, setFloor] = useState(node.floor);
   const [kind, setKind] = useState<NavNode["kind"]>(node.kind ?? "junction");
@@ -347,6 +347,47 @@ function NavNodeProps({ node }: { node: NavNode }) {
 
   const save = () => {
     updateNode(node.id, { label: label.trim() || undefined, floor, kind });
+  };
+
+  // Edges that touch this node
+  const myEdges = useMemo(() =>
+    graph.edges.filter((e) => e.fromNodeId === node.id || e.toNodeId === node.id),
+    [graph.edges, node.id],
+  );
+
+  // Peer node for each edge
+  const nodeById = useMemo(() => {
+    const m = new Map<string, NavNode>();
+    for (const n of graph.nodes) m.set(n.id, n);
+    return m;
+  }, [graph.nodes]);
+
+  // Haversine distance in metres
+  function distM(a: NavNode, b: NavNode): number {
+    const R = 6371000;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const sin2 = Math.sin(dLat / 2) ** 2 +
+      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(sin2), Math.sqrt(1 - sin2));
+  }
+
+  // Auto-connect to the 3 nearest unconnected same-floor nodes
+  const autoConnect = () => {
+    const alreadyConnected = new Set(myEdges.flatMap((e) => [e.fromNodeId, e.toNodeId]));
+    alreadyConnected.add(node.id);
+    const candidates = graph.nodes
+      .filter((n) => !alreadyConnected.has(n.id) && n.floor === node.floor)
+      .map((n) => ({ n, d: distM(node, n) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3);
+    for (const { n } of candidates) addEdge(node.id, n.id);
+  };
+
+  const kindLabel = (n: NavNode) => {
+    const k = n.kind ?? "junction";
+    return k === "junction" ? "Junction" : k === "room" ? "Room" : k === "stairs" ? "Stairs"
+      : k === "elevator" ? "Elevator" : k === "entrance" ? "Entrance" : "Node";
   };
 
   return (
@@ -367,16 +408,79 @@ function NavNodeProps({ node }: { node: NavNode }) {
           <option value="entrance">Building entrance</option>
         </select>
       </div>
+
+      {/* Connected edges */}
+      <div className="pt-2 border-t border-border space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+            <Link2 className="h-3 w-3" />
+            Edges ({myEdges.length})
+          </p>
+          <button
+            type="button"
+            onClick={autoConnect}
+            className="flex items-center gap-1 text-[11px] font-semibold text-violet-700 dark:text-violet-300 hover:underline"
+            title="Connect to the 3 nearest unconnected nodes on this floor"
+          >
+            <Zap className="h-3 w-3" />
+            Auto-connect
+          </button>
+        </div>
+        {myEdges.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic">
+            No edges yet — click a second node while holding Shift, or use Auto-connect.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {myEdges.map((edge) => {
+              const peerId = edge.fromNodeId === node.id ? edge.toNodeId : edge.fromNodeId;
+              const peer = nodeById.get(peerId);
+              return (
+                <li key={edge.id} className="flex items-center gap-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/30 px-2.5 py-1.5 text-xs">
+                  <span className="h-2 w-2 rounded-full bg-violet-400 shrink-0" />
+                  <span className="flex-1 min-w-0 truncate text-violet-800 dark:text-violet-200">
+                    {peer ? (peer.label || kindLabel(peer)) : peerId.slice(0, 8)}
+                  </span>
+                  {peer && (
+                    <span className="text-muted-foreground tabular-nums shrink-0">
+                      {Math.round(distM(node, peer))} m
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeEdge(edge.id)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    title="Remove this edge"
+                  >
+                    <Unlink className="h-3 w-3" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       <div className="space-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
         <p className="text-xs font-mono text-muted-foreground tabular-nums">
           {node.lat.toFixed(6)}, {node.lng.toFixed(6)}
         </p>
-        <p className="text-[11px] text-muted-foreground">
-          Saved in localStorage — synced to server with the routing API.
-        </p>
       </div>
+
       <DirtySaveButton isDirty={dirty} isPending={false} onSave={save} />
+
+      {/* Delete node */}
+      <button
+        type="button"
+        onClick={() => {
+          if (confirm("Remove this nav node and all its edges?")) removeNode(node.id);
+        }}
+        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded-lg px-3 py-2 transition-colors border border-destructive/30"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        Delete node
+      </button>
     </div>
   );
 }

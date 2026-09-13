@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -170,7 +171,7 @@ fun FeedbackScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
                     value = message,
-                    onValueChange = { message = it },
+                    onValueChange = { if (it.length <= 1000) message = it },
                     modifier = Modifier.fillMaxWidth().height(200.dp),
                     placeholder = {
                         Text(
@@ -227,7 +228,7 @@ fun FeedbackScreen(onBack: () -> Unit) {
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Icon(Icons.Outlined.Send, null, Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Outlined.Send, null, Modifier.size(18.dp))
                     }
                     Spacer(Modifier.width(8.dp))
                     Text(
