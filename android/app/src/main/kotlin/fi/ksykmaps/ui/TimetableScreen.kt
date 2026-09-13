@@ -128,6 +128,17 @@ fun TimetableScreen(
         }
     }
 
+    // Auto-switch jakso when the selected date moves into a different period
+    LaunchedEffect(weekOffset, selectedDow, jaksot) {
+        if (jaksot.isEmpty()) return@LaunchedEffect
+        val today = LocalDate.now()
+        val diff = (selectedDow - todayDow) + weekOffset * 7
+        val selectedDate = today.plusDays(diff.toLong())
+        val iso = selectedDate.toString()
+        val matchingJakso = jaksot.firstOrNull { j -> j.startDate <= iso && iso <= j.endDate }
+        if (matchingJakso != null) selectedJaksoId = matchingJakso.id
+    }
+
     val countByDow = remember(entries, selectedJaksoId) {
         entries
             .filter { selectedJaksoId == "all" || it.jaksoId == "all" || it.jaksoId == selectedJaksoId }

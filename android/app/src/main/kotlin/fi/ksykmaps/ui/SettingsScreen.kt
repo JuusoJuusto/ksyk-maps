@@ -79,6 +79,8 @@ fun SettingsScreen(
     onOpenLogs: () -> Unit = {},
     onOpenAdmin: () -> Unit = {},
     onResetAll: () -> Unit = {},
+    onOpenFeedback: () -> Unit = {},
+    onOpenBugReport: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
@@ -269,20 +271,16 @@ fun SettingsScreen(
                         icon = Icons.Outlined.Feedback,
                         iconTint = Color(0xFF8B5CF6),
                         title = if (isFi) "Anna palautetta" else "Give feedback",
-                        subtitle = "ksykmaps.fi/support",
-                        onClick = {
-                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/support"))) } catch (_: Exception) {}
-                        },
+                        subtitle = if (isFi) "Kerro mitä mieltä olet" else "Tell us what you think",
+                        onClick = onOpenFeedback,
                     )
                     RowDivider()
                     LinkGroupRow(
                         icon = Icons.Outlined.BugReport,
                         iconTint = Color(0xFFEF4444),
                         title = if (isFi) "Ilmoita viasta" else "Report a bug",
-                        subtitle = if (isFi) "Avaa tukisivu selaimessa" else "Open support page in browser",
-                        onClick = {
-                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi/support"))) } catch (_: Exception) {}
-                        },
+                        subtitle = if (isFi) "Kuvaa ongelma sovelluksessa" else "Describe a problem in the app",
+                        onClick = onOpenBugReport,
                     )
                 }
             }

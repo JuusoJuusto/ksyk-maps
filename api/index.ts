@@ -2185,6 +2185,33 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(201).json({ ...newUser, password: finalPassword });
       }
       
+      // Admin reset-password — generates a temp password and emails the user
+      const resetPwdMatch = apiPath.match(/^\/users\/([^\/]+)\/reset-password$/);
+      if (resetPwdMatch && req.method === 'POST') {
+        const userId = resetPwdMatch[1];
+        try {
+          const { sendPasswordSetupEmail, generateTempPassword } = await import('../server/emailService.js');
+          const { hashPassword: hashPw } = await import('../server/passwordUtils.js');
+          const user = await storage.getUser(userId);
+          if (!user) return res.status(404).json({ message: 'User not found' });
+          const tempPassword = generateTempPassword();
+          const hashed = await hashPw(tempPassword);
+          await storage.upsertUser({
+            id: userId,
+            password: hashed,
+            isTemporaryPassword: true,
+            passwordResetToken: null,
+            passwordResetExpiry: null,
+          });
+          try {
+            await sendPasswordSetupEmail((user as any).email, (user as any).firstName || (user as any).email, tempPassword);
+          } catch { /* email failure is non-fatal; password was still reset */ }
+          return res.status(200).json({ success: true });
+        } catch (error: any) {
+          return res.status(500).json({ message: 'Failed to reset password' });
+        }
+      }
+
       // Handle /users/:id routes
       const idMatch = apiPath.match(/^\/users\/([^\/]+)$/);
       if (idMatch) {

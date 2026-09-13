@@ -43,6 +43,8 @@ import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.OnboardingScreen
 import fi.ksykmaps.ui.RoomFinderScreen
+import fi.ksykmaps.ui.BugReportScreen
+import fi.ksykmaps.ui.FeedbackScreen
 import fi.ksykmaps.ui.SettingsScreen
 import fi.ksykmaps.ui.TimetableScreen
 import fi.ksykmaps.ui.WilmaConnectScreen
@@ -298,6 +300,8 @@ private fun AppShell() {
                         )
                         subScreen == "beaconCapture" -> BeaconScreen()
                         subScreen == "logs" -> LogsScreen(onBack = { subScreen = null })
+                        subScreen == "feedback" -> FeedbackScreen(onBack = { subScreen = null })
+                        subScreen == "bugreport" -> BugReportScreen(onBack = { subScreen = null })
                         selectedTab == "home" -> HomeScreen(
                             onOpenRooms         = { subScreen = "rooms" },
                             onOpenBeacons       = {},
@@ -322,11 +326,13 @@ private fun AppShell() {
                             onOpenBeaconCapture = { subScreen = "beaconCapture" },
                         )
                         selectedTab == "settings" -> SettingsScreen(
-                            onSignOut  = { Session.clear(ctx) },
-                            onSignIn   = { showLogin = true },
-                            onOpenLogs = { subScreen = "logs" },
-                            onOpenAdmin = { selectedTab = "admin"; subScreen = null },
-                            onResetAll = { onboardingDone = false },
+                            onSignOut      = { Session.clear(ctx) },
+                            onSignIn       = { showLogin = true },
+                            onOpenLogs     = { subScreen = "logs" },
+                            onOpenAdmin    = { selectedTab = "admin"; subScreen = null },
+                            onResetAll     = { onboardingDone = false },
+                            onOpenFeedback  = { subScreen = "feedback" },
+                            onOpenBugReport = { subScreen = "bugreport" },
                         )
                     }
                 }
