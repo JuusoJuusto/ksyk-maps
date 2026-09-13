@@ -1070,6 +1070,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!admin) return;
         try {
           const announcement = await storage.createAnnouncement(filterAnnouncement(req.body));
+          // Fire FCM push to all registered devices — non-blocking, don't fail request if FCM errors
+          import('../server/fcm.js').then(({ broadcast }) => {
+            const t = announcement.titleFi ?? announcement.title ?? 'KSYK Maps';
+            const b = announcement.contentFi ?? announcement.content ?? '';
+            if (t && b) {
+              broadcast({ title: t, body: b, type: 'announcement', screen: 'news' })
+                .then(r => console.log(`[FCM] Announcement broadcast: sent=${r.sent} failed=${r.failed}`))
+                .catch(e => console.warn('[FCM] Broadcast failed:', e?.message));
+            }
+          }).catch(() => {});
           return res.status(201).json(announcement);
         } catch (e: any) {
           console.error('POST /api/announcements failed:', e?.message);
@@ -2289,6 +2299,88 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       } catch {
         return res.status(500).json({ message: 'Failed to fetch bug reports' });
       }
+    }
+
+    // POST /push-tokens — register or refresh an FCM device token (no auth required)
+    if (apiPath === '/push-tokens' && req.method === 'POST') {
+      const { fcmToken, platform, appVersion } = req.body || {};
+      if (!fcmToken?.trim()) return res.status(400).json({ message: 'fcmToken required' });
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        // Upsert — update updated_at and app_version when token already exists
+        await db.execute(sql`
+          INSERT INTO push_tokens (fcm_token, platform, app_version)
+          VALUES (${fcmToken.trim()}, ${platform || 'android'}, ${appVersion || null})
+          ON CONFLICT (fcm_token) DO UPDATE
+            SET updated_at = now(), app_version = EXCLUDED.app_version
+        `);
+        return res.status(200).json({ success: true });
+      } catch (e: any) {
+        console.error('POST /push-tokens error:', e?.message);
+        return res.status(500).json({ message: 'Failed to register token' });
+      }
+    }
+
+    // GET /push-tokens — admin only — list all registered tokens
+    if (apiPath === '/push-tokens' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const rows = await db.execute(sql`
+          SELECT COUNT(*) AS total,
+                 COUNT(*) FILTER (WHERE updated_at > now() - interval '30 days') AS active_30d
+          FROM push_tokens
+        `);
+        const data = (rows as any).rows?.[0] ?? (rows as any)[0] ?? {};
+        return res.status(200).json({
+          total: Number(data.total ?? 0),
+          active30d: Number(data.active_30d ?? 0),
+          configured: !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY),
+        });
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to fetch token stats' });
+      }
+    }
+
+    // POST /notifications/broadcast — send FCM push to ALL registered devices (admin only)
+    if (apiPath === '/notifications/broadcast' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      const { title, body: bodyText, type, screen } = req.body || {};
+      if (!title?.trim() || !bodyText?.trim()) return res.status(400).json({ message: 'title and body required' });
+      try {
+        const { broadcast } = await import('../server/fcm.js');
+        const result = await broadcast({ title: title.trim(), body: bodyText.trim(), type, screen });
+        return res.status(200).json(result);
+      } catch (e: any) {
+        console.error('POST /notifications/broadcast error:', e?.message);
+        return res.status(500).json({ message: 'Failed to send notifications' });
+      }
+    }
+
+    // POST /notifications/test — send a test push to all devices (admin only)
+    if (apiPath === '/notifications/test' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { broadcast } = await import('../server/fcm.js');
+        const result = await broadcast({
+          title: 'KSYK Maps — testi',
+          body: 'Testipush-ilmoitus hallintapaneelista.',
+          type: 'test',
+          screen: 'news',
+        });
+        return res.status(200).json(result);
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to send test notification' });
+      }
+    }
+
+    // GET /notifications/status — FCM config status (admin only)
+    if (apiPath === '/notifications/status' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      const { isFcmConfigured } = await import('../server/fcm.js');
+      return res.status(200).json({ configured: isFcmConfigured() });
     }
 
     // Email diagnostic endpoint — admin only (leaks config info)

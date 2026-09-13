@@ -4,17 +4,22 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.google.firebase.messaging.FirebaseMessaging
 import com.posthog.PostHog
 import com.posthog.android.PostHogAndroid
 import com.posthog.android.PostHogAndroidConfig
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.data.AppLog
 import fi.ksykmaps.ui.refreshServerMapDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -43,6 +48,7 @@ class KsykApp : Application() {
         initPostHog()
         createNotificationChannels()
         prefetchMapData()
+        registerFcmToken()
     }
 
     private fun initSentry() {
@@ -86,6 +92,23 @@ class KsykApp : Application() {
             )
         }.onFailure {
             android.util.Log.w("PostHog", "Init failed: ${it.message}")
+        }
+    }
+
+    private fun registerFcmToken() {
+        appScope.launch(Dispatchers.IO) {
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                val body = buildJsonObject {
+                    put("fcmToken", token)
+                    put("platform", "android")
+                    put("appVersion", BuildConfig.VERSION_NAME)
+                }
+                Api.post("/push-tokens", body)
+                AppLog.info("FCM", "Token registered on startup")
+            } catch (e: Exception) {
+                AppLog.warn("FCM", "Startup token registration failed: ${e.message}")
+            }
         }
     }
 
@@ -162,6 +185,12 @@ class KsykApp : Application() {
             "Tiedotteet",
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply { description = "Koulun tiedotteet ja ilmoitukset" })
+
+        nm.createNotificationChannel(NotificationChannel(
+            CHANNEL_PUSH,
+            "Push-ilmoitukset",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply { description = "Reaaliaikaiset ilmoitukset koulusta" })
     }
 
     companion object {
@@ -171,5 +200,6 @@ class KsykApp : Application() {
         const val CHANNEL_TIMETABLE  = "ksyk_timetable"
         const val CHANNEL_NAVIGATION = "ksyk_navigation"
         const val CHANNEL_GENERAL    = "ksyk_general"
+        const val CHANNEL_PUSH       = "ksyk_push"
     }
 }

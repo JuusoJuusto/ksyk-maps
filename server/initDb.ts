@@ -214,6 +214,18 @@ export async function ensureSchema(): Promise<void> {
         created_at  timestamp DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON app_bug_reports (created_at);
+
+      CREATE TABLE IF NOT EXISTS push_tokens (
+        id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id     varchar,
+        fcm_token   varchar   NOT NULL UNIQUE,
+        platform    varchar   NOT NULL DEFAULT 'android',
+        app_version varchar,
+        created_at  timestamptz DEFAULT now(),
+        updated_at  timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_push_tokens_user    ON push_tokens (user_id);
+      CREATE INDEX IF NOT EXISTS idx_push_tokens_updated ON push_tokens (updated_at);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

@@ -162,31 +162,68 @@ function NotificationsPanel({
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [priority, setPriority] = useState("normal");
   const [sending, setSending] = useState(false);
   const [lastSent, setLastSent] = useState<string | null>(null);
+  const [fcmStats, setFcmStats] = useState<{ total: number; active30d: number; configured: boolean } | null>(null);
+  const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+
+  // Load FCM stats on mount
+  useEffect(() => {
+    import("@/lib/adminAuth").then(({ getAdminHeaders }) => {
+      fetch("/api/push-tokens", { headers: getAdminHeaders() })
+        .then((r) => r.json())
+        .then(setFcmStats)
+        .catch(() => {});
+    });
+  }, []);
 
   const active = announcements.filter((a) => a.isActive);
 
-  const send = async (isTest: boolean) => {
-    const t = isTest ? "[TEST] App notification test" : title.trim();
-    const b = isTest ? "This is a test notification from the KSYK Maps admin panel." : body.trim();
+  const sendPush = async (isTest: boolean) => {
+    const t = isTest ? "KSYK Maps — testi" : title.trim();
+    const b = isTest ? "Testipush-ilmoitus hallintapaneelista." : body.trim();
     if (!t || !b) { toast({ title: "Fill in title and message", variant: "destructive" }); return; }
     setSending(true);
+    setLastResult(null);
     try {
       const { getAdminHeaders } = await import("@/lib/adminAuth");
-      const r = await fetch("/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
-        body: JSON.stringify({ title: t, content: b, priority, isActive: true }),
-      });
-      if (!r.ok) throw new Error("Failed");
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      setLastSent(t);
-      if (!isTest) { setTitle(""); setBody(""); }
-      toast({ title: isTest ? "Test notification sent" : "Notification sent", description: t });
-    } catch {
-      toast({ title: "Failed to send", variant: "destructive" });
+      if (isTest) {
+        // Test push — FCM only, no announcement stored
+        const r = await fetch("/api/notifications/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.message || "Failed");
+        setLastResult({ sent: data.sent ?? 0, failed: data.failed ?? 0, total: data.total ?? 0 });
+        toast({ title: `Test push sent to ${data.sent ?? 0} device(s)` });
+      } else {
+        // Real broadcast — create announcement (triggers FCM) + direct FCM broadcast
+        const [annRes, fcmRes] = await Promise.all([
+          fetch("/api/announcements", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+            body: JSON.stringify({ title: t, content: b, priority: "high", isActive: true }),
+          }),
+          fetch("/api/notifications/broadcast", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+            body: JSON.stringify({ title: t, body: b, type: "announcement", screen: "news" }),
+          }),
+        ]);
+        if (!annRes.ok) throw new Error("Failed to create announcement");
+        const fcmData = await fcmRes.json();
+        queryClient.invalidateQueries({ queryKey: ["announcements"] });
+        setLastSent(t);
+        setLastResult({ sent: fcmData.sent ?? 0, failed: fcmData.failed ?? 0, total: fcmData.total ?? 0 });
+        setTitle(""); setBody("");
+        toast({
+          title: "Sent!",
+          description: `Push delivered to ${fcmData.sent ?? 0} of ${fcmData.total ?? 0} devices.`,
+        });
+      }
+    } catch (e: any) {
+      toast({ title: "Failed to send", description: e?.message, variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -197,107 +234,114 @@ function NotificationsPanel({
       <div>
         <h2 className="text-xl font-bold">Push Notifications</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Send in-app banners to all users. Messages appear in the Announcements screen immediately.
+          Send real FCM push notifications to every installed KSYK Maps device.
         </p>
       </div>
 
-      {/* Status row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {/* FCM + announcement stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className={fcmStats?.configured ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"}>
+          <CardContent className="p-4">
+            <p className={`text-xs font-semibold uppercase tracking-wide ${fcmStats?.configured ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>FCM</p>
+            <p className={`text-lg font-bold ${fcmStats?.configured ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>
+              {fcmStats === null ? "…" : fcmStats.configured ? "Ready" : "Not set up"}
+            </p>
+            <p className={`text-xs mt-0.5 ${fcmStats?.configured ? "text-green-500" : "text-amber-500"}`}>Firebase Admin SDK</p>
+          </CardContent>
+        </Card>
         <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
           <CardContent className="p-4">
-            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Active</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{active.length}</p>
-            <p className="text-xs text-blue-500 mt-0.5">live announcements</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Devices</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{fcmStats?.total ?? "…"}</p>
+            <p className="text-xs text-blue-500 mt-0.5">registered tokens</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Total sent</p>
-            <p className="text-2xl font-bold">{announcements.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">all time</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active 30d</p>
+            <p className="text-2xl font-bold">{fcmStats?.active30d ?? "…"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">recent devices</p>
           </CardContent>
         </Card>
-        {lastSent && (
+        {lastResult ? (
           <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
             <CardContent className="p-4 flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-green-600 font-semibold">Last sent</p>
-                <p className="text-xs text-green-700 dark:text-green-300 truncate">{lastSent}</p>
+                <p className="text-xs text-green-600 font-semibold">Last result</p>
+                <p className="text-xs text-green-700 dark:text-green-300">{lastResult.sent}/{lastResult.total} delivered</p>
               </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Announcements</p>
+              <p className="text-2xl font-bold">{announcements.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">all time</p>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* FCM not configured warning */}
+      {fcmStats && !fcmStats.configured && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+          <CardContent className="p-4 flex gap-3">
+            <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800 dark:text-amber-300">
+              <p className="font-semibold mb-1">FCM not configured</p>
+              <p className="text-amber-700 dark:text-amber-400 text-xs">
+                Set <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_PROJECT_ID</code>,{" "}
+                <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_CLIENT_EMAIL</code> and{" "}
+                <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_PRIVATE_KEY</code> environment variables on the server.
+                Announcements will still be saved but push delivery will be skipped.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Compose form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Send className="h-4 w-4" />
-            Send Notification
+            Lähetä kaikille (Send to all)
           </CardTitle>
           <CardDescription>
-            Creates a new announcement visible to all app users immediately.
+            Creates an announcement AND sends a real FCM push notification to every registered device.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-sm font-medium">Otsikko (Title)</label>
             <Input
-              placeholder="e.g. School closed tomorrow"
+              placeholder="e.g. Koulu kiinni huomenna"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={sending}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Message</label>
+            <label className="text-sm font-medium">Viesti (Message)</label>
             <textarea
               className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Write the full notification message here…"
+              placeholder="Kirjoita ilmoitus tähän…"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               disabled={sending}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Priority</label>
-            <select
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              disabled={sending}
-            >
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => send(false)} disabled={sending || !title.trim() || !body.trim()} className="gap-1.5">
+            <Button onClick={() => sendPush(false)} disabled={sending || !title.trim() || !body.trim()} className="gap-1.5">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Send to all users
+              Lähetä kaikille
             </Button>
-            <Button variant="outline" onClick={() => send(true)} disabled={sending} className="gap-1.5">
+            <Button variant="outline" onClick={() => sendPush(true)} disabled={sending} className="gap-1.5">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Info className="h-4 w-4" />}
-              Send test
+              Lähetä testi
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Info card */}
-      <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-        <CardContent className="p-4 flex gap-3">
-          <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-800 dark:text-amber-300">
-            <p className="font-semibold mb-1">How notifications work</p>
-            <p className="text-amber-700 dark:text-amber-400">
-              Notifications are in-app announcements — they appear in the Announcements tab when users open the app.
-              Device push notifications (FCM) are not yet configured. Manage all announcements from the{" "}
-              <button className="underline font-medium" onClick={() => navigate("announcements")}>Announcements tab</button>.
-            </p>
           </div>
         </CardContent>
       </Card>
