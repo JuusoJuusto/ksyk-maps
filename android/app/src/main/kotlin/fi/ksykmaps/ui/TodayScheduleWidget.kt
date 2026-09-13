@@ -63,10 +63,10 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val isCurrent: Boolean,
         )
 
-        private val rowIds     = listOf(R.id.row1, R.id.row2, R.id.row3, R.id.row4)
-        private val timeIds    = listOf(R.id.time1, R.id.time2, R.id.time3, R.id.time4)
-        private val subjectIds = listOf(R.id.subject1, R.id.subject2, R.id.subject3, R.id.subject4)
-        private val roomIds    = listOf(R.id.room1, R.id.room2, R.id.room3, R.id.room4)
+        private val rowIds     = listOf(R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5, R.id.row6)
+        private val timeIds    = listOf(R.id.time1, R.id.time2, R.id.time3, R.id.time4, R.id.time5, R.id.time6)
+        private val subjectIds = listOf(R.id.subject1, R.id.subject2, R.id.subject3, R.id.subject4, R.id.subject5, R.id.subject6)
+        private val roomIds    = listOf(R.id.room1, R.id.room2, R.id.room3, R.id.room4, R.id.room5, R.id.room6)
 
         private fun toMins(hhmm: String): Int {
             val parts = hhmm.split(":")
@@ -128,13 +128,20 @@ class TodayScheduleWidget : AppWidgetProvider() {
             }
             views.setTextViewText(R.id.widget_day, "$dayAbbr · $datePart")
 
-            // Scalable text based on widget width
-            val widgetWidth = manager.getAppWidgetOptions(id)
-                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            // Scalable text and row count based on widget dimensions
+            val opts = manager.getAppWidgetOptions(id)
+            val widgetWidth  = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            val widgetHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180)
             val (timeSize, subjectSize, roomSize) = when {
                 widgetWidth < 200 -> Triple(9f, 11f, 9f)
                 widgetWidth > 280 -> Triple(12f, 15f, 11f)
                 else              -> Triple(10f, 13f, 10f)
+            }
+            // Each lesson row is ~30dp tall; header ~24dp; padding ~28dp
+            val maxRows = when {
+                widgetHeight > 300 -> 6
+                widgetHeight > 220 -> 5
+                else               -> 4
             }
 
             val lessons = if (raw != null) todayLessons(raw, nowMins, activeJakso, displayDate.dayOfWeek.value) else emptyList()
@@ -144,7 +151,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
                 rowIds.forEach { views.setViewVisibility(it, View.GONE) }
             } else {
                 views.setViewVisibility(R.id.widget_empty, View.GONE)
-                lessons.take(4).forEachIndexed { i, lesson ->
+                lessons.take(maxRows).forEachIndexed { i, lesson ->
                     views.setViewVisibility(rowIds[i], View.VISIBLE)
 
                     val timeColor    = if (lesson.isCurrent) Color.parseColor("#EEFFFFFF") else Color.parseColor("#88FFFFFF")
@@ -164,7 +171,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextColor(roomIds[i], roomColor)
                     views.setTextViewTextSize(roomIds[i], TypedValue.COMPLEX_UNIT_SP, roomSize)
                 }
-                for (i in lessons.size until 4) {
+                for (i in lessons.size.coerceAtMost(maxRows) until rowIds.size) {
                     views.setViewVisibility(rowIds[i], View.GONE)
                 }
             }

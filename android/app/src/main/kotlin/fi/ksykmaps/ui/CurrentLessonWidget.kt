@@ -7,6 +7,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Bundle
+import android.util.TypedValue
 import android.widget.RemoteViews
 import fi.ksykmaps.R
 import org.json.JSONArray
@@ -28,6 +30,11 @@ class CurrentLessonWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, newOptions: Bundle) {
+        super.onAppWidgetOptionsChanged(context, manager, id, newOptions)
+        updateWidget(context, manager, id)
+    }
+
     companion object {
         private fun launchPendingIntent(context: Context): PendingIntent {
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -45,6 +52,19 @@ class CurrentLessonWidget : AppWidgetProvider() {
             val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_current_lesson)
             views.setOnClickPendingIntent(R.id.widget_root, launchPendingIntent(context))
+
+            // Adaptive text sizes
+            val widgetWidth = manager.getAppWidgetOptions(id)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            val (subjectSize, detailSize, metaSize) = when {
+                widgetWidth < 200 -> Triple(14f, 10f, 9f)
+                widgetWidth > 280 -> Triple(20f, 13f, 11f)
+                else              -> Triple(17f, 11f, 9f)
+            }
+            views.setTextViewTextSize(R.id.widget_subject, TypedValue.COMPLEX_UNIT_SP, subjectSize)
+            views.setTextViewTextSize(R.id.widget_details, TypedValue.COMPLEX_UNIT_SP, detailSize)
+            views.setTextViewTextSize(R.id.widget_until, TypedValue.COMPLEX_UNIT_SP, metaSize)
+            views.setTextViewTextSize(R.id.widget_remaining, TypedValue.COMPLEX_UNIT_SP, metaSize)
             val now = LocalTime.now()
             val nowMins = now.hour * 60 + now.minute
             val current = if (raw != null) findCurrent(raw, nowMins, activeJakso) else null

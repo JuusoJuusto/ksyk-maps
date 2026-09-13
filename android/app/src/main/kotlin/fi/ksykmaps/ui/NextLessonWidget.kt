@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.util.TypedValue
 import android.widget.RemoteViews
 import fi.ksykmaps.R
 import org.json.JSONArray
@@ -25,6 +27,11 @@ class NextLessonWidget : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(ComponentName(context, NextLessonWidget::class.java))
             ids.forEach { updateWidget(context, manager, it) }
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, newOptions: Bundle) {
+        super.onAppWidgetOptionsChanged(context, manager, id, newOptions)
+        updateWidget(context, manager, id)
     }
 
     companion object {
@@ -61,6 +68,19 @@ class NextLessonWidget : AppWidgetProvider() {
                 R.id.widget_label,
                 if (lang == "fi") "SEURAAVA TUNTI" else "NEXT LESSON"
             )
+
+            // Adaptive text sizes based on widget width
+            val widgetWidth = manager.getAppWidgetOptions(id)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            val (subjectSize, detailSize, countdownSize) = when {
+                widgetWidth < 200 -> Triple(14f, 10f, 9f)
+                widgetWidth > 280 -> Triple(20f, 13f, 11f)
+                else              -> Triple(17f, 11f, 10f)
+            }
+            views.setTextViewTextSize(R.id.widget_subject, TypedValue.COMPLEX_UNIT_SP, subjectSize)
+            views.setTextViewTextSize(R.id.widget_details, TypedValue.COMPLEX_UNIT_SP, detailSize)
+            views.setTextViewTextSize(R.id.widget_countdown, TypedValue.COMPLEX_UNIT_SP, countdownSize)
+
             val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
             val next = if (raw != null) findNext(raw, nowMins, activeJakso) else null
 
