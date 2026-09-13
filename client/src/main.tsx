@@ -3,6 +3,7 @@ import App from "./App";
 import "./index.css";
 import { runBootCleanup } from "./lib/bootCleanup";
 import "./lib/posthog";
+import "./lib/firebase";
 import { initSentry } from "./lib/sentry";
 
 // Initialise Sentry as early as possible in the app lifecycle so it can

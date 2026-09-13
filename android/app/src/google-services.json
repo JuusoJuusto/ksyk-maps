@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "858419157963",
+    "project_id": "ksykmaps-7110c",
+    "storage_bucket": "ksykmaps-7110c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:858419157963:android:df3f34196eb3e1c53bf44e",
+        "android_client_info": {
+          "package_name": "fi.ksykmaps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCff4Iag5PNi4N0lZgEzcGVXIHO85FYlgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

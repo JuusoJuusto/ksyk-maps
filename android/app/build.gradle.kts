@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -140,9 +141,11 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk:11.5.2")
     implementation("org.maplibre.gl:android-plugin-annotation-v9:3.0.1")
 
-    // Background work — periodic announcement poll for push-style
-    // notifications (no FCM). WorkManager handles Doze / battery
-    // optimisation for us.
+    // Firebase — FCM push notifications
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation("com.google.firebase:firebase-messaging")
+
+    // Background work — WorkManager for scheduled tasks / battery-safe work.
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Storage
