@@ -6,6 +6,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +79,20 @@ private fun buildPages(lang: String): List<OnboardPage> {
             title = if (fi) "Tervetuloa KSYK Mapsiin" else "Welcome to KSYK Maps",
             subtitle = if (fi) "Navigoi kampuksella, löydä luokat ja seuraa lukujärjestystäsi — kaikki yhdessä paikassa."
                        else "Navigate campus, find classrooms, and follow your timetable — all in one place.",
+        ),
+        OnboardPage.Standard(
+            icon = Icons.Outlined.CalendarMonth,
+            accent = ONBOARD_VIOLET,
+            title = if (fi) "Lukujärjestys taskussasi" else "Timetable in your pocket",
+            subtitle = if (fi) "Tuo tunnit Wilmasta automaattisesti tai lisää ne käsin. Navigoi suoraan luokkaan yhdellä napin painalluksella."
+                       else "Import lessons from Wilma automatically or add them manually. Navigate straight to the classroom with one tap.",
+        ),
+        OnboardPage.Standard(
+            icon = Icons.Outlined.NotificationsActive,
+            accent = ONBOARD_BLUE,
+            title = if (fi) "Muistutukset ajoissa" else "Reminders on time",
+            subtitle = if (fi) "Saat muistutuksen ennen jokaista tuntia. Ei enää myöhästymisiä."
+                       else "Get a reminder before every lesson. No more being late.",
         ),
         OnboardPage.NameInput(),
         OnboardPage.WilmaSetup(),
@@ -405,9 +421,14 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String,
     val fi = lang == "fi"
     val keyboard = LocalSoftwareKeyboardController.current
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 32.dp),
+        Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
     ) {
         Box(
             Modifier

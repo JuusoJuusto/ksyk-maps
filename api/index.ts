@@ -2231,7 +2231,67 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
-    // Email diagnostic endpoint â€” admin only (leaks config info)
+    // POST /feedback — store in-app feedback (no auth required)
+    if (apiPath === '/feedback' && req.method === 'POST') {
+      const { category, message, appVersion, deviceInfo } = req.body || {};
+      if (!message?.trim()) return res.status(400).json({ message: 'Message required' });
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        await db.execute(sql`
+          INSERT INTO app_feedback (category, message, app_version, device_info)
+          VALUES (${category || 'general'}, ${message.trim()}, ${appVersion || null}, ${deviceInfo || null})
+        `);
+        return res.status(201).json({ success: true });
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to save feedback' });
+      }
+    }
+
+    // GET /feedback — admin only
+    if (apiPath === '/feedback' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const rows = await db.execute(sql`SELECT * FROM app_feedback ORDER BY created_at DESC LIMIT 200`);
+        return res.status(200).json(rows.rows ?? rows);
+      } catch {
+        return res.status(500).json({ message: 'Failed to fetch feedback' });
+      }
+    }
+
+    // POST /bug-reports — store bug report (no auth required)
+    if (apiPath === '/bug-reports' && req.method === 'POST') {
+      const { description, steps, appVersion, deviceInfo } = req.body || {};
+      if (!description?.trim()) return res.status(400).json({ message: 'Description required' });
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        await db.execute(sql`
+          INSERT INTO app_bug_reports (description, steps, app_version, device_info)
+          VALUES (${description.trim()}, ${steps?.trim() || null}, ${appVersion || null}, ${deviceInfo || null})
+        `);
+        return res.status(201).json({ success: true });
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to save bug report' });
+      }
+    }
+
+    // GET /bug-reports — admin only
+    if (apiPath === '/bug-reports' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const rows = await db.execute(sql`SELECT * FROM app_bug_reports ORDER BY created_at DESC LIMIT 200`);
+        return res.status(200).json(rows.rows ?? rows);
+      } catch {
+        return res.status(500).json({ message: 'Failed to fetch bug reports' });
+      }
+    }
+
+    // Email diagnostic endpoint — admin only (leaks config info)
     if (apiPath === '/email-diagnostic' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
       return res.status(200).json({

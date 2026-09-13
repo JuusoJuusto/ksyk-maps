@@ -1,6 +1,5 @@
 package fi.ksykmaps.ui
 
-import android.content.Intent
 import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,23 +17,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.ksykmaps.BuildConfig
+import fi.ksykmaps.data.Api
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedbackScreen(onBack: () -> Unit) {
     val ctx = LocalContext.current
     val isFi = getAppLanguage(ctx) == "fi"
+    val scope = rememberCoroutineScope()
 
     val categories = if (isFi)
         listOf("Yleinen", "Ehdotus", "Kiitos", "Muu")
     else
         listOf("General", "Suggestion", "Compliment", "Other")
 
+    val categoryKeys = listOf("general", "suggestion", "compliment", "other")
+
     var selectedCategory by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
+    var success by remember { mutableStateOf(false) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    val deviceInfo = remember {
+        "v${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} · ${Build.MANUFACTURER} ${Build.MODEL}"
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -58,10 +77,43 @@ fun FeedbackScreen(onBack: () -> Unit) {
         },
     ) { pad ->
         LazyColumn(
-            Modifier.fillMaxSize().padding(pad),
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .imePadding()
+                .padding(pad),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            if (success) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF10B981).copy(alpha = 0.12f),
+                        ),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                    ) {
+                        Row(
+                            Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.CheckCircle, null,
+                                Modifier.size(24.dp),
+                                tint = Color(0xFF10B981),
+                            )
+                            Text(
+                                if (isFi) "Palaute lähetetty! Kiitos." else "Feedback sent! Thank you.",
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF10B981),
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -142,32 +194,41 @@ fun FeedbackScreen(onBack: () -> Unit) {
             item {
                 Button(
                     onClick = {
-                        val text = buildString {
-                            appendLine("KSYK Maps — ${if (isFi) "Palaute" else "Feedback"}")
-                            appendLine("${if (isFi) "Kategoria" else "Category"}: ${categories[selectedCategory]}")
-                            appendLine()
-                            appendLine(message.trim())
-                            appendLine()
-                            appendLine("---")
-                            appendLine("v${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} · ${Build.MODEL}")
+                        if (loading || success) return@Button
+                        scope.launch {
+                            loading = true
+                            errorMsg = null
+                            try {
+                                val body = buildJsonObject {
+                                    put("category", categoryKeys[selectedCategory])
+                                    put("message", message.trim())
+                                    put("appVersion", BuildConfig.VERSION_NAME)
+                                    put("deviceInfo", deviceInfo)
+                                }
+                                withContext(Dispatchers.IO) { Api.post("/feedback", body) }
+                                success = true
+                            } catch (e: Exception) {
+                                errorMsg = if (isFi) "Lähetys epäonnistui. Yritä uudelleen." else "Failed to send. Please try again."
+                                snackbarHostState.showSnackbar(errorMsg ?: "Error")
+                            } finally {
+                                loading = false
+                            }
                         }
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps ${if (isFi) "Palaute" else "Feedback"}")
-                            putExtra(Intent.EXTRA_TEXT, text)
-                        }
-                        try {
-                            ctx.startActivity(
-                                Intent.createChooser(intent, if (isFi) "Jaa palaute" else "Share feedback")
-                            )
-                        } catch (_: Exception) {}
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = message.isNotBlank(),
+                    enabled = message.isNotBlank() && !loading && !success,
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 14.dp),
                 ) {
-                    Icon(Icons.Outlined.Send, null, Modifier.size(18.dp))
+                    if (loading) {
+                        CircularProgressIndicator(
+                            Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(Icons.Outlined.Send, null, Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (isFi) "Lähetä palaute" else "Send feedback",
@@ -186,6 +247,7 @@ fun FeedbackScreen(onBack: () -> Unit) {
 fun BugReportScreen(onBack: () -> Unit) {
     val ctx = LocalContext.current
     val isFi = getAppLanguage(ctx) == "fi"
+    val scope = rememberCoroutineScope()
 
     val deviceInfo = remember {
         "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
@@ -195,9 +257,15 @@ fun BugReportScreen(onBack: () -> Unit) {
 
     var description by remember { mutableStateOf("") }
     var steps by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
+    var success by remember { mutableStateOf(false) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -221,10 +289,43 @@ fun BugReportScreen(onBack: () -> Unit) {
         },
     ) { pad ->
         LazyColumn(
-            Modifier.fillMaxSize().padding(pad),
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .imePadding()
+                .padding(pad),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            if (success) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF10B981).copy(alpha = 0.12f),
+                        ),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                    ) {
+                        Row(
+                            Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.CheckCircle, null,
+                                Modifier.size(24.dp),
+                                tint = Color(0xFF10B981),
+                            )
+                            Text(
+                                if (isFi) "Vikailmoitus lähetetty! Kiitos." else "Bug report sent! Thank you.",
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF10B981),
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     shape = RoundedCornerShape(12.dp),
@@ -301,34 +402,30 @@ fun BugReportScreen(onBack: () -> Unit) {
             item {
                 Button(
                     onClick = {
-                        val text = buildString {
-                            appendLine("KSYK Maps — Bug Report")
-                            appendLine("${if (isFi) "Laite" else "Device"}: $deviceInfo")
-                            appendLine()
-                            appendLine("${if (isFi) "Kuvaus" else "Description"}:")
-                            appendLine(description.trim())
-                            if (steps.isNotBlank()) {
-                                appendLine()
-                                appendLine("${if (isFi) "Toistamisohjeet" else "Steps to reproduce"}:")
-                                appendLine(steps.trim())
+                        if (loading || success) return@Button
+                        scope.launch {
+                            loading = true
+                            errorMsg = null
+                            try {
+                                val body = buildJsonObject {
+                                    put("description", description.trim())
+                                    val stepsVal = steps.trim()
+                                    if (stepsVal.isNotBlank()) put("steps", stepsVal) else put("steps", JsonNull)
+                                    put("appVersion", BuildConfig.VERSION_NAME)
+                                    put("deviceInfo", deviceInfo)
+                                }
+                                withContext(Dispatchers.IO) { Api.post("/bug-reports", body) }
+                                success = true
+                            } catch (e: Exception) {
+                                errorMsg = if (isFi) "Lähetys epäonnistui. Yritä uudelleen." else "Failed to send. Please try again."
+                                snackbarHostState.showSnackbar(errorMsg ?: "Error")
+                            } finally {
+                                loading = false
                             }
                         }
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps Bug Report")
-                            putExtra(Intent.EXTRA_TEXT, text)
-                        }
-                        try {
-                            ctx.startActivity(
-                                Intent.createChooser(
-                                    intent,
-                                    if (isFi) "Jaa vikailmoitus" else "Share bug report",
-                                )
-                            )
-                        } catch (_: Exception) {}
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = description.isNotBlank(),
+                    enabled = description.isNotBlank() && !loading && !success,
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 14.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -336,7 +433,15 @@ fun BugReportScreen(onBack: () -> Unit) {
                         contentColor = Color.White,
                     ),
                 ) {
-                    Icon(Icons.Outlined.BugReport, null, Modifier.size(18.dp))
+                    if (loading) {
+                        CircularProgressIndicator(
+                            Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(Icons.Outlined.BugReport, null, Modifier.size(18.dp))
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (isFi) "Lähetä vikailmoitus" else "Send bug report",

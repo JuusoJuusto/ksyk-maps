@@ -57,6 +57,7 @@ import {
   Send,
   CheckCircle2,
   Info,
+  MessageSquare,
 } from "lucide-react";
 
 interface Building {
@@ -119,7 +120,7 @@ const ADMIN_BASE = "/admin";
 // concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "tickets","logs","analytics","staff","announcements","notifications","beacons","2fa","settings",
+  "tickets","logs","analytics","staff","announcements","notifications","feedback","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -324,6 +325,91 @@ function NotificationsPanel({
             ))}
           </CardContent>
         </Card>
+      )}
+    </div>
+  );
+}
+
+function FeedbackPanel() {
+  const [tab, setTab] = useState<"feedback" | "bugs">("feedback");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const endpoint = tab === "feedback" ? "/api/feedback" : "/api/bug-reports";
+    setLoading(true);
+    fetch(endpoint, { headers: getAdminHeaders() })
+      .then((r) => r.json())
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [tab]);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold">Feedback & Bug Reports</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Submitted from the KSYK Maps mobile app.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setTab("feedback")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+        >
+          Feedback ({tab === "feedback" ? items.length : "…"})
+        </button>
+        <button
+          onClick={() => setTab("bugs")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "bugs" ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+        >
+          Bug Reports ({tab === "bugs" ? items.length : "…"})
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : items.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p>No {tab === "feedback" ? "feedback" : "bug reports"} yet.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {items.map((item: any) => (
+            <Card key={item.id}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {tab === "feedback" && (
+                      <Badge variant="secondary">{item.category || "general"}</Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString("fi-FI")}
+                    </span>
+                  </div>
+                  {item.app_version && (
+                    <span className="text-xs text-muted-foreground font-mono">{item.app_version}</span>
+                  )}
+                </div>
+                <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
+                {item.steps && (
+                  <div className="mt-2 p-2 rounded bg-muted/50">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Steps to reproduce:</p>
+                    <p className="text-xs whitespace-pre-wrap">{item.steps}</p>
+                  </div>
+                )}
+                {item.device_info && (
+                  <p className="text-xs text-muted-foreground font-mono">{item.device_info}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -629,6 +715,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
     { value: "staff", label: "Staff", Icon: IdCard },
     { value: "announcements", label: "Announcements", Icon: Megaphone },
     { value: "notifications", label: "Notifications", Icon: Bell },
+    { value: "feedback", label: "Feedback", Icon: MessageSquare },
     ...(isOwner ? [{ value: "beacons", label: "Wi-Fi", Icon: Radio }] : []),
     ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
@@ -636,7 +723,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
 
   const NAV_GROUPS: { label: string; values: string[] }[] = [
     { label: "Overview",   values: ["overview", "analytics"] },
-    { label: "Content",    values: ["announcements", "tickets", "staff"] },
+    { label: "Content",    values: ["announcements", "tickets", "staff", "feedback"] },
     { label: "Data",       values: ["campus-map", "__builder", "logs"] },
     { label: "People",     values: ["users"] },
     { label: "Safety",     values: ["security", "notifications"] },
@@ -1890,6 +1977,10 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
 
         <TabsContent value="notifications" className="mt-0 space-y-6">
           <NotificationsPanel queryClient={queryClient} toast={toast} announcements={announcements as Announcement[]} navigate={navigate} />
+        </TabsContent>
+
+        <TabsContent value="feedback" className="mt-0 space-y-6">
+          <FeedbackPanel />
         </TabsContent>
 
         {isOwner && (

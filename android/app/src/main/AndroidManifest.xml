@@ -114,6 +114,8 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
+                <action android:name="fi.ksykmaps.WIDGET_TODAY_PREV" />
+                <action android:name="fi.ksykmaps.WIDGET_TODAY_NEXT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
