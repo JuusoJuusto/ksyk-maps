@@ -49,10 +49,11 @@ class LessonReminderReceiver : BroadcastReceiver() {
                 if (roomNumber.isNotBlank()) append(" · $roomWord $roomNumber")
                 if (teacher.isNotBlank()) append(" · $teacher")
             }
+            val leadMin = LessonReminderScheduler.leadMinutes(context)
             val title = if (lang == "fi")
-                "Tunti alkaa ${LessonReminderScheduler.REMINDER_MINUTES} minuutin päästä"
+                "Tunti alkaa $leadMin minuutin päästä"
             else
-                "Lesson in ${LessonReminderScheduler.REMINDER_MINUTES} min"
+                "Lesson in $leadMin min"
 
             val notif = NotificationCompat.Builder(context, KsykApp.CHANNEL_TIMETABLE)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)

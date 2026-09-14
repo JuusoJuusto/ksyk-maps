@@ -18,7 +18,27 @@ private fun hhmm(s: String): Int {
 }
 
 object LessonReminderScheduler {
-    const val REMINDER_MINUTES = 5L
+    /** Default lead time in minutes if user hasn't overridden it in Settings. */
+    private const val DEFAULT_REMINDER_MINUTES = 5L
+    private const val PREFS_REMINDER = "ksyk_prefs"
+    private const val KEY_LEAD_MINUTES = "reminder_lead_minutes"
+
+    /**
+     * Read the user-configured reminder lead time (Settings → Notifications).
+     * Falls back to 5 minutes if unset or the stored value is out of range.
+     */
+    fun leadMinutes(context: Context): Long {
+        return try {
+            val v = context.getSharedPreferences(PREFS_REMINDER, Context.MODE_PRIVATE)
+                .getInt(KEY_LEAD_MINUTES, DEFAULT_REMINDER_MINUTES.toInt())
+            v.coerceIn(0, 60).toLong()
+        } catch (_: Throwable) { DEFAULT_REMINDER_MINUTES }
+    }
+
+    fun setLeadMinutes(context: Context, minutes: Int) {
+        context.getSharedPreferences(PREFS_REMINDER, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_LEAD_MINUTES, minutes.coerceIn(0, 60)).apply()
+    }
     private const val REQUEST_CODE = 42_001
 
     /**
@@ -51,7 +71,7 @@ object LessonReminderScheduler {
                         val h = parts[0].toIntOrNull() ?: return@mapNotNull null
                         val m = parts[1].toIntOrNull() ?: return@mapNotNull null
                         val reminderTime = LocalDateTime.of(day, LocalTime.of(h, m))
-                            .minusMinutes(REMINDER_MINUTES)
+                            .minusMinutes(leadMinutes(context))
                         if (reminderTime.isAfter(now)) Pair(entry, reminderTime) else null
                     }
                     .asSequence()

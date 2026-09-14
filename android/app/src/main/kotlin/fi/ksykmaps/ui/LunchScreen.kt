@@ -474,27 +474,35 @@ private fun groupByCategory(dishes: List<Dish>): List<DishGroup> {
 
 @Composable
 private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
+    // v1.83.0: per-category emoji + tint. Makes the daily menu easier
+    // to scan at a glance ("what's the veggie option today?") without
+    // requiring an actual icon font.
+    val (emoji, tint) = categoryLook(group.category)
+
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (!group.category.isNullOrBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
-                            .size(6.dp)
+                            .size(28.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                    Spacer(Modifier.width(8.dp))
+                            .background(tint.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, fontSize = 15.sp)
+                    }
+                    Spacer(Modifier.width(10.dp))
                     Text(
                         group.category,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = tint,
                         letterSpacing = 0.4.sp,
                     )
                 }
@@ -507,13 +515,43 @@ private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
                 }
                 Text(
                     text,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 20.sp,
+                    lineHeight = 22.sp,
                 )
             }
         }
+    }
+}
+
+/**
+ * Deterministic (emoji, tint color) for a menu category based on Finnish
+ * keywords. Falls back to a neutral utensil icon and the primary color.
+ */
+@Composable
+private fun categoryLook(category: String?): Pair<String, Color> {
+    val text = (category ?: "").lowercase()
+    return when {
+        text.contains("kasvis") || text.contains("vegaani") || text.contains("vege") ->
+            "🥗" to Color(0xFF10B981)   // green
+        text.contains("kala") || text.contains("lohi") ->
+            "🐟" to Color(0xFF06B6D4)   // cyan
+        text.contains("kana") || text.contains("kalkkuna") || text.contains("broiler") ->
+            "🍗" to Color(0xFFF59E0B)   // amber
+        text.contains("nauda") || text.contains("liha") || text.contains("pihvi") || text.contains("jauhe") ->
+            "🥩" to Color(0xFFEF4444)   // red
+        text.contains("keitto") || text.contains("soppa") ->
+            "🍲" to Color(0xFFEA580C)   // orange
+        text.contains("keto") || text.contains("nopea") ->
+            "⚡" to Color(0xFF8B5CF6)   // violet
+        text.contains("jälki") || text.contains("makea") ->
+            "🍰" to Color(0xFFEC4899)   // pink
+        text.contains("salaat") ->
+            "🥬" to Color(0xFF22C55E)   // grass
+        text.contains("leipä") || text.contains("piira") ->
+            "🥖" to Color(0xFFCA8A04)   // gold
+        else -> "🍽️" to MaterialTheme.colorScheme.primary
     }
 }
 

@@ -18,6 +18,7 @@ import StudentLoginGate from "@/components/StudentLoginGate";
 // out of the initial bundle.
 const CampusSettingsPanel = lazy(() => import("@/components/CampusSettingsPanel"));
 import AccessLockoutScreen from "@/components/AccessLockoutScreen";
+import GetAppPopup from "@/components/GetAppPopup";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ export default function KSYKMapsHome() {
        *  issue because its main wrapper isn't overflow-hidden). */}
       <div className="flex-1 relative min-h-0">
         <KSYKMapView searchQuery={searchQuery} />
+        <GetAppPopup />
 
         {settingsOpen && (
           <div

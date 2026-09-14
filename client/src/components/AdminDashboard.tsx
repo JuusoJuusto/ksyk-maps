@@ -2437,94 +2437,13 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
         {isOwner && (
           <TabsContent value="settings" className="mt-0 space-y-6">
             <AppSettingsManager />
-
-          {/* Danger Zone - Complete Data Cleanup */}
-          <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
-            <CardHeader>
-              <CardTitle className="text-red-800 dark:text-red-300 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Danger Zone - Complete Data Cleanup
-              </CardTitle>
-              <CardDescription className="text-red-700 dark:text-red-400">
-                ⚠️ This will permanently delete ALL buildings, rooms, hallways, stairs, announcements, and staff data. This action cannot be undone!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Alert className="border-red-300 dark:border-red-700 bg-red-100 dark:bg-red-950/50">
-                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <AlertDescription className="text-red-800 dark:text-red-300">
-                    <strong>WARNING:</strong> This will completely empty the map and remove all data:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>All buildings and their floor plans</li>
-                      <li>All rooms, hallways, and stairs</li>
-                      <li>All announcements and staff information</li>
-                      <li>All map data and configurations</li>
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="danger-confirm" className="text-xs font-semibold text-red-700 dark:text-red-400">
-                      Type <code className="font-mono bg-red-100 dark:bg-red-950/50 px-1 rounded">DELETE_EVERYTHING</code> to unlock
-                    </Label>
-                    <Input
-                      id="danger-confirm"
-                      value={dangerInput}
-                      onChange={(e) => setDangerInput(e.target.value)}
-                      placeholder="Type exactly to unlock…"
-                      className="border-red-300 dark:border-red-700 focus-visible:ring-red-400 font-mono text-sm"
-                      disabled={dangerDeleting}
-                    />
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-40"
-                    disabled={dangerInput !== "DELETE_EVERYTHING" || dangerDeleting}
-                    onClick={async () => {
-                      setDangerDeleting(true);
-                      try {
-                        const _adminTok = localStorage.getItem('ksyk_admin_token');
-                        const response = await fetch('/api/admin/cleanup-all', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            ...(_adminTok ? { 'Authorization': `Bearer ${_adminTok}` } : {}),
-                          },
-                          credentials: 'include',
-                          body: JSON.stringify({ confirmDelete: 'DELETE_EVERYTHING' })
-                        });
-                        const result = await response.json();
-                        if (response.ok) {
-                          toast({
-                            title: "All data deleted",
-                            description: `Buildings: ${result.deleted?.buildings ?? 0} · Rooms: ${result.deleted?.rooms ?? 0} · Staff: ${result.deleted?.staff ?? 0}`,
-                          });
-                          queryClient.invalidateQueries({ queryKey: ["buildings"] });
-                          queryClient.invalidateQueries({ queryKey: ["rooms"] });
-                          queryClient.invalidateQueries({ queryKey: ["announcements"] });
-                          queryClient.invalidateQueries({ queryKey: ["staff"] });
-                          setDangerInput("");
-                        } else {
-                          toast({ title: "Delete failed", description: result.message, variant: "destructive" });
-                        }
-                      } catch (error: any) {
-                        toast({ title: "Error", description: error.message, variant: "destructive" });
-                      } finally {
-                        setDangerDeleting(false);
-                      }
-                    }}
-                  >
-                    {dangerDeleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                    DELETE ALL MAP DATA
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {/*
+              v1.83.0 — 'Delete ALL map data' removed on user request.
+              Individual delete flows in Buildings / Rooms / Staff /
+              Announcements still work; the nuclear option was too easy
+              to trigger and had no undo path.
+            */}
+          </TabsContent>
         )}
           </div>
         </div>

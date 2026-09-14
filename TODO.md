@@ -16,7 +16,15 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (v1.82.0 · pending push)
+## ✅ Just shipped (v1.83.0 · pending push)
+
+- **Removed "Delete ALL map data"** danger button — too easy to trigger, no undo path
+- **Reminder lead-time slider** in mobile Settings → Notifications (0–30 min, was fixed at 5)
+- **`/faq` page** — 9 common questions (Wilma / notifications / widgets / cache / feedback / TODO location / …)
+- **"Get the app" popup** with feature flag in admin Settings → Content (dismissible, once per session)
+- **Lunch tab per-category emojis** (🥗 kasvis / 🐟 kala / 🍗 kana / 🥩 liha / 🍲 keitto / 🥬 salaatti / 🍰 jälki / 🥖 leipä) — deterministic Finnish-keyword mapping
+
+## ✅ Shipped (v1.82.0)
 
 - **Map "API KEY REQUIRED" watermarks GONE** — CartoDB added the watermark in Sep 2026 for unauthenticated use; switched back to OSM standard tiles which are fine for school-scale traffic.
 - **Dev-facing FCM buttons removed** from mobile Settings ("Rekisteröi push-token" / "Kopioi FCM-token") — production-ready now, registration is automatic with retry backoff.

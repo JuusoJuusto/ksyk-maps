@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.8";
+export const APP_VERSION = "4.6.9";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.9",
+    date: "September 2026",
+    title: "FAQ page · Get-the-app popup · Reminder lead-time slider · Lunch category icons · v1.83.0",
+    titleFi: "FAQ-sivu · Hae-appi-popup · Muistutus-liukusäädin · Lounas-ikonit · v1.83.0",
+    latest: true,
+    highlights: [
+      "**New `/faq` page** — 9 common questions covering Wilma iCal, push notifications, widgets, cache refresh, reminder timing, feedback flow, Play Protect warning, and where the TODO lives.",
+      "**'Get the app' popup** on the landing page, feature-flagged in admin Settings → Content. Dismissible, appears once per session, only when enabled. Configurable download URL.",
+      "**Mobile: reminder lead-time slider** in Settings → Notifications (0-30 min). Previously fixed at 5 min. Changes take effect on the very next lesson.",
+      "**Mobile lunch tab: per-category emojis** (🥗 kasvis, 🐟 kala, 🍗 kana, 🥩 liha, 🍲 keitto, 🥬 salaatti, 🍰 jälkiruoka, 🥖 leipä). Deterministic based on Finnish keywords.",
+      "**Removed the 'Delete ALL map data' button** from admin Settings — no undo path, too easy to trigger accidentally. Individual delete flows remain.",
+    ],
+    highlightsFi: [
+      "**Uusi /faq-sivu.**",
+      "**'Get the app' -popup** hallintapaneelin kytkin ohjaa näkyvyyttä.",
+      "**Muistutuksen aika ennen tuntia -liukusäädin** (0-30 min) Asetuksissa.",
+      "**Lounas-välilehden aterialuokille emojit + värit.**",
+      "**'Delete ALL map data' -nappi poistettu.**",
+    ],
+  },
   {
     version: "4.6.8",
     date: "September 2026",
     title: "Production-ready cleanup · map API key watermark fix · v1.82.0",
     titleFi: "Production-cleanup · kartan vesileima poistettu · v1.82.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Map: 'API KEY REQUIRED' watermarks GONE.** CartoDB added the watermark in September 2026 for unauthenticated use. Switched back to OSM standard tiles — school-scale traffic is well below OSMF's community-tile threshold.",
       "**Dev-facing FCM buttons removed** from mobile Settings ('Rekisteröi push-token' / 'Kopioi FCM-token') — production-ready. Registration is automatic on app start with exponential-backoff retry (v1.81.0).",

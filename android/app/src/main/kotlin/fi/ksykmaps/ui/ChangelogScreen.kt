@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.83.0",
+        date = "September 2026",
+        titleFi = "Muistutusaika-liukusäädin · lounas-ikonit · web FAQ + hae-appi -popup",
+        titleEn = "Reminder lead-time slider · lunch icons · web FAQ + get-app popup",
+        highlightsFi = listOf(
+            "Asetukset → Ilmoitukset: uusi liukusäädin 'Muistutuksen aika ennen tuntia' (0-30 min). Aiemmin muistutus tuli aina tasan 5 min ennen; nyt voit valita itse ja muutos astuu voimaan heti seuraavassa tunnissa.",
+            "Lounas-välilehti: aterialuokat saavat nyt oman emojin ja värin (🥗 kasvis / 🐟 kala / 🍗 kana / 🥩 liha / 🍲 keitto / …) — helpompi silmätä.",
+            "Web: uusi /faq-sivu — 9 usein kysyttyä kysymystä Wilma-yhdistämisestä, ilmoituksista, widgeteistä.",
+            "Web: 'Get the app' -popup landing-sivulla — hallintapaneelissa on kytkin joka näyttää sen selaimessa (ei mobiilisovelluksessa).",
+            "Web: 'Delete ALL map data' -nappi poistettu asetuksista — liian vaarallinen ilman undo-polkua.",
+        ),
+        highlightsEn = listOf(
+            "Settings → Notifications: new 'Reminder lead time' slider (0-30 min). Previously fixed at 5 min; changes now take effect on the very next lesson.",
+            "Lunch tab: meal categories now get per-category emoji + tint (🥗 vegetable / 🐟 fish / 🍗 poultry / 🥩 meat / 🍲 soup / …) — much easier to scan.",
+            "Web: new /faq page — 9 common questions about Wilma, notifications, widgets.",
+            "Web: 'Get the app' popup on the landing page, feature-flagged in admin Settings → Content.",
+            "Web: 'Delete ALL map data' button removed from admin Settings — no undo path was too dangerous.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.82.0",
         date = "September 2026",
         titleFi = "Production-ready siivous",

@@ -35,6 +35,8 @@ interface AppSettings {
   maintenanceMessage?: string | null;
   footerTextEn?: string | null;
   footerTextFi?: string | null;
+  showGetAppPopup?: boolean;
+  getAppUrl?: string | null;
   [key: string]: any;
 }
 
@@ -56,6 +58,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   maintenanceMessage: '',
   footerTextEn: '',
   footerTextFi: '',
+  showGetAppPopup: false,
+  getAppUrl: 'https://ksykmaps.fi/download',
 };
 
 export default function AppSettingsManager() {
@@ -331,6 +335,36 @@ export default function AppSettingsManager() {
                   checked={!!s.enableEasterEgg}
                   onCheckedChange={(v) => update({ enableEasterEgg: v })}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* v1.83.0: 'Get the app' popup — feature flag + URL */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">"Get the app" popup</CardTitle>
+              <CardDescription>Prompt web visitors to install the mobile app. Popup appears once per session on the landing page.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Show popup on the landing page</p>
+                  <p className="text-xs text-muted-foreground">Only shown once per session, dismissible</p>
+                </div>
+                <Switch
+                  checked={!!s.showGetAppPopup}
+                  onCheckedChange={(v) => update({ showGetAppPopup: v })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Download link (URL)</Label>
+                <Input
+                  value={s.getAppUrl ?? ''}
+                  onChange={(e) => update({ getAppUrl: e.target.value })}
+                  placeholder="https://ksykmaps.fi/download"
+                  className="text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Where the "Download" button in the popup takes the user.</p>
               </div>
             </CardContent>
           </Card>

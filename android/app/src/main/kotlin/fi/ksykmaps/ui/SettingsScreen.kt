@@ -216,6 +216,70 @@ fun SettingsScreen(
                         onCheckedChange = { openNotifSettings() },
                     )
                     RowDivider()
+                    // v1.83.0: reminder lead-time picker — how many minutes
+                    // before class the reminder fires. Range 0-30. Slider is
+                    // discrete (steps=6 = 0/5/10/15/20/25/30). Change
+                    // triggers a full re-schedule so the next fire uses the
+                    // new lead time immediately, not just future lessons.
+                    var reminderLead by remember {
+                        mutableIntStateOf(LessonReminderScheduler.leadMinutes(ctx).toInt())
+                    }
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconBubble(icon = Icons.Outlined.Alarm, tint = Color(0xFFF59E0B))
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (isFi) "Muistutuksen aika ennen tuntia"
+                                    else "Reminder lead time before class",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    if (reminderLead == 0)
+                                        (if (isFi) "Tunnin alkaessa" else "At class start")
+                                    else (if (isFi) "$reminderLead min ennen" else "$reminderLead min before"),
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text(
+                                "$reminderLead min",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFFF59E0B),
+                            )
+                        }
+                        Slider(
+                            value = reminderLead.toFloat(),
+                            onValueChange = { reminderLead = it.toInt() },
+                            onValueChangeFinished = {
+                                LessonReminderScheduler.setLeadMinutes(ctx, reminderLead)
+                                scope.launch {
+                                    val entries = withContext(Dispatchers.IO) { loadEntries(ctx) }
+                                    if (entries.isNotEmpty()) {
+                                        val activeJakso = runCatching { activeJaksoId(loadJaksot(ctx)) }.getOrNull()
+                                        val filtered = if (activeJakso != null) {
+                                            entries.filter {
+                                                val ej = it.jaksoId.ifBlank { "all" }
+                                                ej == "all" || ej == activeJakso
+                                            }
+                                        } else entries
+                                        LessonReminderScheduler.schedule(ctx, filtered)
+                                    }
+                                }
+                            },
+                            valueRange = 0f..30f,
+                            steps = 5, // 0, 5, 10, 15, 20, 25, 30
+                            modifier = Modifier.padding(top = 4.dp),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFF59E0B),
+                                activeTrackColor = Color(0xFFF59E0B),
+                            ),
+                        )
+                    }
+                    RowDivider()
                     // Android 12 exact-alarm prompt (API 31-32 only — API 33+ uses USE_EXACT_ALARM which is auto-granted)
                     if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.S ||
                         android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.S_V2) {
