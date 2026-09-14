@@ -12,6 +12,14 @@
 
 import { db } from "./db.js";
 import { sql } from "drizzle-orm";
+// Static ESM imports — this package is "type": "module" compiled to ESNext,
+// so `require` is not defined in the deployed serverless function. The
+// modular `firebase-admin/*` subpaths are the same ESM entry points already
+// used in rateLimiter.ts.
+// @ts-expect-error firebase-admin types not installed in this workspace
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+// @ts-expect-error firebase-admin types not installed in this workspace
+import { getMessaging } from "firebase-admin/messaging";
 
 let _app: any = null;
 let _messaging: any = null;
@@ -31,15 +39,10 @@ function getApp() {
     return null;
   }
   try {
-    const admin = require("firebase-admin");
-    if (admin.apps.length === 0) {
-      _app = admin.initializeApp({
-        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-      });
-    } else {
-      _app = admin.apps[0];
-    }
-    _messaging = admin.messaging(_app);
+    _app = getApps().length === 0
+      ? initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) })
+      : getApps()[0];
+    _messaging = getMessaging(_app);
     _lastInitError = null;
     return _app;
   } catch (e: any) {
@@ -164,11 +167,11 @@ export async function broadcast(payload: {
   return { ...result, total: tokens.length };
 }
 
-/** Whether Firebase Admin is configured and ready. */
+/**
+ * Whether Firebase Admin is configured AND actually initialised. This runs
+ * a real init attempt, so a broken SDK load (missing env var, bad key, or
+ * an import failure) reports as not configured instead of a false "Ready".
+ */
 export function isFcmConfigured(): boolean {
-  return !!(
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY
-  );
+  return !!getApp() && !!_messaging;
 }

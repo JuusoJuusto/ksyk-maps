@@ -2430,6 +2430,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       try {
         const { db } = await import('../server/db.js');
         const { sql } = await import('drizzle-orm');
+        const { isFcmConfigured } = await import('../server/fcm.js');
         const rows = await db.execute(sql`
           SELECT COUNT(*) AS total,
                  COUNT(*) FILTER (WHERE updated_at > now() - interval '30 days') AS active_30d
@@ -2439,7 +2440,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(200).json({
           total: Number(data.total ?? 0),
           active30d: Number(data.active_30d ?? 0),
-          configured: !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY),
+          configured: isFcmConfigured(),
         });
       } catch (e: any) {
         return res.status(500).json({ message: 'Failed to fetch token stats' });
