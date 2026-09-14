@@ -21,20 +21,22 @@ import { useAppSettings, pickPlatformMapDefaults } from "@/hooks/useAppSettings"
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
-// Standard OpenStreetMap raster tiles — free, no API key required.
-// OSM policy allows reasonable use; school-scale traffic is fine.
-// Dark mode uses the same tiles with MapLibre brightness/saturation
-// paint adjustments to produce a dark appearance without a separate provider.
+// CartoDB basemap raster tiles — free CDN with no API key required and
+// no strict rate limit (unlike OSM standard tiles which OSMF policy asks
+// production apps to avoid). Voyager for light, DarkMatter for dark.
+// Falling back to OSM tiles as a secondary source if Carto is blocked.
 const TILE_URLS = {
   light: [
-    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+    "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+    "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+    "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
   ],
   dark: [
-    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+    "https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+    "https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
+    "https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
   ],
 } as const;
 

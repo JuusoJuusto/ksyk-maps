@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.97";
+export const APP_VERSION = "4.5.98";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.98",
+    date: "September 2026",
+    title: "CSP fixed at source · admin analytics 401s fixed · Sentry tunnel auth",
+    titleFi: "CSP korjattu vercel.jsonissa · admin-analytiikan 401-virheet korjattu",
+    latest: true,
+    highlights: [
+      "**Fixed at the source: CSP in `vercel.json` now allows Firebase + googletagmanager URLs.** The api/index.ts CSP header was the wrong place to widen — static assets use the `vercel.json` header. Both are now aligned.",
+      "**Admin analytics 401s fixed** — `OverviewInsightsCards` and `AnalyticsExternalPanel` were calling `/api/analytics/overview` and `/api/analytics/external` without admin headers. Now include `getAdminHeaders()`.",
+      "**Sentry tunnel 403 fixed** — `X-Sentry-Auth` header now forwarded to Sentry ingest.",
+      "**Widget: 'This week' badge on TodaySchedule** — clearly shows the offset when browsing beyond today.",
+    ],
+    highlightsFi: [
+      "**Korjattu oikeasta paikasta: `vercel.json`in CSP sallii nyt Firebasen ja googletagmanagerin URL-osoitteet.**",
+      "**Ylläpitäjän analytiikan 401-virheet korjattu.**",
+      "**Sentry-tunnelin 403 korjattu.**",
+      "**Widget: 'Tällä viikolla' -merkki lukujärjestyswidgetissä.**",
+    ],
+  },
   {
     version: "4.5.97",
     date: "September 2026",
     title: "Admin panel consolidated · onboarding trimmed · bug states · invite email visibility",
     titleFi: "Hallintapaneeli yhdistetty · perehdytys tiivistetty · vikatilat · kutsusähköpostien näkyvyys",
-    latest: true,
+    latest: false,
     highlights: [
       "**Admin panel: 'Analytics & Logs' replaces four separate sidebar entries** (Analytics, Logs, Feedback, External). Everything you need to investigate a report now lives on one tab with nested pills.",
       "**Feedback / bugs / crashes now have workflow states** — open · in progress · closed for bugs; new · reviewed · archived for feedback. Status pills filter the list and one-tap buttons move items through the flow.",

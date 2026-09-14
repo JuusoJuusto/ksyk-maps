@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.72.0",
+        date = "September 2026",
+        titleFi = "Kartan tiilikaavu vaihdettu · admin-analytiikka korjattu",
+        titleEn = "Map tile CDN swapped · admin analytics fixed",
+        highlightsFi = listOf(
+            "Web-kartta käyttää nyt CartoDB Voyager -tiiliä OSM-tiilien sijaan — merkittävästi luotettavampi latautuminen ja parempi zoomaustuki.",
+            "Ylläpitäjän analytiikan 401-virheet korjattu — Overview-välilehti ja Analytics & Logs → External toimivat taas.",
+            "Sentry-tunnelin 403-virhe korjattu.",
+            "Lukujärjestyswidget: 'Tänään/Huomenna/Tällä viikolla' -merkintä päivävalitsimessa.",
+        ),
+        highlightsEn = listOf(
+            "Web map uses CartoDB Voyager tiles instead of OSM standard tiles — significantly more reliable loading and better high-zoom support.",
+            "Admin analytics 401 errors fixed — Overview tab and Analytics & Logs → External work again.",
+            "Sentry tunnel 403 fixed.",
+            "TodaySchedule widget: 'Today/Tomorrow/This week' badge in the day nav.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.71.0",
         date = "September 2026",
         titleFi = "Kartan kaatuminen korjattu, kaatumislokit ylläpitäjälle",

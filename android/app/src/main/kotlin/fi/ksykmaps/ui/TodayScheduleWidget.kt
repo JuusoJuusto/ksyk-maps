@@ -119,14 +119,28 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
             val locale = if (lang == "fi") Locale("fi") else Locale.ENGLISH
 
-            // Day label: "MA · 14.10." or "MON · Oct 14"
+            // Day label with contextual chip: "TODAY · MA · 14.10.", "TOMORROW · TI · 15.10.",
+            // "THIS WEEK · KE · 16.10." — clarifies which day the user is browsing when
+            // the arrows have shifted the offset beyond today.
+            val today = LocalDate.now()
+            val diff = today.until(displayDate, java.time.temporal.ChronoUnit.DAYS).toInt()
+            val chip = when {
+                diff == 0                 -> if (lang == "fi") "TÄNÄÄN" else "TODAY"
+                diff == 1                 -> if (lang == "fi") "HUOMENNA" else "TOMORROW"
+                diff == -1                -> if (lang == "fi") "EILEN" else "YESTERDAY"
+                diff in 2..6              -> if (lang == "fi") "TÄLLÄ VIIKOLLA" else "THIS WEEK"
+                diff in -6..-2            -> if (lang == "fi") "VIIME VIIKOLLA" else "LAST WEEK"
+                diff in 7..13             -> if (lang == "fi") "ENSI VIIKKO" else "NEXT WEEK"
+                else                      -> null
+            }
             val dayAbbr = displayDate.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).uppercase(locale)
             val datePart = if (lang == "fi") {
                 "${displayDate.dayOfMonth}.${displayDate.monthValue}."
             } else {
                 "${displayDate.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${displayDate.dayOfMonth}"
             }
-            views.setTextViewText(R.id.widget_day, "$dayAbbr · $datePart")
+            val dayLabel = if (chip != null) "$chip · $dayAbbr $datePart" else "$dayAbbr · $datePart"
+            views.setTextViewText(R.id.widget_day, dayLabel)
 
             // Scalable text and row count based on widget dimensions
             val opts = manager.getAppWidgetOptions(id)

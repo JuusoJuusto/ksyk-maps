@@ -13,6 +13,7 @@
  * panel doesn't look "broken" when there's no data yet.
  */
 import { useQuery } from "@tanstack/react-query";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Zap, Search as SearchIcon, Trophy, Sparkles } from "lucide-react";
@@ -45,7 +46,10 @@ export default function OverviewInsightsCards() {
   const { data: summary } = useQuery<OverviewSummary>({
     queryKey: ["analytics-overview"],
     queryFn: async () => {
-      const r = await fetch("/api/analytics/overview", { credentials: "include" });
+      const r = await fetch("/api/analytics/overview", {
+        credentials: "include",
+        headers: getAdminHeaders(),
+      });
       if (!r.ok) throw new Error("failed");
       return r.json();
     },

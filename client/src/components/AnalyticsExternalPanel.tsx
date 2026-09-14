@@ -13,6 +13,7 @@
  */
 
 import { useState } from "react";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,10 @@ export default function AnalyticsExternalPanel() {
   const { data, isLoading, refetch, isFetching } = useQuery<ExternalAnalyticsResponse>({
     queryKey: ["analytics-external", range],
     queryFn: async () => {
-      const r = await fetch(`/api/analytics/external?range=${range}`, { credentials: "include" });
+      const r = await fetch(`/api/analytics/external?range=${range}`, {
+        credentials: "include",
+        headers: getAdminHeaders(),
+      });
       if (!r.ok) return {};
       return r.json();
     },

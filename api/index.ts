@@ -157,6 +157,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if ((bodyToSend as Buffer).length === 0 && (bodyToSend as string).length === 0) {
           return res.status(400).end();
         }
+        // Sentry envelopes carry auth in the first header line of the
+        // body, but browser SDKs also set X-Sentry-Auth on the request.
+        // Forward it explicitly — Sentry rejects with 403 when auth is
+        // missing on newer ingest endpoints.
+        const sentryAuth = req.headers['x-sentry-auth'] as string | undefined;
         const sentryRes = await fetch(
           'https://o4512001020133376.ingest.de.sentry.io/api/4512012645302352/envelope/',
           {
@@ -164,6 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             headers: {
               'Content-Type': req.headers['content-type'] || 'application/x-sentry-envelope',
               'User-Agent': req.headers['user-agent'] || 'ksyk-maps-tunnel',
+              ...(sentryAuth ? { 'X-Sentry-Auth': sentryAuth } : {}),
             },
             body: bodyToSend,
           },
