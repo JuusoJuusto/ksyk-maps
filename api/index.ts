@@ -700,6 +700,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // POST /api/t/egg — adblock-safe egg discovery beacon.
+    // v1.84.0: dedup so the same (egg, user) pair in a 5-minute window
+    // no longer triples-fires the counter + double-writes the app_log
+    // line. Was noisy in the admin panel: every discovery produced 2-3
+    // "🥚 Easter egg discovered" rows because trackEasterEgg calls both
+    // /t/egg AND /telemetry/track which appear as the same event twice.
     if (apiPath === '/t/egg' && req.method === 'POST') {
       try {
         const { incrementEggCounter, appendEggRecent } = await import('../server/kvStorage.js');
@@ -708,6 +713,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const eggId = (req.body?.eggId || '').toString().slice(0, 64);
         if (/^[a-z0-9-]{1,64}$/.test(eggId)) {
           const who = (req.body?.userId || 'anonymous').toString().slice(0, 60);
+          const dedupKey = `egg:${eggId}:${who}`;
+          const _g = globalThis as any;
+          _g.__eggDedup ??= new Map<string, number>();
+          const last = _g.__eggDedup.get(dedupKey) ?? 0;
+          const now = Date.now();
+          if (now - last < 5 * 60 * 1000) {
+            return res.status(204).end();
+          }
+          _g.__eggDedup.set(dedupKey, now);
+          // Trim map so it can't grow unbounded — keep only last-hour entries
+          for (const [k, ts] of _g.__eggDedup) {
+            if (now - ts > 60 * 60 * 1000) _g.__eggDedup.delete(k);
+          }
           await incrementEggCounter(eggId);
           await appendEggRecent({ egg: eggId, userId: who, at: new Date().toISOString() }).catch(() => {});
           await pgDb.insert(appLogs).values({ level: 'success', message: `🥚 Easter egg discovered: ${eggId}` }).catch(() => {});
@@ -3975,6 +3993,157 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         res.setHeader('Cache-Control', 'no-store');
         return res.status(200).json(rows);
       } catch { return res.status(200).json([]); }
+    }
+
+    // v1.84.0 — 4 new analytics endpoints (search zero-results, peak
+    // usage by hour × day, device/OS breakdown, bounce rate by page).
+    // All follow the same shape: admin-only, range param (24h / 7d / 30d),
+    // audit-logged, gracefully return [] on error so the UI doesn't blow up.
+
+    // GET /api/admin/analytics/search-zero-results
+    // Content gap finder — search queries that returned 0 results, ranked
+    // by frequency. Points to missing rooms / missing aliases.
+    if (apiPath === '/admin/analytics/search-zero-results' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'search_zero_results' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const hours = q.range === '7d' ? 168 : q.range === '30d' ? 720 : 24;
+        const since = new Date(Date.now() - hours * 3600 * 1000);
+        const rows = await pgDb.execute(dsql`
+          SELECT
+            LOWER(TRIM(query)) AS query,
+            COUNT(*)::int      AS attempts,
+            COUNT(DISTINCT COALESCE(user_id, session_id))::int AS unique_searchers,
+            MAX(created_at)    AS last_seen
+          FROM search_analytics
+          WHERE results_count = 0
+            AND created_at >= ${since}
+            AND LENGTH(TRIM(query)) >= 2
+          GROUP BY LOWER(TRIM(query))
+          ORDER BY attempts DESC, unique_searchers DESC
+          LIMIT 50
+        `);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json((rows as any).rows ?? rows);
+      } catch (err) {
+        console.error('analytics/search-zero-results error:', (err as any)?.message);
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/admin/analytics/peak-usage
+    // 24×7 grid of event counts (hour of day × day of week). Helps
+    // understand when the app is used most so admins can time
+    // announcements for maximum reach.
+    if (apiPath === '/admin/analytics/peak-usage' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'peak_usage' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const days = q.range === '7d' ? 7 : q.range === '30d' ? 30 : 1;
+        const since = new Date(Date.now() - days * 24 * 3600 * 1000);
+        const rows = await pgDb.execute(dsql`
+          SELECT
+            EXTRACT(DOW  FROM created_at AT TIME ZONE 'Europe/Helsinki')::int AS dow,
+            EXTRACT(HOUR FROM created_at AT TIME ZONE 'Europe/Helsinki')::int AS hour,
+            COUNT(*)::int AS n
+          FROM telemetry_events
+          WHERE created_at >= ${since}
+          GROUP BY dow, hour
+          ORDER BY dow, hour
+        `);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json((rows as any).rows ?? rows);
+      } catch (err) {
+        console.error('analytics/peak-usage error:', (err as any)?.message);
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/admin/analytics/devices
+    // Device / OS / app_version breakdown from telemetry_sessions. Helps
+    // prioritise: e.g. if 80% of users are on Android 14, we can drop
+    // Android 12 quirks. Also surfaces stale app versions.
+    if (apiPath === '/admin/analytics/devices' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'devices' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const days = q.range === '7d' ? 7 : q.range === '30d' ? 30 : 1;
+        const since = new Date(Date.now() - days * 24 * 3600 * 1000);
+        const [byPlatform, byVersion, byOs] = await Promise.all([
+          pgDb.execute(dsql`SELECT COALESCE(platform, 'unknown') AS k, COUNT(*)::int AS n FROM telemetry_sessions WHERE started_at >= ${since} GROUP BY 1 ORDER BY n DESC`),
+          pgDb.execute(dsql`SELECT COALESCE(app_version, 'unknown') AS k, COUNT(*)::int AS n FROM telemetry_sessions WHERE started_at >= ${since} GROUP BY 1 ORDER BY n DESC LIMIT 20`),
+          pgDb.execute(dsql`SELECT COALESCE(os_version, 'unknown') AS k, COUNT(*)::int AS n FROM telemetry_sessions WHERE started_at >= ${since} GROUP BY 1 ORDER BY n DESC LIMIT 20`),
+        ]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          platform: (byPlatform as any).rows ?? byPlatform,
+          appVersion: (byVersion as any).rows ?? byVersion,
+          os: (byOs as any).rows ?? byOs,
+        });
+      } catch (err) {
+        console.error('analytics/devices error:', (err as any)?.message);
+        return res.status(200).json({ platform: [], appVersion: [], os: [] });
+      }
+    }
+
+    // GET /api/admin/analytics/bounce-rate
+    // Sessions where the user viewed exactly one route before leaving.
+    // High bounce = onboarding / landing UX problem.
+    if (apiPath === '/admin/analytics/bounce-rate' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      await auditView('analytics_viewed', { section: 'bounce_rate' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const days = q.range === '7d' ? 7 : q.range === '30d' ? 30 : 1;
+        const since = new Date(Date.now() - days * 24 * 3600 * 1000);
+        const rows = await pgDb.execute(dsql`
+          WITH landings AS (
+            SELECT session_id, COALESCE(route, screen, '/') AS entry_route
+            FROM (
+              SELECT session_id, route, screen, created_at,
+                     ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at ASC) AS rn
+              FROM telemetry_events
+              WHERE created_at >= ${since}
+                AND event_name IN ('pageview', 'page_view', 'route_changed', 'screen_view')
+            ) t
+            WHERE rn = 1
+          ),
+          counts AS (
+            SELECT session_id, COUNT(*)::int AS n
+            FROM telemetry_events
+            WHERE created_at >= ${since}
+              AND event_name IN ('pageview', 'page_view', 'route_changed', 'screen_view')
+            GROUP BY session_id
+          )
+          SELECT
+            l.entry_route                                  AS route,
+            COUNT(*)::int                                  AS sessions,
+            SUM(CASE WHEN c.n = 1 THEN 1 ELSE 0 END)::int  AS bounced,
+            ROUND(100.0 * SUM(CASE WHEN c.n = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS bounce_pct
+          FROM landings l
+          JOIN counts   c USING (session_id)
+          GROUP BY l.entry_route
+          HAVING COUNT(*) >= 3
+          ORDER BY sessions DESC
+          LIMIT 30
+        `);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json((rows as any).rows ?? rows);
+      } catch (err) {
+        console.error('analytics/bounce-rate error:', (err as any)?.message);
+        return res.status(200).json([]);
+      }
     }
 
     // GET /api/admin/analytics/performance

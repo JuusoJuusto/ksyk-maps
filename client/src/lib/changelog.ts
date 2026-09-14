@@ -10,15 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.9";
+export const APP_VERSION = "4.7.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.0",
+    date: "September 2026",
+    title: "Admin Insights tab · 4 new analytics charts · easter-egg dedup",
+    titleFi: "Admin Insights-välilehti · 4 uutta analytiikkakorttia · easter-egg dedup",
+    latest: true,
+    highlights: [
+      "**Admin Analytics → new 'Insights' tab** with four data cards: search zero-results, peak-usage heatmap, device/OS/app-version breakdown, bounce rate by landing page.",
+      "**Search zero-results** — ranked queries that returned nothing. Direct content-gap finder for missing rooms / aliases.",
+      "**Peak usage heatmap** — 24 × 7 grid of event counts (Europe/Helsinki). Time announcements for max reach.",
+      "**Device / OS / app-version breakdown** — three side-by-side bar charts. Surfaces stale app versions.",
+      "**Bounce rate by landing route** — sessions where user viewed only one page. Red ≥70% highlights onboarding/landing problems.",
+      "**Fixed duplicate easter-egg logs** — same (egg, user) within 5 minutes now dedupes on the server side.",
+    ],
+    highlightsFi: [
+      "**Uusi 'Insights'-välilehti** hallintapaneelin analytiikassa.",
+      "**Hakuja jotka eivät löytäneet mitään** — sisältöaukojen etsijä.",
+      "**Käytön huippuajat** (24×7-lämpökartta).",
+      "**Laitteet / OS / sovellusversiot** -jakauma.",
+      "**Bounce rate** aloitussivun mukaan.",
+      "**Kaksoiskirjaus munista korjattu.**",
+    ],
+  },
   {
     version: "4.6.9",
     date: "September 2026",
     title: "FAQ page · Get-the-app popup · Reminder lead-time slider · Lunch category icons · v1.83.0",
     titleFi: "FAQ-sivu · Hae-appi-popup · Muistutus-liukusäädin · Lounas-ikonit · v1.83.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**New `/faq` page** — 9 common questions covering Wilma iCal, push notifications, widgets, cache refresh, reminder timing, feedback flow, Play Protect warning, and where the TODO lives.",
       "**'Get the app' popup** on the landing page, feature-flagged in admin Settings → Content. Dismissible, appears once per session, only when enabled. Configurable download URL.",

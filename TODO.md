@@ -16,7 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (v1.83.0 · pending push)
+## ✅ Just shipped (web 4.7.0 · pending push)
+
+- **Admin → Analytics → Insights tab** with 4 new data cards:
+  - Search zero-results table (content gap finder)
+  - Peak-usage heatmap (24 × 7 grid, Europe/Helsinki)
+  - Device / OS / app-version breakdown (3 side-by-side bars)
+  - Bounce rate by landing page (color-coded ≥70% red)
+- **Fixed duplicate easter-egg logs** — server-side dedup on (egg, user) within 5 min
+
+## ✅ Shipped (Android v1.83.0 · pushed 7ef73c2)
 
 - **Removed "Delete ALL map data"** danger button — too easy to trigger, no undo path
 - **Reminder lead-time slider** in mobile Settings → Notifications (0–30 min, was fixed at 5)

@@ -632,6 +632,259 @@ function FeaturesPanel({ range }: { range: Range }) {
 
 // ── Errors ──────────────────────────────────────────────────────────
 interface ErrorRow { id: string; level: string; message: string; url: string | null; errorStack: string | null; createdAt: string; }
+/**
+ * v1.84.0 — new admin insight panels grouped into one tab so the top-level
+ * Analytics view doesn't drown in nested tabs. Four sub-cards inside:
+ *   1. Search zero-results (content-gap finder)
+ *   2. Peak usage by hour × day-of-week
+ *   3. Device / OS / app_version breakdown
+ *   4. Bounce rate by landing route
+ */
+interface ZeroResultRow { query: string; attempts: number; unique_searchers: number; last_seen: string; }
+interface PeakUsageRow { dow: number; hour: number; n: number; }
+interface DeviceBreakdown { platform: { k: string; n: number }[]; appVersion: { k: string; n: number }[]; os: { k: string; n: number }[]; }
+interface BounceRow { route: string; sessions: number; bounced: number; bounce_pct: number; }
+
+function InsightsPanels({ range }: { range: Range }) {
+  return (
+    <div className="space-y-4">
+      <SearchZeroResults range={range} />
+      <PeakUsageHeatmap range={range} />
+      <DeviceBreakdownCard range={range} />
+      <BounceRateCard range={range} />
+    </div>
+  );
+}
+
+function SearchZeroResults({ range }: { range: Range }) {
+  const { data = [], isLoading } = useQuery<ZeroResultRow[]>({
+    queryKey: ["admin-analytics-zero-results", range],
+    queryFn: () => fetchList<ZeroResultRow>(`/api/admin/analytics/search-zero-results?range=${range}`),
+    refetchInterval: 60_000,
+  });
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Search className="h-4 w-4 text-amber-500" />
+          Search queries that returned nothing
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Ranked by frequency. Fixes: add these as room aliases or create missing rooms in the Builder.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground px-4 py-6 text-center">Loading…</p>
+        ) : data.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-4 py-6 text-center">No zero-result searches in this range — coverage looks good.</p>
+        ) : (
+          <table className="w-full text-xs">
+            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
+              <tr>
+                <th className="px-4 py-2">Query</th>
+                <th className="px-4 py-2 text-right">Attempts</th>
+                <th className="px-4 py-2 text-right">Unique</th>
+                <th className="px-4 py-2 text-right">Last seen</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.map((r) => (
+                <tr key={r.query} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                  <td className="px-4 py-2 font-mono">{r.query}</td>
+                  <td className="px-4 py-2 text-right font-semibold">{r.attempts}</td>
+                  <td className="px-4 py-2 text-right text-muted-foreground">{r.unique_searchers}</td>
+                  <td className="px-4 py-2 text-right text-[10px] text-muted-foreground">
+                    {new Date(r.last_seen).toLocaleString("fi-FI")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PeakUsageHeatmap({ range }: { range: Range }) {
+  const { data = [], isLoading } = useQuery<PeakUsageRow[]>({
+    queryKey: ["admin-analytics-peak", range],
+    queryFn: () => fetchList<PeakUsageRow>(`/api/admin/analytics/peak-usage?range=${range}`),
+    refetchInterval: 60_000,
+  });
+  // 7 rows (Mon-Sun; dow=0 is Sunday in Postgres EXTRACT) × 24 columns
+  const grid: number[][] = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+  let max = 0;
+  for (const r of data) {
+    // Convert Postgres DOW (0=Sun) to Mon-first order for display
+    const displayRow = r.dow === 0 ? 6 : r.dow - 1;
+    if (displayRow >= 0 && displayRow < 7 && r.hour >= 0 && r.hour < 24) {
+      grid[displayRow][r.hour] = r.n;
+      if (r.n > max) max = r.n;
+    }
+  }
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Clock className="h-4 w-4 text-indigo-500" />
+          Peak usage — hour × day
+        </CardTitle>
+        <CardDescription className="text-xs">Darker = more events. Hour of day 0–23 (Europe/Helsinki).</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">Loading…</p>
+        ) : max === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No event data in this range.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="text-[10px] mx-auto border-separate" style={{ borderSpacing: 2 }}>
+              <thead>
+                <tr>
+                  <th className="pr-1" />
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <th key={h} className="w-4 text-center text-muted-foreground font-mono">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {days.map((day, i) => (
+                  <tr key={day}>
+                    <td className="pr-1 text-right text-muted-foreground font-mono">{day}</td>
+                    {grid[i].map((n, h) => {
+                      const pct = n / max;
+                      const alpha = 0.08 + pct * 0.92;
+                      return (
+                        <td
+                          key={h}
+                          title={`${day} ${h}:00 — ${n} events`}
+                          className="w-4 h-4 rounded"
+                          style={{ background: `rgba(99, 102, 241, ${alpha})` }}
+                        />
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DeviceBreakdownCard({ range }: { range: Range }) {
+  const { data, isLoading } = useQuery<DeviceBreakdown | null>({
+    queryKey: ["admin-analytics-devices", range],
+    queryFn: () => fetchObject<DeviceBreakdown>(`/api/admin/analytics/devices?range=${range}`),
+    refetchInterval: 120_000,
+  });
+  const bar = (rows: { k: string; n: number }[]) => {
+    const total = rows.reduce((s, r) => s + r.n, 0) || 1;
+    return (
+      <ul className="space-y-1.5">
+        {rows.slice(0, 8).map((r) => (
+          <li key={r.k}>
+            <div className="flex items-center justify-between text-xs mb-0.5">
+              <span className="truncate font-mono">{r.k}</span>
+              <span className="text-muted-foreground shrink-0 ml-2">{r.n} · {Math.round((r.n / total) * 100)}%</span>
+            </div>
+            <div className="h-1.5 rounded bg-slate-100 dark:bg-slate-900 overflow-hidden">
+              <div className="h-full bg-blue-500" style={{ width: `${(r.n / total) * 100}%` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Users className="h-4 w-4 text-blue-500" />
+          Device / OS / app version
+        </CardTitle>
+        <CardDescription className="text-xs">Distribution across sessions in this range.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">Loading…</p>
+        ) : !data ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No sessions in this range.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Platform</p>
+              {bar(data.platform)}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">App version</p>
+              {bar(data.appVersion)}
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">OS version</p>
+              {bar(data.os)}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BounceRateCard({ range }: { range: Range }) {
+  const { data = [], isLoading } = useQuery<BounceRow[]>({
+    queryKey: ["admin-analytics-bounce", range],
+    queryFn: () => fetchList<BounceRow>(`/api/admin/analytics/bounce-rate?range=${range}`),
+    refetchInterval: 120_000,
+  });
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Activity className="h-4 w-4 text-rose-500" />
+          Bounce rate by landing page
+        </CardTitle>
+        <CardDescription className="text-xs">Sessions where the user viewed only one route. High % = onboarding/landing issue.</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground px-4 py-6 text-center">Loading…</p>
+        ) : data.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-4 py-6 text-center">Not enough data yet.</p>
+        ) : (
+          <table className="w-full text-xs">
+            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
+              <tr>
+                <th className="px-4 py-2">Route</th>
+                <th className="px-4 py-2 text-right">Sessions</th>
+                <th className="px-4 py-2 text-right">Bounced</th>
+                <th className="px-4 py-2 text-right">Bounce %</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.map((r) => (
+                <tr key={r.route} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                  <td className="px-4 py-2 font-mono truncate max-w-[240px]">{r.route}</td>
+                  <td className="px-4 py-2 text-right">{r.sessions}</td>
+                  <td className="px-4 py-2 text-right text-muted-foreground">{r.bounced}</td>
+                  <td className={`px-4 py-2 text-right font-semibold ${r.bounce_pct >= 70 ? "text-red-500" : r.bounce_pct >= 40 ? "text-amber-500" : "text-emerald-500"}`}>
+                    {r.bounce_pct}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function ErrorsPanel({ range }: { range: Range }) {
   const { data = [], isLoading } = useQuery<ErrorRow[]>({
     queryKey: ["admin-analytics-errors", range],
@@ -1000,8 +1253,9 @@ export default function AdminAnalyticsDashboard() {
 
       {/* Detail tabs */}
       <Tabs defaultValue="features">
-        <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full">
           <TabsTrigger value="features"><Gauge className="h-3.5 w-3.5 mr-1" />Features</TabsTrigger>
+          <TabsTrigger value="insights"><Search className="h-3.5 w-3.5 mr-1" />Insights</TabsTrigger>
           <TabsTrigger value="sessions"><Users className="h-3.5 w-3.5 mr-1" />Sessions</TabsTrigger>
           <TabsTrigger value="errors"><AlertTriangle className="h-3.5 w-3.5 mr-1" />Errors</TabsTrigger>
           <TabsTrigger value="perf"><Clock className="h-3.5 w-3.5 mr-1" />Perf</TabsTrigger>
@@ -1009,6 +1263,7 @@ export default function AdminAnalyticsDashboard() {
           <TabsTrigger value="recent"><Filter className="h-3.5 w-3.5 mr-1" />Recent</TabsTrigger>
         </TabsList>
         <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
+        <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
         <TabsContent value="sessions"><SessionsPanel /></TabsContent>
         <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
         <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
