@@ -37,14 +37,22 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        AppLog.info("FCM", "Message received: ${message.notification?.title}")
+        // v1.76.0: step-by-step logging so admins can trace exactly what
+        // happened per message from the phone's log viewer.
+        val step = { label: String -> AppLog.info("FCM", label) }
+        step("[1/6] onMessageReceived from=${message.from}")
+        step("[2/6] data keys=${message.data.keys.joinToString(",")} notif=${message.notification?.title != null}")
 
-        val title = message.notification?.title
-            ?: message.data["title"]
+        val title = message.data["title"]
+            ?: message.notification?.title
             ?: "KSYK Maps"
-        val body = message.notification?.body
-            ?: message.data["body"]
-            ?: return
+        val body = message.data["body"]
+            ?: message.notification?.body
+            ?: run {
+                AppLog.warn("FCM", "Message had no body — dropping")
+                return
+            }
+        step("[3/6] title=$title body=${body.take(40)}")
 
         val screen = message.data["screen"]
 
@@ -52,7 +60,10 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
         val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             screen?.let { putExtra("ksyk_screen", it) }
-        } ?: return
+        } ?: run {
+            AppLog.warn("FCM", "No launch intent — device may be in an unusual state")
+            return
+        }
 
         val pi = PendingIntent.getActivity(
             this, System.currentTimeMillis().toInt(), intent,
@@ -63,6 +74,27 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
             "schedule_change", "timetable" -> KsykApp.CHANNEL_TIMETABLE
             else -> KsykApp.CHANNEL_PUSH
         }
+        step("[4/6] channel=$channel")
+
+        // Defensively (re)create the channel in case KsykApp.onCreate
+        // didn't run yet (rare on the very first push after install).
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val nm = getSystemService(android.app.NotificationManager::class.java)
+                if (nm?.getNotificationChannel(channel) == null) {
+                    nm?.createNotificationChannel(
+                        android.app.NotificationChannel(
+                            channel,
+                            "KSYK",
+                            android.app.NotificationManager.IMPORTANCE_HIGH,
+                        )
+                    )
+                    AppLog.info("FCM", "Recovered missing channel $channel")
+                }
+            } catch (t: Throwable) {
+                AppLog.warn("FCM", "Channel check failed: ${t.message}")
+            }
+        }
 
         val notification = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_notification)
@@ -72,13 +104,30 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
             .setContentIntent(pi)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .build()
+        step("[5/6] notification built")
+
+        // Check permission explicitly on Android 13+ so we log a clear
+        // reason when nothing appears (rather than silently swallowing).
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val granted = androidx.core.app.ActivityCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                AppLog.warn("FCM", "POST_NOTIFICATIONS not granted — user must enable in Settings")
+                return
+            }
+        }
 
         try {
             NotificationManagerCompat.from(this)
                 .notify(System.currentTimeMillis().toInt(), notification)
-        } catch (_: SecurityException) {
-            // POST_NOTIFICATIONS not granted — notification silently dropped
+            step("[6/6] notify() called successfully")
+        } catch (e: SecurityException) {
+            AppLog.warn("FCM", "SecurityException on notify: ${e.message}")
+        } catch (t: Throwable) {
+            AppLog.error("FCM", "notify() threw: ${t.message}")
         }
     }
 }

@@ -58,6 +58,7 @@ class CurrentLessonWidget : AppWidgetProvider() {
                 .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
             val (subjectSize, detailSize, metaSize) = when {
                 widgetWidth < 200 -> Triple(14f, 10f, 9f)
+                widgetWidth > 380 -> Triple(24f, 15f, 13f)
                 widgetWidth > 280 -> Triple(20f, 13f, 11f)
                 else              -> Triple(17f, 11f, 9f)
             }

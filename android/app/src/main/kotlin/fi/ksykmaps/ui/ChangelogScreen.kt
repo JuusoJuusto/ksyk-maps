@@ -36,6 +36,30 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.76.0",
+        date = "September 2026",
+        titleFi = "FCM data-only + widgetin väriaksentit ja yliviivaus",
+        titleEn = "FCM data-only + widget subject colors and strikethrough",
+        highlightsFi = listOf(
+            "FCM lähetetään nyt data-only -viestinä — takaa että onMessageReceived kutsutaan sekä etu- että taustatilassa (aiemmin taustaviestit ohittivat käsittelyn ja etutilassa ei näytetty mitään).",
+            "FCM-käsittelijä lokittaa 6 vaihetta jokaiselle viestille (vaihe 1: vastaanotettu, vaihe 2: data, vaihe 3: otsikko/teksti, vaihe 4: kanava, vaihe 5: notifikaatio rakennettu, vaihe 6: näytetty). Voit tarkistaa mikä vaihe epäonnistui Asetukset → Sovelluslokit.",
+            "Ilmoituskanava luodaan uudestaan lennossa jos se puuttuu — kestää yksittäiset onCreate-häiriöt.",
+            "POST_NOTIFICATIONS-lupa tarkistetaan eksplisiittisesti + selkeä varoitus lokissa jos evätty.",
+            "Widget: menneet tunnit YLIVIIVATTUINA (ei vain himmennettyinä).",
+            "Widget: väripallo aineen edessä — sama aine saa aina saman värin.",
+            "Widget: skaalautuu suuremmaksi kuin ennen (minResize 140-180dp, maxResize 640dp), aineen fonttikoko yltää 24sp:hen laajimmilla widgeteillä.",
+        ),
+        highlightsEn = listOf(
+            "FCM sent as data-only — guarantees onMessageReceived fires in both foreground and background (previously background messages skipped it and foreground messages showed nothing).",
+            "FCM handler logs 6 steps per message (received → data → title/body → channel → built → notified). Check Settings → App logs to see where it stops.",
+            "Notification channel is auto-recreated on-the-fly if missing.",
+            "POST_NOTIFICATIONS permission checked explicitly with a clear warning in the log if denied.",
+            "Widget: past classes STRIKETHROUGH (not just dimmed).",
+            "Widget: per-subject color dot — same subject always gets the same color.",
+            "Widget: scales larger than before, subject font up to 24sp on the widest widgets.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.75.0",
         date = "September 2026",
         titleFi = "Widgetit: menneet tunnit himmennettyinä, päivät rullaavat eteenpäin",

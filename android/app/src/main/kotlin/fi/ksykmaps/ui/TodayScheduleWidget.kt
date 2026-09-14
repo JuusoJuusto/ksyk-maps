@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Html
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -72,6 +73,34 @@ class TodayScheduleWidget : AppWidgetProvider() {
         private fun toMins(hhmm: String): Int {
             val parts = hhmm.split(":")
             return if (parts.size == 2) (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0) else 0
+        }
+
+        /**
+         * Colour palette for subject accent dots. Deterministic hash of the
+         * subject name → one of these hues, so "Matematiikka" always gets
+         * the same colour every render. Chosen for good contrast on the
+         * dark widget background and enough variety across the ~10 typical
+         * subjects a KSYK student has.
+         */
+        private val SUBJECT_PALETTE = listOf(
+            "#F87171", // rose
+            "#FB923C", // orange
+            "#FBBF24", // amber
+            "#4ADE80", // green
+            "#22D3EE", // cyan
+            "#60A5FA", // blue
+            "#A78BFA", // violet
+            "#F472B6", // pink
+            "#94A3B8", // slate
+            "#34D399", // emerald
+        )
+
+        private fun subjectColorHex(subject: String): String {
+            if (subject.isBlank()) return SUBJECT_PALETTE[8]
+            // Stable positive hash — kotlin's hashCode() may be negative,
+            // and abs() overflows on MIN_VALUE; mod after masking to 31 bits.
+            val h = (subject.trim().lowercase().hashCode() and 0x7FFFFFFF)
+            return SUBJECT_PALETTE[h % SUBJECT_PALETTE.size]
         }
 
         /** Skip Saturday (6) and Sunday (7) to next Monday. */
@@ -147,12 +176,17 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val opts = manager.getAppWidgetOptions(id)
             val widgetWidth  = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
             val widgetHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180)
+            // v1.76.0: added an extra "extra-large" bucket so 5x5+ widgets
+            // don't render tiny text. Previous cap was 15sp subjects; new
+            // cap at wider than 380dp is 18sp — matches the readability of
+            // Apple Calendar's XL widget.
             val (timeSize, subjectSize, roomSize) = when {
                 widgetWidth < 200 -> Triple(9f, 11f, 9f)
+                widgetWidth > 380 -> Triple(14f, 18f, 13f)
                 widgetWidth > 280 -> Triple(12f, 15f, 11f)
                 else              -> Triple(10f, 13f, 10f)
             }
-            // Each lesson row is ~30dp tall; header ~24dp; padding ~28dp
+            // Widget layout has 6 row slots (row1..row6); can't exceed that.
             val maxRows = when {
                 widgetHeight > 300 -> 6
                 widgetHeight > 220 -> 5
@@ -257,14 +291,29 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextColor(timeIds[i], timeColor)
                     views.setTextViewTextSize(timeIds[i], TypedValue.COMPLEX_UNIT_SP, timeSize)
 
-                    // Add a "· X min" hint to the current lesson subject so
-                    // users see remaining time at a glance.
-                    val subjectText = if (lesson.isCurrent) {
+                    // Subject label: per-subject accent dot at the start,
+                    // optional strikethrough on past classes, "· X min"
+                    // suffix on the current class.
+                    val accent = subjectColorHex(lesson.subject)
+                    val rawSubject = if (lesson.isCurrent) {
                         val endM = toMins(lesson.endHhmm)
                         val remain = (endM - nowMins).coerceAtLeast(0)
                         if (remain > 0) "${lesson.subject}  ·  ${remain} min" else lesson.subject
                     } else lesson.subject
-                    views.setTextViewText(subjectIds[i], subjectText)
+                    val htmlEscaped = rawSubject
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                    val html = buildString {
+                        append("<font color=\"$accent\">●</font>&nbsp;&nbsp;")
+                        if (lesson.isPast) {
+                            append("<s>").append(htmlEscaped).append("</s>")
+                        } else {
+                            append(htmlEscaped)
+                        }
+                    }
+                    val subjectSpanned: CharSequence = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
+                    views.setTextViewText(subjectIds[i], subjectSpanned)
                     views.setTextColor(subjectIds[i], subjectColor)
                     views.setTextViewTextSize(subjectIds[i], TypedValue.COMPLEX_UNIT_SP, subjectSize)
 

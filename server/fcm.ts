@@ -98,15 +98,25 @@ export async function sendToTokens(
   for (let i = 0; i < tokens.length; i += CHUNK) {
     const chunk = tokens.slice(i, i + CHUNK);
     try {
+      // v1.76.0: send as data-only so onMessageReceived always fires and
+      // we control notification rendering ourselves. Previously we sent
+      // both `notification` and `data` — with `notification` set,
+      // background messages get auto-rendered by Android and
+      // onMessageReceived is skipped. When the app is in the foreground
+      // Android does NOT auto-show the notification, so it looked like
+      // notifications weren't arriving at all when in-app.
+      //
+      // Data-only + high priority = guaranteed onMessageReceived call in
+      // both foreground and background, and we build the notification via
+      // NotificationCompat with our correct channel + tap intent.
       const resp = await _messaging.sendEachForMulticast({
         tokens: chunk,
-        notification: { title: payload.title, body: payload.body },
-        data: extra,
+        data: {
+          ...extra,
+          title: payload.title,
+          body: payload.body,
+        },
         android: {
-          notification: {
-            channelId: payload.type === "schedule_change" ? "ksyk_timetable" : "ksyk_push",
-            priority: "high",
-          },
           priority: "high",
         },
       });

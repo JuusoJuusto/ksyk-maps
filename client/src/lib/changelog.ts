@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.1";
+export const APP_VERSION = "4.6.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.2",
+    date: "September 2026",
+    title: "FCM data-only + step logs · widget subject colors + strikethrough · v1.76.0",
+    titleFi: "FCM data-only + vaihelokit · widgetin värit + yliviivaus · v1.76.0",
+    latest: true,
+    highlights: [
+      "**FCM sent as data-only.** Guarantees `onMessageReceived` fires in both foreground and background — solves the 'said sent:1 but nothing arrived' bug. The Android handler now builds the notification itself with the right channel + tap intent every time.",
+      "**FCM 6-step logging in Settings → App logs.** Every message logs [1/6]…[6/6] so you can see exactly where it stops. Channel is auto-recreated on the fly if missing; POST_NOTIFICATIONS permission is checked explicitly and logged.",
+      "**Widget: past classes now STRIKETHROUGH** (not just dimmed) — much clearer at a glance which lessons are done.",
+      "**Widget: per-subject color accent dot** — every subject gets a deterministic color from a 10-hue palette, so the same subject always shows the same dot.",
+      "**Widgets scale bigger** — `minResizeWidth`/`Height` set explicitly, `maxResizeWidth` 640dp so you can make them big; subject font up to 24sp on the widest widgets.",
+    ],
+    highlightsFi: [
+      "**FCM data-only** — takaa että ilmoitukset tulevat perille sekä app:n ollessa etu- että taustatilassa.",
+      "**FCM 6-vaiheinen lokitus** Asetuksissa → Sovelluslokit.",
+      "**Widgetin menneet tunnit yliviivattuina.**",
+      "**Widgetin väripallo aineen edessä.**",
+      "**Widgetit skaalautuvat isommiksi.**",
+    ],
+  },
   {
     version: "4.6.1",
     date: "September 2026",
     title: "Widget past-class dimming · day rollover · Sentry errors tab · v1.75.0",
     titleFi: "Widgetin himmeät tunnit · päivärullaus · Sentry-välilehti · v1.75.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Widgets: past classes dimmed, day auto-rolls forward.** TodaySchedule shows every lesson of today — past ones grey with ✓, current highlighted, future crisp. When today's schedule is done, widget automatically shows tomorrow (or the next school day) instead of going blank.",
       "**Next lesson widget looks 14 days forward** — 'Tomorrow · 08:15 · Room K27' after school ends.",

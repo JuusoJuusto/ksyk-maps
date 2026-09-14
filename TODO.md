@@ -10,14 +10,19 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## 🚧 In progress this session
+## 🚧 In progress this session (v1.76.0)
 
-- 🚧 **Widget past-class dimming + all-day view** — show every lesson of the day, not just future ones; grey out ones that have ended. When today's schedule is finished, roll to tomorrow.
-- 🚧 **Widget rollover across days** — Next/Current widgets must look forward across dates when today's are all done.
-- 🚧 **Widget button tap targets** — arrows currently 24dp, bump to 48dp minimum.
-- 🚧 **Widget names + descriptions + preview images** — better labels in the picker.
-- 🚧 **Sentry issues panel** in Analytics & Logs.
-- 🚧 **FCM device-side verification** — awaiting user to install v1.74.0 APK, open, then confirm devices count ticks up. Server-side is instrumented.
+- 🚧 **FCM not delivering to device** — response says sent:1 but phone shows nothing. Root cause investigation: switch to data-only messages, add step-by-step logging in `onMessageReceived`, check notification channel exists before display, force high priority.
+- 🚧 **Widgets bigger + strikethrough on past classes + per-subject accent color** — larger minWidth/minHeight, bump text sizes, add color-per-subject vertical strip.
+- 🚧 **Widget long-press configure** — add `android:configure` attribute pointing at a config activity so users can tweak per-widget prefs.
+
+## ⏳ Deferred (too big for this pass — scoped for next rounds)
+
+- ⏳ **Full ScheduleEngine rewrite** — LocalDateTime comparisons, jakso-by-date, centralized service used by TimetableScreen + all widgets + notifications. Wilma iCalendar as source of truth. Touches ~10 files.
+- ⏳ **Production keystore** — user must generate a real keystore and set the env vars; I've documented the steps in `android/BUILD.md`. Nothing I can do without their private key.
+- ⏳ **Mobile app admin panel — more features** — needs scope discussion. What features? Right now the mobile admin panel is basic. Web admin has everything.
+- ⏳ **Website admin panel — more settings** — same. What settings specifically?
+- ⏳ **Dynamic-color / Material You widget theming** — RemoteViews doesn't directly support Material dynamic-color; requires Android 12+ colorControlNormal system attrs. Investigate feasibility.
 
 ## 📋 Big pending — Schedule engine unification
 
@@ -37,7 +42,8 @@ Status: not started — needs a follow-up round because it touches `ScheduleStor
 
 ## ✅ Recently done (last few commits)
 
-- ✅ v1.75.0 · pending · Widget past-class dimming (grey w/ ✓), automatic day rollover when today's schedule is over (up to 14 days ahead), Next-lesson widget looks 14 days forward with 'Tomorrow' / weekday prefix, bigger 36×32dp arrow buttons, Finnish widget names + rewritten descriptions, targetCellWidth/Height for Android 12+ resize, new Sentry errors tab in Analytics & Logs (deep-links to Issues/Discover/Replays).
+- ✅ v1.76.0 · pending push · FCM as data-only so onMessageReceived always fires (fixes the "sent:1 but nothing arrived" bug). 6-step logging in KsykFirebaseMessagingService with clear failure points. Channel auto-recovery if missing. POST_NOTIFICATIONS explicit permission check with clear log. Widgets: past classes STRIKETHROUGH via HTML span, per-subject color dot from deterministic 10-hue palette, larger minResize/maxResize dimensions, subject font up to 24sp on widest widgets.
+- ✅ v1.75.0 · cf37134 · Widget past-class dimming (grey w/ ✓), automatic day rollover when today's schedule is over (up to 14 days ahead), Next-lesson widget looks 14 days forward with 'Tomorrow' / weekday prefix, bigger 36×32dp arrow buttons, Finnish widget names + rewritten descriptions, targetCellWidth/Height for Android 12+ resize, new Sentry errors tab in Analytics & Logs (deep-links to Issues/Discover/Replays).
 - ✅ v1.74.0 · cb48ff9 · Persistent `TODO.md`. FCM: `/notifications/status` returns `initError` + `recentDevices` + all env-var-set flags; `sendToTokens` returns per-token error codes when ≤20 targets. Widgets: current-lesson translucent tile + remaining-minutes chip, softer 3-stop navy→indigo gradient, weekend empty-state emoji. PostHog: `ksyk_session_id` registered as super-property (web + Android), admin session drill dialog has "Watch replay in PostHog" deep-link button.
 - ✅ v1.73.0 · c1e2ff3 · Apple Maps-style DetailSheet (grabber, colored category icon bubble, prominent Directions CTA), FCM diagnostics (`{warning: no devices}` when total=0, `/notifications/status` returns 7d/30d counts).
 - ✅ v1.72.0 · ba54ceb · CSP fixed in vercel.json (Firebase + googletagmanager whitelisted), admin analytics 401s fixed (OverviewInsightsCards + AnalyticsExternalPanel now send admin headers), Sentry tunnel 403 fixed (X-Sentry-Auth forwarded), CampusMap switched to CartoDB Voyager tiles, TodaySchedule widget contextual day chip.
