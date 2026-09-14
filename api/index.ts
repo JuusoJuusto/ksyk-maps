@@ -2424,6 +2424,21 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
 
+    // DELETE /push-tokens — admin only — purge every registered FCM token.
+    // Useful when tokens have gotten stale in bulk (e.g. after switching
+    // Firebase projects, migrating signing keys, or debugging).
+    if (apiPath === '/push-tokens' && req.method === 'DELETE') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const result = await db.execute(sql`DELETE FROM push_tokens`);
+        return res.status(200).json({ success: true, deleted: (result as any).rowCount ?? 0 });
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to purge tokens: ' + (e?.message || 'unknown') });
+      }
+    }
+
     // GET /push-tokens — admin only — list all registered tokens
     if (apiPath === '/push-tokens' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;

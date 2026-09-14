@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.81.0",
+        date = "September 2026",
+        titleFi = "FCM upload retry + reset tokens + viestimallit",
+        titleEn = "FCM upload retry + reset tokens + message templates",
+        highlightsFi = listOf(
+            "FCM-tokenin lähetys yrittää nyt uudelleen 2 s → 5 s → 15 s → 30 s → 60 s välein jos DNS pettää — WiFi-vaihdot ja lukitusruudun herätykset eivät enää tiputa rekisteröintiä.",
+            "Uusi admin-nappi 'Reset all tokens' Notifications-välilehdellä — tyhjentää koko push_tokens-taulun (käyttäjät rekisteröityvät uudelleen sovelluksen avatessa).",
+            "Web-admin: 6 valmista viestimallia (Peruttu / Luokka vaihtui / Lounas myöhässä / Ei koulua / Kokous / Juhla) — täyttää lomakkeen yhdellä napsautuksella.",
+            "Otsikko- ja viestikentät näyttävät nyt merkkilaskurit (65 / 240) — pitkiä viestejä Android ei näytä täydellisenä lukitusruudulla.",
+        ),
+        highlightsEn = listOf(
+            "FCM token upload retries with backoff (2s → 5s → 15s → 30s → 60s) if DNS fails — Wi-Fi handoffs no longer drop registrations.",
+            "New 'Reset all tokens' button in admin Notifications tab — purges the entire push_tokens table.",
+            "Web admin: 6 message templates (Cancelled / Room changed / Lunch delayed / No school / Meeting / Event) — one-tap form fill.",
+            "Title + body fields show character counters (65 / 240) — long messages get truncated on Android lock screen.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.80.0",
         date = "September 2026",
         titleFi = "FCM oikeasti toimii · widgetin XXXXL-koko · broadcast-historia",

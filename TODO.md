@@ -10,7 +10,14 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## ✅ Just shipped (v1.80.0 · pending push)
+## ✅ Just shipped (v1.81.0 · pending push)
+
+- FCM upload retry with exponential backoff (fixes "reg fail — Unable to resolve host" on Wi-Fi handoffs)
+- Admin: DELETE /push-tokens endpoint + "Reset all tokens" button
+- Admin: 6 pre-canned message templates for common broadcasts
+- Admin: character counters (65 / 240) on title + body fields
+
+## ✅ Shipped (v1.80.0)
 
 - **FCM finally actually fixed** — switched to modular `firebase-admin/app` + `firebase-admin/messaging` imports (the `.default ?? mod` shim was wrong, module namespace has `apps` not the default export).
 - Widget XXXXL bucket (width > 1000dp): subject 40sp / 56sp.

@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.6";
+export const APP_VERSION = "4.6.7";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.7",
+    date: "September 2026",
+    title: "FCM upload retry · Reset tokens · Message templates · Character counters · v1.81.0",
+    titleFi: "FCM-uudelleenyritys · Tokenien nollaus · Viestimallit · v1.81.0",
+    latest: true,
+    highlights: [
+      "**FCM token upload now retries with exponential backoff** (2s → 5s → 15s → 30s → 60s) when DNS fails. The user's log showed dozens of `Upload failed — Unable to resolve host` entries on Wi-Fi handoffs / lock-screen fetches — those retries now catch the token once connectivity returns.",
+      "**Admin: 'Reset all tokens' button** in the Notifications tab — one-click purge of the entire `push_tokens` table when they've gotten stale in bulk.",
+      "**Admin: 6 message templates** (Cancelled / Room changed / Lunch delayed / No school / Meeting / Event) — one-tap fills title + body with placeholders.",
+      "**Admin: character counters** on title (65) + message (240) fields so admins know Android will truncate long messages on the lock screen.",
+    ],
+    highlightsFi: [
+      "**FCM-tokenin lähetys yrittää uudelleen** eksponentiaalisella backoffilla (2s → 5s → 15s → 30s → 60s) DNS-virheen jälkeen.",
+      "**'Reset all tokens' -nappi** admin Notifications-välilehdellä.",
+      "**6 valmista viestimallia** yhdellä napsautuksella.",
+      "**Merkkilaskurit** otsikko- ja viestikentissä.",
+    ],
+  },
   {
     version: "4.6.6",
     date: "September 2026",
     title: "FCM actually fixed (modular admin/app+messaging imports) · broadcast history · XXXXL widgets · v1.80.0",
     titleFi: "FCM oikeasti korjattu · broadcast-historia · XXXXL-widgetit · v1.80.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**FCM actually works now** — the previous ESM shim `(adminMod as any).default ?? adminMod` didn't work because `firebase-admin`'s default export doesn't carry the `apps` array (it's on the module namespace). Switched to modular `firebase-admin/app` + `firebase-admin/messaging` imports — the officially supported ESM entry point.",
       "**Admin: Broadcast history card** — records every FCM send in Postgres (`fcm_broadcasts` table). Shows title, body, target count, sent count, success rate. Auto-refreshes every 15 s.",

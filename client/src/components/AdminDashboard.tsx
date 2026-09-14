@@ -430,9 +430,31 @@ function NotificationsPanel({
       {/* Recent devices — proves tokens ARE landing */}
       {fcmStats?.recentDevices && fcmStats.recentDevices.length > 0 && (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Recent device registrations</CardTitle>
-            <CardDescription className="text-xs">Auto-refreshes every 15 s · latest 5 tokens</CardDescription>
+          <CardHeader className="pb-2 flex-row justify-between items-start">
+            <div>
+              <CardTitle className="text-sm">Recent device registrations</CardTitle>
+              <CardDescription className="text-xs">Auto-refreshes every 15 s · latest 5 tokens</CardDescription>
+            </div>
+            <button
+              onClick={async () => {
+                if (!confirm("Purge ALL registered FCM tokens? Users' apps will re-register on next open. Cannot be undone.")) return;
+                try {
+                  const { getAdminHeaders } = await import("@/lib/adminAuth");
+                  const r = await fetch("/api/push-tokens", { method: "DELETE", headers: getAdminHeaders() });
+                  const data = await r.json();
+                  toast({
+                    title: r.ok ? `Purged ${data.deleted ?? 0} tokens` : "Failed",
+                    description: data.message,
+                    variant: r.ok ? "default" : "destructive",
+                  });
+                } catch (e: any) {
+                  toast({ title: "Failed", description: e?.message, variant: "destructive" });
+                }
+              }}
+              className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+            >
+              Reset all tokens
+            </button>
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
@@ -464,6 +486,29 @@ function NotificationsPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* v1.81.0: pre-canned message templates — one tap fills the form. */}
+          <div className="space-y-1.5">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Templates</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: "🚨 Peruttu", t: "Tunti peruttu", b: "Tänään ei ole [aine] -tuntia. Voitte jäädä kotiin." },
+                { label: "🏫 Luokka vaihtui", t: "Luokka vaihtui", b: "[Aine] -tunti pidetään nyt luokassa [K##] eikä [K##]." },
+                { label: "🍽️ Lounas myöhässä", t: "Lounas myöhässä", b: "Lounas alkaa tänään klo [aika]. Odottakaa vuoroanne rauhassa." },
+                { label: "❄️ Ei koulua", t: "Koulu peruttu", b: "Koulu on peruttu [päivä] sään takia. Kaikki tunnit peruttu." },
+                { label: "📢 Kokous", t: "Yleiskokous", b: "Muistakaa tulla yleiskokoukseen [aika] Keskushallille." },
+                { label: "🎉 Juhla", t: "Juhla", b: "Muista [juhla] tänään klo [aika]. Nähdään siellä!" },
+              ].map((tpl) => (
+                <button
+                  key={tpl.label}
+                  onClick={() => { setTitle(tpl.t); setBody(tpl.b); }}
+                  disabled={sending}
+                  className="text-[11px] px-2.5 py-1 rounded-md bg-muted hover:bg-muted/70 disabled:opacity-40"
+                >
+                  {tpl.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Otsikko (Title)</label>
             <Input
@@ -471,7 +516,9 @@ function NotificationsPanel({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={sending}
+              maxLength={65}
             />
+            <p className="text-[10px] text-muted-foreground text-right">{title.length}/65</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Viesti (Message)</label>
@@ -481,7 +528,9 @@ function NotificationsPanel({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               disabled={sending}
+              maxLength={240}
             />
+            <p className="text-[10px] text-muted-foreground text-right">{body.length}/240</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button onClick={() => sendPush(false)} disabled={sending || !title.trim() || !body.trim()} className="gap-1.5">

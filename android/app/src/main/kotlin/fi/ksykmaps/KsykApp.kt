@@ -246,15 +246,27 @@ class KsykApp : Application() {
                 put("platform", "android")
                 put("appVersion", BuildConfig.VERSION_NAME)
             }
-            return try {
-                Api.post("/push-tokens", body)
-                AppLog.info("FCM", "[reg 4/4] token uploaded to /push-tokens")
-                FcmRegistrationResult(success = true, token = token, error = null)
-            } catch (e: Exception) {
-                val msg = "Upload failed — ${e.javaClass.simpleName}: ${e.message}"
-                AppLog.warn("FCM", "[reg fail] $msg")
-                FcmRegistrationResult(success = false, token = token, error = msg)
+            // v1.81.0: retry the upload with exponential backoff so a
+            // transient DNS glitch (Unable to resolve host "ksykmaps.fi")
+            // doesn't drop the token registration entirely. Common on
+            // Wi-Fi handoffs / lock-screen fetches — user's log shows
+            // dozens of "reg fail — Unable to resolve host" entries but
+            // when a retry gets through, the token DOES register.
+            val delays = longArrayOf(2_000, 5_000, 15_000, 30_000, 60_000)
+            var lastErr: String? = null
+            for ((attempt, delayMs) in delays.withIndex()) {
+                try {
+                    Api.post("/push-tokens", body)
+                    AppLog.info("FCM", "[reg 4/4] token uploaded to /push-tokens (attempt ${attempt + 1})")
+                    return FcmRegistrationResult(success = true, token = token, error = null)
+                } catch (e: Exception) {
+                    lastErr = "${e.javaClass.simpleName}: ${e.message}"
+                    AppLog.warn("FCM", "[reg retry ${attempt + 1}/${delays.size}] $lastErr — waiting ${delayMs / 1000}s")
+                    kotlinx.coroutines.delay(delayMs)
+                }
             }
+            AppLog.warn("FCM", "[reg fail] Upload failed after ${delays.size} retries: $lastErr")
+            return FcmRegistrationResult(success = false, token = token, error = lastErr)
         }
     }
 }
