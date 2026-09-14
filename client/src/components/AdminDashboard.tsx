@@ -168,7 +168,30 @@ function NotificationsPanel({
   const [sending, setSending] = useState(false);
   const [lastSent, setLastSent] = useState<string | null>(null);
   const [fcmStats, setFcmStats] = useState<{ total: number; active30d: number; configured: boolean } | null>(null);
-  const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number; errors?: string[]; warning?: string } | null>(null);
+
+  // Build a toast that reflects the real send outcome. A send that reached
+  // no device, or that had failures, must NOT read as a quiet success.
+  const describeResult = (data: { sent?: number; failed?: number; total?: number; errors?: string[]; warning?: string }) => {
+    const sent = data.sent ?? 0;
+    const failed = data.failed ?? 0;
+    const total = data.total ?? 0;
+    const detail = data.errors?.length ? data.errors.join("; ") : undefined;
+    if (data.warning) {
+      return { title: "Push reached no devices", description: data.warning, variant: "destructive" as const };
+    }
+    if (sent === 0) {
+      return { title: "Push reached no devices", description: detail ?? `${failed} device(s) failed.`, variant: "destructive" as const };
+    }
+    if (failed > 0) {
+      return {
+        title: `Sent to ${sent} of ${total} device(s)`,
+        description: `${failed} failed${detail ? ` — ${detail}` : ""}.`,
+        variant: "destructive" as const,
+      };
+    }
+    return { title: `Push sent to ${sent} device(s)`, description: total ? `Delivered to ${sent} of ${total} devices.` : undefined };
+  };
 
   // Load FCM stats on mount
   useEffect(() => {
@@ -198,8 +221,8 @@ function NotificationsPanel({
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.message || "Failed");
-        setLastResult({ sent: data.sent ?? 0, failed: data.failed ?? 0, total: data.total ?? 0 });
-        toast({ title: `Test push sent to ${data.sent ?? 0} device(s)` });
+        setLastResult({ sent: data.sent ?? 0, failed: data.failed ?? 0, total: data.total ?? 0, errors: data.errors, warning: data.warning });
+        toast(describeResult(data));
       } else {
         // Real broadcast — create announcement (triggers FCM) + direct FCM broadcast
         const [annRes, fcmRes] = await Promise.all([
@@ -218,12 +241,9 @@ function NotificationsPanel({
         const fcmData = await fcmRes.json();
         queryClient.invalidateQueries({ queryKey: ["announcements"] });
         setLastSent(t);
-        setLastResult({ sent: fcmData.sent ?? 0, failed: fcmData.failed ?? 0, total: fcmData.total ?? 0 });
+        setLastResult({ sent: fcmData.sent ?? 0, failed: fcmData.failed ?? 0, total: fcmData.total ?? 0, errors: fcmData.errors, warning: fcmData.warning });
         setTitle(""); setBody("");
-        toast({
-          title: "Sent!",
-          description: `Push delivered to ${fcmData.sent ?? 0} of ${fcmData.total ?? 0} devices.`,
-        });
+        toast(describeResult(fcmData));
       }
     } catch (e: any) {
       toast({ title: "Failed to send", description: e?.message, variant: "destructive" });
@@ -267,15 +287,24 @@ function NotificationsPanel({
           </CardContent>
         </Card>
         {lastResult ? (
-          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
-            <CardContent className="p-4 flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-green-600 font-semibold">Last result</p>
-                <p className="text-xs text-green-700 dark:text-green-300">{lastResult.sent}/{lastResult.total} delivered</p>
-              </div>
-            </CardContent>
-          </Card>
+          (() => {
+            const ok = lastResult.sent > 0 && lastResult.failed === 0 && !lastResult.warning;
+            return (
+              <Card className={ok ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"}>
+                <CardContent className="p-4 flex items-start gap-2">
+                  {ok
+                    ? <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                    : <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />}
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold ${ok ? "text-green-600" : "text-amber-600"}`}>Last result</p>
+                    <p className={`text-xs ${ok ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>
+                      {lastResult.sent}/{lastResult.total} delivered{lastResult.failed > 0 ? `, ${lastResult.failed} failed` : ""}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()
         ) : (
           <Card>
             <CardContent className="p-4">
