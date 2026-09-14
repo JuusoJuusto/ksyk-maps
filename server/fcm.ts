@@ -19,11 +19,13 @@ let _lastInitError: string | null = null;
 let _initPromise: Promise<any> | null = null;
 
 /**
- * Firebase Admin init. Uses dynamic import() because this project is ESM
- * (`"type": "module"` in package.json) and `require()` is undefined.
- * That was the actual reason FCM broadcasts silently failed — the init
- * threw `ReferenceError: require is not defined` and every send returned
- * `{sent: 0}` even though tokens WERE registering in Postgres.
+ * Firebase Admin init using the MODULAR imports from firebase-admin/app +
+ * firebase-admin/messaging. These are the ones supported by ESM in
+ * firebase-admin v11+ (we're on v14). The previous approach of importing
+ * the default `firebase-admin` module and calling `admin.apps.length`
+ * failed with "Cannot read properties of undefined (reading 'length')"
+ * because the ESM default export doesn't carry the `apps` array — that
+ * lives on the module namespace itself, not the default.
  */
 async function getApp(): Promise<any> {
   if (_app) return _app;
@@ -43,20 +45,25 @@ async function getApp(): Promise<any> {
 
   _initPromise = (async () => {
     try {
-      const adminMod = await import("firebase-admin");
-      const admin = (adminMod as any).default ?? adminMod;
-      if (admin.apps.length === 0) {
-        _app = admin.initializeApp({
-          credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-        });
-      } else {
-        _app = admin.apps[0];
-      }
-      _messaging = admin.messaging(_app);
+      const appMod = await import("firebase-admin/app");
+      const msgMod = await import("firebase-admin/messaging");
+      const initializeApp = appMod.initializeApp;
+      const cert           = appMod.cert;
+      const getApps        = appMod.getApps;
+      const getApp_        = appMod.getApp;
+      const getMessaging   = msgMod.getMessaging;
+
+      const existingApps = getApps();
+      _app = existingApps.length > 0
+        ? getApp_()
+        : initializeApp({
+            credential: cert({ projectId, clientEmail, privateKey }),
+          });
+      _messaging = getMessaging(_app);
       _lastInitError = null;
       return _app;
     } catch (e: any) {
-      _lastInitError = e?.message ?? String(e);
+      _lastInitError = `${e?.name || "Error"}: ${e?.message ?? String(e)}`;
       console.error("[FCM] Firebase Admin init failed:", _lastInitError);
       _initPromise = null;
       return null;
