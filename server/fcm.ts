@@ -16,9 +16,19 @@ import { sql } from "drizzle-orm";
 let _app: any = null;
 let _messaging: any = null;
 let _lastInitError: string | null = null;
+let _initPromise: Promise<any> | null = null;
 
-function getApp() {
+/**
+ * Firebase Admin init. Uses dynamic import() because this project is ESM
+ * (`"type": "module"` in package.json) and `require()` is undefined.
+ * That was the actual reason FCM broadcasts silently failed — the init
+ * threw `ReferenceError: require is not defined` and every send returned
+ * `{sent: 0}` even though tokens WERE registering in Postgres.
+ */
+async function getApp(): Promise<any> {
   if (_app) return _app;
+  if (_initPromise) return _initPromise;
+
   const projectId   = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey  = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
@@ -30,29 +40,35 @@ function getApp() {
     ].filter(Boolean).join(", ")}`;
     return null;
   }
-  try {
-    const admin = require("firebase-admin");
-    if (admin.apps.length === 0) {
-      _app = admin.initializeApp({
-        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-      });
-    } else {
-      _app = admin.apps[0];
+
+  _initPromise = (async () => {
+    try {
+      const adminMod = await import("firebase-admin");
+      const admin = (adminMod as any).default ?? adminMod;
+      if (admin.apps.length === 0) {
+        _app = admin.initializeApp({
+          credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+        });
+      } else {
+        _app = admin.apps[0];
+      }
+      _messaging = admin.messaging(_app);
+      _lastInitError = null;
+      return _app;
+    } catch (e: any) {
+      _lastInitError = e?.message ?? String(e);
+      console.error("[FCM] Firebase Admin init failed:", _lastInitError);
+      _initPromise = null;
+      return null;
     }
-    _messaging = admin.messaging(_app);
-    _lastInitError = null;
-    return _app;
-  } catch (e: any) {
-    _lastInitError = e?.message ?? String(e);
-    console.error("[FCM] Firebase Admin init failed:", _lastInitError);
-    return null;
-  }
+  })();
+  return _initPromise;
 }
 
 /** Diagnostic info — exact reason FCM isn't initialising when it should. */
-export function getInitError(): string | null {
+export async function getInitError(): Promise<string | null> {
   // Force an init attempt if we haven't tried yet
-  if (!_app && !_lastInitError) getApp();
+  if (!_app && !_lastInitError) await getApp();
   return _lastInitError;
 }
 
@@ -81,7 +97,8 @@ export async function sendToTokens(
   payload: { title: string; body: string; type?: string; screen?: string; data?: Record<string, string> },
 ): Promise<SendResult> {
   if (!tokens.length) return { sent: 0, failed: 0 };
-  if (!getApp() || !_messaging) {
+  await getApp();
+  if (!_messaging) {
     console.warn("[FCM] Not configured — skipping push to", tokens.length, "tokens");
     return { sent: 0, failed: 0, errors: [_lastInitError || "FCM not initialised"] };
   }

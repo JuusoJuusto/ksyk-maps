@@ -167,17 +167,25 @@ function NotificationsPanel({
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [lastSent, setLastSent] = useState<string | null>(null);
-  const [fcmStats, setFcmStats] = useState<{ total: number; active30d: number; configured: boolean } | null>(null);
-  const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [fcmStats, setFcmStats] = useState<{ total: number; active30d: number; active7d?: number; configured: boolean; initError?: string | null; recentDevices?: any[] } | null>(null);
+  const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number; errors?: string[]; warning?: string } | null>(null);
 
-  // Load FCM stats on mount
+  // Poll FCM stats every 15s so newly registered devices show up without a
+  // full page reload. Uses /notifications/status which has richer diagnostics
+  // (init error + recent devices + config flags) than /push-tokens.
   useEffect(() => {
-    import("@/lib/adminAuth").then(({ getAdminHeaders }) => {
-      fetch("/api/push-tokens", { headers: getAdminHeaders() })
-        .then((r) => r.json())
-        .then(setFcmStats)
-        .catch(() => {});
-    });
+    let cancelled = false;
+    async function load() {
+      try {
+        const { getAdminHeaders } = await import("@/lib/adminAuth");
+        const r = await fetch("/api/notifications/status", { headers: getAdminHeaders() });
+        const data = await r.json();
+        if (!cancelled) setFcmStats(data);
+      } catch { /* ignore */ }
+    }
+    load();
+    const iv = setInterval(load, 15_000);
+    return () => { cancelled = true; clearInterval(iv); };
   }, []);
 
   const active = announcements.filter((a) => a.isActive);
@@ -198,8 +206,18 @@ function NotificationsPanel({
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.message || "Failed");
-        setLastResult({ sent: data.sent ?? 0, failed: data.failed ?? 0, total: data.total ?? 0 });
-        toast({ title: `Test push sent to ${data.sent ?? 0} device(s)` });
+        setLastResult({
+          sent: data.sent ?? 0,
+          failed: data.failed ?? 0,
+          total: data.total ?? 0,
+          errors: data.errors,
+          warning: data.warning,
+        });
+        toast({
+          title: `Test push sent to ${data.sent ?? 0} device(s)`,
+          description: data.warning || (data.errors?.length ? `Errors: ${data.errors[0]}` : undefined),
+          variant: data.warning || (data.sent === 0 && (data.total ?? 0) > 0) ? "destructive" : "default",
+        });
       } else {
         // Real broadcast — create announcement (triggers FCM) + direct FCM broadcast
         const [annRes, fcmRes] = await Promise.all([
@@ -218,7 +236,13 @@ function NotificationsPanel({
         const fcmData = await fcmRes.json();
         queryClient.invalidateQueries({ queryKey: ["announcements"] });
         setLastSent(t);
-        setLastResult({ sent: fcmData.sent ?? 0, failed: fcmData.failed ?? 0, total: fcmData.total ?? 0 });
+        setLastResult({
+          sent: fcmData.sent ?? 0,
+          failed: fcmData.failed ?? 0,
+          total: fcmData.total ?? 0,
+          errors: fcmData.errors,
+          warning: fcmData.warning,
+        });
         setTitle(""); setBody("");
         toast({
           title: "Sent!",
@@ -255,24 +279,24 @@ function NotificationsPanel({
         <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
           <CardContent className="p-4">
             <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Devices</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{fcmStats?.total ?? "…"}</p>
+            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(fcmStats as any)?.totalDevices ?? "…"}</p>
             <p className="text-xs text-blue-500 mt-0.5">registered tokens</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active 30d</p>
-            <p className="text-2xl font-bold">{fcmStats?.active30d ?? "…"}</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active 7d</p>
+            <p className="text-2xl font-bold">{(fcmStats as any)?.active7d ?? fcmStats?.active30d ?? "…"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">recent devices</p>
           </CardContent>
         </Card>
         {lastResult ? (
-          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
+          <Card className={lastResult.sent > 0 ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"}>
             <CardContent className="p-4 flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+              <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${lastResult.sent > 0 ? "text-green-600" : "text-amber-600"}`} />
               <div className="min-w-0">
-                <p className="text-xs text-green-600 font-semibold">Last result</p>
-                <p className="text-xs text-green-700 dark:text-green-300">{lastResult.sent}/{lastResult.total} delivered</p>
+                <p className={`text-xs font-semibold ${lastResult.sent > 0 ? "text-green-600" : "text-amber-600"}`}>Last result</p>
+                <p className={`text-xs ${lastResult.sent > 0 ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>{lastResult.sent}/{lastResult.total} delivered</p>
               </div>
             </CardContent>
           </Card>
@@ -287,6 +311,47 @@ function NotificationsPanel({
         )}
       </div>
 
+      {/* Per-token FCM error details from the most recent broadcast/test */}
+      {(lastResult?.warning || (lastResult?.errors && lastResult.errors.length > 0)) && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-800 dark:text-amber-300">Last send diagnostics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs text-amber-800 dark:text-amber-300">
+            {lastResult.warning && (
+              <p className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded">{lastResult.warning}</p>
+            )}
+            {lastResult.errors && lastResult.errors.length > 0 && (
+              <div>
+                <p className="font-semibold mb-1">Per-token errors:</p>
+                <ul className="space-y-0.5 font-mono text-[10px]">
+                  {lastResult.errors.map((e, i) => (
+                    <li key={i} className="bg-amber-100 dark:bg-amber-900/40 p-1 rounded break-all">{e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Firebase Admin init error — surfaces the exact reason FCM sends fail */}
+      {fcmStats?.initError && (
+        <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+          <CardContent className="p-4 flex gap-3">
+            <Bell className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-red-800 dark:text-red-300 flex-1 min-w-0">
+              <p className="font-semibold mb-1">Firebase Admin init failed</p>
+              <p className="font-mono text-xs bg-red-100 dark:bg-red-900/40 p-2 rounded break-all">{fcmStats.initError}</p>
+              <p className="text-red-700 dark:text-red-400 text-xs mt-2">
+                Common causes: private key not converted from <code>\n</code>, service account revoked, Firebase Cloud Messaging API V1 disabled at
+                {" "}<a className="underline" href="https://console.cloud.google.com/apis/library/fcm.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com/apis/library/fcm.googleapis.com</a>.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* FCM not configured warning */}
       {fcmStats && !fcmStats.configured && (
         <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
@@ -300,6 +365,29 @@ function NotificationsPanel({
                 <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_PRIVATE_KEY</code> environment variables on the server.
                 Announcements will still be saved but push delivery will be skipped.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent devices — proves tokens ARE landing */}
+      {fcmStats?.recentDevices && fcmStats.recentDevices.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Recent device registrations</CardTitle>
+            <CardDescription className="text-xs">Auto-refreshes every 15 s · latest 5 tokens</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {fcmStats.recentDevices.map((d: any, i: number) => (
+                <div key={i} className="flex items-center justify-between gap-3 text-xs py-1.5 border-b border-border last:border-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono">{d.platform || "android"}</Badge>
+                    <span className="font-mono text-muted-foreground">v{d.app_version || "?"}</span>
+                  </div>
+                  <span className="text-muted-foreground">{new Date(d.updated_at).toLocaleString("fi-FI")}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -627,9 +715,20 @@ function FeedbackPanel() {
                     )}
                   </div>
                   {tab === "crashes" ? (
-                    <pre className="text-xs whitespace-pre-wrap font-mono max-h-64 overflow-auto p-2 rounded bg-muted/50">{item.log_body}</pre>
+                    <div className="relative">
+                      <pre className="text-xs whitespace-pre-wrap font-mono max-h-64 overflow-auto p-3 pr-16 rounded bg-muted/50 select-text">{item.log_body}</pre>
+                      <button
+                        onClick={() => {
+                          try { navigator.clipboard.writeText(item.log_body); } catch { /* ignore */ }
+                        }}
+                        className="absolute top-2 right-2 px-2 py-1 rounded text-[10px] font-semibold bg-background border border-border shadow-sm hover:bg-muted"
+                        title="Copy full log to clipboard"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
+                    <p className="text-sm whitespace-pre-wrap select-text">{item.message || item.description}</p>
                   )}
                   {item.steps && (
                     <div className="mt-2 p-2 rounded bg-muted/50">

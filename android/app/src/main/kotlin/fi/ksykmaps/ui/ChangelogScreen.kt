@@ -36,6 +36,28 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.78.0",
+        date = "September 2026",
+        titleFi = "FCM require-bug korjattu · isommat widgetit · admin-diagnostiikka",
+        titleEn = "FCM require bug fixed · bigger widgets · admin diagnostics",
+        highlightsFi = listOf(
+            "KRIITTINEN KORJAUS: FCM Firebase Admin ei käynnistynyt Vercelillä koska serveri käytti require(), joka on ESM-projektissa määrittelemätön. Nyt dynamic import — FCM lähetykset toimivat vihdoin.",
+            "Web admin: Firebase Admin -käynnistysvirhe näkyy suurella punaisella laatikolla jos konfiguraatio on rikki.",
+            "Web admin: viimeisimmät 5 rekisteröityä laitetta näkyvät listana + auto-refresh 15 sekunnin välein.",
+            "Web admin: kaatumislokien 'Copy' -nappi kopioi koko lokin leikepöydälle.",
+            "Widgetit skaalautuvat XXXL-tilaan (>800dp): aineen fonttikoko 44sp, TodaySchedule 32sp.",
+            "Widget maxResize nostettu 2000dp:hen — voit venyttää widgetin lähes koko näytön kokoiseksi.",
+        ),
+        highlightsEn = listOf(
+            "CRITICAL FIX: FCM Firebase Admin failed to init on Vercel because the server used require(), which is undefined in ESM modules. Switched to dynamic import — FCM broadcasts finally work.",
+            "Web admin: Firebase Admin init error shown in a big red banner if config is broken.",
+            "Web admin: last 5 registered devices listed + auto-refresh every 15 seconds.",
+            "Web admin: 'Copy' button on crash log entries copies the whole log to clipboard.",
+            "Widgets scale to XXXL (>800dp): subject font 44sp, TodaySchedule 32sp.",
+            "Widget maxResize bumped to 2000dp — you can stretch to near full screen.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.77.0",
         date = "September 2026",
         titleFi = "Manuaalinen push-tokenin rekisteröinti + mobiiliadminin FCM-testi",

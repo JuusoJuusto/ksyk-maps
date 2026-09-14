@@ -10,15 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.3";
+export const APP_VERSION = "4.6.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.4",
+    date: "September 2026",
+    title: "CRITICAL FCM fix: require→dynamic import · admin diagnostics · copyable crash logs · v1.78.0",
+    titleFi: "KRIITTINEN FCM-korjaus + admin-diagnostiikka + kopioitavat lokit · v1.78.0",
+    latest: true,
+    highlights: [
+      "**CRITICAL: FCM Firebase Admin init was throwing `ReferenceError: require is not defined`** because the server is ESM (`\"type\": \"module\"` in package.json) but `server/fcm.ts` used CommonJS `require(\"firebase-admin\")`. Switched to dynamic `import()`. This is the reason FCM broadcasts silently returned `sent: 0` even though tokens were being registered correctly in Postgres.",
+      "**Admin Notifications tab**: red banner surfaces the exact `initError` from `/notifications/status` if Firebase Admin still fails after the fix.",
+      "**Admin Notifications tab**: Recent Device Registrations list (last 5) shown with platform + app_version + timestamp, auto-refreshes every 15 seconds so you can see tokens land in real-time.",
+      "**Admin Notifications tab**: Per-token error codes from the last send (e.g. `messaging/registration-token-not-registered: abc12345`) shown in an amber diagnostics card.",
+      "**Admin crash logs are copyable** — 'Copy' button on each crash card copies the full log to clipboard.",
+      "**Widget scaling**: XXXL text bucket at width > 800dp (subject 44sp on Current/Next widgets, 32sp per row on TodaySchedule). maxResize doubled to 2000dp.",
+    ],
+    highlightsFi: [
+      "**KRIITTINEN FCM-korjaus** — Firebase Admin ei käynnistynyt koska serveri käytti CommonJS `require()`iä ESM-projektissa. Nyt dynamic import.",
+      "**Admin: Firebase Admin -virhe näkyy punaisella jos konfiguraatio on rikki.**",
+      "**Admin: viimeisimmät 5 rekisteröityä laitetta + auto-päivitys 15 s.**",
+      "**Admin: per-token virhekoodit viimeisimmästä lähetyksestä.**",
+      "**Kaatumislokien Copy-nappi.**",
+      "**Widgetin XXXL-taso 800dp+ leveydellä (44sp).**",
+    ],
+  },
   {
     version: "4.6.3",
     date: "September 2026",
     title: "Mobile admin FCM test + status card + Settings retry · v1.77.0",
     titleFi: "Mobiili-adminin FCM-testi + tilakortti + Asetusten uudelleenrekisteröinti · v1.77.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Mobile admin → Actions → Notifications:** 'Send test push to all' hits `/api/notifications/test`, shows count of devices reached, warns if 0 devices are registered.",
       "**Mobile admin FCM status card** shows Firebase configuration, registered device count (total + 7-day active), and exact error reason if anything is broken.",

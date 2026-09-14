@@ -2506,7 +2506,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       if (!requireAdminAuth(req, res)) return;
       const { isFcmConfigured, getInitError } = await import('../server/fcm.js');
       const configured = isFcmConfigured();
-      const initError = getInitError();
+      const initError = await getInitError();
       try {
         const { db } = await import('../server/db.js');
         const { sql } = await import('drizzle-orm');
