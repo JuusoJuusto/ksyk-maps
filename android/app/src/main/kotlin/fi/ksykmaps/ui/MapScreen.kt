@@ -23,13 +23,19 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.MeetingRoom
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Wc
+import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -1730,49 +1736,121 @@ private fun DetailSheet(
     onNavigate: (JsonObject) -> Unit,
 ) {
     val target = room ?: building ?: return
+    val isFi = lang == "fi"
     Column(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 14.dp)
-            .shadow(10.dp, RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
+            .shadow(14.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(18.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Grabber — Apple sheet convention. Marks the sheet as dismissable
+        // by swipe (which we don't wire, but the affordance conveys the
+        // rounded-corner presentation and separates it from a static card).
+        Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f))
+            )
+        }
+
+        Row(verticalAlignment = Alignment.Top) {
+            // Category icon bubble — Apple Maps place card iconography.
+            val roomType = (room?.get("type") as? JsonPrimitive)?.contentOrNull ?: ""
+            val (icon, tint) = when {
+                room == null -> Icons.Outlined.Business to Color(0xFF3B82F6)
+                roomType.contains("toilet", ignoreCase = true) || roomType.contains("wc", ignoreCase = true) -> Icons.Outlined.Wc to Color(0xFF06B6D4)
+                roomType.contains("lab", ignoreCase = true) -> Icons.Outlined.Science to Color(0xFF8B5CF6)
+                roomType.contains("gym", ignoreCase = true) || roomType.contains("liikunta", ignoreCase = true) -> Icons.Outlined.FitnessCenter to Color(0xFF10B981)
+                roomType.contains("cafe", ignoreCase = true) || roomType.contains("ruokala", ignoreCase = true) -> Icons.Outlined.Restaurant to Color(0xFFF59E0B)
+                roomType.contains("library", ignoreCase = true) || roomType.contains("kirja", ignoreCase = true) -> Icons.Outlined.MenuBook to Color(0xFFEC4899)
+                roomType.contains("office", ignoreCase = true) || roomType.contains("kanslia", ignoreCase = true) -> Icons.Outlined.Work to Color(0xFF64748B)
+                else -> Icons.Outlined.MeetingRoom to MaterialTheme.colorScheme.primary
+            }
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tint.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = if (room != null) roomLabel(target)
                     else nameOf(target, lang).ifBlank { shortName(target) },
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(3.dp))
                 val subtitle = if (room != null) {
                     val type = (room["type"] as? JsonPrimitive)?.contentOrNull ?: ""
                     val floor = (room["floor"] as? JsonPrimitive)?.contentOrNull ?: ""
-                    listOf(type, if (floor.isNotBlank()) "kerros $floor" else "")
-                        .filter { it.isNotBlank() }.joinToString(" · ")
+                    val floorLabel = if (isFi) "kerros $floor" else "floor $floor"
+                    listOf(
+                        type.replaceFirstChar { it.uppercaseChar() },
+                        if (floor.isNotBlank()) floorLabel else "",
+                    ).filter { it.isNotBlank() }.joinToString(" · ")
                 } else {
-                    (building?.get("nameFi") as? JsonPrimitive)?.contentOrNull ?: ""
+                    (building?.get("nameFi") as? JsonPrimitive)?.contentOrNull
+                        ?: nameOf(target, lang)
                 }
                 if (subtitle.isNotBlank()) {
-                    Text(subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        subtitle,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Outlined.Close, contentDescription = if (lang == "fi") "Sulje" else "Close")
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+            ) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = if (isFi) "Sulje" else "Close",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
-        Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { onNavigate(target) }, modifier = Modifier.weight(1f)) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.DirectionsWalk, null, modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(if (lang == "fi") "Suunnista tänne" else "Directions")
-            }
+        Spacer(Modifier.height(16.dp))
+        // Primary action row — Apple/MazeMap style with prominent CTA
+        Button(
+            onClick = { onNavigate(target) },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+            ),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.DirectionsWalk,
+                null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onPrimary,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (isFi) "Suunnista tänne" else "Directions",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
         }
     }
 }

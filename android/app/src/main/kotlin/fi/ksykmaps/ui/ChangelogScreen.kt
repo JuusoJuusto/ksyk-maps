@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.73.0",
+        date = "September 2026",
+        titleFi = "Kartan tietokortti · FCM-diagnostiikka",
+        titleEn = "Map place cards · FCM diagnostics",
+        highlightsFi = listOf(
+            "Kartan huone-/rakennuskortti (Apple Maps -tyylinen) — vetokahva ylhäällä, kategoriakuvake väreittäin, prominenttinen 'Suunnista tänne' -nappi.",
+            "Huoneet erotellaan kategoriakuvakkeilla: WC (💧), labra (🧪), liikuntasali, kirjasto, ruokala, kanslia, luokka.",
+            "FCM-lähetykset kertovat nyt selkeästi jos ei ole rekisteröityjä laitteita.",
+            "Hallintapaneeli näyttää FCM:n konfiguraatiotilan + aktiiviset laitteet 7d/30d.",
+        ),
+        highlightsEn = listOf(
+            "Map room/building card (Apple Maps style) — drag handle up top, colored category icon bubble, prominent 'Directions' button.",
+            "Rooms separated by category icons: WC, lab, gym, library, cafeteria, office, classroom.",
+            "FCM broadcasts now clearly report when no devices are registered.",
+            "Admin panel shows FCM config + active devices 7d/30d.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.72.0",
         date = "September 2026",
         titleFi = "Kartan tiilikaavu vaihdettu · admin-analytiikka korjattu",

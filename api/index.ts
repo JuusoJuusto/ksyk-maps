@@ -2452,12 +2452,24 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       const { title, body: bodyText, type, screen } = req.body || {};
       if (!title?.trim() || !bodyText?.trim()) return res.status(400).json({ message: 'title and body required' });
       try {
-        const { broadcast } = await import('../server/fcm.js');
+        const { broadcast, isFcmConfigured } = await import('../server/fcm.js');
+        if (!isFcmConfigured()) {
+          return res.status(400).json({
+            message: 'FCM not configured. Set FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY on Vercel.',
+            configured: false,
+          });
+        }
         const result = await broadcast({ title: title.trim(), body: bodyText.trim(), type, screen });
+        if (result.total === 0) {
+          return res.status(200).json({
+            ...result,
+            warning: 'No registered devices. Users must open the app once on v1.71.0+ so their FCM token registers.',
+          });
+        }
         return res.status(200).json(result);
       } catch (e: any) {
         console.error('POST /notifications/broadcast error:', e?.message);
-        return res.status(500).json({ message: 'Failed to send notifications' });
+        return res.status(500).json({ message: 'Failed to send notifications: ' + (e?.message || 'unknown') });
       }
     }
 
@@ -2465,24 +2477,54 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     if (apiPath === '/notifications/test' && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
       try {
-        const { broadcast } = await import('../server/fcm.js');
+        const { broadcast, isFcmConfigured } = await import('../server/fcm.js');
+        if (!isFcmConfigured()) {
+          return res.status(400).json({
+            message: 'FCM not configured. Set FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY on Vercel.',
+            configured: false,
+          });
+        }
         const result = await broadcast({
           title: 'KSYK Maps — testi',
           body: 'Testipush-ilmoitus hallintapaneelista.',
           type: 'test',
           screen: 'news',
         });
-        return res.status(200).json(result);
+        return res.status(200).json({
+          ...result,
+          ...(result.total === 0 && {
+            warning: 'No registered devices. Install v1.71.0+ APK on a phone and open the app once so the FCM token registers.',
+          }),
+        });
       } catch (e: any) {
-        return res.status(500).json({ message: 'Failed to send test notification' });
+        return res.status(500).json({ message: 'Failed to send test notification: ' + (e?.message || 'unknown') });
       }
     }
 
-    // GET /notifications/status — FCM config status (admin only)
+    // GET /notifications/status — FCM config + token count + recent-activity diagnostics (admin only)
     if (apiPath === '/notifications/status' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
       const { isFcmConfigured } = await import('../server/fcm.js');
-      return res.status(200).json({ configured: isFcmConfigured() });
+      const configured = isFcmConfigured();
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const totalRow = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens`);
+        const active7d = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens WHERE updated_at > now() - interval '7 days'`);
+        const active30d = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens WHERE updated_at > now() - interval '30 days'`);
+        const totalRows = (totalRow as any).rows ?? totalRow;
+        const active7dRows = (active7d as any).rows ?? active7d;
+        const active30dRows = (active30d as any).rows ?? active30d;
+        return res.status(200).json({
+          configured,
+          totalDevices: totalRows[0]?.n ?? 0,
+          active7d: active7dRows[0]?.n ?? 0,
+          active30d: active30dRows[0]?.n ?? 0,
+          projectId: process.env.FIREBASE_PROJECT_ID || null,
+        });
+      } catch (e: any) {
+        return res.status(200).json({ configured, error: e?.message });
+      }
     }
 
     // Email diagnostic endpoint — admin only (leaks config info)

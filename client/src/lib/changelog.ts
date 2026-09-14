@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.98";
+export const APP_VERSION = "4.5.99";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.99",
+    date: "September 2026",
+    title: "Map place cards · FCM diagnostics · v1.73.0",
+    titleFi: "Kartan tietokortti · FCM-diagnostiikka · v1.73.0",
+    latest: true,
+    highlights: [
+      "**Android map: Apple Maps-style place card** — drag handle, colored category icon, prominent Directions button. Rooms get an icon by type (WC / lab / gym / library / cafeteria / office / classroom).",
+      "**FCM diagnostics** — broadcasts now report clearly if no devices are registered, and admin panel shows Firebase config status + active device counts (7d/30d).",
+      "**Version bump: Android 1.72.0 → 1.73.0, web 4.5.98 → 4.5.99.**",
+    ],
+    highlightsFi: [
+      "**Android-kartta: Apple Maps -tyylinen tietokortti** — vetokahva, värillinen kategoriakuvake, prominenttinen 'Suunnista tänne' -nappi.",
+      "**FCM-diagnostiikka** — lähetykset kertovat selkeästi jos ei ole rekisteröityjä laitteita.",
+    ],
+  },
   {
     version: "4.5.98",
     date: "September 2026",
     title: "CSP fixed at source · admin analytics 401s fixed · Sentry tunnel auth",
     titleFi: "CSP korjattu vercel.jsonissa · admin-analytiikan 401-virheet korjattu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Fixed at the source: CSP in `vercel.json` now allows Firebase + googletagmanager URLs.** The api/index.ts CSP header was the wrong place to widen — static assets use the `vercel.json` header. Both are now aligned.",
       "**Admin analytics 401s fixed** — `OverviewInsightsCards` and `AnalyticsExternalPanel` were calling `/api/analytics/overview` and `/api/analytics/external` without admin headers. Now include `getAdminHeaders()`.",
