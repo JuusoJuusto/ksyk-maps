@@ -360,72 +360,10 @@ fun SettingsScreen(
                         onClick = onOpenLogs,
                     )
                     RowDivider()
-                    // v1.77.0: FCM diagnostic — force token registration
-                    // and show the exact result. Fixes the "no devices
-                    // registered on server" problem when startup init failed.
-                    var fcmState by remember { mutableStateOf<String?>(null) }
-                    var fcmBusy by remember { mutableStateOf(false) }
-                    ActionGroupRow(
-                        icon = Icons.Outlined.Notifications,
-                        iconTint = when {
-                            fcmState?.startsWith("OK") == true -> Color(0xFF10B981)
-                            fcmState?.startsWith("FAIL") == true -> Color(0xFFEF4444)
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        title = if (isFi) "Rekisteröi push-token" else "Register push token",
-                        subtitle = fcmState ?: if (isFi) "Yritä uudelleen jos et saa ilmoituksia"
-                                              else "Retry if push notifications don't arrive",
-                        actionLabel = if (fcmBusy) "..." else if (isFi) "Kokeile" else "Try",
-                        actionEnabled = !fcmBusy,
-                        onAction = {
-                            fcmBusy = true
-                            fcmState = null
-                            scope.launch {
-                                val result = withContext(Dispatchers.IO) {
-                                    fi.ksykmaps.KsykApp.registerFcmTokenNow()
-                                }
-                                fcmBusy = false
-                                fcmState = if (result.success) {
-                                    "OK: ${result.token?.take(20)}…"
-                                } else {
-                                    "FAIL: ${result.error?.take(80)}"
-                                }
-                            }
-                        },
-                    )
-                    RowDivider()
-                    // v1.80.0: copy the raw FCM token so the user can paste
-                    // it into Firebase Console → Cloud Messaging → Send test
-                    // message → 'Add an FCM registration token', which routes
-                    // directly to this device without going through our backend.
-                    // Best debugging tool when server-side FCM is failing.
-                    var copyState by remember { mutableStateOf<String?>(null) }
-                    ActionGroupRow(
-                        icon = Icons.Outlined.ContentCopy,
-                        iconTint = MaterialTheme.colorScheme.primary,
-                        title = if (isFi) "Kopioi FCM-token" else "Copy FCM token",
-                        subtitle = copyState ?: if (isFi) "Käytä Firebase Consolen testipushissa"
-                                                 else "Use in Firebase Console test push",
-                        actionLabel = if (isFi) "Kopioi" else "Copy",
-                        actionEnabled = true,
-                        onAction = {
-                            scope.launch {
-                                val result = withContext(Dispatchers.IO) {
-                                    fi.ksykmaps.KsykApp.registerFcmTokenNow()
-                                }
-                                val token = result.token
-                                if (token != null) {
-                                    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("FCM token", token))
-                                    copyState = if (isFi) "Kopioitu! (${token.take(12)}…)"
-                                                else "Copied! (${token.take(12)}…)"
-                                } else {
-                                    copyState = if (isFi) "Ei saatavilla" else "Not available"
-                                }
-                            }
-                        },
-                    )
-                    RowDivider()
+                    // v1.82.0: production-ready — dev-facing FCM buttons
+                    // (Rekisteröi push-token, Kopioi FCM-token) removed.
+                    // Registration happens automatically on app start and
+                    // retries with exponential backoff on network failure.
                     ActionGroupRow(
                         icon = Icons.Outlined.CleaningServices,
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -10,7 +10,21 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## ✅ Just shipped (v1.81.0 · pending push)
+**Where does this file live?** `TODO.md` at the repo root:
+`C:\Users\JuusoKaikula\Downloads\KSYK-Map\TODO.md`
+Also on GitHub at `main/TODO.md`.
+
+---
+
+## ✅ Just shipped (v1.82.0 · pending push)
+
+- **Map "API KEY REQUIRED" watermarks GONE** — CartoDB added the watermark in Sep 2026 for unauthenticated use; switched back to OSM standard tiles which are fine for school-scale traffic.
+- **Dev-facing FCM buttons removed** from mobile Settings ("Rekisteröi push-token" / "Kopioi FCM-token") — production-ready now, registration is automatic with retry backoff.
+- **Message templates removed** from admin Notifications tab per request.
+- **Reset analytics/logs** — new "Danger zone" in admin Settings → Maintenance with three wipe buttons: events / logs / all.
+- **README rewritten** — reflects the current stack (Android app, native widgets, PostgreSQL/Drizzle, PostHog, Sentry). Copyright dates now 2025–2026 per your correction.
+
+## ✅ Shipped (v1.81.0)
 
 - FCM upload retry with exponential backoff (fixes "reg fail — Unable to resolve host" on Wi-Fi handoffs)
 - Admin: DELETE /push-tokens endpoint + "Reset all tokens" button

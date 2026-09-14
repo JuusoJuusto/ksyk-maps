@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.7";
+export const APP_VERSION = "4.6.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.8",
+    date: "September 2026",
+    title: "Production-ready cleanup · map API key watermark fix · v1.82.0",
+    titleFi: "Production-cleanup · kartan vesileima poistettu · v1.82.0",
+    latest: true,
+    highlights: [
+      "**Map: 'API KEY REQUIRED' watermarks GONE.** CartoDB added the watermark in September 2026 for unauthenticated use. Switched back to OSM standard tiles — school-scale traffic is well below OSMF's community-tile threshold.",
+      "**Dev-facing FCM buttons removed** from mobile Settings ('Rekisteröi push-token' / 'Kopioi FCM-token') — production-ready. Registration is automatic on app start with exponential-backoff retry (v1.81.0).",
+      "**Message templates removed** from admin Notifications card per request.",
+      "**New 'Danger zone' in admin Settings → Maintenance** — three wipe buttons: reset analytics events / reset app logs / reset everything. Calls `DELETE /api/analytics/reset` with `{scope: 'events'|'logs'|'all'}`.",
+      "**README rewritten** for the current v4.x stack (React web, native Android app, MapLibre both, PostgreSQL/Drizzle, PostHog session replay, Sentry, FCM). Copyright 2025–2026.",
+    ],
+    highlightsFi: [
+      "**Kartan 'API KEY REQUIRED' -vesileima POISTUNUT** — takaisin OSM-standarditiiliin.",
+      "**Dev-testinapit poistettu** mobiilin Asetuksista.",
+      "**Viestimallit poistettu** admin Notifications-kortista.",
+      "**Uusi 'Danger zone'** admin Asetuksissa — analytiikan ja lokien nollaus.",
+      "**README päivitetty.**",
+    ],
+  },
   {
     version: "4.6.7",
     date: "September 2026",
     title: "FCM upload retry · Reset tokens · Message templates · Character counters · v1.81.0",
     titleFi: "FCM-uudelleenyritys · Tokenien nollaus · Viestimallit · v1.81.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**FCM token upload now retries with exponential backoff** (2s → 5s → 15s → 30s → 60s) when DNS fails. The user's log showed dozens of `Upload failed — Unable to resolve host` entries on Wi-Fi handoffs / lock-screen fetches — those retries now catch the token once connectivity returns.",
       "**Admin: 'Reset all tokens' button** in the Notifications tab — one-click purge of the entire `push_tokens` table when they've gotten stale in bulk.",

@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.82.0",
+        date = "September 2026",
+        titleFi = "Production-ready siivous",
+        titleEn = "Production-ready cleanup",
+        highlightsFi = listOf(
+            "Dev-testinapit poistettu Diagnostiikasta ('Rekisteröi push-token', 'Kopioi FCM-token') — rekisteröinti tapahtuu automaattisesti käynnistyksessä uudelleenyrityksellä.",
+            "Karttatiilet OSM-standardiin — CartoDB lisäsi 'API KEY REQUIRED' -vesileiman syyskuussa 2026 tunnistamattomille käyttäjille.",
+            "Web-admin: viestimallit poistettu Notifications-kortista.",
+            "Web-admin: uusi 'Danger zone' Asetuksissa — kolme nappia analytiikan ja lokien nollaukseen.",
+        ),
+        highlightsEn = listOf(
+            "Dev-facing FCM test buttons removed from Diagnostics — registration is automatic with retry backoff.",
+            "Map tiles switched back to OSM standard — CartoDB started requiring an API key in Sep 2026.",
+            "Web admin: message templates removed from Notifications card.",
+            "Web admin: new 'Danger zone' in Settings — three buttons to reset analytics events / app logs / everything.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.81.0",
         date = "September 2026",
         titleFi = "FCM upload retry + reset tokens + viestimallit",

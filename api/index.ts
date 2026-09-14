@@ -2424,6 +2424,37 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
 
+    // DELETE /analytics/reset — purge telemetry_sessions, telemetry_events,
+    // feature_usage, performance_events, app_logs, easter_egg_events.
+    // Useful when the tables have gotten cluttered with test data.
+    if (apiPath === '/analytics/reset' && req.method === 'DELETE') {
+      if (!requireAdminAuth(req, res)) return;
+      const { scope: resetScope } = req.body || {};
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const results: Record<string, number> = {};
+        const wipe = async (table: string) => {
+          const r = await db.execute(sql.raw(`DELETE FROM ${table}`));
+          results[table] = (r as any).rowCount ?? 0;
+        };
+        // scope 'all' → all tables; 'events' → only event tables; 'logs' → only app_logs
+        if (!resetScope || resetScope === 'all' || resetScope === 'events') {
+          await wipe('telemetry_events').catch(() => {});
+          await wipe('feature_usage').catch(() => {});
+          await wipe('performance_events').catch(() => {});
+          await wipe('easter_egg_events').catch(() => {});
+          await wipe('telemetry_sessions').catch(() => {});
+        }
+        if (!resetScope || resetScope === 'all' || resetScope === 'logs') {
+          await wipe('app_logs').catch(() => {});
+        }
+        return res.status(200).json({ success: true, ...results });
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Reset failed: ' + (e?.message || 'unknown') });
+      }
+    }
+
     // DELETE /push-tokens — admin only — purge every registered FCM token.
     // Useful when tokens have gotten stale in bulk (e.g. after switching
     // Firebase projects, migrating signing keys, or debugging).

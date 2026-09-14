@@ -486,29 +486,6 @@ function NotificationsPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* v1.81.0: pre-canned message templates — one tap fills the form. */}
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Templates</label>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { label: "🚨 Peruttu", t: "Tunti peruttu", b: "Tänään ei ole [aine] -tuntia. Voitte jäädä kotiin." },
-                { label: "🏫 Luokka vaihtui", t: "Luokka vaihtui", b: "[Aine] -tunti pidetään nyt luokassa [K##] eikä [K##]." },
-                { label: "🍽️ Lounas myöhässä", t: "Lounas myöhässä", b: "Lounas alkaa tänään klo [aika]. Odottakaa vuoroanne rauhassa." },
-                { label: "❄️ Ei koulua", t: "Koulu peruttu", b: "Koulu on peruttu [päivä] sään takia. Kaikki tunnit peruttu." },
-                { label: "📢 Kokous", t: "Yleiskokous", b: "Muistakaa tulla yleiskokoukseen [aika] Keskushallille." },
-                { label: "🎉 Juhla", t: "Juhla", b: "Muista [juhla] tänään klo [aika]. Nähdään siellä!" },
-              ].map((tpl) => (
-                <button
-                  key={tpl.label}
-                  onClick={() => { setTitle(tpl.t); setBody(tpl.b); }}
-                  disabled={sending}
-                  className="text-[11px] px-2.5 py-1 rounded-md bg-muted hover:bg-muted/70 disabled:opacity-40"
-                >
-                  {tpl.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Otsikko (Title)</label>
             <Input

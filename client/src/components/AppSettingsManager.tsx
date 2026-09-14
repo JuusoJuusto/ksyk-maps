@@ -393,6 +393,58 @@ export default function AppSettingsManager() {
               </div>
             </CardContent>
           </Card>
+
+          {/* v1.82.0: Danger zone — analytics + logs bulk wipes */}
+          <Card className="border-red-300 dark:border-red-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                Danger zone — irreversible resets
+              </CardTitle>
+              <CardDescription>Every button here wipes production data. There is no confirm-undo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                { scope: 'events', label: 'Analytics events', desc: 'Clears telemetry_events + feature_usage + performance_events + easter_egg_events + telemetry_sessions' },
+                { scope: 'logs',   label: 'App logs',         desc: 'Clears the server-side app_logs feed only' },
+                { scope: 'all',    label: 'ALL analytics + logs', desc: 'Combines both above (starts the analytics/logs history fresh)' },
+              ].map(({ scope, label, desc }) => (
+                <div key={scope} className="flex items-center justify-between p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50/40 dark:bg-red-950/20">
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Reset: {label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      if (!confirm(`Really wipe ${label.toLowerCase()}? This can't be undone.`)) return;
+                      try {
+                        const r = await fetch('/api/analytics/reset', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+                          body: JSON.stringify({ scope }),
+                        });
+                        const data = await r.json();
+                        toast({
+                          title: r.ok ? 'Wiped' : 'Failed',
+                          description: r.ok
+                            ? Object.entries(data).filter(([k]) => k !== 'success').map(([k, v]) => `${k}: ${v}`).join(' · ')
+                            : data.message,
+                          variant: r.ok ? 'default' : 'destructive',
+                        });
+                      } catch (e: any) {
+                        toast({ title: 'Failed', description: e?.message, variant: 'destructive' });
+                      }
+                    }}
+                    className="gap-1.5"
+                  >
+                    Wipe
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
