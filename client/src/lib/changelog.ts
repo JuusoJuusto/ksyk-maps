@@ -10,15 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.95";
+export const APP_VERSION = "4.5.96";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.96",
+    date: "September 2026",
+    title: "Firebase Analytics off the web, crash logs → admin panel, map crash fix v1.71.0",
+    titleFi: "Firebase Analytics pois selaimesta, kaatumislokit → hallintapaneeliin, kartan korjaus v1.71.0",
+    latest: true,
+    highlights: [
+      "**Fixed: Firebase Analytics CSP violations on the web.** The web bundle no longer loads Firebase — analytics runs entirely through PostHog. This removes the noisy `Refused to connect` errors from `firebase.googleapis.com`, `firebaseinstallations.googleapis.com`, and `googletagmanager.com`.",
+      "**Fixed: Android map crashed the whole app after opening.** Firebase Analytics auto-init pulled in transitive Play Services dependencies that clashed with MapLibre's location provider. Analytics is now disabled on Android via manifest meta-data (`firebase_analytics_collection_deactivated=true`); FCM messaging still works.",
+      "**Crash logs now upload straight to the admin panel.** The 'Sovellus kaatui viimeksi' card in Settings and the Send button in Logs POST to `/api/crash-reports` instead of opening the OS share sheet.",
+      "**Backend: new `/api/crash-reports` endpoint** stores mobile crash dumps in `app_crash_reports` with app version, device info, and platform.",
+      "**Android: FCM notification taps now route** to the correct tab via the `ksyk_screen` extra (map, timetable, news, settings).",
+      "**Hardened Application.onCreate** — each init step (Sentry, PostHog, FCM, prefetch) runs inside `runCatching` so a single failure can't kill the app.",
+    ],
+    highlightsFi: [
+      "**Korjattu: Firebase Analyticsin CSP-virheet selainkonsolissa.** Web-pakkaus ei enää lataa Firebasea — analytiikka tulee PostHogilta.",
+      "**Korjattu: Android-kartta kaatoi koko sovelluksen avattaessa.** Firebase Analyticsin automaattinen käynnistys latasi Play Services -riippuvuuksia jotka törmäsivät MapLibren kanssa.",
+      "**Kaatumislokit menevät nyt suoraan hallintapaneeliin.** Asetusten 'Sovellus kaatui viimeksi' -kortti ja Lokit-näytön Lähetä-nappi lähettävät /api/crash-reports -päätepisteeseen.",
+      "**Backend: uusi /api/crash-reports -päätepiste** tallentaa kaatumislokit tietokantaan.",
+      "**Android: FCM-ilmoitusten napautukset ohjaavat** oikeaan välilehteen ksyk_screen-parametrilla.",
+      "**Vahvistettu Application.onCreate** — jokainen käynnistysvaihe suoritetaan `runCatching`-lohkossa.",
+    ],
+  },
   {
     version: "4.5.95",
     date: "September 2026",
     title: "Android UX rehaul v1.60.0",
     titleFi: "Android-käyttöliittymän uudistus v1.60.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Navigation simplified: Admin moved from bottom bar to Settings.** The bottom tab bar now always has exactly 5 tabs (Home, Map, Timetable, Lunch, Settings). Admins access the admin panel through a dedicated row in Settings → Account.",
       "**Onboarding shortened to 2 screens.** The two passive instruction pages (room finder, timetable) were removed. New users go Welcome → Name → straight into the app. The Wilma calendar connect option appears on the name page.",

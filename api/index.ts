@@ -2301,6 +2301,44 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
 
+    // POST /crash-reports — mobile app uploads its last_crash.txt / log dump
+    // straight to the admin panel instead of the user having to open a share
+    // sheet + email. No auth required — same as feedback/bugs.
+    if (apiPath === '/crash-reports' && req.method === 'POST') {
+      const { logBody, appVersion, deviceInfo, platform } = req.body || {};
+      if (!logBody || typeof logBody !== 'string' || !logBody.trim()) {
+        return res.status(400).json({ message: 'logBody required' });
+      }
+      // Hard cap the body so a runaway log can't fill the DB.
+      const trimmed = logBody.trim().slice(0, 200_000);
+      const lineCount = trimmed.split('\n').length;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        await db.execute(sql`
+          INSERT INTO app_crash_reports (log_body, log_lines, app_version, device_info, platform)
+          VALUES (${trimmed}, ${lineCount}, ${appVersion || null}, ${deviceInfo || null}, ${platform || 'android'})
+        `);
+        return res.status(201).json({ success: true });
+      } catch (e: any) {
+        console.error('POST /crash-reports error:', e?.message);
+        return res.status(500).json({ message: 'Failed to save crash report' });
+      }
+    }
+
+    // GET /crash-reports — admin only
+    if (apiPath === '/crash-reports' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const rows = await db.execute(sql`SELECT * FROM app_crash_reports ORDER BY created_at DESC LIMIT 200`);
+        return res.status(200).json(rows.rows ?? rows);
+      } catch {
+        return res.status(500).json({ message: 'Failed to fetch crash reports' });
+      }
+    }
+
     // POST /push-tokens — register or refresh an FCM device token (no auth required)
     if (apiPath === '/push-tokens' && req.method === 'POST') {
       const { fcmToken, platform, appVersion } = req.body || {};

@@ -226,6 +226,19 @@ export async function ensureSchema(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_push_tokens_user    ON push_tokens (user_id);
       CREATE INDEX IF NOT EXISTS idx_push_tokens_updated ON push_tokens (updated_at);
+
+      -- v1.71.0: crash reports uploaded from the mobile app so admins can
+      -- see them in the panel without users going through a share sheet.
+      CREATE TABLE IF NOT EXISTS app_crash_reports (
+        id           varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        app_version  varchar,
+        platform     varchar   DEFAULT 'android',
+        device_info  varchar,
+        log_body     text      NOT NULL,
+        log_lines    integer,
+        created_at   timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crash_created_at ON app_crash_reports (created_at);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

@@ -71,6 +71,32 @@
             </intent-filter>
         </service>
 
+        <!-- Firebase Analytics is not used on Android (PostHog covers analytics).
+             Disable it so Firebase never pulls the analytics SDK into the runtime,
+             which conflicted with Play Services location and crashed the map on
+             open in v1.68-1.70. Keep FCM messaging on. -->
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_ssaid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="true" />
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_performance_collection_enabled"
+            android:value="false" />
+
         <!-- Fires the timetable lesson reminder notification -->
         <receiver
             android:name=".ui.LessonReminderReceiver"

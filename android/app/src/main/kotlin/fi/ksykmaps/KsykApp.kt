@@ -43,12 +43,16 @@ class KsykApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        installCrashHandler()   // must be first so subsequent init crashes get logged
-        initSentry()
-        initPostHog()
-        createNotificationChannels()
-        prefetchMapData()
-        registerFcmToken()
+        // Each initialiser wrapped separately — a failure in one must not
+        // cascade and take down the whole app. Historically Firebase auto-init
+        // (v1.68-1.70) failed with NoClassDefFoundError on some devices and
+        // crashed the whole process, taking the map with it.
+        runCatching { installCrashHandler() }
+        runCatching { initSentry() }
+        runCatching { initPostHog() }
+        runCatching { createNotificationChannels() }
+        runCatching { prefetchMapData() }
+        runCatching { registerFcmToken() }
     }
 
     private fun initSentry() {
@@ -96,18 +100,38 @@ class KsykApp : Application() {
     }
 
     private fun registerFcmToken() {
+        // Wrap the whole call in appScope + try/catch so a missing/failed
+        // Firebase init cannot crash the app on startup. This ran on the
+        // main thread indirectly (via lazy getInstance) in v1.68-1.70 and
+        // caused a NoClassDefFoundError chain that killed the map on open.
         appScope.launch(Dispatchers.IO) {
             try {
-                val token = FirebaseMessaging.getInstance().token.await()
+                // Firebase is initialised automatically via google-services.json.
+                // If Play Services isn't present on the device, getInstance()
+                // will throw — we swallow that here so the app stays usable.
+                val messaging = try { FirebaseMessaging.getInstance() }
+                    catch (t: Throwable) {
+                        AppLog.warn("FCM", "Firebase unavailable: ${t.message}")
+                        return@launch
+                    }
+                val token = try { messaging.token.await() }
+                    catch (t: Throwable) {
+                        AppLog.warn("FCM", "Token fetch failed: ${t.message}")
+                        return@launch
+                    }
                 val body = buildJsonObject {
                     put("fcmToken", token)
                     put("platform", "android")
                     put("appVersion", BuildConfig.VERSION_NAME)
                 }
-                Api.post("/push-tokens", body)
-                AppLog.info("FCM", "Token registered on startup")
-            } catch (e: Exception) {
-                AppLog.warn("FCM", "Startup token registration failed: ${e.message}")
+                try {
+                    Api.post("/push-tokens", body)
+                    AppLog.info("FCM", "Token registered on startup")
+                } catch (e: Exception) {
+                    AppLog.warn("FCM", "Token upload failed: ${e.message}")
+                }
+            } catch (t: Throwable) {
+                AppLog.warn("FCM", "Startup registration threw: ${t.message}")
             }
         }
     }

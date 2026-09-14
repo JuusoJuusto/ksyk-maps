@@ -28,11 +28,17 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Build
 import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Analytics
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.DiskCache
 import fi.ksykmaps.data.Session
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 private const val KEY_LANGUAGE = "language"
 private const val KEY_DARK_MODE = "dark_mode"  // "system" | "dark" | "light"
@@ -86,6 +92,7 @@ fun SettingsScreen(
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val prefs = remember { ctx.getSharedPreferences(PREFS_APP, android.content.Context.MODE_PRIVATE) }
+    val scope = rememberCoroutineScope()
 
     fun isNotifGranted() = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         androidx.core.app.ActivityCompat.checkSelfPermission(
@@ -410,22 +417,46 @@ fun SettingsScreen(
             // ── Crash report ───────────────────────────────────────
             item {
                 val crashFile = remember { java.io.File(ctx.filesDir, "last_crash.txt") }
-                if (crashFile.exists()) {
+                var uploadState by remember { mutableStateOf<String?>(null) }
+                var uploading by remember { mutableStateOf(false) }
+                var visible by remember { mutableStateOf(crashFile.exists()) }
+                if (visible) {
                     CrashCard(
                         isFi = isFi,
-                        onShare = {
-                            try {
-                                val text = crashFile.readText()
-                                val send = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps crash log")
-                                    putExtra(Intent.EXTRA_TEXT, text)
+                        uploading = uploading,
+                        uploadState = uploadState,
+                        onSend = {
+                            if (uploading) return@CrashCard
+                            uploading = true
+                            uploadState = null
+                            val text = try { crashFile.readText() } catch (_: Throwable) { "" }
+                            val device = "${Build.MANUFACTURER} ${Build.MODEL} (API ${Build.VERSION.SDK_INT})"
+                            scope.launch {
+                                val ok = try {
+                                    withContext(Dispatchers.IO) {
+                                        Api.post("/crash-reports", buildJsonObject {
+                                            put("logBody", text)
+                                            put("appVersion", BuildConfig.VERSION_NAME)
+                                            put("deviceInfo", device)
+                                            put("platform", "android")
+                                        })
+                                    }
+                                    true
+                                } catch (_: Exception) { false }
+                                uploading = false
+                                if (ok) {
+                                    uploadState = if (isFi) "Lähetetty ylläpidolle" else "Sent to admin"
+                                    try { crashFile.delete() } catch (_: Throwable) {}
+                                    visible = false
+                                } else {
+                                    uploadState = if (isFi) "Lähetys epäonnistui" else "Upload failed"
                                 }
-                                ctx.startActivity(Intent.createChooser(send,
-                                    if (isFi) "Jaa vikailmoitus" else "Share crash log"))
-                            } catch (_: Throwable) {}
+                            }
                         },
-                        onDelete = { try { crashFile.delete() } catch (_: Throwable) {} },
+                        onDelete = {
+                            try { crashFile.delete() } catch (_: Throwable) {}
+                            visible = false
+                        },
                     )
                 }
             }
@@ -907,9 +938,15 @@ private fun LinkGroupRow(
 }
 
 @Composable
-private fun CrashCard(isFi: Boolean, onShare: () -> Unit, onDelete: () -> Unit) {
+private fun CrashCard(
+    isFi: Boolean,
+    uploading: Boolean,
+    uploadState: String?,
+    onSend: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(
-        Modifier.fillMaxWidth().clickable { onShare() },
+        Modifier.fillMaxWidth().clickable(enabled = !uploading) { onSend() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -928,17 +965,28 @@ private fun CrashCard(isFi: Boolean, onShare: () -> Unit, onDelete: () -> Unit) 
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
-                    if (isFi) "Napauta jakaaksesi lokin" else "Tap to share the log",
+                    uploadState ?: when {
+                        uploading -> if (isFi) "Lähetetään ylläpidolle..." else "Sending to admin..."
+                        else      -> if (isFi) "Napauta lähettääksesi ylläpidolle" else "Tap to send to admin"
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                 )
             }
-            TextButton(onClick = onDelete) {
-                Text(
-                    if (isFi) "Poista" else "Delete",
+            if (uploading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontWeight = FontWeight.SemiBold,
                 )
+            } else {
+                TextButton(onClick = onDelete) {
+                    Text(
+                        if (isFi) "Poista" else "Delete",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }

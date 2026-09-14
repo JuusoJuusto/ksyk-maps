@@ -1,6 +1,6 @@
 package fi.ksykmaps.ui
 
-import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -24,7 +24,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fi.ksykmaps.BuildConfig
+import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.AppLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -44,6 +51,9 @@ fun LogsScreen(onBack: () -> Unit) {
     val entries by AppLog.entriesState
     var levelFilter by remember { mutableStateOf<AppLog.Level?>(null) }
     var tagFilter by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var uploading by remember { mutableStateOf(false) }
 
     val displayed = remember(entries, levelFilter, tagFilter) {
         entries.filter { e ->
@@ -76,19 +86,47 @@ fun LogsScreen(onBack: () -> Unit) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        try {
+                    // Upload directly to the admin panel instead of the OS
+                    // share sheet. Users can't be expected to know that
+                    // "jakaa lokin" means email support — the log goes
+                    // straight into the DB for admins to inspect.
+                    IconButton(
+                        enabled = !uploading,
+                        onClick = {
+                            uploading = true
                             val text = buildLogExport(entries)
-                            val i = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "KSYK Maps app log")
-                                putExtra(Intent.EXTRA_TEXT, text)
+                            val device = "${Build.MANUFACTURER} ${Build.MODEL} (API ${Build.VERSION.SDK_INT})"
+                            scope.launch {
+                                val ok = try {
+                                    withContext(Dispatchers.IO) {
+                                        Api.post("/crash-reports", buildJsonObject {
+                                            put("logBody", text)
+                                            put("appVersion", BuildConfig.VERSION_NAME)
+                                            put("deviceInfo", device)
+                                            put("platform", "android")
+                                        })
+                                    }
+                                    true
+                                } catch (_: Exception) { false }
+                                uploading = false
+                                snackbarHostState.showSnackbar(
+                                    if (ok) (if (isFi) "Loki lähetetty ylläpidolle" else "Log sent to admin")
+                                    else    (if (isFi) "Lähetys epäonnistui" else "Upload failed")
+                                )
                             }
-                            ctx.startActivity(Intent.createChooser(i,
-                                if (isFi) "Jaa loki" else "Share log"))
-                        } catch (_: Exception) {}
-                    }) {
-                        Icon(Icons.Outlined.Share, contentDescription = if (isFi) "Jaa" else "Share")
+                        }
+                    ) {
+                        if (uploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                Icons.Outlined.CloudUpload,
+                                contentDescription = if (isFi) "Lähetä ylläpidolle" else "Send to admin",
+                            )
+                        }
                     }
                     IconButton(onClick = { AppLog.clear() }) {
                         Icon(Icons.Outlined.Delete, contentDescription = if (isFi) "Tyhjennä" else "Clear")
@@ -99,6 +137,7 @@ fun LogsScreen(onBack: () -> Unit) {
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             // Filter row — level pills + tag search

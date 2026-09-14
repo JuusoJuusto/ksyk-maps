@@ -375,12 +375,15 @@ function NotificationsPanel({
 }
 
 function FeedbackPanel() {
-  const [tab, setTab] = useState<"feedback" | "bugs">("feedback");
+  const [tab, setTab] = useState<"feedback" | "bugs" | "crashes">("feedback");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const endpoint = tab === "feedback" ? "/api/feedback" : "/api/bug-reports";
+    const endpoint =
+      tab === "feedback" ? "/api/feedback" :
+      tab === "bugs"     ? "/api/bug-reports" :
+                           "/api/crash-reports";
     setLoading(true);
     fetch(endpoint, { headers: getAdminHeaders() })
       .then((r) => r.json())
@@ -389,15 +392,20 @@ function FeedbackPanel() {
       .finally(() => setLoading(false));
   }, [tab]);
 
+  const tabLabel =
+    tab === "feedback" ? "feedback" :
+    tab === "bugs"     ? "bug reports" :
+                         "crash reports";
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold">Feedback & Bug Reports</h2>
+        <h2 className="text-xl font-bold">Feedback, Bugs & Crashes</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Submitted from the KSYK Maps mobile app.
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setTab("feedback")}
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
@@ -410,6 +418,12 @@ function FeedbackPanel() {
         >
           Bug Reports ({tab === "bugs" ? items.length : "…"})
         </button>
+        <button
+          onClick={() => setTab("crashes")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "crashes" ? "bg-orange-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+        >
+          Crashes ({tab === "crashes" ? items.length : "…"})
+        </button>
       </div>
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -419,7 +433,7 @@ function FeedbackPanel() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>No {tab === "feedback" ? "feedback" : "bug reports"} yet.</p>
+            <p>No {tabLabel} yet.</p>
           </CardContent>
         </Card>
       ) : (
@@ -432,6 +446,9 @@ function FeedbackPanel() {
                     {tab === "feedback" && (
                       <Badge variant="secondary">{item.category || "general"}</Badge>
                     )}
+                    {tab === "crashes" && item.log_lines && (
+                      <Badge variant="outline">{item.log_lines} lines</Badge>
+                    )}
                     <span className="text-xs text-muted-foreground">
                       {new Date(item.created_at).toLocaleString("fi-FI")}
                     </span>
@@ -440,7 +457,11 @@ function FeedbackPanel() {
                     <span className="text-xs text-muted-foreground font-mono">{item.app_version}</span>
                   )}
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
+                {tab === "crashes" ? (
+                  <pre className="text-xs whitespace-pre-wrap font-mono max-h-64 overflow-auto p-2 rounded bg-muted/50">{item.log_body}</pre>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
+                )}
                 {item.steps && (
                   <div className="mt-2 p-2 rounded bg-muted/50">
                     <p className="text-xs font-semibold text-muted-foreground mb-1">Steps to reproduce:</p>

@@ -150,6 +150,18 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
         // Notification taps drop a target tab hint into intent extras.
         intent.getStringExtra("open_tab")?.let { NotifNavIntent.pendingTab = it }
+        // FCM push taps pass "ksyk_screen" to route into the right tab.
+        intent.getStringExtra("ksyk_screen")?.let { screen ->
+            val tab = when (screen) {
+                "schedule", "timetable" -> "timetable"
+                "map", "rooms"          -> "map"
+                "announcements", "news" -> "news"
+                "settings"              -> "settings"
+                "home"                  -> "home"
+                else                    -> null
+            }
+            if (tab != null) NotifNavIntent.pendingTab = tab
+        }
         val data: Uri = intent.data ?: return
         val roomId = data.getQueryParameter("room") ?: return
         if (roomId.isNotBlank()) MapNavIntent.pendingRoomId = roomId
