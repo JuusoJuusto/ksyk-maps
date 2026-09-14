@@ -30,6 +30,7 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ## ✅ Recently done (last few commits)
 
+- ✅ v1.74.0 · cb48ff9 · Persistent `TODO.md`. FCM: `/notifications/status` returns `initError` + `recentDevices` + all env-var-set flags; `sendToTokens` returns per-token error codes when ≤20 targets. Widgets: current-lesson translucent tile + remaining-minutes chip, softer 3-stop navy→indigo gradient, weekend empty-state emoji. PostHog: `ksyk_session_id` registered as super-property (web + Android), admin session drill dialog has "Watch replay in PostHog" deep-link button.
 - ✅ v1.73.0 · c1e2ff3 · Apple Maps-style DetailSheet (grabber, colored category icon bubble, prominent Directions CTA), FCM diagnostics (`{warning: no devices}` when total=0, `/notifications/status` returns 7d/30d counts).
 - ✅ v1.72.0 · ba54ceb · CSP fixed in vercel.json (Firebase + googletagmanager whitelisted), admin analytics 401s fixed (OverviewInsightsCards + AnalyticsExternalPanel now send admin headers), Sentry tunnel 403 fixed (X-Sentry-Auth forwarded), CampusMap switched to CartoDB Voyager tiles, TodaySchedule widget contextual day chip.
 - ✅ v1.71.0 · ee5d396 · Admin panel consolidated ("Analytics & Logs" tab merges 4 old panels), feedback/bugs/crashes workflow states, invite/reset email failure visibility, onboarding 5→3 pages, in-app Changelog screen, crash logs upload to `/api/crash-reports`, FCM tap intent routing, jakso auto-switch by date picker.
