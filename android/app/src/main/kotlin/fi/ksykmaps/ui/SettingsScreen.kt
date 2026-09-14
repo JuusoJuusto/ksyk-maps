@@ -88,6 +88,7 @@ fun SettingsScreen(
     onResetAll: () -> Unit = {},
     onOpenFeedback: () -> Unit = {},
     onOpenBugReport: () -> Unit = {},
+    onOpenChangelog: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
@@ -337,6 +338,15 @@ fun SettingsScreen(
                     it.level == fi.ksykmaps.data.AppLog.Level.WARN
                 }
                 SettingsGroup(title = if (isFi) "Diagnostiikka" else "Diagnostics") {
+                    LinkGroupRow(
+                        icon = Icons.Outlined.NewReleases,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = if (isFi) "Muutosloki" else "Changelog",
+                        subtitle = if (isFi) "Mitä uutta versiossa ${BuildConfig.VERSION_NAME}"
+                                   else "What's new in ${BuildConfig.VERSION_NAME}",
+                        onClick = onOpenChangelog,
+                    )
+                    RowDivider()
                     LinkGroupRow(
                         icon = Icons.Outlined.BugReport,
                         iconTint = if (errorCount > 0) Color(0xFFEF4444)

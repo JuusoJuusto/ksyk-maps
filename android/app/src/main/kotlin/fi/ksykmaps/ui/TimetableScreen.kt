@@ -128,15 +128,24 @@ fun TimetableScreen(
         }
     }
 
-    // Auto-switch jakso when the selected date moves into a different period
+    // Auto-switch jakso when the selected date moves into a different period.
+    // Uses jaksoIdForDate which also falls back to the nearest upcoming jakso
+    // when the picked date is before any period starts (e.g. before-summer
+    // → next school year's period 1). Only switches if the current selection
+    // is not "all" so a user who explicitly picked "all" stays on "all".
     LaunchedEffect(weekOffset, selectedDow, jaksot) {
         if (jaksot.isEmpty()) return@LaunchedEffect
         val today = LocalDate.now()
         val diff = (selectedDow - todayDow) + weekOffset * 7
         val selectedDate = today.plusDays(diff.toLong())
-        val iso = selectedDate.toString()
-        val matchingJakso = jaksot.firstOrNull { j -> j.startDate <= iso && iso <= j.endDate }
-        if (matchingJakso != null) selectedJaksoId = matchingJakso.id
+        val target = jaksoIdForDate(jaksot, selectedDate) ?: return@LaunchedEffect
+        if (selectedJaksoId != "all" && selectedJaksoId != target) {
+            selectedJaksoId = target
+        } else if (selectedJaksoId == "all") {
+            // Leave "all" alone — user picked a see-everything view.
+        } else {
+            selectedJaksoId = target
+        }
     }
 
     val countByDow = remember(entries, selectedJaksoId) {

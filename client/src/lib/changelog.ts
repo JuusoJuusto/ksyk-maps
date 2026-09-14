@@ -10,15 +10,42 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.96";
+export const APP_VERSION = "4.5.97";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.5.97",
+    date: "September 2026",
+    title: "Admin panel consolidated · onboarding trimmed · bug states · invite email visibility",
+    titleFi: "Hallintapaneeli yhdistetty · perehdytys tiivistetty · vikatilat · kutsusähköpostien näkyvyys",
+    latest: true,
+    highlights: [
+      "**Admin panel: 'Analytics & Logs' replaces four separate sidebar entries** (Analytics, Logs, Feedback, External). Everything you need to investigate a report now lives on one tab with nested pills.",
+      "**Feedback / bugs / crashes now have workflow states** — open · in progress · closed for bugs; new · reviewed · archived for feedback. Status pills filter the list and one-tap buttons move items through the flow.",
+      "**Invite + password reset failures are now visible.** If the email doesn't send (missing EMAIL_USER env var), the admin sees a red toast with the temp password to hand over manually — no more silent success.",
+      "**CSP widened defensively** to allow `firebase.googleapis.com` etc. so users on stale bundles don't see red errors during the deploy rollover window.",
+      "**Android: onboarding trimmed from 5 pages to 3.** Three near-identical intro pages collapsed into one Welcome page with a benefit list.",
+      "**Android: in-app Changelog screen** in Settings → Diagnostics.",
+      "**Android: PostHog session replay expanded** — captures screenshots, logcat, screen views, deep links. Text inputs still masked.",
+      "**Timetable: jakso auto-switches** when the date picker moves into a different period (or before-summer → next period 1).",
+    ],
+    highlightsFi: [
+      "**Hallintapaneeli: 'Analytics & Logs' korvaa neljä erillistä sivupalkin osiota** (Analytics, Logs, Feedback, External).",
+      "**Palautteella, vikailmoituksilla ja kaatumisilla on nyt tilat** — avoin · käsittelyssä · suljettu.",
+      "**Kutsujen ja salasanan palautusten sähköpostivirheet näkyvät** — jos sähköposti ei lähde, näytetään väliaikainen salasana.",
+      "**CSP laajennettu** vanhoja selainpakettivälimuisteja varten.",
+      "**Android: perehdytys 5 sivusta 3 sivuun.**",
+      "**Android: muutoslokinäyttö asetuksissa.**",
+      "**Android: PostHog-session replay laajennettu** — kuvakaappaukset, logcat, näytön vaihdot.",
+      "**Lukujärjestys: jakso vaihtuu automaattisesti** kun valitset päivämäärän toisesta jaksosta.",
+    ],
+  },
   {
     version: "4.5.96",
     date: "September 2026",
     title: "Firebase Analytics off the web, crash logs → admin panel, map crash fix v1.71.0",
     titleFi: "Firebase Analytics pois selaimesta, kaatumislokit → hallintapaneeliin, kartan korjaus v1.71.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Fixed: Firebase Analytics CSP violations on the web.** The web bundle no longer loads Firebase — analytics runs entirely through PostHog. This removes the noisy `Refused to connect` errors from `firebase.googleapis.com`, `firebaseinstallations.googleapis.com`, and `googletagmanager.com`.",
       "**Fixed: Android map crashed the whole app after opening.** Firebase Analytics auto-init pulled in transitive Play Services dependencies that clashed with MapLibre's location provider. Analytics is now disabled on Android via manifest meta-data (`firebase_analytics_collection_deactivated=true`); FCM messaging still works.",

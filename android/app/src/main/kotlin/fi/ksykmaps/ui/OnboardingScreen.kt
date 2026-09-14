@@ -72,27 +72,16 @@ private sealed interface OnboardPage {
 
 private fun buildPages(lang: String): List<OnboardPage> {
     val fi = lang == "fi"
+    // v1.71.0: collapsed the three near-identical intro pages into a single
+    // Welcome page that shows all features as a benefit list. Total: 3 pages
+    // (Welcome → Name → Wilma) instead of 5.
     return listOf(
         OnboardPage.Standard(
             icon = Icons.Outlined.Map,
             accent = ONBOARD_BLUE,
             title = if (fi) "Tervetuloa KSYK Mapsiin" else "Welcome to KSYK Maps",
-            subtitle = if (fi) "Navigoi kampuksella, löydä luokat ja seuraa lukujärjestystäsi — kaikki yhdessä paikassa."
-                       else "Navigate campus, find classrooms, and follow your timetable — all in one place.",
-        ),
-        OnboardPage.Standard(
-            icon = Icons.Outlined.CalendarMonth,
-            accent = ONBOARD_VIOLET,
-            title = if (fi) "Lukujärjestys taskussasi" else "Timetable in your pocket",
-            subtitle = if (fi) "Tuo tunnit Wilmasta automaattisesti tai lisää ne käsin. Navigoi suoraan luokkaan yhdellä napin painalluksella."
-                       else "Import lessons from Wilma automatically or add them manually. Navigate straight to the classroom with one tap.",
-        ),
-        OnboardPage.Standard(
-            icon = Icons.Outlined.NotificationsActive,
-            accent = ONBOARD_BLUE,
-            title = if (fi) "Muistutukset ajoissa" else "Reminders on time",
-            subtitle = if (fi) "Saat muistutuksen ennen jokaista tuntia. Ei enää myöhästymisiä."
-                       else "Get a reminder before every lesson. No more being late.",
+            subtitle = if (fi) "Kaikki mitä tarvitset koulupäivääsi — yhdessä sovelluksessa."
+                       else "Everything you need for your school day — in one app.",
         ),
         OnboardPage.NameInput(),
         OnboardPage.WilmaSetup(),
@@ -282,7 +271,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
 private fun WelcomePage(page: OnboardPage.Standard, lang: String) {
     val fi = lang == "fi"
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 36.dp),
+        Modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -301,7 +290,7 @@ private fun WelcomePage(page: OnboardPage.Standard, lang: String) {
             )
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
 
         Text(
             "KSYK Maps",
@@ -312,7 +301,7 @@ private fun WelcomePage(page: OnboardPage.Standard, lang: String) {
             letterSpacing = (-0.5).sp,
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
             page.subtitle,
@@ -322,25 +311,24 @@ private fun WelcomePage(page: OnboardPage.Standard, lang: String) {
             lineHeight = 22.sp,
         )
 
-        Spacer(Modifier.height(36.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Feature chip row — makes the value proposition concrete at a glance
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FeatureChip(
+        // Three benefits shown as icon rows — replaces the 3 near-identical
+        // intro pages that used to walk through each feature separately.
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            BenefitRow(
                 icon = Icons.Outlined.Map,
-                label = if (fi) "Kartta" else "Map",
+                text = if (fi) "Löydä kaikki luokat kampukselta" else "Find every classroom on campus",
                 color = ONBOARD_BLUE,
             )
-            FeatureChip(
+            BenefitRow(
                 icon = Icons.Outlined.CalendarMonth,
-                label = if (fi) "Tunnit" else "Timetable",
+                text = if (fi) "Lukujärjestys ja lounas taskussasi" else "Timetable and lunch in your pocket",
                 color = ONBOARD_VIOLET,
             )
-            FeatureChip(
-                icon = Icons.Outlined.Restaurant,
-                label = if (fi) "Lounas" else "Lunch",
+            BenefitRow(
+                icon = Icons.Outlined.NotificationsActive,
+                text = if (fi) "Muistutukset ennen jokaista tuntia" else "Reminders before every lesson",
                 color = ONBOARD_GREEN,
             )
         }
@@ -490,26 +478,6 @@ private fun NamePage(name: String, onNameChange: (String) -> Unit, lang: String,
 }
 
 // ── Small components ───────────────────────────────────────────────────
-
-@Composable
-private fun FeatureChip(icon: ImageVector, label: String, color: Color) {
-    Row(
-        Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color.copy(alpha = 0.10f))
-            .padding(horizontal = 12.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Icon(icon, null, modifier = Modifier.size(13.dp), tint = color)
-        Text(
-            label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color,
-        )
-    }
-}
 
 @Composable
 private fun BenefitRow(icon: ImageVector, text: String, color: Color) {

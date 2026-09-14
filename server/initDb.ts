@@ -201,9 +201,14 @@ export async function ensureSchema(): Promise<void> {
         message     text      NOT NULL,
         app_version varchar,
         device_info varchar,
-        created_at  timestamp DEFAULT now()
+        status      varchar   NOT NULL DEFAULT 'new',
+        created_at  timestamp DEFAULT now(),
+        updated_at  timestamp DEFAULT now()
       );
+      ALTER TABLE app_feedback ADD COLUMN IF NOT EXISTS status     varchar NOT NULL DEFAULT 'new';
+      ALTER TABLE app_feedback ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now();
       CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON app_feedback (created_at);
+      CREATE INDEX IF NOT EXISTS idx_feedback_status     ON app_feedback (status);
 
       CREATE TABLE IF NOT EXISTS app_bug_reports (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -211,9 +216,16 @@ export async function ensureSchema(): Promise<void> {
         steps       text,
         app_version varchar,
         device_info varchar,
-        created_at  timestamp DEFAULT now()
+        status      varchar   NOT NULL DEFAULT 'open',
+        created_at  timestamp DEFAULT now(),
+        updated_at  timestamp DEFAULT now()
       );
+      -- v1.71.0: workflow states on bugs so admins can move them through
+      -- open → in_progress → closed without hand-editing rows.
+      ALTER TABLE app_bug_reports ADD COLUMN IF NOT EXISTS status     varchar NOT NULL DEFAULT 'open';
+      ALTER TABLE app_bug_reports ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now();
       CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON app_bug_reports (created_at);
+      CREATE INDEX IF NOT EXISTS idx_bugs_status     ON app_bug_reports (status);
 
       CREATE TABLE IF NOT EXISTS push_tokens (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -236,9 +248,12 @@ export async function ensureSchema(): Promise<void> {
         device_info  varchar,
         log_body     text      NOT NULL,
         log_lines    integer,
+        status       varchar   NOT NULL DEFAULT 'open',
         created_at   timestamptz DEFAULT now()
       );
+      ALTER TABLE app_crash_reports ADD COLUMN IF NOT EXISTS status varchar NOT NULL DEFAULT 'open';
       CREATE INDEX IF NOT EXISTS idx_crash_created_at ON app_crash_reports (created_at);
+      CREATE INDEX IF NOT EXISTS idx_crash_status     ON app_crash_reports (status);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

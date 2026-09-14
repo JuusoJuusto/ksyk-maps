@@ -120,18 +120,21 @@ const ADMIN_BASE = "/admin";
 // concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "tickets","logs","analytics","staff","announcements","notifications","feedback","beacons","2fa","settings",
+  "tickets","insights","staff","announcements","notifications","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
 // Short URL aliases for the /admin/* route family.
-// /admin/builder is no longer handled here — Builder is a top-level
-// route (/builder) with its own auth gate. Old bookmarks redirect
-// via LegacyAdminRedirect.
+// v1.71.0: `logs`, `analytics`, and `feedback` were merged into a single
+// `insights` tab. The old slugs still resolve there so bookmarks work.
 const URL_TO_TAB: Record<string, TabSlug> = {
   "map-settings": "campus-map",
   map: "campus-map",
   "2fa-setup": "2fa",
+  logs: "insights",
+  analytics: "insights",
+  feedback: "insights",
+  "analytics-logs": "insights",
 };
 // Reverse: canonical slug → preferred short URL segment (when on /admin/* base)
 const TAB_TO_SHORT: Partial<Record<TabSlug, string>> = {
@@ -374,28 +377,98 @@ function NotificationsPanel({
   );
 }
 
+/**
+ * v1.71.0 — single "Analytics & Logs" tab that groups the four separate
+ * old sidebar entries (Analytics, Logs, Feedback, External analytics)
+ * behind nested pills. Reduces sidebar clutter and keeps everything an
+ * admin needs when investigating an issue on one screen.
+ */
+function InsightsPanel() {
+  const [inner, setInner] = useState<"analytics" | "logs" | "external" | "feedback">("analytics");
+  const pills: { key: typeof inner; label: string }[] = [
+    { key: "analytics", label: "Analytics" },
+    { key: "logs",      label: "Logs" },
+    { key: "external",  label: "External" },
+    { key: "feedback",  label: "Feedback, Bugs & Crashes" },
+  ];
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold">Analytics &amp; Logs</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Usage metrics, error logs, external dashboards, and user-submitted feedback in one place.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+        {pills.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setInner(p.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${inner === p.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {inner === "analytics" && <AdminAnalyticsDashboard />}
+      {inner === "logs"      && <AppLogsManager />}
+      {inner === "external"  && <AnalyticsExternalPanel />}
+      {inner === "feedback"  && <FeedbackPanel />}
+    </div>
+  );
+}
+
 function FeedbackPanel() {
   const [tab, setTab] = useState<"feedback" | "bugs" | "crashes">("feedback");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  useEffect(() => {
-    const endpoint =
-      tab === "feedback" ? "/api/feedback" :
-      tab === "bugs"     ? "/api/bug-reports" :
-                           "/api/crash-reports";
+  const endpoint =
+    tab === "feedback" ? "/api/feedback" :
+    tab === "bugs"     ? "/api/bug-reports" :
+                         "/api/crash-reports";
+
+  async function reload() {
     setLoading(true);
-    fetch(endpoint, { headers: getAdminHeaders() })
-      .then((r) => r.json())
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, [tab]);
+    try {
+      const r = await fetch(endpoint, { headers: getAdminHeaders() });
+      const data = await r.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch { setItems([]); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [tab]);
+
+  async function setStatus(id: string, status: string) {
+    const resource =
+      tab === "feedback" ? "feedback" :
+      tab === "bugs"     ? "bug-reports" :
+                           "crash-reports";
+    try {
+      await fetch(`/api/${resource}/${id}`, {
+        method: "PATCH",
+        headers: { ...getAdminHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      // Optimistic local update
+      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+    } catch { /* silently ignore — reload will heal on next tab switch */ }
+  }
 
   const tabLabel =
     tab === "feedback" ? "feedback" :
     tab === "bugs"     ? "bug reports" :
                          "crash reports";
+
+  const statusOptions =
+    tab === "feedback" ? ["all", "new", "reviewed", "archived"] :
+    tab === "bugs"     ? ["all", "open", "in_progress", "closed"] :
+                         ["all", "open", "closed"];
+
+  const filtered = statusFilter === "all"
+    ? items
+    : items.filter((it) => (it.status || (tab === "feedback" ? "new" : "open")) === statusFilter);
 
   return (
     <div className="space-y-5">
@@ -425,55 +498,98 @@ function FeedbackPanel() {
           Crashes ({tab === "crashes" ? items.length : "…"})
         </button>
       </div>
+      {/* Status filter pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {statusOptions.map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === s ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>No {tabLabel} yet.</p>
+            <p>No {tabLabel} {statusFilter !== "all" ? `with status "${statusFilter}"` : "yet"}.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {items.map((item: any) => (
-            <Card key={item.id}>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {tab === "feedback" && (
-                      <Badge variant="secondary">{item.category || "general"}</Badge>
+          {filtered.map((item: any) => {
+            const currentStatus = item.status || (tab === "feedback" ? "new" : "open");
+            const nextStates =
+              tab === "feedback" ? ["new", "reviewed", "archived"] :
+              tab === "bugs"     ? ["open", "in_progress", "closed"] :
+                                   ["open", "closed"];
+            return (
+              <Card key={item.id}>
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {tab === "feedback" && (
+                        <Badge variant="secondary">{item.category || "general"}</Badge>
+                      )}
+                      {tab === "crashes" && item.log_lines && (
+                        <Badge variant="outline">{item.log_lines} lines</Badge>
+                      )}
+                      <Badge
+                        className={
+                          currentStatus === "closed" || currentStatus === "archived"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                            : currentStatus === "in_progress" || currentStatus === "reviewed"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                        }
+                      >
+                        {currentStatus}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleString("fi-FI")}
+                      </span>
+                    </div>
+                    {item.app_version && (
+                      <span className="text-xs text-muted-foreground font-mono">{item.app_version}</span>
                     )}
-                    {tab === "crashes" && item.log_lines && (
-                      <Badge variant="outline">{item.log_lines} lines</Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleString("fi-FI")}
-                    </span>
                   </div>
-                  {item.app_version && (
-                    <span className="text-xs text-muted-foreground font-mono">{item.app_version}</span>
+                  {tab === "crashes" ? (
+                    <pre className="text-xs whitespace-pre-wrap font-mono max-h-64 overflow-auto p-2 rounded bg-muted/50">{item.log_body}</pre>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
                   )}
-                </div>
-                {tab === "crashes" ? (
-                  <pre className="text-xs whitespace-pre-wrap font-mono max-h-64 overflow-auto p-2 rounded bg-muted/50">{item.log_body}</pre>
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{item.message || item.description}</p>
-                )}
-                {item.steps && (
-                  <div className="mt-2 p-2 rounded bg-muted/50">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Steps to reproduce:</p>
-                    <p className="text-xs whitespace-pre-wrap">{item.steps}</p>
+                  {item.steps && (
+                    <div className="mt-2 p-2 rounded bg-muted/50">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Steps to reproduce:</p>
+                      <p className="text-xs whitespace-pre-wrap">{item.steps}</p>
+                    </div>
+                  )}
+                  {item.device_info && (
+                    <p className="text-xs text-muted-foreground font-mono">{item.device_info}</p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {nextStates
+                      .filter((s) => s !== currentStatus)
+                      .map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setStatus(item.id, s)}
+                          className="px-2.5 py-1 rounded-md text-xs font-medium bg-muted hover:bg-muted/70 transition-colors"
+                        >
+                          → {s}
+                        </button>
+                      ))}
                   </div>
-                )}
-                {item.device_info && (
-                  <p className="text-xs text-muted-foreground font-mono">{item.device_info}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -769,27 +885,25 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   // logically clustered by purpose so the sidebar reads at a glance
   // instead of being a flat 12-item wall.
   const NAV_ITEMS = [
-    { value: "overview", label: "Overview", Icon: LayoutDashboard },
-    { value: "security", label: "Security", Icon: Shield },
-    { value: "users", label: "Users", Icon: Users },
-    { value: "campus-map", label: "Campus Map", Icon: MapPin },
-    { value: "__builder", label: "Builder", Icon: Box, href: "/builder" as const },
-    { value: "tickets", label: "Tickets", Icon: Ticket },
-    { value: "logs", label: "Logs", Icon: ScrollText },
-    { value: "analytics", label: "Analytics", Icon: TrendingUp },
-    { value: "staff", label: "Staff", Icon: IdCard },
-    { value: "announcements", label: "Announcements", Icon: Megaphone },
-    { value: "notifications", label: "Notifications", Icon: Bell },
-    { value: "feedback", label: "Feedback", Icon: MessageSquare },
-    ...(isOwner ? [{ value: "beacons", label: "Wi-Fi", Icon: Radio }] : []),
-    ...(isOwner ? [{ value: "2fa", label: "2FA", Icon: Shield }] : []),
+    { value: "overview",       label: "Overview",         Icon: LayoutDashboard },
+    { value: "security",       label: "Security",         Icon: Shield },
+    { value: "users",          label: "Users",            Icon: Users },
+    { value: "campus-map",     label: "Campus Map",       Icon: MapPin },
+    { value: "__builder",      label: "Builder",          Icon: Box, href: "/builder" as const },
+    { value: "tickets",        label: "Tickets",          Icon: Ticket },
+    { value: "insights",       label: "Analytics & Logs", Icon: TrendingUp },
+    { value: "staff",          label: "Staff",            Icon: IdCard },
+    { value: "announcements",  label: "Announcements",    Icon: Megaphone },
+    { value: "notifications",  label: "Notifications",    Icon: Bell },
+    ...(isOwner ? [{ value: "beacons",  label: "Wi-Fi",    Icon: Radio }]    : []),
+    ...(isOwner ? [{ value: "2fa",      label: "2FA",      Icon: Shield }]   : []),
     ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
   ];
 
   const NAV_GROUPS: { label: string; values: string[] }[] = [
-    { label: "Overview",   values: ["overview", "analytics"] },
-    { label: "Content",    values: ["announcements", "tickets", "staff", "feedback"] },
-    { label: "Data",       values: ["campus-map", "__builder", "logs"] },
+    { label: "Overview",   values: ["overview", "insights"] },
+    { label: "Content",    values: ["announcements", "tickets", "staff"] },
+    { label: "Data",       values: ["campus-map", "__builder"] },
     { label: "People",     values: ["users"] },
     { label: "Safety",     values: ["security", "notifications"] },
     ...(isOwner ? [{ label: "Owner", values: ["beacons", "2fa", "settings"] }] : []),
@@ -1550,11 +1664,23 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                 }
                                 
                                 const result = await response.json();
-                                
-                                const description = newUser.passwordOption === 'email'
-                                  ? `Invitation sent to ${newUser.email}.`
-                                  : "User account created.";
-                                toast({ title: "User created", description });
+
+                                // If the email failed, surface the temp
+                                // password so the admin can hand it over
+                                // manually and know invites are broken.
+                                let description: string;
+                                let variant: "default" | "destructive" = "default";
+                                if (newUser.passwordOption === 'email') {
+                                  if (result.emailSent === false) {
+                                    description = (result.warning || "Invite email failed.") + `\n\nPassword: ${result.password}`;
+                                    variant = "destructive";
+                                  } else {
+                                    description = `Invitation sent to ${newUser.email}.`;
+                                  }
+                                } else {
+                                  description = "User account created.";
+                                }
+                                toast({ title: "User created", description, variant });
                                 queryClient.invalidateQueries({ queryKey: ["users"] });
                                 setShowUserForm(false);
                                 setNewUser({ email: "", firstName: "", lastName: "", role: "admin", password: "", passwordOption: "manual" });
@@ -1719,15 +1845,14 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
         {/* Builder + Builder3D tabs removed — the Builder is now a
          *  top-level /builder route. Sidebar link "Builder" opens it. */}
 
-        <TabsContent value="logs" className="mt-0 space-y-6">
-          {/* Logs page now hosts Analytics + Insights + Easter Eggs as
-           *  nested tabs. See AppLogsManager. */}
-          <AppLogsManager />
-          <AnalyticsExternalPanel />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="mt-0 space-y-6">
-          <AdminAnalyticsDashboard />
+        <TabsContent value="insights" className="mt-0 space-y-6">
+          {/*
+            v1.71.0: Analytics & Logs — Analytics dashboard, external
+            analytics (PostHog/Sentry), logs, feedback, bugs, and crashes
+            all live under one tab. Nested tabs let admins jump between
+            them without paging through the sidebar.
+          */}
+          <InsightsPanel />
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-0 space-y-6">
@@ -2044,9 +2169,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           <NotificationsPanel queryClient={queryClient} toast={toast} announcements={announcements as Announcement[]} navigate={navigate} />
         </TabsContent>
 
-        <TabsContent value="feedback" className="mt-0 space-y-6">
-          <FeedbackPanel />
-        </TabsContent>
+        {/* v1.71.0: feedback folded into "insights" tab; slug redirected via URL_TO_TAB */}
 
         {isOwner && (
           <TabsContent value="beacons" className="mt-0 space-y-6">

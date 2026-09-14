@@ -78,20 +78,31 @@ class KsykApp : Application() {
         runCatching {
             val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
             val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
+                // v1.71.0: broadened replay config so admins can watch users
+                // navigate the map/timetable in the panel. Images are NOT
+                // masked (map tiles need to render) but text inputs ARE
+                // (search, name fields — anything PII).
                 sessionReplay = true
+                captureApplicationLifecycleEvents = true
+                captureDeepLinks = true
+                captureScreenViews = true
                 sessionReplayConfig.maskAllImages = false
                 sessionReplayConfig.maskAllTextInputs = true
+                sessionReplayConfig.captureLogcat = true
+                sessionReplayConfig.screenshot = true
+                sessionReplayConfig.throttleDelayMs = 500
             }
             PostHogAndroid.setup(this, config)
-            android.util.Log.i("PostHog", "Initialized (host configured, session replay on)")
+            android.util.Log.i("PostHog", "Initialized (session replay + screenshots + logcat on)")
             PostHog.capture(
                 "app_started",
                 properties = mapOf(
-                    "platform"    to "android",
-                    "app_version" to BuildConfig.VERSION_NAME,
+                    "platform"     to "android",
+                    "app_version"  to BuildConfig.VERSION_NAME,
                     "version_code" to BuildConfig.VERSION_CODE,
-                    "android_sdk" to Build.VERSION.SDK_INT,
-                    "device"      to "${Build.MANUFACTURER} ${Build.MODEL}",
+                    "android_sdk"  to Build.VERSION.SDK_INT,
+                    "device"       to "${Build.MANUFACTURER} ${Build.MODEL}",
+                    "locale"       to Locale.getDefault().toString(),
                 ),
             )
         }.onFailure {

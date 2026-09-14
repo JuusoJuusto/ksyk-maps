@@ -74,13 +74,21 @@ internal suspend fun saveJaksot(ctx: Context, jaksot: List<Jakso>) {
     ctx.scheduleStore.edit { prefs -> prefs[JAKSO_KEY] = encoded }
 }
 
-internal fun activeJaksoId(jaksot: List<Jakso>): String? {
-    val today = LocalDate.now().toString()
-    // Return the currently active jakso
-    jaksot.firstOrNull { j -> j.startDate <= today && today <= j.endDate }?.id?.let { return it }
-    // No active jakso (e.g., summer break) — return the nearest upcoming one
+internal fun activeJaksoId(jaksot: List<Jakso>): String? =
+    jaksoIdForDate(jaksot, LocalDate.now())
+
+/**
+ * Which jakso does the given date fall in? Returns the containing jakso
+ * first, and only falls back to the nearest upcoming one if no jakso
+ * actually contains the date. This is what the timetable date picker
+ * uses to auto-switch the jakso dropdown when the user picks a date
+ * that belongs to a different period.
+ */
+internal fun jaksoIdForDate(jaksot: List<Jakso>, date: LocalDate): String? {
+    val d = date.toString()
+    jaksot.firstOrNull { j -> j.startDate <= d && d <= j.endDate }?.id?.let { return it }
     return jaksot
-        .filter { j -> j.startDate > today }
+        .filter { j -> j.startDate > d }
         .minByOrNull { j -> j.startDate }
         ?.id
 }

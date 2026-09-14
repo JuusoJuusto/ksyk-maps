@@ -60,13 +60,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // CSP — firebase.googleapis.com and firebaseinstallations.googleapis.com
+  // are whitelisted defensively even though the web bundle no longer imports
+  // Firebase (v1.71.0). Users on stale bundles (service-worker cache, CDN
+  // edge) shouldn't see red errors in the console during the rollover
+  // window. Once the old bundle hash cycles out this remains harmless.
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' ${process.env.POSTHOG_CSP_SCRIPT_SRC ?? ''}`.trim(),
+      `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com ${process.env.POSTHOG_CSP_SCRIPT_SRC ?? ''}`.trim(),
       "style-src 'self' 'unsafe-inline'",
-      `connect-src 'self' ${process.env.POSTHOG_HOST ?? ''}`.trim(),
+      `connect-src 'self' https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://www.googletagmanager.com https://region1.google-analytics.com ${process.env.POSTHOG_HOST ?? ''}`.trim(),
       "worker-src 'self' blob:",
     ].join('; '),
   );
@@ -2177,22 +2182,30 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         });
 
         // If email option, send invitation email with password
+        let emailSent: boolean | undefined;
+        let emailWarning: string | undefined;
         if (passwordOption === 'email') {
-          
           try {
             const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
-            
-            
-            if (emailResult.success) {
+            if (!emailResult.success) {
+              emailSent = false;
+              emailWarning = 'Invite email failed. EMAIL_USER / EMAIL_PASSWORD env vars may be missing on the server. Hand the password below to the user manually.';
             } else {
+              emailSent = true;
             }
           } catch (error: any) {
-            console.error('âŒ EMAIL ERROR:', error.message);
+            console.error('Invite email error:', error?.message);
+            emailSent = false;
+            emailWarning = 'Invite email threw: ' + (error?.message || 'unknown');
           }
-          
         }
 
-        return res.status(201).json({ ...newUser, password: finalPassword });
+        return res.status(201).json({
+          ...newUser,
+          password: finalPassword,
+          emailSent,
+          warning: emailWarning,
+        });
       }
       
       // Admin reset-password — generates a temp password and emails the user
@@ -2213,12 +2226,26 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
             passwordResetToken: null,
             passwordResetExpiry: null,
           });
-          try {
-            await sendPasswordSetupEmail((user as any).email, (user as any).firstName || (user as any).email, tempPassword);
-          } catch { /* email failure is non-fatal; password was still reset */ }
-          return res.status(200).json({ success: true });
+          const emailResult = await sendPasswordSetupEmail(
+            (user as any).email,
+            (user as any).firstName || (user as any).email,
+            tempPassword,
+          );
+          if (!emailResult.success) {
+            // Password IS reset in the DB, but the email didn't send.
+            // Return the temp password so the admin can hand it over
+            // manually and know something went wrong.
+            return res.status(200).json({
+              success: true,
+              emailSent: false,
+              tempPassword,
+              warning: 'Password reset OK but the email did not send. EMAIL_USER / EMAIL_PASSWORD env vars may be missing on the server. Copy the temporary password below and hand it to the user.',
+            });
+          }
+          return res.status(200).json({ success: true, emailSent: true });
         } catch (error: any) {
-          return res.status(500).json({ message: 'Failed to reset password' });
+          console.error('reset-password error:', error?.message);
+          return res.status(500).json({ message: 'Failed to reset password: ' + (error?.message || 'unknown') });
         }
       }
 
@@ -2336,6 +2363,37 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(200).json(rows.rows ?? rows);
       } catch {
         return res.status(500).json({ message: 'Failed to fetch crash reports' });
+      }
+    }
+
+    // PATCH /feedback/:id, /bug-reports/:id, /crash-reports/:id — admin only,
+    // updates the workflow status. Bug states: open | in_progress | closed.
+    // Feedback states: new | reviewed | archived. Crash states: open | closed.
+    {
+      const patchMatch =
+        apiPath.match(/^\/(feedback|bug-reports|crash-reports)\/([\w-]+)$/);
+      if (patchMatch && req.method === 'PATCH') {
+        if (!requireAdminAuth(req, res)) return;
+        const [, resource, id] = patchMatch;
+        const { status } = req.body || {};
+        if (typeof status !== 'string' || !/^[a-z_]{1,20}$/.test(status)) {
+          return res.status(400).json({ message: 'invalid status' });
+        }
+        const table =
+          resource === 'feedback'      ? 'app_feedback'      :
+          resource === 'bug-reports'   ? 'app_bug_reports'   :
+                                         'app_crash_reports';
+        try {
+          const { db } = await import('../server/db.js');
+          const { sql } = await import('drizzle-orm');
+          await db.execute(sql`
+            UPDATE ${sql.raw(table)} SET status = ${status}
+            WHERE id = ${id}
+          `);
+          return res.status(200).json({ success: true });
+        } catch (e: any) {
+          return res.status(500).json({ message: 'Failed to update status' });
+        }
       }
     }
 
