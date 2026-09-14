@@ -10,7 +10,14 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## ✅ Just shipped (v1.79.0 · pending push)
+## ✅ Just shipped (v1.80.0 · pending push)
+
+- **FCM finally actually fixed** — switched to modular `firebase-admin/app` + `firebase-admin/messaging` imports (the `.default ?? mod` shim was wrong, module namespace has `apps` not the default export).
+- Widget XXXXL bucket (width > 1000dp): subject 40sp / 56sp.
+- Copy FCM token button in Settings → Diagnostics for Firebase Console debugging.
+- Admin: Broadcast history card with delivery stats (last 50 sends).
+
+## ✅ Just shipped (v1.79.0)
 
 - Widget: config activity on drop (hide-past / auto-roll / show-chip toggles)
 - Widget: arrows 56×48dp / 34sp, rows 8dp vertical padding

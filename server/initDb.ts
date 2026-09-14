@@ -239,6 +239,23 @@ export async function ensureSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_push_tokens_user    ON push_tokens (user_id);
       CREATE INDEX IF NOT EXISTS idx_push_tokens_updated ON push_tokens (updated_at);
 
+      -- v1.80.0: broadcast history — every FCM send from the admin panel
+      -- is recorded here so admins can audit "what did I send to whom" and
+      -- see delivery stats retroactively.
+      CREATE TABLE IF NOT EXISTS fcm_broadcasts (
+        id           varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        title        varchar   NOT NULL,
+        body         text      NOT NULL,
+        type         varchar,
+        screen       varchar,
+        target_count integer   NOT NULL DEFAULT 0,
+        sent_count   integer   NOT NULL DEFAULT 0,
+        failed_count integer   NOT NULL DEFAULT 0,
+        sent_by      varchar,
+        created_at   timestamptz DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_fcm_broadcasts_created_at ON fcm_broadcasts (created_at DESC);
+
       -- v1.71.0: crash reports uploaded from the mobile app so admins can
       -- see them in the panel without users going through a share sheet.
       CREATE TABLE IF NOT EXISTS app_crash_reports (

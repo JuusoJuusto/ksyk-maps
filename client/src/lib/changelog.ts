@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.5";
+export const APP_VERSION = "4.6.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.6",
+    date: "September 2026",
+    title: "FCM actually fixed (modular admin/app+messaging imports) · broadcast history · XXXXL widgets · v1.80.0",
+    titleFi: "FCM oikeasti korjattu · broadcast-historia · XXXXL-widgetit · v1.80.0",
+    latest: true,
+    highlights: [
+      "**FCM actually works now** — the previous ESM shim `(adminMod as any).default ?? adminMod` didn't work because `firebase-admin`'s default export doesn't carry the `apps` array (it's on the module namespace). Switched to modular `firebase-admin/app` + `firebase-admin/messaging` imports — the officially supported ESM entry point.",
+      "**Admin: Broadcast history card** — records every FCM send in Postgres (`fcm_broadcasts` table). Shows title, body, target count, sent count, success rate. Auto-refreshes every 15 s.",
+      "**Mobile app: Copy FCM token action** in Settings → Diagnostics. Paste into Firebase Console → Cloud Messaging → Send test message → 'Add an FCM registration token' to bypass our backend entirely for debugging.",
+      "**Widget: XXXXL bucket** at width > 1000dp — subject font up to 40sp on TodaySchedule rows, 56sp on Current/Next widgets.",
+    ],
+    highlightsFi: [
+      "**FCM oikeasti korjattu** — modulaariset firebase-admin/app + /messaging -importit.",
+      "**Admin: Broadcast-historia -kortti** — viimeiset 50 lähetystä tilastoineen.",
+      "**Kopioi FCM-token** -nappi Asetuksissa → Diagnostiikka.",
+      "**Widgetin XXXXL-taso** kun leveys > 1000dp.",
+    ],
+  },
   {
     version: "4.6.5",
     date: "September 2026",
     title: "In-app session replay · widget configure activity · bigger buttons · v1.79.0",
     titleFi: "Sisäänrakennettu session replay · widget-asetukset · v1.79.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Admin: in-app session replay** — session drill dialog gained a scrubbable timeline (play/pause/prev/next/slider) with the current event highlighted, elapsed time, colored per event kind, jump-to-first-error button. Own it without shelling to PostHog for the basic case; the 'Watch in PostHog' link stays for full video replay.",
       "**Widget: configure activity** — when you drop the TodaySchedule widget on your home screen, Android now launches a full-screen config where you can toggle hide-past-classes, auto-roll-to-next-day, and day chip visibility.",

@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.80.0",
+        date = "September 2026",
+        titleFi = "FCM oikeasti toimii · widgetin XXXXL-koko · broadcast-historia",
+        titleEn = "FCM actually works · widget XXXXL size · broadcast history",
+        highlightsFi = listOf(
+            "KRIITTINEN: Firebase Admin -SDK käyttää nyt modulaarista firebase-admin/app + firebase-admin/messaging API:a — aiempi 'Cannot read properties of undefined (reading length)' -virhe korjattu.",
+            "Widget: XXXXL-taso (leveys > 1000dp): aine 40sp / 56sp, luokka 24sp.",
+            "Asetukset → Diagnostiikka: uusi 'Kopioi FCM-token' -nappi — voit liittää tokenin Firebase Consolen 'Send test message' -kohtaan ja testata ilman meidän backendia.",
+            "Hallintapaneeli: uusi 'Broadcast history' -kortti — viimeiset 50 push-lähetystä tilastoineen (kuinka monelle mennyt / kuinka monelle onnistui / prosentti).",
+        ),
+        highlightsEn = listOf(
+            "CRITICAL: Firebase Admin SDK now uses the modular firebase-admin/app + firebase-admin/messaging API — fixes the 'Cannot read properties of undefined (reading length)' error.",
+            "Widget XXXXL bucket (width > 1000dp): subject 40sp / 56sp, room 24sp.",
+            "Settings → Diagnostics: 'Copy FCM token' button — paste into Firebase Console 'Send test message' to bypass our backend entirely.",
+            "Admin: 'Broadcast history' card — last 50 pushes with delivery stats (sent/total, success rate).",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.79.0",
         date = "September 2026",
         titleFi = "Widget-asetukset + isommat napit + selainkohtainen istuntoreplay",

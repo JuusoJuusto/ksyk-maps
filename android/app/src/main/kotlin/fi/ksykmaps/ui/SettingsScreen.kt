@@ -394,6 +394,38 @@ fun SettingsScreen(
                         },
                     )
                     RowDivider()
+                    // v1.80.0: copy the raw FCM token so the user can paste
+                    // it into Firebase Console → Cloud Messaging → Send test
+                    // message → 'Add an FCM registration token', which routes
+                    // directly to this device without going through our backend.
+                    // Best debugging tool when server-side FCM is failing.
+                    var copyState by remember { mutableStateOf<String?>(null) }
+                    ActionGroupRow(
+                        icon = Icons.Outlined.ContentCopy,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = if (isFi) "Kopioi FCM-token" else "Copy FCM token",
+                        subtitle = copyState ?: if (isFi) "Käytä Firebase Consolen testipushissa"
+                                                 else "Use in Firebase Console test push",
+                        actionLabel = if (isFi) "Kopioi" else "Copy",
+                        actionEnabled = true,
+                        onAction = {
+                            scope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    fi.ksykmaps.KsykApp.registerFcmTokenNow()
+                                }
+                                val token = result.token
+                                if (token != null) {
+                                    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("FCM token", token))
+                                    copyState = if (isFi) "Kopioitu! (${token.take(12)}…)"
+                                                else "Copied! (${token.take(12)}…)"
+                                } else {
+                                    copyState = if (isFi) "Ei saatavilla" else "Not available"
+                                }
+                            }
+                        },
+                    )
+                    RowDivider()
                     ActionGroupRow(
                         icon = Icons.Outlined.CleaningServices,
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,

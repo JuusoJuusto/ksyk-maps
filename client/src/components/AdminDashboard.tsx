@@ -152,6 +152,63 @@ function resolveTab(s?: string): TabSlug | "overview" {
   return "overview";
 }
 
+/**
+ * v1.80.0 — broadcast history card. Every FCM send from the admin panel
+ * is recorded in `fcm_broadcasts` so admins can audit "what did I send
+ * and to how many devices". Auto-refreshes every 15 s alongside device
+ * stats so a send appears immediately after firing.
+ */
+function BroadcastHistoryCard() {
+  const [history, setHistory] = useState<any[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const { getAdminHeaders } = await import("@/lib/adminAuth");
+        const r = await fetch("/api/notifications/history", { headers: getAdminHeaders() });
+        const data = await r.json();
+        if (!cancelled) setHistory(Array.isArray(data) ? data : []);
+      } catch { /* ignore */ }
+    }
+    load();
+    const iv = setInterval(load, 15_000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
+  if (!history.length) return null;
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Send className="h-3.5 w-3.5" />
+          Broadcast history
+        </CardTitle>
+        <CardDescription className="text-xs">Last {history.length} sends — auto-refreshes every 15 s</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {history.map((b: any) => {
+          const rate = b.target_count > 0 ? Math.round((b.sent_count / b.target_count) * 100) : 0;
+          const good = b.target_count > 0 && b.sent_count === b.target_count;
+          return (
+            <div key={b.id} className="rounded-md border border-border p-3 text-xs space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-sm truncate">{b.title}</p>
+                <Badge variant={good ? "default" : "secondary"} className={good ? "bg-green-600" : ""}>
+                  {b.sent_count}/{b.target_count} · {rate}%
+                </Badge>
+              </div>
+              <p className="text-muted-foreground line-clamp-2">{b.body}</p>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
+                <span>{b.type || "announcement"} → {b.screen || "—"}</span>
+                <span>{new Date(b.created_at).toLocaleString("fi-FI")}</span>
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
 function NotificationsPanel({
   queryClient,
   toast,
@@ -392,6 +449,8 @@ function NotificationsPanel({
           </CardContent>
         </Card>
       )}
+
+      <BroadcastHistoryCard />
 
       {/* Compose form */}
       <Card>

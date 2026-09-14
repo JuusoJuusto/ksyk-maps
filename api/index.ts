@@ -2448,7 +2448,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
     // POST /notifications/broadcast — send FCM push to ALL registered devices (admin only)
     if (apiPath === '/notifications/broadcast' && req.method === 'POST') {
-      if (!requireAdminAuth(req, res)) return;
+      const admin = requireAdminAuth(req, res);
+      if (!admin) return;
       const { title, body: bodyText, type, screen } = req.body || {};
       if (!title?.trim() || !bodyText?.trim()) return res.status(400).json({ message: 'title and body required' });
       try {
@@ -2460,6 +2461,15 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           });
         }
         const result = await broadcast({ title: title.trim(), body: bodyText.trim(), type, screen });
+        // Record every broadcast so admins can audit history — even zero-device sends.
+        try {
+          const { db } = await import('../server/db.js');
+          const { sql } = await import('drizzle-orm');
+          await db.execute(sql`
+            INSERT INTO fcm_broadcasts (title, body, type, screen, target_count, sent_count, failed_count, sent_by)
+            VALUES (${title.trim()}, ${bodyText.trim()}, ${type ?? null}, ${screen ?? null}, ${result.total ?? 0}, ${result.sent ?? 0}, ${result.failed ?? 0}, ${admin.userId ?? null})
+          `);
+        } catch (e: any) { console.warn('broadcast history insert failed:', e?.message); }
         if (result.total === 0) {
           return res.status(200).json({
             ...result,
@@ -2470,6 +2480,24 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       } catch (e: any) {
         console.error('POST /notifications/broadcast error:', e?.message);
         return res.status(500).json({ message: 'Failed to send notifications: ' + (e?.message || 'unknown') });
+      }
+    }
+
+    // GET /notifications/history — recent broadcasts + delivery stats (admin only)
+    if (apiPath === '/notifications/history' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql } = await import('drizzle-orm');
+        const rows = await db.execute(sql`
+          SELECT id, title, body, type, target_count, sent_count, failed_count, created_at
+          FROM fcm_broadcasts
+          ORDER BY created_at DESC
+          LIMIT 50
+        `);
+        return res.status(200).json((rows as any).rows ?? rows);
+      } catch (e: any) {
+        return res.status(500).json({ message: 'Failed to fetch history' });
       }
     }
 
