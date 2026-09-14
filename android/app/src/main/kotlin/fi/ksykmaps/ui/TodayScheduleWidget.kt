@@ -182,6 +182,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
             // Apple Calendar's XL widget.
             val (timeSize, subjectSize, roomSize) = when {
                 widgetWidth < 200 -> Triple(9f, 11f, 9f)
+                widgetWidth > 560 -> Triple(18f, 24f, 16f)
                 widgetWidth > 380 -> Triple(14f, 18f, 13f)
                 widgetWidth > 280 -> Triple(12f, 15f, 11f)
                 else              -> Triple(10f, 13f, 10f)

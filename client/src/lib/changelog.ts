@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.2";
+export const APP_VERSION = "4.6.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.3",
+    date: "September 2026",
+    title: "Mobile admin FCM test + status card + Settings retry · v1.77.0",
+    titleFi: "Mobiili-adminin FCM-testi + tilakortti + Asetusten uudelleenrekisteröinti · v1.77.0",
+    latest: true,
+    highlights: [
+      "**Mobile admin → Actions → Notifications:** 'Send test push to all' hits `/api/notifications/test`, shows count of devices reached, warns if 0 devices are registered.",
+      "**Mobile admin FCM status card** shows Firebase configuration, registered device count (total + 7-day active), and exact error reason if anything is broken.",
+      "**Mobile Settings → Diagnostics: 'Register push token' button** re-runs the FCM token registration flow with visible OK/FAIL result, so you can retry when the startup registration silently failed.",
+      "**Widget scaling doubled** — maxResize 1080dp (was 640dp), XXL text bucket at width>560dp (subject up to 32sp on the largest widgets).",
+      "**Widget arrows bigger** — 44×40dp buttons with 28sp glyph.",
+    ],
+    highlightsFi: [
+      "**Mobiili-admin: 'Lähetä testi-push kaikille'** kutsuu /notifications/test ja näyttää laitteiden määrän.",
+      "**Mobiili-admin FCM-tilakortti** näyttää konfiguraation ja virhesyyn jos ei toimi.",
+      "**Asetukset → Diagnostiikka: 'Rekisteröi push-token'** — kokeile uudelleen käynnistysvirheen jälkeen.",
+      "**Widgetit skaalautuvat 1080dp asti.**",
+    ],
+  },
   {
     version: "4.6.2",
     date: "September 2026",
     title: "FCM data-only + step logs · widget subject colors + strikethrough · v1.76.0",
     titleFi: "FCM data-only + vaihelokit · widgetin värit + yliviivaus · v1.76.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**FCM sent as data-only.** Guarantees `onMessageReceived` fires in both foreground and background — solves the 'said sent:1 but nothing arrived' bug. The Android handler now builds the notification itself with the right channel + tap intent every time.",
       "**FCM 6-step logging in Settings → App logs.** Every message logs [1/6]…[6/6] so you can see exactly where it stops. Channel is auto-recreated on the fly if missing; POST_NOTIFICATIONS permission is checked explicitly and logged.",

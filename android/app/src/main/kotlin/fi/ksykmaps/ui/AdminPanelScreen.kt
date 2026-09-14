@@ -1179,14 +1179,49 @@ private fun AdminActionsSection(
             ActionCard(
                 icon = Icons.Outlined.NotificationsActive,
                 iconColor = Color(0xFF10B981),
-                title = if (isFi) "Testaa push-ilmoitus" else "Test push notification",
-                subtitle = if (isFi) "Varmista että ilmoitukset toimivat tällä laitteella"
-                           else "Verify notifications work on this device",
+                title = if (isFi) "Lähetä testi-push kaikille" else "Send test push to all",
+                subtitle = if (isFi) "Kutsuu /notifications/test — näyttää lähetettyjen laitteiden määrän"
+                           else "Calls /notifications/test — shows number of devices reached",
                 actionText = if (isFi) "Lähetä" else "Send",
+                onAction = {
+                    scope.launch {
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                Api.post("/notifications/test", buildJsonObject { })
+                            }
+                        }
+                        lastActionIsError = result.isFailure
+                        val body = result.getOrNull() as? JsonObject
+                        lastAction = if (result.isSuccess) {
+                            val sent = body?.get("sent")?.jsonPrimitive?.intOrNull ?: 0
+                            val total = body?.get("total")?.jsonPrimitive?.intOrNull ?: 0
+                            val warning = body?.get("warning")?.jsonPrimitive?.contentOrNull
+                            if (warning != null) {
+                                if (isFi) "0 laitetta rekisteröity — asenna v1.77.0+ ja avaa sovellus"
+                                else "0 devices registered — install v1.77.0+ and open the app"
+                            } else if (isFi) "Lähetetty ${sent}/${total} laitteelle"
+                            else "Sent to ${sent}/${total} devices"
+                        } else {
+                            (if (isFi) "Lähetys epäonnistui" else "Send failed") +
+                                ": " + Api.friendly(result.exceptionOrNull() ?: Exception())
+                        }
+                    }
+                },
+            )
+        }
+        item {
+            // Local test notification — verifies POST_NOTIFICATIONS + channel
+            ActionCard(
+                icon = Icons.Outlined.CheckCircle,
+                iconColor = Color(0xFF06B6D4),
+                title = if (isFi) "Testaa paikallisesti" else "Local notification test",
+                subtitle = if (isFi) "Näyttää testi-ilmoituksen tällä laitteella (ohittaa FCM:n)"
+                           else "Shows a test notification on this device only (bypasses FCM)",
+                actionText = if (isFi) "Kokeile" else "Try",
                 onAction = {
                     try { sendTestNotification(ctx, isFi) } catch (_: Exception) {}
                     lastActionIsError = false
-                    lastAction = if (isFi) "Testi-ilmoitus lähetetty" else "Test notification sent"
+                    lastAction = if (isFi) "Paikallinen testi näytetty" else "Local test shown"
                 },
             )
         }
@@ -1195,11 +1230,82 @@ private fun AdminActionsSection(
                 icon = Icons.Outlined.Campaign,
                 iconColor = Color(0xFF8B5CF6),
                 title = if (isFi) "Lähetä kaikille" else "Broadcast push",
-                subtitle = if (isFi) "Lähetä push-viesti kaikille laitteille"
-                           else "Send a push message to every registered device",
+                subtitle = if (isFi) "Julkaisu + push kaikille laitteille"
+                           else "Announcement + push to every registered device",
                 actionText = if (isFi) "Kirjoita" else "Compose",
                 onAction = { showBroadcastDialog = true },
             )
+        }
+        item {
+            // FCM status card — pulls /notifications/status and shows the exact error if any
+            var fcmStatus by remember { mutableStateOf<JsonObject?>(null) }
+            var loadingStatus by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                loadingStatus = true
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        Api.get("/notifications/status") as? JsonObject
+                    }
+                }.onSuccess { fcmStatus = it }
+                loadingStatus = false
+            }
+            val configured = fcmStatus?.get("configured")?.jsonPrimitive?.booleanOrNull
+            val initError  = fcmStatus?.get("initError")?.jsonPrimitive?.contentOrNull
+            val total      = fcmStatus?.get("totalDevices")?.jsonPrimitive?.intOrNull ?: 0
+            val active7    = fcmStatus?.get("active7d")?.jsonPrimitive?.intOrNull ?: 0
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = when {
+                        configured == false -> Color(0xFFEF4444).copy(alpha = 0.08f)
+                        initError != null   -> Color(0xFFEF4444).copy(alpha = 0.08f)
+                        total == 0          -> Color(0xFFF59E0B).copy(alpha = 0.08f)
+                        else                -> Color(0xFF10B981).copy(alpha = 0.08f)
+                    },
+                ),
+                elevation = CardDefaults.cardElevation(0.dp),
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            when {
+                                configured == false || initError != null -> Icons.Outlined.ErrorOutline
+                                total == 0 -> Icons.Outlined.Warning
+                                else       -> Icons.Outlined.CheckCircle
+                            },
+                            null,
+                            tint = when {
+                                configured == false || initError != null -> Color(0xFFEF4444)
+                                total == 0 -> Color(0xFFF59E0B)
+                                else       -> Color(0xFF10B981)
+                            },
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isFi) "FCM tila" else "FCM status",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    val statusText = when {
+                        loadingStatus              -> if (isFi) "Ladataan…" else "Loading…"
+                        configured == false        -> if (isFi) "Palvelinta ei ole konfiguroitu" else "Backend not configured"
+                        initError != null          -> "Init error: $initError"
+                        total == 0                 -> if (isFi) "0 rekisteröityä laitetta — asenna v1.77.0+ ja avaa app"
+                                                     else "0 registered devices — install v1.77.0+ and open the app"
+                        else                       -> if (isFi) "$total laitetta rekisteröity · $active7 aktiivinen 7 päivässä"
+                                                     else "$total devices registered · $active7 active in 7 days"
+                    }
+                    Text(
+                        statusText,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
 
         // ── Section: Server ──

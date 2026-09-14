@@ -36,6 +36,28 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.77.0",
+        date = "September 2026",
+        titleFi = "Manuaalinen push-tokenin rekisteröinti + mobiiliadminin FCM-testi",
+        titleEn = "Manual push token registration + mobile admin FCM test",
+        highlightsFi = listOf(
+            "Asetukset → Diagnostiikka: uusi 'Rekisteröi push-token' -nappi näyttää tarkalleen mitä tapahtuu (OK/FAIL + virheviesti).",
+            "Mobiili-admin → Toiminnot → Ilmoitukset: uusi 'Lähetä testi-push kaikille' hakee /notifications/test ja näyttää lähetettyjen laitteiden määrän.",
+            "Mobiili-admin: FCM-tilakortti näyttää konfiguraation, laskun rekisteröidyistä laitteista ja virhesyyn jos jokin ei toimi.",
+            "Mobiili-admin: 'Testaa paikallisesti' -painike näyttää ilmoituksen ilman FCM:ää (tarkista POST_NOTIFICATIONS ja kanava).",
+            "Widgetit skaalautuvat vieläkin isommiksi — maxResize 1080dp, fontit XXL-tilassa jopa 32sp.",
+            "Widget-napit isommat (44×40dp, oli 36×32dp).",
+        ),
+        highlightsEn = listOf(
+            "Settings → Diagnostics: new 'Register push token' button shows exactly what happens (OK/FAIL + error message).",
+            "Mobile admin → Actions → Notifications: new 'Send test push to all' calls /notifications/test and shows the number of devices reached.",
+            "Mobile admin: FCM status card shows configuration, registered device count, and the error reason if anything fails.",
+            "Mobile admin: 'Local test' button shows a notification without FCM (verifies POST_NOTIFICATIONS + channel).",
+            "Widgets scale even bigger — maxResize 1080dp, XXL fonts up to 32sp.",
+            "Widget arrow buttons bigger (44×40dp, was 36×32dp).",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.76.0",
         date = "September 2026",
         titleFi = "FCM data-only + widgetin väriaksentit ja yliviivaus",

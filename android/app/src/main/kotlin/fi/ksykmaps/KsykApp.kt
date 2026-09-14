@@ -119,40 +119,7 @@ class KsykApp : Application() {
     }
 
     private fun registerFcmToken() {
-        // Wrap the whole call in appScope + try/catch so a missing/failed
-        // Firebase init cannot crash the app on startup. This ran on the
-        // main thread indirectly (via lazy getInstance) in v1.68-1.70 and
-        // caused a NoClassDefFoundError chain that killed the map on open.
-        appScope.launch(Dispatchers.IO) {
-            try {
-                // Firebase is initialised automatically via google-services.json.
-                // If Play Services isn't present on the device, getInstance()
-                // will throw — we swallow that here so the app stays usable.
-                val messaging = try { FirebaseMessaging.getInstance() }
-                    catch (t: Throwable) {
-                        AppLog.warn("FCM", "Firebase unavailable: ${t.message}")
-                        return@launch
-                    }
-                val token = try { messaging.token.await() }
-                    catch (t: Throwable) {
-                        AppLog.warn("FCM", "Token fetch failed: ${t.message}")
-                        return@launch
-                    }
-                val body = buildJsonObject {
-                    put("fcmToken", token)
-                    put("platform", "android")
-                    put("appVersion", BuildConfig.VERSION_NAME)
-                }
-                try {
-                    Api.post("/push-tokens", body)
-                    AppLog.info("FCM", "Token registered on startup")
-                } catch (e: Exception) {
-                    AppLog.warn("FCM", "Token upload failed: ${e.message}")
-                }
-            } catch (t: Throwable) {
-                AppLog.warn("FCM", "Startup registration threw: ${t.message}")
-            }
-        }
+        appScope.launch(Dispatchers.IO) { registerFcmTokenNow() }
     }
 
     private fun prefetchMapData() {
@@ -244,5 +211,56 @@ class KsykApp : Application() {
         const val CHANNEL_NAVIGATION = "ksyk_navigation"
         const val CHANNEL_GENERAL    = "ksyk_general"
         const val CHANNEL_PUSH       = "ksyk_push"
+
+        /**
+         * Register (or re-register) the FCM token with the KSYK backend.
+         * Callable manually from the Settings → Diagnostics screen so a
+         * user can force-retry if the startup registration failed.
+         *
+         * Returns a result summary so the UI can show what happened,
+         * and logs each step to AppLog so admins can trace failures
+         * from the phone's log viewer.
+         */
+        suspend fun registerFcmTokenNow(): FcmRegistrationResult {
+            AppLog.info("FCM", "[reg 1/4] starting token registration")
+            val messaging = try {
+                FirebaseMessaging.getInstance()
+            } catch (t: Throwable) {
+                val msg = "Firebase unavailable — ${t.javaClass.simpleName}: ${t.message}"
+                AppLog.warn("FCM", "[reg fail] $msg")
+                return FcmRegistrationResult(success = false, token = null, error = msg)
+            }
+            AppLog.info("FCM", "[reg 2/4] Firebase Messaging obtained")
+
+            val token = try {
+                messaging.token.await()
+            } catch (t: Throwable) {
+                val msg = "Token fetch failed — ${t.javaClass.simpleName}: ${t.message}"
+                AppLog.warn("FCM", "[reg fail] $msg")
+                return FcmRegistrationResult(success = false, token = null, error = msg)
+            }
+            AppLog.info("FCM", "[reg 3/4] token obtained: ${token.take(24)}… (len=${token.length})")
+
+            val body = buildJsonObject {
+                put("fcmToken", token)
+                put("platform", "android")
+                put("appVersion", BuildConfig.VERSION_NAME)
+            }
+            return try {
+                Api.post("/push-tokens", body)
+                AppLog.info("FCM", "[reg 4/4] token uploaded to /push-tokens")
+                FcmRegistrationResult(success = true, token = token, error = null)
+            } catch (e: Exception) {
+                val msg = "Upload failed — ${e.javaClass.simpleName}: ${e.message}"
+                AppLog.warn("FCM", "[reg fail] $msg")
+                FcmRegistrationResult(success = false, token = token, error = msg)
+            }
+        }
     }
 }
+
+data class FcmRegistrationResult(
+    val success: Boolean,
+    val token: String?,
+    val error: String?,
+)
