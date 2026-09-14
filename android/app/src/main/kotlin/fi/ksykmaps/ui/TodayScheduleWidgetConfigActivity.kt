@@ -1,0 +1,261 @@
+package fi.ksykmaps.ui
+
+import android.app.Activity
+import android.appwidget.AppWidgetManager
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import fi.ksykmaps.ui.theme.KsykTheme
+
+/**
+ * v1.79.0 — configure activity for TodaySchedule widget.
+ *
+ * Launched by Android automatically when the user drops the widget onto
+ * their home screen (via `android:configure` attribute in the
+ * appwidget-provider XML). Users can:
+ *   - Toggle "Hide past classes" (default: show them dimmed)
+ *   - Toggle "Auto-roll to next day when today ends" (default: on)
+ *   - Toggle "Show week/day chip in header" (default: on)
+ *
+ * Preferences are stored per-widget-id in SharedPreferences so multiple
+ * TodaySchedule widgets can have independent configuration.
+ */
+class TodayScheduleWidgetConfigActivity : ComponentActivity() {
+
+    companion object {
+        private const val PREFS = "ksyk_widget_config"
+        private fun keyPrefix(id: Int) = "widget_${id}_"
+
+        fun hidePast(ctx: Context, id: Int): Boolean =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean("${keyPrefix(id)}hide_past", false)
+
+        fun autoRoll(ctx: Context, id: Int): Boolean =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean("${keyPrefix(id)}auto_roll", true)
+
+        fun showChip(ctx: Context, id: Int): Boolean =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean("${keyPrefix(id)}show_chip", true)
+
+        private fun set(ctx: Context, id: Int, key: String, value: Boolean) {
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putBoolean("${keyPrefix(id)}$key", value).apply()
+        }
+    }
+
+    private var widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        widgetId = intent?.extras?.getInt(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID,
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish()
+            return
+        }
+
+        // Default the result to CANCELED so if the user backs out without
+        // saving, Android removes the widget rather than adding a broken one.
+        setResult(Activity.RESULT_CANCELED)
+
+        setContent {
+            KsykTheme(darkTheme = true, dynamicColor = false) {
+                ConfigScreen(widgetId) {
+                    // Trigger an immediate widget update so the config
+                    // takes effect without waiting for the 30-minute poll.
+                    val mgr = AppWidgetManager.getInstance(this)
+                    TodayScheduleWidget.updateAllWidgets(this)
+                    val result = Intent().apply {
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    }
+                    setResult(Activity.RESULT_OK, result)
+                    finish()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
+    val ctx = LocalContext.current
+    LanguageState.init(ctx)
+    val isFi = (LanguageState.current ?: "fi") == "fi"
+
+    var hidePast by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.hidePast(ctx, widgetId)) }
+    var autoRoll by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.autoRoll(ctx, widgetId)) }
+    var showChip by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.showChip(ctx, widgetId)) }
+
+    fun save(key: String, value: Boolean) {
+        val prefs = ctx.getSharedPreferences("ksyk_widget_config", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("widget_${widgetId}_$key", value).apply()
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            if (isFi) "Widget-asetukset" else "Widget settings",
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            if (isFi) "Päivän lukujärjestys" else "Today's schedule",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            Surface(shadowElevation = 8.dp) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = onSave,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Icon(Icons.Outlined.CheckCircle, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isFi) "Tallenna ja lisää widget" else "Save and add widget",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                        )
+                    }
+                }
+            }
+        },
+    ) { pad ->
+        Column(Modifier.fillMaxSize().padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Header illustration
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.Widgets,
+                        null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            if (isFi) "Räätälöi widget" else "Customize your widget",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            if (isFi) "Näet asetukset painamalla widgettiä pitkään"
+                            else "You can change these later by long-pressing the widget",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            ConfigRow(
+                title = if (isFi) "Piilota menneet tunnit" else "Hide past classes",
+                subtitle = if (isFi) "Oletus: näytä menneet himmennettyinä ✓"
+                           else "Default: show past classes dimmed with ✓",
+                checked = hidePast,
+                onChange = { hidePast = it; save("hide_past", it) },
+            )
+            ConfigRow(
+                title = if (isFi) "Rullaa seuraavaan päivään automaattisesti" else "Auto-roll to next day",
+                subtitle = if (isFi) "Kun tämän päivän tunnit ovat päättyneet, näytä huomisen aikataulu"
+                           else "When today's classes end, show tomorrow's schedule",
+                checked = autoRoll,
+                onChange = { autoRoll = it; save("auto_roll", it) },
+            )
+            ConfigRow(
+                title = if (isFi) "Näytä päivämerkki (TÄNÄÄN / HUOMENNA)" else "Show day chip (TODAY / TOMORROW)",
+                subtitle = if (isFi) "Kertoo mitä päivää selaat"
+                           else "Tells you which day you are browsing",
+                checked = showChip,
+                onChange = { showChip = it; save("show_chip", it) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfigRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    subtitle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onChange,
+            )
+        }
+    }
+}

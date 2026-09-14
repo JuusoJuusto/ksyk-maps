@@ -10,31 +10,25 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## 🚧 In progress this session (v1.76.0)
+## ✅ Just shipped (v1.79.0 · pending push)
 
-- 🚧 **FCM not delivering to device** — response says sent:1 but phone shows nothing. Root cause investigation: switch to data-only messages, add step-by-step logging in `onMessageReceived`, check notification channel exists before display, force high priority.
-- 🚧 **Widgets bigger + strikethrough on past classes + per-subject accent color** — larger minWidth/minHeight, bump text sizes, add color-per-subject vertical strip.
-- 🚧 **Widget long-press configure** — add `android:configure` attribute pointing at a config activity so users can tweak per-widget prefs.
+- Widget: config activity on drop (hide-past / auto-roll / show-chip toggles)
+- Widget: arrows 56×48dp / 34sp, rows 8dp vertical padding
+- Web admin: inline scrubbable session replay timeline (play/pause/prev/next/slider + jump-to-error)
 
-## ⏳ Deferred (too big for this pass — scoped for next rounds)
+## 🚧 Still working (v1.79.0)
 
-- ⏳ **Full ScheduleEngine rewrite** — LocalDateTime comparisons, jakso-by-date, centralized service used by TimetableScreen + all widgets + notifications. Wilma iCalendar as source of truth. Touches ~10 files.
-- ⏳ **Production keystore** — user must generate a real keystore and set the env vars; I've documented the steps in `android/BUILD.md`. Nothing I can do without their private key.
-- ⏳ **Mobile app admin panel — more features** — needs scope discussion. What features? Right now the mobile admin panel is basic. Web admin has everything.
-- ⏳ **Website admin panel — more settings** — same. What settings specifically?
-- ⏳ **Dynamic-color / Material You widget theming** — RemoteViews doesn't directly support Material dynamic-color; requires Android 12+ colorControlNormal system attrs. Investigate feasibility.
+- 🚧 **Widgets stretch to max + bigger text + WAY bigger buttons** — bump text buckets, bigger arrow tap targets, wider row padding so it looks right when stretched large.
+- 🚧 **Widget long-press configure activity** — new ConfigActivity + XML for TodaySchedule (default day / show-past toggle).
+- 🚧 **Admin panel reorganize Analytics & Logs** — clearer nav pills, remove duplicate cards, add explicit sub-page structure.
+- 🚧 **In-app session replay viewer** — build a scrubbable event-timeline in the session drill dialog. Own it instead of shelling to PostHog for the basic case.
+- 🚧 **FCM verification report** — user asked for structured FCM implementation report.
 
-## 📋 Big pending — Schedule engine unification
+## ⏳ Deferred honestly — each needs its own focused round
 
-**User spec:** switch every timetable comparison from `HH:mm` clock math to full `LocalDateTime` comparisons against the actual event date. Ensure jakso boundaries are respected using event dates (not just day-of-week). Centralize in a single ScheduleEngine used by TimetableScreen + all three widgets + notifications. Timezone Europe/Helsinki everywhere.
-
-Status: not started — needs a follow-up round because it touches `ScheduleStore`, `TimetableScreen`, all three widgets, `LessonReminderReceiver`, and Wilma iCalendar parsing.
-
-## ⏳ Pending
-
-- ⏳ Production keystore for Play Store (currently self-signed) — needs user to generate + set env vars.
-- ⏳ Firebase Console: verify `fi.ksykmaps` + `fi.ksykmaps.debug` both have current SHA-1 fingerprints (only matters for Auth, not FCM — noted for completeness).
-- ⏳ `EMAIL_USER` / `EMAIL_PASSWORD` env vars — user confirms emails already work, so this is done from their end (leave as reminder).
+- ⏳ **Full ScheduleEngine rewrite** — 10+ files (ScheduleEntry model → LocalDateTime, ScheduleStore, TimetableScreen, all 3 widgets, LessonReminderReceiver, LessonReminderScheduler, Wilma iCalendar parser, HomeScreen). Rushing this will break "Nyt meneillään" for real users. Needs a solo round.
+- ⏳ **Dynamic-color Material You widgets** — RemoteViews limitation; can only reference `@android:color/system_accent1_*` inline (Android 12+). Investigate + prototype next round.
+- ⏳ **Production keystore** — blocked on you (private key material). Docs in `android/BUILD.md`.
 
 ## ❌ Blocked
 
@@ -42,15 +36,11 @@ Status: not started — needs a follow-up round because it touches `ScheduleStor
 
 ## ✅ Recently done (last few commits)
 
-- ✅ v1.78.0 · pending push · **CRITICAL FCM require→dynamic import fix** (was throwing ReferenceError silently on Vercel). Admin panel: init error banner + last-5 recent devices list + per-token error codes + 15s auto-refresh + Copy button on crash logs. Widget XXXL text bucket at width>800dp (subject 44sp/32sp). Widget maxResize 2000dp.
+- ✅ v1.78.0 · bac34f6 · **CRITICAL FCM require→dynamic import fix** (was throwing ReferenceError silently on Vercel). Admin panel: init error banner + last-5 recent devices list + per-token error codes + 15s auto-refresh + Copy button on crash logs. Widget XXXL text bucket at width>800dp (subject 44sp/32sp). Widget maxResize 2000dp.
 - ✅ v1.77.0 · ccc1bba · Mobile Settings → Diagnostics: manual "Register push token" retry button with visible OK/FAIL + error message. Mobile admin → Actions: "Send test push to all" (calls `/notifications/test`, warns on 0 devices) + FCM status card showing config + registered count + init error. Widget max resize doubled to 1080dp, XXL text bucket at width>560dp (subject up to 32sp), bigger 44×40dp nav arrow buttons.
 - ✅ v1.76.0 · 3426cd9 · FCM as data-only so onMessageReceived always fires (fixes the "sent:1 but nothing arrived" bug). 6-step logging in KsykFirebaseMessagingService with clear failure points. Channel auto-recovery if missing. POST_NOTIFICATIONS explicit permission check with clear log. Widgets: past classes STRIKETHROUGH via HTML span, per-subject color dot from deterministic 10-hue palette, larger minResize/maxResize dimensions, subject font up to 24sp on widest widgets.
-- ✅ v1.75.0 · cf37134 · Widget past-class dimming (grey w/ ✓), automatic day rollover when today's schedule is over (up to 14 days ahead), Next-lesson widget looks 14 days forward with 'Tomorrow' / weekday prefix, bigger 36×32dp arrow buttons, Finnish widget names + rewritten descriptions, targetCellWidth/Height for Android 12+ resize, new Sentry errors tab in Analytics & Logs (deep-links to Issues/Discover/Replays).
-- ✅ v1.74.0 · cb48ff9 · Persistent `TODO.md`. FCM: `/notifications/status` returns `initError` + `recentDevices` + all env-var-set flags; `sendToTokens` returns per-token error codes when ≤20 targets. Widgets: current-lesson translucent tile + remaining-minutes chip, softer 3-stop navy→indigo gradient, weekend empty-state emoji. PostHog: `ksyk_session_id` registered as super-property (web + Android), admin session drill dialog has "Watch replay in PostHog" deep-link button.
-- ✅ v1.73.0 · c1e2ff3 · Apple Maps-style DetailSheet (grabber, colored category icon bubble, prominent Directions CTA), FCM diagnostics (`{warning: no devices}` when total=0, `/notifications/status` returns 7d/30d counts).
-- ✅ v1.72.0 · ba54ceb · CSP fixed in vercel.json (Firebase + googletagmanager whitelisted), admin analytics 401s fixed (OverviewInsightsCards + AnalyticsExternalPanel now send admin headers), Sentry tunnel 403 fixed (X-Sentry-Auth forwarded), CampusMap switched to CartoDB Voyager tiles, TodaySchedule widget contextual day chip.
-- ✅ v1.71.0 · ee5d396 · Admin panel consolidated ("Analytics & Logs" tab merges 4 old panels), feedback/bugs/crashes workflow states, invite/reset email failure visibility, onboarding 5→3 pages, in-app Changelog screen, crash logs upload to `/api/crash-reports`, FCM tap intent routing, jakso auto-switch by date picker.
-- ✅ v1.71.0 · f6a661a · Firebase Analytics disabled on Android (fixed map crash), Firebase removed from web bundle (fixed CSP), `KsykApp.onCreate` wrapped in `runCatching`, `registerFcmToken()` defensive.
+- ✅ v1.75.0 · cf37134 · Widget past-class dimming, day rollover, next-lesson 14-day lookahead, Sentry errors tab.
+- ✅ v1.74.0 · cb48ff9 · TODO.md, FCM /notifications/status returns initError + recentDevices + per-env-var flags, per-token errors, ksyk_session_id super-property (web + Android), admin session drill "Watch replay in PostHog" button.
 
 ---
 
@@ -60,3 +50,4 @@ Status: not started — needs a follow-up round because it touches `ScheduleStor
 - **Never** link feedback / support to `juuso.kaikula@gmail.com`.
 - Bump version string on every user-facing change (client `changelog.ts` + Android `build.gradle.kts`).
 - Keep secrets out of `android/` — server env vars only.
+- Always maintain this TODO.md; recap done/pending at the end of every response.

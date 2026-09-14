@@ -29,14 +29,14 @@
         <!-- Prev day button -->
         <TextView
             android:id="@+id/btn_prev_day"
-            android:layout_width="44dp"
-            android:layout_height="40dp"
+            android:layout_width="56dp"
+            android:layout_height="48dp"
             android:text="&#8249;"
-            android:textSize="28sp"
-            android:textColor="#CCFFFFFF"
+            android:textSize="34sp"
+            android:textColor="#DDFFFFFF"
             android:gravity="center"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:fontFamily="sans-serif" />
 
         <!-- Day display: "MON · 14" -->
@@ -56,14 +56,14 @@
         <!-- Next day button -->
         <TextView
             android:id="@+id/btn_next_day"
-            android:layout_width="44dp"
-            android:layout_height="40dp"
+            android:layout_width="56dp"
+            android:layout_height="48dp"
             android:text="&#8250;"
-            android:textSize="28sp"
-            android:textColor="#CCFFFFFF"
+            android:textSize="34sp"
+            android:textColor="#DDFFFFFF"
             android:gravity="center"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:fontFamily="sans-serif" />
     </LinearLayout>
 
@@ -74,15 +74,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time1"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -113,15 +115,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time2"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -152,15 +156,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time3"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -191,15 +197,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time4"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -230,15 +238,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time5"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -269,15 +279,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time6"
-            android:layout_width="44dp"
+            android:layout_width="52dp"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 

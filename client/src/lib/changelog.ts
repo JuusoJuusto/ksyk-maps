@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.4";
+export const APP_VERSION = "4.6.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.5",
+    date: "September 2026",
+    title: "In-app session replay · widget configure activity · bigger buttons · v1.79.0",
+    titleFi: "Sisäänrakennettu session replay · widget-asetukset · v1.79.0",
+    latest: true,
+    highlights: [
+      "**Admin: in-app session replay** — session drill dialog gained a scrubbable timeline (play/pause/prev/next/slider) with the current event highlighted, elapsed time, colored per event kind, jump-to-first-error button. Own it without shelling to PostHog for the basic case; the 'Watch in PostHog' link stays for full video replay.",
+      "**Widget: configure activity** — when you drop the TodaySchedule widget on your home screen, Android now launches a full-screen config where you can toggle hide-past-classes, auto-roll-to-next-day, and day chip visibility.",
+      "**Widget nav arrows** bumped to 56×48dp with 34sp glyph — actual finger-sized targets.",
+      "**Widget rows taller** — paddingTop/Bottom bumped to 8dp so at large sizes rows have breathing room.",
+    ],
+    highlightsFi: [
+      "**Admin: sisäänrakennettu session replay** — aikajana, play/pause, scrub, hyppy virheeseen.",
+      "**Widget: uusi asetusnäyttö** kun lisäät sen kotinäytölle.",
+      "**Widgetin napit 56×48dp / 34sp** — helppo napata.",
+      "**Widget-rivit korkeampia (8dp).**",
+    ],
+  },
   {
     version: "4.6.4",
     date: "September 2026",
     title: "CRITICAL FCM fix: require→dynamic import · admin diagnostics · copyable crash logs · v1.78.0",
     titleFi: "KRIITTINEN FCM-korjaus + admin-diagnostiikka + kopioitavat lokit · v1.78.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**CRITICAL: FCM Firebase Admin init was throwing `ReferenceError: require is not defined`** because the server is ESM (`\"type\": \"module\"` in package.json) but `server/fcm.ts` used CommonJS `require(\"firebase-admin\")`. Switched to dynamic `import()`. This is the reason FCM broadcasts silently returned `sent: 0` even though tokens were being registered correctly in Postgres.",
       "**Admin Notifications tab**: red banner surfaces the exact `initError` from `/notifications/status` if Firebase Admin still fails after the fix.",

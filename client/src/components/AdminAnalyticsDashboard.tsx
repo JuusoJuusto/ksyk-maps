@@ -10,7 +10,7 @@
  * sessions,session/:id,features,errors,performance,easter-eggs,
  * recent-events,audit}. No hardcoded numbers anywhere.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -413,24 +413,171 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
               No events recorded for this session yet.
             </p>
           )}
-          {rows.length > 0 && (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-              {rows.map((r, i) => (
-                <li key={i} className="py-2 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate">{r.kind}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{r.detail || "—"}</p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                    {new Date(r.ts).toLocaleTimeString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+          {rows.length > 0 && <SessionReplayTimeline rows={rows} />}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * v1.79.0 — in-app session replay viewer (light version).
+ *
+ * A scrubbable timeline over the session's events with the current
+ * event highlighted. Not a full DOM replay like PostHog's video — we
+ * don't collect DOM snapshots ourselves — but this gives admins the
+ * "watch me play through this session" experience without shelling out
+ * to PostHog. Use "Watch replay in PostHog" (in the dialog header) for
+ * the full video.
+ *
+ * Features:
+ *   - Slider scrubs through events
+ *   - Prev / Next arrow buttons + auto-play at 1 event/sec
+ *   - Current event card shows full detail
+ *   - Timeline strip below the current-event card colored by event kind
+ *   - Elapsed-time chip between events (e.g. "+42 s")
+ *   - Jump-to-error button if the session has any error events
+ */
+function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: string; detail: string }> }) {
+  // Sort oldest-first for playback semantics; the caller sorts newest-first.
+  const events = useMemo(
+    () => [...rows].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()),
+    [rows],
+  );
+  const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (idx >= events.length - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setIdx((i) => Math.min(i + 1, events.length - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [playing, idx, events.length]);
+
+  const current = events[idx];
+  const start = events[0]?.ts ? new Date(events[0].ts).getTime() : 0;
+  const end = events[events.length - 1]?.ts ? new Date(events[events.length - 1].ts).getTime() : start;
+  const total = Math.max(1, end - start);
+  const elapsed = current ? new Date(current.ts).getTime() - start : 0;
+
+  const kindColor = (k: string) => {
+    if (k.includes("error"))    return "#EF4444";
+    if (k.includes("search"))   return "#F59E0B";
+    if (k.includes("pageview")) return "#3B82F6";
+    if (k.includes("nav"))      return "#8B5CF6";
+    return "#10B981";
+  };
+
+  const firstErrorIdx = events.findIndex((e) => e.kind.includes("error"));
+
+  return (
+    <div className="space-y-3 py-3">
+      {/* Current-event card */}
+      {current && (
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ background: kindColor(current.kind) }}
+            />
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wide" style={{ color: kindColor(current.kind) }}>
+              {current.kind}
+            </span>
+            <span className="text-[10px] text-muted-foreground ml-auto font-mono">
+              {new Date(current.ts).toLocaleTimeString()} · +{Math.round(elapsed / 1000)}s from start
+            </span>
+          </div>
+          <p className="text-sm break-all">{current.detail || "—"}</p>
+        </div>
+      )}
+
+      {/* Playback controls */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          disabled={idx === 0}
+          className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 disabled:opacity-40 flex items-center justify-center font-bold"
+        >‹</button>
+        <button
+          onClick={() => setPlaying((p) => !p)}
+          className="w-9 h-9 rounded-full bg-primary text-primary-foreground hover:opacity-90 flex items-center justify-center"
+        >{playing ? "❚❚" : "▶"}</button>
+        <button
+          onClick={() => setIdx((i) => Math.min(events.length - 1, i + 1))}
+          disabled={idx >= events.length - 1}
+          className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 disabled:opacity-40 flex items-center justify-center font-bold"
+        >›</button>
+        <div className="flex-1 flex items-center gap-2 ml-2">
+          <span className="text-[10px] text-muted-foreground font-mono w-8 text-right">{idx + 1}</span>
+          <input
+            type="range"
+            min={0}
+            max={events.length - 1}
+            value={idx}
+            onChange={(e) => setIdx(Number(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-[10px] text-muted-foreground font-mono w-8">{events.length}</span>
+        </div>
+        {firstErrorIdx >= 0 && (
+          <button
+            onClick={() => setIdx(firstErrorIdx)}
+            className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-950/70"
+            title="Jump to first error"
+          >
+            → Error
+          </button>
+        )}
+      </div>
+
+      {/* Timeline strip */}
+      <div className="relative h-6 rounded bg-slate-100 dark:bg-slate-900 overflow-hidden">
+        {events.map((e, i) => {
+          const pos = ((new Date(e.ts).getTime() - start) / total) * 100;
+          return (
+            <div
+              key={i}
+              onClick={() => setIdx(i)}
+              className="absolute top-0 bottom-0 w-[3px] cursor-pointer hover:w-[5px] transition-all"
+              style={{ left: `${pos}%`, background: kindColor(e.kind) }}
+              title={`${e.kind} @ ${new Date(e.ts).toLocaleTimeString()}`}
+            />
+          );
+        })}
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-foreground pointer-events-none"
+          style={{ left: `${(elapsed / total) * 100}%` }}
+        />
+      </div>
+
+      {/* Full event list (for reference / copy) */}
+      <details className="text-xs">
+        <summary className="cursor-pointer text-muted-foreground py-2 select-none">
+          All {events.length} events (click to expand)
+        </summary>
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 mt-2">
+          {events.map((r, i) => (
+            <li
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`py-1.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded ${i === idx ? "bg-primary/10" : "hover:bg-muted/50"}`}
+            >
+              <div className="min-w-0 flex items-center gap-2">
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: kindColor(r.kind) }}
+                />
+                <span className="font-mono text-[10px] font-semibold w-16 shrink-0">{r.kind.slice(0, 12)}</span>
+                <span className="text-[11px] text-muted-foreground truncate">{r.detail || "—"}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground whitespace-nowrap font-mono">
+                {new Date(r.ts).toLocaleTimeString()}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
   );
 }
 

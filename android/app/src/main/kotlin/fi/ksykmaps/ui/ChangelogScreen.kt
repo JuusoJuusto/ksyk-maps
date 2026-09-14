@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.79.0",
+        date = "September 2026",
+        titleFi = "Widget-asetukset + isommat napit + selainkohtainen istuntoreplay",
+        titleEn = "Widget configure activity + bigger buttons + in-app session replay",
+        highlightsFi = listOf(
+            "Widgetissä on nyt asetusnäyttö — kun lisäät sen, näet valintoja: piilota menneet, rullaa seuraavaan päivään, näytä päivämerkki.",
+            "Widgetin nuolinapit vielä isommat (56×48dp) ja fonttikoko 34sp — helppo napata sormella.",
+            "Widget-rivit korkeampia (paddingTop/Bottom 8dp) — luettavuus paranee kun venytät widgetin suureksi.",
+            "Web admin: sessioiden 'Watch replay' -näkymä on nyt sisäänrakennettu — aikajana + play/pause/scrub + hyppy virheeseen ilman että tarvitsee mennä PostHogiin.",
+            "Web admin: 'Watch replay in PostHog' -linkki on yhä session-otsikossa jos haluat täyden video-replayn.",
+        ),
+        highlightsEn = listOf(
+            "Widget: new configure screen when adding a TodaySchedule — options for hide-past, auto-roll-forward, day-chip visibility.",
+            "Widget arrow buttons even bigger (56×48dp) with 34sp glyph — easier to tap.",
+            "Widget rows taller (paddingTop/Bottom 8dp) — better readability when stretched large.",
+            "Web admin: session drill dialog gained an inline scrubbable replay timeline — play/pause/scrub events + jump-to-first-error, no need to leave for PostHog for the basic case.",
+            "Web admin: 'Watch replay in PostHog' still available in the header for the full video replay.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.78.0",
         date = "September 2026",
         titleFi = "FCM require-bug korjattu · isommat widgetit · admin-diagnostiikka",
