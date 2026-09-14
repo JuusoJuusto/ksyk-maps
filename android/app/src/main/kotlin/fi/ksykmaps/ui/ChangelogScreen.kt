@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.74.0",
+        date = "September 2026",
+        titleFi = "FCM-diagnostiikka + widgetin nykyisen tunnin merkintä",
+        titleEn = "FCM diagnostics + widget current-lesson highlight",
+        highlightsFi = listOf(
+            "TodaySchedule-widget: nykyinen tunti korostettu translusentilla laatalla + jäljellä oleva aika näkyvillä ('Matematiikka · 12 min').",
+            "Widget-tausta uudistettu — pehmeämpi 3-vaiheinen gradientti navy → indigo, 24dp kulmat.",
+            "Viikonloppuna tyhjä widget näyttää 'Viikonloppu 🌤️' -viestin.",
+            "FCM-endpoint palauttaa nyt tarkat Firebase Admin -käynnistysvirheet ja per-token virhekoodit ≤20 laitteelle.",
+            "PostHog-tapahtumat sisältävät nyt ksyk_session_id super-propertyn — hallintapaneelista voi klikata suoraan session replayhin.",
+        ),
+        highlightsEn = listOf(
+            "TodaySchedule widget: current lesson highlighted with a translucent tile + remaining minutes shown inline.",
+            "Widget background: softer 3-stop navy→indigo gradient, 24dp corners.",
+            "Empty widget on weekends: 'Weekend 🌤️' contextual message.",
+            "FCM endpoint returns exact Firebase Admin init error + per-token error codes for ≤20 targets.",
+            "PostHog events now include ksyk_session_id super-property — admin panel deep-links to the actual replay.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.73.0",
         date = "September 2026",
         titleFi = "Kartan tietokortti · FCM-diagnostiikka",

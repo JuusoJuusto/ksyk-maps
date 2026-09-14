@@ -123,6 +123,14 @@ if (shouldInit()) {
           if (hasAnalyticsConsent()) ph.opt_in_capturing();
           else ph.opt_out_capturing();
         } catch { /* ignore */ }
+        // Register our first-party session id as a super-property so every
+        // PostHog event carries `ksyk_session_id`. This makes the "Watch
+        // replay in PostHog" link from the admin dashboard resolve to the
+        // right recording via a property filter.
+        try {
+          const sid = sessionStorage.getItem("ksyk_session_id");
+          if (sid) (ph as any).register?.({ ksyk_session_id: sid });
+        } catch { /* ignore */ }
       },
       debug: (import.meta as any).env?.DEV,
     } as any);

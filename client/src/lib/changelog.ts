@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.5.99";
+export const APP_VERSION = "4.6.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.0",
+    date: "September 2026",
+    title: "FCM deep diagnostics · widget current-row highlight · PostHog replay deep-link · v1.74.0",
+    titleFi: "FCM-diagnostiikka · widgetin korostus · PostHog-replay linkki · v1.74.0",
+    latest: true,
+    highlights: [
+      "**FCM diagnostics: `/notifications/status` returns the exact Firebase Admin init error** if init fails (missing env var, malformed private key, etc.), plus `recentDevices` list (last 5 registrations) so you can prove tokens are landing.",
+      "**FCM per-token error codes** — when broadcasting to ≤20 devices, the response includes `errors[]` with the FCM error code + message per stale token (e.g. `messaging/registration-token-not-registered`).",
+      "**PostHog session replay deep-link** — admin panel session drill dialog now has a 'Watch replay in PostHog' button that filters PostHog's Replay list by our `ksyk_session_id` super-property (registered on every event, web + Android).",
+      "**Widgets: current lesson row highlighted** with translucent tile + remaining minutes ('Matematiikka · 12 min'). Softer navy→indigo gradient background, 24dp corners. Weekend empty state 'Viikonloppu 🌤️'.",
+    ],
+    highlightsFi: [
+      "**FCM: /notifications/status kertoo Firebase Admin -käynnistysvirheen**, plus viimeisimmät 5 rekisteröitynyttä laitetta.",
+      "**Per-token virhekoodit ≤20 laitteelle** — nähdään täsmälleen mikä token on kuollut ja miksi.",
+      "**PostHog session replay -linkki hallintapaneelissa** — 'Watch replay in PostHog' -nappi klikattavissa jokaisen session yhteydessä.",
+      "**Widgetin nykyinen tunti** korostettu + jäljellä oleva aika näkyy.",
+    ],
+  },
   {
     version: "4.5.99",
     date: "September 2026",
     title: "Map place cards · FCM diagnostics · v1.73.0",
     titleFi: "Kartan tietokortti · FCM-diagnostiikka · v1.73.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**Android map: Apple Maps-style place card** — drag handle, colored category icon, prominent Directions button. Rooms get an icon by type (WC / lab / gym / library / cafeteria / office / classroom).",
       "**FCM diagnostics** — broadcasts now report clearly if no devices are registered, and admin panel shows Firebase config status + active device counts (7d/30d).",

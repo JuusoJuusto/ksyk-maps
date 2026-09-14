@@ -94,6 +94,14 @@ class KsykApp : Application() {
             }
             PostHogAndroid.setup(this, config)
             android.util.Log.i("PostHog", "Initialized (session replay + screenshots + logcat on)")
+            // Register our ksyk_session_id as a super-property so every
+            // PostHog event carries it. Makes the admin panel's
+            // "Watch replay in PostHog" link resolve via property filter.
+            // PostHog Android SDK register() takes (key, value), not a Map.
+            runCatching {
+                val ksykSessionId = fi.ksykmaps.data.Analytics.sessionId()
+                PostHog.register("ksyk_session_id", ksykSessionId)
+            }
             PostHog.capture(
                 "app_started",
                 properties = mapOf(

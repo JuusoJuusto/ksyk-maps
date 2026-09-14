@@ -162,22 +162,46 @@ class TodayScheduleWidget : AppWidgetProvider() {
 
             if (lessons.isEmpty()) {
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
+                // Contextual empty state — weekend vs weekday vs summer
+                val isWeekend = displayDate.dayOfWeek == DayOfWeek.SATURDAY || displayDate.dayOfWeek == DayOfWeek.SUNDAY
+                val emptyText = when {
+                    isWeekend      -> if (lang == "fi") "Viikonloppu 🌤️" else "Weekend 🌤️"
+                    diff == 0      -> if (lang == "fi") "Ei tunteja tänään" else "No lessons today"
+                    else           -> if (lang == "fi") "Ei tunteja" else "No lessons"
+                }
+                views.setTextViewText(R.id.widget_empty, emptyText)
                 rowIds.forEach { views.setViewVisibility(it, View.GONE) }
             } else {
                 views.setViewVisibility(R.id.widget_empty, View.GONE)
                 lessons.take(maxRows).forEachIndexed { i, lesson ->
                     views.setViewVisibility(rowIds[i], View.VISIBLE)
 
-                    val timeColor    = if (lesson.isCurrent) Color.parseColor("#EEFFFFFF") else Color.parseColor("#88FFFFFF")
+                    // Row background: highlight the current lesson row with a
+                    // subtle translucent tile — makes it pop at a glance without
+                    // dominating the whole widget. Non-current rows: transparent.
+                    if (lesson.isCurrent) {
+                        views.setInt(rowIds[i], "setBackgroundResource", R.drawable.widget_row_current)
+                    } else {
+                        views.setInt(rowIds[i], "setBackgroundResource", 0)
+                    }
+
+                    val timeColor    = if (lesson.isCurrent) Color.parseColor("#FFFFFFFF") else Color.parseColor("#88FFFFFF")
                     val subjectColor = if (lesson.isCurrent) Color.WHITE else Color.parseColor("#CCFFFFFF")
-                    val roomColor    = if (lesson.isCurrent) Color.parseColor("#AAFFFFFF") else Color.parseColor("#55FFFFFF")
+                    val roomColor    = if (lesson.isCurrent) Color.parseColor("#EEFFFFFF") else Color.parseColor("#55FFFFFF")
                     val timeLabel    = if (lesson.isCurrent) "● ${lesson.startHhmm}" else lesson.startHhmm
 
                     views.setTextViewText(timeIds[i], timeLabel)
                     views.setTextColor(timeIds[i], timeColor)
                     views.setTextViewTextSize(timeIds[i], TypedValue.COMPLEX_UNIT_SP, timeSize)
 
-                    views.setTextViewText(subjectIds[i], lesson.subject)
+                    // Add a "· X min" hint to the current lesson subject so
+                    // users see remaining time at a glance.
+                    val subjectText = if (lesson.isCurrent) {
+                        val endM = toMins(lesson.endHhmm)
+                        val remain = (endM - nowMins).coerceAtLeast(0)
+                        if (remain > 0) "${lesson.subject}  ·  ${remain} min" else lesson.subject
+                    } else lesson.subject
+                    views.setTextViewText(subjectIds[i], subjectText)
                     views.setTextColor(subjectIds[i], subjectColor)
                     views.setTextViewTextSize(subjectIds[i], TypedValue.COMPLEX_UNIT_SP, subjectSize)
 

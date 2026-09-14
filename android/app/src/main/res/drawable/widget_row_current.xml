@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Highlight background for the "now" row in TodayScheduleWidget.
+  A soft translucent white tint that pops the current lesson without
+  being loud. Rounded corners match the parent card's radius rhythm.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#33FFFFFF" />
+    <corners android:radius="10dp" />
+</shape>

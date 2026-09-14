@@ -376,6 +376,12 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
     ];
     return events.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
   }, [data]);
+  // Deep-link into PostHog. PostHog stores its own $session_id but we can
+  // land the admin on the Replay list filtered by user distinct_id.
+  const posthogReplayUrl = sessionId
+    ? `https://us.posthog.com/replay/home?filters=%7B%22filter_test_accounts%22%3Afalse%2C%22properties%22%3A%5B%7B%22key%22%3A%22ksyk_session_id%22%2C%22value%22%3A%22${encodeURIComponent(sessionId)}%22%2C%22operator%22%3A%22exact%22%2C%22type%22%3A%22event%22%7D%5D%7D`
+    : "";
+
   return (
     <Dialog open={!!sessionId} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -384,11 +390,19 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
             {sessionId}
           </DialogTitle>
           {data?.session && (
-            <div className="text-xs text-muted-foreground flex flex-wrap gap-3 mt-1">
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-3 mt-1 items-center">
               <span>Platform: <strong>{data.session.platform}</strong></span>
               <span>Version: <strong>{data.session.appVersion || "—"}</strong></span>
               <span>Started: <strong>{new Date(data.session.startedAt).toLocaleString()}</strong></span>
               <span>Events: <strong>{rows.length}</strong></span>
+              <a
+                href={posthogReplayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 text-[11px] font-semibold hover:bg-orange-200 dark:hover:bg-orange-950/70"
+              >
+                ▶ Watch replay in PostHog
+              </a>
             </div>
           )}
         </DialogHeader>

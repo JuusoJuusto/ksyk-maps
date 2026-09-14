@@ -15,13 +15,21 @@ import { sql } from "drizzle-orm";
 
 let _app: any = null;
 let _messaging: any = null;
+let _lastInitError: string | null = null;
 
 function getApp() {
   if (_app) return _app;
   const projectId   = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey  = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!projectId || !clientEmail || !privateKey) return null;
+  if (!projectId || !clientEmail || !privateKey) {
+    _lastInitError = `Missing env vars: ${[
+      !projectId && "FIREBASE_PROJECT_ID",
+      !clientEmail && "FIREBASE_CLIENT_EMAIL",
+      !privateKey && "FIREBASE_PRIVATE_KEY",
+    ].filter(Boolean).join(", ")}`;
+    return null;
+  }
   try {
     const admin = require("firebase-admin");
     if (admin.apps.length === 0) {
@@ -32,11 +40,20 @@ function getApp() {
       _app = admin.apps[0];
     }
     _messaging = admin.messaging(_app);
+    _lastInitError = null;
     return _app;
   } catch (e: any) {
-    console.error("[FCM] Firebase Admin init failed:", e?.message);
+    _lastInitError = e?.message ?? String(e);
+    console.error("[FCM] Firebase Admin init failed:", _lastInitError);
     return null;
   }
+}
+
+/** Diagnostic info — exact reason FCM isn't initialising when it should. */
+export function getInitError(): string | null {
+  // Force an init attempt if we haven't tried yet
+  if (!_app && !_lastInitError) getApp();
+  return _lastInitError;
 }
 
 /** All registered FCM tokens from the database. */
@@ -48,18 +65,25 @@ async function getAllTokens(): Promise<string[]> {
   } catch { return []; }
 }
 
+export interface SendResult {
+  sent: number;
+  failed: number;
+  errors?: string[]; // per-token error codes, only populated when tokens.length ≤ 20
+}
+
 /**
  * Send a push notification to a list of FCM tokens.
- * Returns counts of successful and failed sends.
+ * Returns counts of successful and failed sends. When ≤20 tokens are
+ * targeted, also returns the per-token error codes so admins can debug.
  */
 export async function sendToTokens(
   tokens: string[],
   payload: { title: string; body: string; type?: string; screen?: string; data?: Record<string, string> },
-): Promise<{ sent: number; failed: number }> {
+): Promise<SendResult> {
   if (!tokens.length) return { sent: 0, failed: 0 };
   if (!getApp() || !_messaging) {
     console.warn("[FCM] Not configured — skipping push to", tokens.length, "tokens");
-    return { sent: 0, failed: 0 };
+    return { sent: 0, failed: 0, errors: [_lastInitError || "FCM not initialised"] };
   }
 
   const extra = payload.data ?? {};
@@ -69,6 +93,8 @@ export async function sendToTokens(
   // FCM multicast supports up to 500 tokens per call
   const CHUNK = 500;
   let sent = 0, failed = 0;
+  const errors: string[] = [];
+  const wantsErrorDetails = tokens.length <= 20;
   for (let i = 0; i < tokens.length; i += CHUNK) {
     const chunk = tokens.slice(i, i + CHUNK);
     try {
@@ -91,10 +117,15 @@ export async function sendToTokens(
       if (resp.responses) {
         const dead: string[] = [];
         resp.responses.forEach((r: any, idx: number) => {
-          if (!r.success && (
-            r.error?.code === "messaging/registration-token-not-registered" ||
-            r.error?.code === "messaging/invalid-registration-token"
-          )) dead.push(chunk[idx]);
+          if (r.success) return;
+          const code = r.error?.code || "unknown";
+          if (wantsErrorDetails) {
+            errors.push(`${chunk[idx].slice(-8)}: ${code}${r.error?.message ? ` — ${r.error.message.slice(0, 100)}` : ""}`);
+          }
+          if (code === "messaging/registration-token-not-registered" ||
+              code === "messaging/invalid-registration-token") {
+            dead.push(chunk[idx]);
+          }
         });
         if (dead.length) {
           await db.execute(sql`DELETE FROM push_tokens WHERE fcm_token = ANY(${dead})`);
@@ -104,9 +135,10 @@ export async function sendToTokens(
     } catch (e: any) {
       console.error("[FCM] Multicast error:", e?.message);
       failed += chunk.length;
+      if (wantsErrorDetails) errors.push(`batch error: ${e?.message || "unknown"}`);
     }
   }
-  return { sent, failed };
+  return wantsErrorDetails ? { sent, failed, errors } : { sent, failed };
 }
 
 /** Send to ALL registered devices. */
@@ -116,7 +148,7 @@ export async function broadcast(payload: {
   type?: string;
   screen?: string;
   data?: Record<string, string>;
-}): Promise<{ sent: number; failed: number; total: number }> {
+}): Promise<SendResult & { total: number }> {
   const tokens = await getAllTokens();
   const result = await sendToTokens(tokens, payload);
   return { ...result, total: tokens.length };

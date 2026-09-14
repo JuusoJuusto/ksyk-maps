@@ -2504,26 +2504,35 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     // GET /notifications/status — FCM config + token count + recent-activity diagnostics (admin only)
     if (apiPath === '/notifications/status' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
-      const { isFcmConfigured } = await import('../server/fcm.js');
+      const { isFcmConfigured, getInitError } = await import('../server/fcm.js');
       const configured = isFcmConfigured();
+      const initError = getInitError();
       try {
         const { db } = await import('../server/db.js');
         const { sql } = await import('drizzle-orm');
         const totalRow = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens`);
         const active7d = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens WHERE updated_at > now() - interval '7 days'`);
         const active30d = await db.execute(sql`SELECT COUNT(*)::int AS n FROM push_tokens WHERE updated_at > now() - interval '30 days'`);
+        const recentTokens = await db.execute(sql`SELECT platform, app_version, updated_at FROM push_tokens ORDER BY updated_at DESC LIMIT 5`);
         const totalRows = (totalRow as any).rows ?? totalRow;
         const active7dRows = (active7d as any).rows ?? active7d;
         const active30dRows = (active30d as any).rows ?? active30d;
+        const recentRows = (recentTokens as any).rows ?? recentTokens;
         return res.status(200).json({
           configured,
+          initError,
           totalDevices: totalRows[0]?.n ?? 0,
           active7d: active7dRows[0]?.n ?? 0,
           active30d: active30dRows[0]?.n ?? 0,
           projectId: process.env.FIREBASE_PROJECT_ID || null,
+          projectIdSet: !!process.env.FIREBASE_PROJECT_ID,
+          clientEmailSet: !!process.env.FIREBASE_CLIENT_EMAIL,
+          privateKeySet: !!process.env.FIREBASE_PRIVATE_KEY,
+          privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length ?? 0,
+          recentDevices: recentRows,
         });
       } catch (e: any) {
-        return res.status(200).json({ configured, error: e?.message });
+        return res.status(200).json({ configured, initError, error: e?.message });
       }
     }
 
