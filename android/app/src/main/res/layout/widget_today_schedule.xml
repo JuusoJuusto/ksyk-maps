@@ -29,12 +29,14 @@
         <!-- Prev day button -->
         <TextView
             android:id="@+id/btn_prev_day"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
             android:text="&#8249;"
-            android:textSize="20sp"
-            android:textColor="#88FFFFFF"
+            android:textSize="24sp"
+            android:textColor="#BBFFFFFF"
             android:gravity="center"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
             android:fontFamily="sans-serif" />
 
         <!-- Day display: "MON · 14" -->
@@ -54,12 +56,14 @@
         <!-- Next day button -->
         <TextView
             android:id="@+id/btn_next_day"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
             android:text="&#8250;"
-            android:textSize="20sp"
-            android:textColor="#88FFFFFF"
+            android:textSize="24sp"
+            android:textColor="#BBFFFFFF"
             android:gravity="center"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
             android:fontFamily="sans-serif" />
     </LinearLayout>
 

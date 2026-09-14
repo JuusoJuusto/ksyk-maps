@@ -12,11 +12,18 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ## 🚧 In progress this session
 
-- 🚧 **FCM notifications actually deliver end-to-end** — server side ready (init error surfaced, per-token errors, recentDevices list). Still needs: user tests on device, google-services.json verification, verifying tokens land in `push_tokens` after opening v1.74.0 APK.
-- 🚧 **Widgets scalable + better** — current lesson highlighted with translucent tile + remaining minutes in this round. Still todo: color-per-subject accent bar, dynamic-color theming.
-- 🚧 **Analytics & Logs page cleanup** — PostHog replay deep-link added this round. Still todo: prune dead panels, redesign the tab hierarchy, add Sentry issues panel.
-- 🚧 **PostHog session replay** — ksyk_session_id registered as super-property (web + Android) so deep-link from admin drill dialog resolves. Still todo: verify recordings actually surface after next deploy.
-- 🚧 **Error tracking UX** — not started. Sentry issues panel deferred to next round.
+- 🚧 **Widget past-class dimming + all-day view** — show every lesson of the day, not just future ones; grey out ones that have ended. When today's schedule is finished, roll to tomorrow.
+- 🚧 **Widget rollover across days** — Next/Current widgets must look forward across dates when today's are all done.
+- 🚧 **Widget button tap targets** — arrows currently 24dp, bump to 48dp minimum.
+- 🚧 **Widget names + descriptions + preview images** — better labels in the picker.
+- 🚧 **Sentry issues panel** in Analytics & Logs.
+- 🚧 **FCM device-side verification** — awaiting user to install v1.74.0 APK, open, then confirm devices count ticks up. Server-side is instrumented.
+
+## 📋 Big pending — Schedule engine unification
+
+**User spec:** switch every timetable comparison from `HH:mm` clock math to full `LocalDateTime` comparisons against the actual event date. Ensure jakso boundaries are respected using event dates (not just day-of-week). Centralize in a single ScheduleEngine used by TimetableScreen + all three widgets + notifications. Timezone Europe/Helsinki everywhere.
+
+Status: not started — needs a follow-up round because it touches `ScheduleStore`, `TimetableScreen`, all three widgets, `LessonReminderReceiver`, and Wilma iCalendar parsing.
 
 ## ⏳ Pending
 
@@ -30,6 +37,7 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ## ✅ Recently done (last few commits)
 
+- ✅ v1.75.0 · pending · Widget past-class dimming (grey w/ ✓), automatic day rollover when today's schedule is over (up to 14 days ahead), Next-lesson widget looks 14 days forward with 'Tomorrow' / weekday prefix, bigger 36×32dp arrow buttons, Finnish widget names + rewritten descriptions, targetCellWidth/Height for Android 12+ resize, new Sentry errors tab in Analytics & Logs (deep-links to Issues/Discover/Replays).
 - ✅ v1.74.0 · cb48ff9 · Persistent `TODO.md`. FCM: `/notifications/status` returns `initError` + `recentDevices` + all env-var-set flags; `sendToTokens` returns per-token error codes when ≤20 targets. Widgets: current-lesson translucent tile + remaining-minutes chip, softer 3-stop navy→indigo gradient, weekend empty-state emoji. PostHog: `ksyk_session_id` registered as super-property (web + Android), admin session drill dialog has "Watch replay in PostHog" deep-link button.
 - ✅ v1.73.0 · c1e2ff3 · Apple Maps-style DetailSheet (grabber, colored category icon bubble, prominent Directions CTA), FCM diagnostics (`{warning: no devices}` when total=0, `/notifications/status` returns 7d/30d counts).
 - ✅ v1.72.0 · ba54ceb · CSP fixed in vercel.json (Firebase + googletagmanager whitelisted), admin analytics 401s fixed (OverviewInsightsCards + AnalyticsExternalPanel now send admin headers), Sentry tunnel 403 fixed (X-Sentry-Auth forwarded), CampusMap switched to CartoDB Voyager tiles, TodaySchedule widget contextual day chip.

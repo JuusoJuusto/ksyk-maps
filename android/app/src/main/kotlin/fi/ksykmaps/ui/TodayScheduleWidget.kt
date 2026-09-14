@@ -61,6 +61,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val subject: String,
             val room: String,
             val isCurrent: Boolean,
+            val isPast: Boolean,
         )
 
         private val rowIds     = listOf(R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5, R.id.row6)
@@ -158,7 +159,52 @@ class TodayScheduleWidget : AppWidgetProvider() {
                 else               -> 4
             }
 
-            val lessons = if (raw != null) todayLessons(raw, nowMins, activeJakso, displayDate.dayOfWeek.value) else emptyList()
+            // v1.75.0: when the user is on "today" AND today has no lessons
+            // OR all of today's lessons have ended, auto-jump forward to the
+            // next school day (up to 7 days ahead) so the widget always shows
+            // something useful. When offset != 0 the user is browsing manually
+            // — respect their pick even if the day is empty.
+            var effectiveDate = displayDate
+            var effectiveIsToday = (effectiveDate == LocalDate.now())
+            var lessons: List<Lesson> = if (raw != null)
+                todayLessons(raw, nowMins, activeJakso, effectiveDate.dayOfWeek.value, effectiveIsToday)
+            else emptyList()
+
+            if (offset == 0 && raw != null) {
+                val allEndedOrEmpty = lessons.isEmpty() || lessons.all { it.isPast }
+                if (allEndedOrEmpty) {
+                    var probe = effectiveDate.plusDays(1)
+                    var tries = 0
+                    while (tries < 7) {
+                        val probeLessons = todayLessons(raw, 0, activeJakso, probe.dayOfWeek.value, isToday = false)
+                        if (probeLessons.isNotEmpty()) {
+                            effectiveDate = probe
+                            effectiveIsToday = false
+                            lessons = probeLessons
+                            break
+                        }
+                        probe = probe.plusDays(1)
+                        tries++
+                    }
+                }
+            }
+            // Recompute the day header chip + label against the effective date
+            val effectiveDiff = LocalDate.now().until(effectiveDate, java.time.temporal.ChronoUnit.DAYS).toInt()
+            val effectiveChip = when {
+                effectiveDiff == 0    -> if (lang == "fi") "TÄNÄÄN" else "TODAY"
+                effectiveDiff == 1    -> if (lang == "fi") "HUOMENNA" else "TOMORROW"
+                effectiveDiff == -1   -> if (lang == "fi") "EILEN" else "YESTERDAY"
+                effectiveDiff in 2..6 -> if (lang == "fi") "TÄLLÄ VIIKOLLA" else "THIS WEEK"
+                else                  -> null
+            }
+            val effectiveDayAbbr = effectiveDate.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).uppercase(locale)
+            val effectiveDatePart = if (lang == "fi") {
+                "${effectiveDate.dayOfMonth}.${effectiveDate.monthValue}."
+            } else {
+                "${effectiveDate.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${effectiveDate.dayOfMonth}"
+            }
+            val effectiveLabel = if (effectiveChip != null) "$effectiveChip · $effectiveDayAbbr $effectiveDatePart" else "$effectiveDayAbbr · $effectiveDatePart"
+            views.setTextViewText(R.id.widget_day, effectiveLabel)
 
             if (lessons.isEmpty()) {
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
@@ -185,10 +231,27 @@ class TodayScheduleWidget : AppWidgetProvider() {
                         views.setInt(rowIds[i], "setBackgroundResource", 0)
                     }
 
-                    val timeColor    = if (lesson.isCurrent) Color.parseColor("#FFFFFFFF") else Color.parseColor("#88FFFFFF")
-                    val subjectColor = if (lesson.isCurrent) Color.WHITE else Color.parseColor("#CCFFFFFF")
-                    val roomColor    = if (lesson.isCurrent) Color.parseColor("#EEFFFFFF") else Color.parseColor("#55FFFFFF")
-                    val timeLabel    = if (lesson.isCurrent) "● ${lesson.startHhmm}" else lesson.startHhmm
+                    // Colour ramp: past = grey/40 %, current = white/100 %, future = white/85 %
+                    val timeColor    = when {
+                        lesson.isCurrent -> Color.parseColor("#FFFFFFFF")
+                        lesson.isPast    -> Color.parseColor("#44FFFFFF")
+                        else             -> Color.parseColor("#88FFFFFF")
+                    }
+                    val subjectColor = when {
+                        lesson.isCurrent -> Color.WHITE
+                        lesson.isPast    -> Color.parseColor("#66FFFFFF")
+                        else             -> Color.parseColor("#CCFFFFFF")
+                    }
+                    val roomColor    = when {
+                        lesson.isCurrent -> Color.parseColor("#EEFFFFFF")
+                        lesson.isPast    -> Color.parseColor("#33FFFFFF")
+                        else             -> Color.parseColor("#77FFFFFF")
+                    }
+                    val timeLabel    = when {
+                        lesson.isCurrent -> "● ${lesson.startHhmm}"
+                        lesson.isPast    -> "✓ ${lesson.startHhmm}"
+                        else             -> lesson.startHhmm
+                    }
 
                     views.setTextViewText(timeIds[i], timeLabel)
                     views.setTextColor(timeIds[i], timeColor)
@@ -217,7 +280,19 @@ class TodayScheduleWidget : AppWidgetProvider() {
             manager.updateAppWidget(id, views)
         }
 
-        private fun todayLessons(raw: String, nowMins: Int, activeJakso: String?, dayOfWeek: Int): List<Lesson> {
+        /**
+         * @param isToday when true, we compare lesson times to `nowMins` so
+         *  past lessons render dimmed and the ongoing one is marked current.
+         *  When false (browsing another day), no lesson is "current" and
+         *  none are "past" — the widget shows the full day plainly.
+         */
+        private fun todayLessons(
+            raw: String,
+            nowMins: Int,
+            activeJakso: String?,
+            dayOfWeek: Int,
+            isToday: Boolean,
+        ): List<Lesson> {
             return try {
                 val arr = JSONArray(raw)
                 (0 until arr.length())
@@ -233,14 +308,17 @@ class TodayScheduleWidget : AppWidgetProvider() {
                         val end = obj.optString("endHhmm", "")
                         val startMins = toMins(start)
                         val endMins = if (end.isNotBlank()) toMins(end) else Int.MAX_VALUE
-                        if (endMins <= nowMins) return@mapNotNull null
-                        val isCurrent = nowMins in startMins until endMins
+                        // v1.75.0: show past classes greyed out instead of
+                        // filtering them out — user knows what happened today.
+                        val isCurrent = isToday && nowMins in startMins until endMins
+                        val isPast    = isToday && endMins <= nowMins
                         Lesson(
                             startHhmm = start,
                             endHhmm = end,
                             subject = obj.optString("subject", "?").ifBlank { "?" },
                             room = obj.optString("roomNumber", ""),
                             isCurrent = isCurrent,
+                            isPast = isPast,
                         )
                     }
                     .sortedBy { toMins(it.startHhmm) }

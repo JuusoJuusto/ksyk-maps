@@ -117,7 +117,7 @@
         <receiver
             android:name=".ui.NextLessonWidget"
             android:exported="true"
-            android:label="Next Lesson">
+            android:label="@string/widget_next_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
@@ -131,7 +131,7 @@
         <receiver
             android:name=".ui.CurrentLessonWidget"
             android:exported="true"
-            android:label="Current Lesson">
+            android:label="@string/widget_current_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />
@@ -145,7 +145,7 @@
         <receiver
             android:name=".ui.TodayScheduleWidget"
             android:exported="true"
-            android:label="Today's Schedule">
+            android:label="@string/widget_today_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="fi.ksykmaps.TIMETABLE_CHANGED" />

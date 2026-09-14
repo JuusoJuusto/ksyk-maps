@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.6.0";
+export const APP_VERSION = "4.6.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.6.1",
+    date: "September 2026",
+    title: "Widget past-class dimming · day rollover · Sentry errors tab · v1.75.0",
+    titleFi: "Widgetin himmeät tunnit · päivärullaus · Sentry-välilehti · v1.75.0",
+    latest: true,
+    highlights: [
+      "**Widgets: past classes dimmed, day auto-rolls forward.** TodaySchedule shows every lesson of today — past ones grey with ✓, current highlighted, future crisp. When today's schedule is done, widget automatically shows tomorrow (or the next school day) instead of going blank.",
+      "**Next lesson widget looks 14 days forward** — 'Tomorrow · 08:15 · Room K27' after school ends.",
+      "**Widget day-nav arrows bigger** (36×32dp) — easier to tap.",
+      "**Widget names + Finnish descriptions rewritten** for the picker. targetCellWidth/Height set so Android 12+ resizes correctly.",
+      "**New 'Errors (Sentry)' tab** in Analytics & Logs — deep-links to Sentry Issues / Discover / Replays for the project.",
+    ],
+    highlightsFi: [
+      "**Widgetit: menneet tunnit himmeinä + päivärullaus.** Päivän lukujärjestys näyttää KAIKKI tunnit; kun päivä on ohi, widget siirtyy automaattisesti huomiseen.",
+      "**Seuraava tunti -widget hakee jopa 14 päivää eteenpäin.**",
+      "**Widget-napit isommat** (36×32dp).",
+      "**Widget-nimet + kuvaukset uusittu suomeksi.**",
+      "**Uusi Errors (Sentry) -välilehti** hallintapaneelin Analytics & Logs -osiossa.",
+    ],
+  },
   {
     version: "4.6.0",
     date: "September 2026",
     title: "FCM deep diagnostics · widget current-row highlight · PostHog replay deep-link · v1.74.0",
     titleFi: "FCM-diagnostiikka · widgetin korostus · PostHog-replay linkki · v1.74.0",
-    latest: true,
+    latest: false,
     highlights: [
       "**FCM diagnostics: `/notifications/status` returns the exact Firebase Admin init error** if init fails (missing env var, malformed private key, etc.), plus `recentDevices` list (last 5 registrations) so you can prove tokens are landing.",
       "**FCM per-token error codes** — when broadcasting to ≤20 devices, the response includes `errors[]` with the FCM error code + message per stale token (e.g. `messaging/registration-token-not-registered`).",

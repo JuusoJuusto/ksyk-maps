@@ -384,9 +384,10 @@ function NotificationsPanel({
  * admin needs when investigating an issue on one screen.
  */
 function InsightsPanel() {
-  const [inner, setInner] = useState<"analytics" | "logs" | "external" | "feedback">("analytics");
+  const [inner, setInner] = useState<"analytics" | "errors" | "logs" | "external" | "feedback">("analytics");
   const pills: { key: typeof inner; label: string }[] = [
     { key: "analytics", label: "Analytics" },
+    { key: "errors",    label: "Errors (Sentry)" },
     { key: "logs",      label: "Logs" },
     { key: "external",  label: "External" },
     { key: "feedback",  label: "Feedback, Bugs & Crashes" },
@@ -411,9 +412,75 @@ function InsightsPanel() {
         ))}
       </div>
       {inner === "analytics" && <AdminAnalyticsDashboard />}
+      {inner === "errors"    && <ErrorsPanel />}
       {inner === "logs"      && <AppLogsManager />}
       {inner === "external"  && <AnalyticsExternalPanel />}
       {inner === "feedback"  && <FeedbackPanel />}
+    </div>
+  );
+}
+
+/**
+ * v1.75.0 — Sentry issues surfacer. Sentry's Web API requires a bearer
+ * token that we deliberately don't ship to the client; instead we render
+ * a launch card + link out. Post-launch we can add a server-side proxy
+ * that pulls the top N issues via /api/errors/sentry and drops the
+ * bearer here, but for now the honest thing is to link out.
+ */
+function ErrorsPanel() {
+  const SENTRY_ORG = "ksyk";
+  const SENTRY_PROJECT = "ksyk-maps";
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            Sentry error tracking
+          </CardTitle>
+          <CardDescription>
+            Web + Android crashes and unhandled exceptions are captured by Sentry.
+            Individual event pages carry the linked <span className="font-mono text-[11px]">posthog_session</span> tag to jump to the replay.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`https://${SENTRY_ORG}.sentry.io/issues/?project=${SENTRY_PROJECT}&statsPeriod=24h`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Open Sentry Issues (24 h)
+            </a>
+            <a
+              href={`https://${SENTRY_ORG}.sentry.io/discover/?project=${SENTRY_PROJECT}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted text-foreground text-sm font-semibold hover:bg-muted/80"
+            >
+              Discover events
+            </a>
+            <a
+              href={`https://${SENTRY_ORG}.sentry.io/replays/?project=${SENTRY_PROJECT}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted text-foreground text-sm font-semibold hover:bg-muted/80"
+            >
+              Sentry replays
+            </a>
+          </div>
+          <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs">
+            <p className="font-semibold text-amber-900 dark:text-amber-200">Also see:</p>
+            <ul className="mt-1 space-y-1 text-amber-800 dark:text-amber-300">
+              <li>· <strong>Feedback → Crashes</strong> tab: mobile crashes uploaded from the app's <em>Sovellus kaatui viimeksi</em> card.</li>
+              <li>· <strong>Logs</strong> tab: server-side app_logs Postgres feed.</li>
+              <li>· <strong>Analytics</strong> tab: session drill dialog "Watch replay in PostHog" button links to the session's recording.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

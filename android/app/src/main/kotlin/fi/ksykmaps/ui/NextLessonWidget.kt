@@ -13,6 +13,7 @@ import fi.ksykmaps.R
 import org.json.JSONArray
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 
 class NextLessonWidget : AppWidgetProvider() {
 
@@ -82,28 +83,53 @@ class NextLessonWidget : AppWidgetProvider() {
             views.setTextViewTextSize(R.id.widget_countdown, TypedValue.COMPLEX_UNIT_SP, countdownSize)
 
             val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
-            val next = if (raw != null) findNext(raw, nowMins, activeJakso) else null
+            val hit = if (raw != null) findNextAcrossDays(raw, nowMins, activeJakso) else null
 
-            if (next != null) {
+            if (hit != null) {
+                val next = hit.obj
                 val subject = next.optString("subject", "—").ifBlank { "—" }
                 val start = next.optString("startHhmm", "")
                 val room = next.optString("roomNumber", "")
                 val startMins = toMins(start)
-                val minutesAway = (startMins - nowMins).coerceAtLeast(0)
                 val roomWord = if (lang == "fi") "Luokka" else "Room"
 
+                // Date prefix on the details line when the next class is
+                // not today so users see e.g. "Tomorrow · 08:15 · Room K27".
+                val datePrefix = when {
+                    hit.daysAway == 0 -> ""
+                    hit.daysAway == 1 -> if (lang == "fi") "Huomenna" else "Tomorrow"
+                    hit.daysAway in 2..6 -> {
+                        val locale = if (lang == "fi") Locale("fi") else Locale.ENGLISH
+                        hit.date.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, locale)
+                            .replaceFirstChar { it.uppercaseChar() }
+                    }
+                    else -> if (lang == "fi") "${hit.date.dayOfMonth}.${hit.date.monthValue}."
+                            else "${hit.date.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH)} ${hit.date.dayOfMonth}"
+                }
                 val details = buildString {
+                    if (datePrefix.isNotBlank()) append(datePrefix).append("  ·  ")
                     if (start.isNotBlank()) append(start)
                     if (room.isNotBlank()) append("  ·  $roomWord $room")
                 }
 
+                // Countdown — same-day = minutes; across-day = "Tomorrow" / weekday
+                val countdown = when {
+                    hit.daysAway == 0 -> {
+                        val minutesAway = (startMins - nowMins).coerceAtLeast(0)
+                        formatCountdown(minutesAway, lang)
+                    }
+                    hit.daysAway == 1 -> if (lang == "fi") "huomenna" else "tomorrow"
+                    else              -> if (lang == "fi") "${hit.daysAway} päivän kuluttua"
+                                         else "in ${hit.daysAway} days"
+                }
+
                 views.setTextViewText(R.id.widget_subject, subject)
                 views.setTextViewText(R.id.widget_details, details)
-                views.setTextViewText(R.id.widget_countdown, formatCountdown(minutesAway, lang))
+                views.setTextViewText(R.id.widget_countdown, countdown)
             } else {
                 views.setTextViewText(
                     R.id.widget_subject,
-                    if (lang == "fi") "Ei enää tunteja tänään" else "No more lessons today"
+                    if (lang == "fi") "Ei tulevia tunteja" else "No upcoming lessons"
                 )
                 views.setTextViewText(R.id.widget_details, "")
                 views.setTextViewText(R.id.widget_countdown, "")
@@ -122,20 +148,35 @@ class NextLessonWidget : AppWidgetProvider() {
             }
         }
 
-        private fun findNext(raw: String, nowMins: Int, activeJakso: String?): org.json.JSONObject? {
+        private data class NextHit(val obj: org.json.JSONObject, val date: LocalDate, val daysAway: Int)
+
+        /**
+         * v1.75.0: search forward across days (up to 14) so the widget
+         * stays useful after school ends. Previously it went blank at
+         * 14:50 even though tomorrow had classes.
+         */
+        private fun findNextAcrossDays(raw: String, nowMins: Int, activeJakso: String?): NextHit? {
             return try {
                 val arr = JSONArray(raw)
-                val today = LocalDate.now().dayOfWeek.value
-                (0 until arr.length())
-                    .map { arr.getJSONObject(it) }
-                    .filter { it.optInt("dayOfWeek") == today }
-                    .filter { obj ->
-                        if (activeJakso == null) return@filter true
-                        val ej = obj.optString("jaksoId", "all").ifBlank { "all" }
-                        ej == "all" || ej == activeJakso
-                    }
-                    .filter { obj -> toMins(obj.optString("startHhmm")) > nowMins }
-                    .minByOrNull { obj -> toMins(obj.optString("startHhmm")) }
+                val today = LocalDate.now()
+                for (delta in 0..14) {
+                    val date = today.plusDays(delta.toLong())
+                    val dow = date.dayOfWeek.value
+                    val filtered = (0 until arr.length())
+                        .map { arr.getJSONObject(it) }
+                        .filter { it.optInt("dayOfWeek") == dow }
+                        .filter { obj ->
+                            if (activeJakso == null) return@filter true
+                            val ej = obj.optString("jaksoId", "all").ifBlank { "all" }
+                            ej == "all" || ej == activeJakso
+                        }
+                    val candidates =
+                        if (delta == 0) filtered.filter { toMins(it.optString("startHhmm")) > nowMins }
+                        else filtered
+                    val hit = candidates.minByOrNull { toMins(it.optString("startHhmm")) }
+                    if (hit != null) return NextHit(hit, date, delta)
+                }
+                null
             } catch (_: Exception) { null }
         }
     }

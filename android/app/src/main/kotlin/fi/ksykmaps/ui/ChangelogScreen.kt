@@ -36,6 +36,28 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.75.0",
+        date = "September 2026",
+        titleFi = "Widgetit: menneet tunnit himmennettyinä, päivät rullaavat eteenpäin",
+        titleEn = "Widgets: past classes dimmed, days roll forward",
+        highlightsFi = listOf(
+            "Päivän lukujärjestys näyttää nyt KAIKKI päivän tunnit — menneet tunnit renderöidään himmeinä (✓-merkki), käynnissä oleva korostettuna.",
+            "Widget rullaa automaattisesti seuraavaan koulupäivään kun kaikki tämän päivän tunnit ovat päättyneet — enää ei näy tyhjää klo 14:50 vaikka huomenna on tunteja.",
+            "Seuraava tunti -widget hakee eteenpäin jopa 14 päivää — 'Huomenna · 08:15 · Luokka K27'.",
+            "Widgetin päivänvaihtonapit isommat (36×32dp, oli 24×24dp) — helpompi napata.",
+            "Widget-nimet ja -kuvaukset uusittu suomeksi ja lisätty targetCellWidth/-Height Android 12+ mittakaavaan.",
+            "Uusi 'Errors (Sentry)' -välilehti hallintapaneelin Analytics & Logs -osiossa.",
+        ),
+        highlightsEn = listOf(
+            "Today's schedule widget now shows ALL classes of the day — past ones are dimmed with a ✓ mark, current one highlighted.",
+            "Widget auto-rolls to the next school day when today's classes are over — no more empty widget at 14:50 when tomorrow has classes.",
+            "Next lesson widget looks 14 days forward — 'Tomorrow · 08:15 · Room K27'.",
+            "Widget day-nav arrows bigger (36×32dp, was 24×24dp) — easier to tap.",
+            "Widget names + descriptions rewritten in Finnish, plus Android 12+ targetCellWidth/Height sizing.",
+            "New 'Errors (Sentry)' tab in the admin Analytics & Logs section.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.74.0",
         date = "September 2026",
         titleFi = "FCM-diagnostiikka + widgetin nykyisen tunnin merkintä",

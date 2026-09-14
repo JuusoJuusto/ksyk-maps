@@ -2,7 +2,14 @@
 <resources>
     <string name="app_name">KSYK Maps</string>
     <string name="app_description">Eksyitkö KSYKissä? Ei hätää. KSYK Maps auttaa sinua löytämään perille luokkaasi.</string>
-    <string name="widget_description">Shows your next lesson for quick glance</string>
-    <string name="widget_current_lesson_description">Shows the lesson currently in progress</string>
-    <string name="widget_today_schedule_description">Shows today\'s upcoming lessons at a glance</string>
+
+    <!-- Widget picker copy — v1.75.0 rewritten to be specific + action-oriented -->
+    <string name="widget_description">Seuraava tunti: aine, luokka ja aika yhdellä silmäyksellä. Rullaa eteenpäin päivien yli kun tämän päivän tunnit ovat päättyneet.</string>
+    <string name="widget_current_lesson_description">Näyttää käynnissä olevan tunnin: aine, luokka ja jäljellä oleva aika edistymispalkilla.</string>
+    <string name="widget_today_schedule_description">Koko päivän lukujärjestys: menneet tunnit himmeinä, käynnissä oleva korostettuna. Selaa päiviä nuolilla.</string>
+
+    <!-- Widget labels in the picker (fi) -->
+    <string name="widget_next_label">KSYK · Seuraava tunti</string>
+    <string name="widget_current_label">KSYK · Nyt tunnilla</string>
+    <string name="widget_today_label">KSYK · Päivän lukujärjestys</string>
 </resources>
