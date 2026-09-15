@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.84.0",
+        date = "September 2026",
+        titleFi = "ScheduleEngine — 'Nyt meneillään' -väärä-tunti-vian juurikorjaus",
+        titleEn = "ScheduleEngine — root fix for the 'Nyt meneillään' wrong-lesson bug",
+        highlightsFi = listOf(
+            "Kaikki kolme widgetiä + muistutusajastin käyvät nyt yhden puhtaan ScheduleEngine-moduulin kautta.",
+            "Nyt tunnilla -widgetin edistymispalkki perustuu oikeisiin LocalDateTime-aikaleimoihin.",
+            "Seuraava tunti -widget löytää maanantain tunnin perjantai-iltana ilman erillistä päivälogiikkaa.",
+            "Päivän aikataulu -widget luokittelee tunnit PAST / CURRENT / FUTURE moottorin kautta.",
+            "Muistutusajastin delegoi jakso-suodatuksen moottorille — ei enää manuaalista `activeJaksoId`-suodatusta.",
+        ),
+        highlightsEn = listOf(
+            "All three widgets + the reminder alarm scheduler now go through a single pure-function ScheduleEngine.",
+            "CurrentLesson widget progress bar is driven by real LocalDateTime timestamps.",
+            "NextLesson widget finds Monday's first lesson on Friday evening without any day-rollover code.",
+            "TodayScheduleWidget classifies rows as PAST / CURRENT / FUTURE via the engine.",
+            "Reminder scheduler delegates jakso filtering to the engine — no more manual activeJaksoId filter.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.83.0",
         date = "September 2026",
         titleFi = "Muistutusaika-liukusäädin · lounas-ikonit · web FAQ + hae-appi -popup",

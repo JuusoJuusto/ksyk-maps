@@ -103,27 +103,23 @@ internal suspend fun loadEntries(ctx: Context): List<ScheduleEntry> {
 internal suspend fun saveEntries(ctx: Context, entries: List<ScheduleEntry>) {
     val encoded = scheduleJson.encodeToString(entries)
     ctx.scheduleStore.edit { prefs -> prefs[SCHEDULE_KEY] = encoded }
-    val activeJakso = try {
-        val jaksot = loadJaksot(ctx)
-        activeJaksoId(jaksot)
-    } catch (_: Exception) { null }
-    // Cache the active jakso ID in SharedPreferences so AppWidgetProviders
-    // can read it synchronously (they can't call suspend functions).
+    val jaksot = try { loadJaksot(ctx) } catch (_: Exception) { emptyList() }
+    val activeJakso = activeJaksoId(jaksot)
+    // Cache the active jakso ID + full jakso list in SharedPreferences
+    // so AppWidgetProviders can read them synchronously (they can't
+    // call suspend functions). v4.7.2: jaksot are needed for the new
+    // ScheduleEngine which does date-range filtering rather than the
+    // old "just match active jakso ID" approach.
     ctx.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
         .edit()
         .putString("active_jakso", activeJakso ?: "")
+        .putString("jaksot_json", scheduleJson.encodeToString(jaksot))
         .apply()
-    val forAlarm = if (activeJakso != null) {
-        entries.filter { e ->
-            val ej = e.jaksoId.ifBlank { "all" }
-            ej == "all" || ej == activeJakso
-        }
-    } else entries
     withContext(Dispatchers.Main) {
         val widgetJson = buildWidgetJson(entries)
         NextLessonWidget.saveEntriesForWidget(ctx, widgetJson)
         NextLessonWidget.notifyTimetableChanged(ctx)
-        LessonReminderScheduler.schedule(ctx, forAlarm)
+        LessonReminderScheduler.schedule(ctx, entries)
     }
 }
 
@@ -131,6 +127,7 @@ internal fun buildWidgetJson(entries: List<ScheduleEntry>): String {
     val arr = JSONArray()
     for (e in entries) {
         arr.put(JSONObject().apply {
+            put("id", e.id)                 // v4.7.2: for TimedLesson.entryId
             put("dayOfWeek", e.dayOfWeek)
             put("startHhmm", e.startHhmm)
             put("endHhmm", e.endHhmm)
@@ -145,4 +142,44 @@ internal fun buildWidgetJson(entries: List<ScheduleEntry>): String {
         })
     }
     return arr.toString()
+}
+
+/**
+ * v4.7.2 — parse the widget-cached JSON payload back into ScheduleEntry
+ * objects for the ScheduleEngine. Called synchronously from widgets;
+ * cannot use suspend / DataStore. Returns null on malformed input so
+ * widgets can fall back to the empty state.
+ */
+fun parseWidgetEntries(raw: String?): List<ScheduleEntry> {
+    if (raw.isNullOrBlank()) return emptyList()
+    return try {
+        val arr = JSONArray(raw)
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.getJSONObject(i)
+            ScheduleEntry(
+                id         = o.optString("id").ifBlank { "e${i}" },
+                dayOfWeek  = o.optInt("dayOfWeek", 0).takeIf { it in 1..7 } ?: return@mapNotNull null,
+                startHhmm  = o.optString("startHhmm"),
+                endHhmm    = o.optString("endHhmm"),
+                subject    = o.optString("subject"),
+                roomId     = o.optString("roomId"),
+                roomNumber = o.optString("roomNumber"),
+                teacher    = o.optString("teacher"),
+                jaksoId    = o.optString("jaksoId").ifBlank { "all" },
+            )
+        }
+    } catch (_: Throwable) { emptyList() }
+}
+
+/**
+ * v4.7.2 — parse cached jaksot from widget prefs. Used by widgets that
+ * need the ScheduleEngine's jakso-range filtering. Falls back to the
+ * hardcoded DEFAULT_JAKSOT if the cache is empty (first launch pre-sync).
+ */
+fun parseWidgetJaksot(raw: String?): List<Jakso> {
+    if (raw.isNullOrBlank()) return DEFAULT_JAKSOT
+    return try {
+        val list = scheduleJson.decodeFromString<List<Jakso>>(raw)
+        if (list.isEmpty()) DEFAULT_JAKSOT else list
+    } catch (_: Throwable) { DEFAULT_JAKSOT }
 }

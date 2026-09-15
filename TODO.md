@@ -16,7 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.1 · pending push)
+## ✅ Just shipped (Android v1.84.0 · web 4.7.2 · pending push)
+
+- **ScheduleEngine — root fix for the "Nyt meneillään" wrong-lesson bug.**
+  - New pure-function `fi.ksykmaps.schedule.ScheduleEngine` (no Android deps, unit-testable).
+  - Materializes weekly-recurring `ScheduleEntry` + `Jakso` date ranges into concrete-dated `TimedLesson` objects backed by `LocalDateTime`.
+  - Every widget + the reminder alarm scheduler now goes through this single source of truth. No more inline HH:mm math drifting between consumers.
+  - Migrated: `NextLessonWidget` (materialize 14-day window + `nextLesson()`), `CurrentLessonWidget` (`currentLesson()` + `Duration.between` progress bar), `TodayScheduleWidget` (`classifyForDate` PAST/CURRENT/FUTURE + `nextSchoolDayWithLessons` auto-roll), `LessonReminderScheduler` (materialize + first-lesson-with-lead-time-in-future).
+  - `ScheduleStore.saveEntries()` now also persists `jaksot_json` to widget SharedPreferences so widgets can filter by jakso date ranges synchronously.
+  - `LessonReminderReceiver` drops its manual `activeJaksoId` filter — engine handles it natively.
+
+## ✅ Shipped (web 4.7.1 · pushed fdb8ca4)
 
 - **Smart guides on Builder canvas** — the one from the "deferred" list.
   - Snap POI / door / entrance / stair / elevator / nav-node placement to nearest existing point (2.5m), wall segment (doors, 3m), or polygon vertex (2.5m). Precedence: point > wall > vertex > raw.

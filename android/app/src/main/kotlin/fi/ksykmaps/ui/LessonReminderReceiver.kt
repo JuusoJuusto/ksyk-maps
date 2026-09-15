@@ -68,26 +68,15 @@ class LessonReminderReceiver : BroadcastReceiver() {
             NotificationManagerCompat.from(context).notify(NOTIF_ID, notif)
         }
 
-        // Chain the next alarm — AlarmManager only fires once, so unless
-        // we reschedule here the user gets exactly one reminder per app
-        // launch. Filter to the active jakso so we never remind the user
-        // about a lesson in a period that isn't currently running.
+        // Chain the next alarm — AlarmManager only fires once. The
+        // scheduler internally goes through ScheduleEngine which handles
+        // jakso date-range filtering, so no manual jakso filter here.
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val entries = loadEntries(context)
                 if (entries.isNotEmpty()) {
-                    val activeJakso = try {
-                        val jaksot = loadJaksot(context)
-                        activeJaksoId(jaksot)
-                    } catch (_: Throwable) { null }
-                    val forAlarm = if (activeJakso != null) {
-                        entries.filter { e ->
-                            val ej = e.jaksoId.ifBlank { "all" }
-                            ej == "all" || ej == activeJakso
-                        }
-                    } else entries
-                    LessonReminderScheduler.schedule(context, forAlarm)
+                    LessonReminderScheduler.schedule(context, entries)
                 }
             } catch (_: Throwable) { /* silent */ }
             finally { pendingResult.finish() }

@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.1";
+export const APP_VERSION = "4.7.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.2",
+    date: "September 2026",
+    title: "ScheduleEngine — centralized schedule logic fixes 'Nyt meneillään' wrong-lesson bug at the root",
+    titleFi: "ScheduleEngine — keskitetty aikataululogiikka korjaa 'Nyt meneillään' -väärä-tunti-vian juuresta",
+    latest: true,
+    highlights: [
+      "**Root fix for the 'Nyt meneillään' wrong-lesson bug.** Every widget + the notification scheduler used to compare bare HH:mm times inline; they drifted apart and sometimes showed a lesson from a different day or jakso. All four consumers now go through a single pure-function `ScheduleEngine` that materializes lessons into full `LocalDateTime` timestamps with proper jakso date-range filtering.",
+      "**NextLesson widget** re-materializes a 14-day rolling window every update and asks the engine for the first future lesson — so Friday evening it correctly shows Monday morning without any manual day-of-week rollover code.",
+      "**CurrentLesson widget** progress bar is now driven by `Duration.between(startDateTime, now)` on real timestamps rather than modular HH:mm minute math, so it never wraps around midnight or across jakso boundaries.",
+      "**TodayScheduleWidget** classifies each row as PAST / CURRENT / FUTURE via the engine, keeping the past-class dimming and current-class highlight consistent with what the other widgets show.",
+      "**Reminder alarm scheduler** delegates jakso filtering to the engine — no more inline `activeJaksoId` filtering that could mismatch the widgets during a period boundary day.",
+    ],
+    highlightsFi: [
+      "**Juurikorjaus 'Nyt meneillään' -väärä-tunti-vialle.** Kaikki widgetit + muistutusaikataulu käyvät nyt yhden puhtaan `ScheduleEngine`-moduulin kautta.",
+      "**Seuraava tunti** -widget materialisoi 14 päivän ikkunan ja kysyy moottorilta ensimmäisen tulevan tunnin.",
+      "**Nyt tunnilla** -widgetin edistymispalkki perustuu oikeisiin `LocalDateTime`-aikaleimoihin.",
+      "**Päivän aikataulu** luokittelee tunnit menneiksi / nykyiseksi / tuleviksi moottorin kautta.",
+      "**Muistutusajastin** delegoi jakso-suodatuksen moottorille.",
+    ],
+  },
   {
     version: "4.7.1",
     date: "September 2026",
     title: "Builder smart guides — snap POIs / doors / nav nodes to walls, vertices, existing points",
     titleFi: "Builder-smart-guides — POI:t / ovet / navigointisolmut napsahtavat seiniin, kulmiin ja olemassa oleviin pisteisiin",
-    latest: true,
     highlights: [
       "**Smart snap on every POI / door / nav-node placement.** Precedence: nearest existing point (2.5m) → wall segment (doors only, 3m) → polygon vertex (2.5m) → raw click. Result is that stacking two POIs or aligning to a room corner now takes one click, not pixel-perfect targeting.",
       "**Green visual snap guide** on hover — a target circle at the snap point plus a dashed line from cursor to snap. Shows what kind of thing you snapped to (node / door / stair / elevator / wall / vertex).",

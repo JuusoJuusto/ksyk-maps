@@ -13,10 +13,11 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import fi.ksykmaps.R
-import org.json.JSONArray
+import fi.ksykmaps.schedule.LessonState
+import fi.ksykmaps.schedule.ScheduleEngine
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -56,24 +57,10 @@ class TodayScheduleWidget : AppWidgetProvider() {
         private const val PREFS_WIDGET = "ksyk_widget"
         private const val KEY_DAY_OFFSET = "today_schedule_day_offset"
 
-        private data class Lesson(
-            val startHhmm: String,
-            val endHhmm: String,
-            val subject: String,
-            val room: String,
-            val isCurrent: Boolean,
-            val isPast: Boolean,
-        )
-
         private val rowIds     = listOf(R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5, R.id.row6)
         private val timeIds    = listOf(R.id.time1, R.id.time2, R.id.time3, R.id.time4, R.id.time5, R.id.time6)
         private val subjectIds = listOf(R.id.subject1, R.id.subject2, R.id.subject3, R.id.subject4, R.id.subject5, R.id.subject6)
         private val roomIds    = listOf(R.id.room1, R.id.room2, R.id.room3, R.id.room4, R.id.room5, R.id.room6)
-
-        private fun toMins(hhmm: String): Int {
-            val parts = hhmm.split(":")
-            return if (parts.size == 2) (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0) else 0
-        }
 
         /**
          * Colour palette for subject accent dots. Deterministic hash of the
@@ -120,8 +107,8 @@ class TodayScheduleWidget : AppWidgetProvider() {
 
         private fun updateWidget(context: Context, manager: AppWidgetManager, id: Int) {
             val prefs = context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
-            val raw = prefs.getString("entries_json", null)
-            val activeJakso = prefs.getString("active_jakso", "").takeIf { it?.isNotBlank() == true }
+            val entries = parseWidgetEntries(prefs.getString("entries_json", null))
+            val jaksot  = parseWidgetJaksot(prefs.getString("jaksot_json", null))
             val offset = prefs.getInt(KEY_DAY_OFFSET, 0)
             val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_today_schedule)
@@ -146,8 +133,12 @@ class TodayScheduleWidget : AppWidgetProvider() {
                 displayDate = nextSchoolDay(displayDate)
             }
 
-            val nowMins = LocalTime.now().let { it.hour * 60 + it.minute }
+            val nowDt = LocalDateTime.now()
             val locale = if (lang == "fi") Locale("fi") else Locale.ENGLISH
+
+            // v4.7.2: materialize the rolling 14-day window ONCE through
+            // ScheduleEngine, then all further queries are pure lookups.
+            val allLessons = ScheduleEngine.materializeRollingWindow(entries, jaksot, LocalDate.now(), days = 14)
 
             // Day label with contextual chip: "TODAY · MA · 14.10.", "TOMORROW · TI · 15.10.",
             // "THIS WEEK · KE · 16.10." — clarifies which day the user is browsing when
@@ -196,32 +187,23 @@ class TodayScheduleWidget : AppWidgetProvider() {
                 else               -> 4
             }
 
-            // v1.75.0: when the user is on "today" AND today has no lessons
-            // OR all of today's lessons have ended, auto-jump forward to the
-            // next school day (up to 7 days ahead) so the widget always shows
-            // something useful. When offset != 0 the user is browsing manually
-            // — respect their pick even if the day is empty.
+            // v4.7.2: ScheduleEngine gives us date-classified lessons in
+            // one call — no manual (hh:mm × dayOfWeek × jaksoId) filter.
             var effectiveDate = displayDate
-            var effectiveIsToday = (effectiveDate == LocalDate.now())
-            var lessons: List<Lesson> = if (raw != null)
-                todayLessons(raw, nowMins, activeJakso, effectiveDate.dayOfWeek.value, effectiveIsToday)
-            else emptyList()
+            var classified = ScheduleEngine.classifyForDate(allLessons, effectiveDate, nowDt)
 
-            if (offset == 0 && raw != null) {
-                val allEndedOrEmpty = lessons.isEmpty() || lessons.all { it.isPast }
+            // Auto-roll: when the user is on "today" AND every lesson has
+            // ended (or the day is empty), jump forward to the next school
+            // day that has lessons. Respects manual browsing (offset != 0).
+            if (offset == 0) {
+                val allEndedOrEmpty = classified.isEmpty() || classified.all { it.state == LessonState.PAST }
                 if (allEndedOrEmpty) {
-                    var probe = effectiveDate.plusDays(1)
-                    var tries = 0
-                    while (tries < 7) {
-                        val probeLessons = todayLessons(raw, 0, activeJakso, probe.dayOfWeek.value, isToday = false)
-                        if (probeLessons.isNotEmpty()) {
-                            effectiveDate = probe
-                            effectiveIsToday = false
-                            lessons = probeLessons
-                            break
-                        }
-                        probe = probe.plusDays(1)
-                        tries++
+                    val nextDay = ScheduleEngine.nextSchoolDayWithLessons(
+                        allLessons, effectiveDate.plusDays(1), inclusive = true,
+                    )
+                    if (nextDay != null) {
+                        effectiveDate = nextDay
+                        classified = ScheduleEngine.classifyForDate(allLessons, effectiveDate, nowDt)
                     }
                 }
             }
@@ -243,65 +225,61 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val effectiveLabel = if (effectiveChip != null) "$effectiveChip · $effectiveDayAbbr $effectiveDatePart" else "$effectiveDayAbbr · $effectiveDatePart"
             views.setTextViewText(R.id.widget_day, effectiveLabel)
 
-            if (lessons.isEmpty()) {
+            if (classified.isEmpty()) {
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
                 // Contextual empty state — weekend vs weekday vs summer
-                val isWeekend = displayDate.dayOfWeek == DayOfWeek.SATURDAY || displayDate.dayOfWeek == DayOfWeek.SUNDAY
+                val isWeekend = effectiveDate.dayOfWeek == DayOfWeek.SATURDAY || effectiveDate.dayOfWeek == DayOfWeek.SUNDAY
                 val emptyText = when {
-                    isWeekend      -> if (lang == "fi") "Viikonloppu 🌤️" else "Weekend 🌤️"
-                    diff == 0      -> if (lang == "fi") "Ei tunteja tänään" else "No lessons today"
-                    else           -> if (lang == "fi") "Ei tunteja" else "No lessons"
+                    isWeekend         -> if (lang == "fi") "Viikonloppu 🌤️" else "Weekend 🌤️"
+                    effectiveDiff == 0 -> if (lang == "fi") "Ei tunteja tänään" else "No lessons today"
+                    else              -> if (lang == "fi") "Ei tunteja" else "No lessons"
                 }
                 views.setTextViewText(R.id.widget_empty, emptyText)
                 rowIds.forEach { views.setViewVisibility(it, View.GONE) }
             } else {
                 views.setViewVisibility(R.id.widget_empty, View.GONE)
-                lessons.take(maxRows).forEachIndexed { i, lesson ->
+                classified.take(maxRows).forEachIndexed { i, c ->
+                    val lesson = c.lesson
+                    val isCurrent = c.state == LessonState.CURRENT
+                    val isPast    = c.state == LessonState.PAST
                     views.setViewVisibility(rowIds[i], View.VISIBLE)
 
-                    // Row background: highlight the current lesson row with a
-                    // subtle translucent tile — makes it pop at a glance without
-                    // dominating the whole widget. Non-current rows: transparent.
-                    if (lesson.isCurrent) {
+                    if (isCurrent) {
                         views.setInt(rowIds[i], "setBackgroundResource", R.drawable.widget_row_current)
                     } else {
                         views.setInt(rowIds[i], "setBackgroundResource", 0)
                     }
 
-                    // Colour ramp: past = grey/40 %, current = white/100 %, future = white/85 %
                     val timeColor    = when {
-                        lesson.isCurrent -> Color.parseColor("#FFFFFFFF")
-                        lesson.isPast    -> Color.parseColor("#44FFFFFF")
-                        else             -> Color.parseColor("#88FFFFFF")
+                        isCurrent -> Color.parseColor("#FFFFFFFF")
+                        isPast    -> Color.parseColor("#44FFFFFF")
+                        else      -> Color.parseColor("#88FFFFFF")
                     }
                     val subjectColor = when {
-                        lesson.isCurrent -> Color.WHITE
-                        lesson.isPast    -> Color.parseColor("#66FFFFFF")
-                        else             -> Color.parseColor("#CCFFFFFF")
+                        isCurrent -> Color.WHITE
+                        isPast    -> Color.parseColor("#66FFFFFF")
+                        else      -> Color.parseColor("#CCFFFFFF")
                     }
                     val roomColor    = when {
-                        lesson.isCurrent -> Color.parseColor("#EEFFFFFF")
-                        lesson.isPast    -> Color.parseColor("#33FFFFFF")
-                        else             -> Color.parseColor("#77FFFFFF")
+                        isCurrent -> Color.parseColor("#EEFFFFFF")
+                        isPast    -> Color.parseColor("#33FFFFFF")
+                        else      -> Color.parseColor("#77FFFFFF")
                     }
-                    val timeLabel    = when {
-                        lesson.isCurrent -> "● ${lesson.startHhmm}"
-                        lesson.isPast    -> "✓ ${lesson.startHhmm}"
-                        else             -> lesson.startHhmm
+                    val startHhmm = "%02d:%02d".format(lesson.startTime.hour, lesson.startTime.minute)
+                    val timeLabel = when {
+                        isCurrent -> "● $startHhmm"
+                        isPast    -> "✓ $startHhmm"
+                        else      -> startHhmm
                     }
 
                     views.setTextViewText(timeIds[i], timeLabel)
                     views.setTextColor(timeIds[i], timeColor)
                     views.setTextViewTextSize(timeIds[i], TypedValue.COMPLEX_UNIT_SP, timeSize)
 
-                    // Subject label: per-subject accent dot at the start,
-                    // optional strikethrough on past classes, "· X min"
-                    // suffix on the current class.
                     val accent = subjectColorHex(lesson.subject)
-                    val rawSubject = if (lesson.isCurrent) {
-                        val endM = toMins(lesson.endHhmm)
-                        val remain = (endM - nowMins).coerceAtLeast(0)
-                        if (remain > 0) "${lesson.subject}  ·  ${remain} min" else lesson.subject
+                    val rawSubject = if (isCurrent) {
+                        val remain = lesson.minutesUntilEnd(nowDt).coerceAtLeast(0)
+                        if (remain > 0) "${lesson.subject}  ·  $remain min" else lesson.subject
                     } else lesson.subject
                     val htmlEscaped = rawSubject
                         .replace("&", "&amp;")
@@ -309,7 +287,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
                         .replace(">", "&gt;")
                     val html = buildString {
                         append("<font color=\"$accent\">●</font>&nbsp;&nbsp;")
-                        if (lesson.isPast) {
+                        if (isPast) {
                             append("<s>").append(htmlEscaped).append("</s>")
                         } else {
                             append(htmlEscaped)
@@ -320,61 +298,16 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextColor(subjectIds[i], subjectColor)
                     views.setTextViewTextSize(subjectIds[i], TypedValue.COMPLEX_UNIT_SP, subjectSize)
 
-                    views.setTextViewText(roomIds[i], lesson.room)
+                    views.setTextViewText(roomIds[i], lesson.roomNumber)
                     views.setTextColor(roomIds[i], roomColor)
                     views.setTextViewTextSize(roomIds[i], TypedValue.COMPLEX_UNIT_SP, roomSize)
                 }
-                for (i in lessons.size.coerceAtMost(maxRows) until rowIds.size) {
+                for (i in classified.size.coerceAtMost(maxRows) until rowIds.size) {
                     views.setViewVisibility(rowIds[i], View.GONE)
                 }
             }
 
             manager.updateAppWidget(id, views)
-        }
-
-        /**
-         * @param isToday when true, we compare lesson times to `nowMins` so
-         *  past lessons render dimmed and the ongoing one is marked current.
-         *  When false (browsing another day), no lesson is "current" and
-         *  none are "past" — the widget shows the full day plainly.
-         */
-        private fun todayLessons(
-            raw: String,
-            nowMins: Int,
-            activeJakso: String?,
-            dayOfWeek: Int,
-            isToday: Boolean,
-        ): List<Lesson> {
-            return try {
-                val arr = JSONArray(raw)
-                (0 until arr.length())
-                    .map { arr.getJSONObject(it) }
-                    .filter { it.optInt("dayOfWeek") == dayOfWeek }
-                    .filter { obj ->
-                        if (activeJakso == null) return@filter true
-                        val ej = obj.optString("jaksoId", "all").ifBlank { "all" }
-                        ej == "all" || ej == activeJakso
-                    }
-                    .mapNotNull { obj ->
-                        val start = obj.optString("startHhmm").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                        val end = obj.optString("endHhmm", "")
-                        val startMins = toMins(start)
-                        val endMins = if (end.isNotBlank()) toMins(end) else Int.MAX_VALUE
-                        // v1.75.0: show past classes greyed out instead of
-                        // filtering them out — user knows what happened today.
-                        val isCurrent = isToday && nowMins in startMins until endMins
-                        val isPast    = isToday && endMins <= nowMins
-                        Lesson(
-                            startHhmm = start,
-                            endHhmm = end,
-                            subject = obj.optString("subject", "?").ifBlank { "?" },
-                            room = obj.optString("roomNumber", ""),
-                            isCurrent = isCurrent,
-                            isPast = isPast,
-                        )
-                    }
-                    .sortedBy { toMins(it.startHhmm) }
-            } catch (_: Exception) { emptyList() }
         }
     }
 }

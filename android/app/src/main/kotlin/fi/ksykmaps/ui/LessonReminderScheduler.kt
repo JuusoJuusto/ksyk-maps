@@ -5,17 +5,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import java.time.DayOfWeek
+import fi.ksykmaps.schedule.ScheduleEngine
+import fi.ksykmaps.schedule.TimedLesson
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
-
-private fun hhmm(s: String): Int {
-    val parts = s.split(":")
-    if (parts.size != 2) return Int.MAX_VALUE
-    return (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
-}
 
 object LessonReminderScheduler {
     /** Default lead time in minutes if user hasn't overridden it in Settings. */
@@ -42,47 +36,33 @@ object LessonReminderScheduler {
     private const val REQUEST_CODE = 42_001
 
     /**
-     * Schedule an alarm for the next lesson reminder — looks at today
-     * first, then rolls forward day by day up to 7 days out so that a
-     * Friday evening still lines up a Monday morning reminder. The
-     * receiver calls back into schedule() after firing, giving us a
-     * self-sustaining chain without any polling.
+     * v4.7.2 — schedule the next reminder via [ScheduleEngine]. Reads the
+     * jakso list from the widget prefs cache so the alarm respects the
+     * same date-range filtering the widgets use. Chains itself: after
+     * firing, [LessonReminderReceiver] calls back into schedule().
      */
     fun schedule(context: Context, entries: List<ScheduleEntry>) {
         cancel(context)
-
         if (entries.isEmpty()) return
+
+        val jaksot = parseWidgetJaksot(
+            context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
+                .getString("jaksot_json", null)
+        )
+
         val now = LocalDateTime.now()
         val today = LocalDate.now()
+        val lead = leadMinutes(context)
 
-        // Look ahead up to 7 days for the very next reminder that hasn't
-        // already passed (accounting for the 5-min lead time).
-        val next = (0..7)
-            .asSequence()
-            .flatMap { offset ->
-                val day = today.plusDays(offset.toLong())
-                val dow = day.dayOfWeek.value
-                entries
-                    .filter { it.dayOfWeek == dow }
-                    .sortedBy { hhmm(it.startHhmm) }
-                    .mapNotNull { entry ->
-                        val parts = entry.startHhmm.split(":")
-                        if (parts.size != 2) return@mapNotNull null
-                        val h = parts[0].toIntOrNull() ?: return@mapNotNull null
-                        val m = parts[1].toIntOrNull() ?: return@mapNotNull null
-                        val reminderTime = LocalDateTime.of(day, LocalTime.of(h, m))
-                            .minusMinutes(leadMinutes(context))
-                        if (reminderTime.isAfter(now)) Pair(entry, reminderTime) else null
-                    }
-                    .asSequence()
-            }
-            .firstOrNull() ?: return
+        val all = ScheduleEngine.materializeRollingWindow(entries, jaksot, today, days = 7)
+        val next: TimedLesson = all
+            .firstOrNull { it.startDateTime.minusMinutes(lead).isAfter(now) }
+            ?: return
 
-        val nextEntry = next.first
-        val reminderTime = next.second
+        val reminderTime = next.startDateTime.minusMinutes(lead)
         val triggerMs = reminderTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        val pi = buildPendingIntent(context, nextEntry)
+        val pi = buildPendingIntent(context, next)
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
@@ -103,12 +83,13 @@ object LessonReminderScheduler {
         pi.cancel()
     }
 
-    private fun buildPendingIntent(context: Context, entry: ScheduleEntry): PendingIntent {
+    private fun buildPendingIntent(context: Context, lesson: TimedLesson): PendingIntent {
+        val startHhmm = "%02d:%02d".format(lesson.startTime.hour, lesson.startTime.minute)
         val intent = Intent(context, LessonReminderReceiver::class.java).apply {
-            putExtra("subject", entry.subject)
-            putExtra("startHhmm", entry.startHhmm)
-            putExtra("roomNumber", entry.roomNumber)
-            putExtra("teacher", entry.teacher)
+            putExtra("subject", lesson.subject)
+            putExtra("startHhmm", startHhmm)
+            putExtra("roomNumber", lesson.roomNumber)
+            putExtra("teacher", lesson.teacher)
         }
         return PendingIntent.getBroadcast(
             context, REQUEST_CODE, intent,
