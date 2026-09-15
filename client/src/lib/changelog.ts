@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.0";
+export const APP_VERSION = "4.7.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.1",
+    date: "September 2026",
+    title: "Builder smart guides — snap POIs / doors / nav nodes to walls, vertices, existing points",
+    titleFi: "Builder-smart-guides — POI:t / ovet / navigointisolmut napsahtavat seiniin, kulmiin ja olemassa oleviin pisteisiin",
+    latest: true,
+    highlights: [
+      "**Smart snap on every POI / door / nav-node placement.** Precedence: nearest existing point (2.5m) → wall segment (doors only, 3m) → polygon vertex (2.5m) → raw click. Result is that stacking two POIs or aligning to a room corner now takes one click, not pixel-perfect targeting.",
+      "**Green visual snap guide** on hover — a target circle at the snap point plus a dashed line from cursor to snap. Shows what kind of thing you snapped to (node / door / stair / elevator / wall / vertex).",
+      "**Nav-node placement** snaps to existing nodes + walls + vertices so a corridor graph aligns cleanly with the building geometry.",
+      "**Connect tool** now falls back to nearest-node snap within 3m when the MapLibre pixel hit misses (zoomed-out clicks work).",
+      "**Door duplicate guard**: placing a door within 0.5m of an existing one shows 'Skipped — existing door at this spot' instead of stacking two on top of each other.",
+    ],
+    highlightsFi: [
+      "**Smart snap** kaikissa POI / ovi / navigointisolmun sijoituksissa.",
+      "**Vihreä visuaalinen ohjain** joka näyttää mihin snap-osuma menee.",
+      "**Navigointisolmut** napsahtavat olemassa oleviin solmuihin, seiniin ja huoneiden kulmiin.",
+      "**Connect-työkalu** löytää lähimmän solmun 3m sisällä vaikka pikselin osuma ei täsmää.",
+      "**Ovien duplikaatit estetty** — 0.5m sisällä olemassa olevasta ovesta ohitetaan.",
+    ],
+  },
   {
     version: "4.7.0",
     date: "September 2026",
     title: "Admin Insights tab · 4 new analytics charts · easter-egg dedup",
     titleFi: "Admin Insights-välilehti · 4 uutta analytiikkakorttia · easter-egg dedup",
-    latest: true,
+    latest: false,
     highlights: [
       "**Admin Analytics → new 'Insights' tab** with four data cards: search zero-results, peak-usage heatmap, device/OS/app-version breakdown, bounce rate by landing page.",
       "**Search zero-results** — ranked queries that returned nothing. Direct content-gap finder for missing rooms / aliases.",

@@ -16,7 +16,15 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.0 · pending push)
+## ✅ Just shipped (web 4.7.1 · pending push)
+
+- **Smart guides on Builder canvas** — the one from the "deferred" list.
+  - Snap POI / door / entrance / stair / elevator / nav-node placement to nearest existing point (2.5m), wall segment (doors, 3m), or polygon vertex (2.5m). Precedence: point > wall > vertex > raw.
+  - Green visual snap indicator on hover: a target circle at the snap point + dashed line from cursor.
+  - Connect tool falls back to nearest-node-within-3m when MapLibre pixel query misses.
+  - Duplicate-door guard within 0.5m.
+
+## ✅ Shipped (web 4.7.0 · a86f867)
 
 - **Admin → Analytics → Insights tab** with 4 new data cards:
   - Search zero-results table (content gap finder)

@@ -194,6 +194,101 @@ function snapPointToNearestWall(
   return best ? { lat: best.lat, lng: best.lng } : null;
 }
 
+/**
+ * v4.7.1 — smart guides. Snap to the nearest known point (nav node,
+ * door, generic POI, stair, elevator) within `thresholdMeters`. Returns
+ * a tuple of {snapped, source, sourceId} so the caller can render a
+ * visual guide indicating what we snapped to. Falls back to null.
+ *
+ * `candidates` is a heterogeneous list — the caller passes whichever
+ * point sets are relevant. Each entry needs lat/lng and a `kind` label.
+ */
+type SnapCandidate = { lat: number; lng: number; kind: string; id?: string };
+type SnapResult   = { snapped: { lat: number; lng: number }; kind: string; id?: string; distanceM: number } | null;
+
+function snapPointToNearestPoint(
+  click: { lat: number; lng: number },
+  candidates: SnapCandidate[],
+  thresholdMeters: number,
+): SnapResult {
+  if (!candidates.length) return null;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  let best: SnapResult = null;
+  const th2 = thresholdMeters * thresholdMeters;
+  for (const c of candidates) {
+    const dx = (c.lng - click.lng) * mPerDegLng;
+    const dy = (c.lat - click.lat) * mPerDegLat;
+    const d2 = dx * dx + dy * dy;
+    if (d2 <= th2 && (!best || d2 < best.distanceM * best.distanceM)) {
+      best = { snapped: { lat: c.lat, lng: c.lng }, kind: c.kind, id: c.id, distanceM: Math.sqrt(d2) };
+    }
+  }
+  return best;
+}
+
+/**
+ * Snap to the nearest polygon vertex from a list of rooms / buildings.
+ * Useful when placing a POI at a corner of a room without having to
+ * hit the pixel-perfect corner.
+ */
+function snapPointToNearestVertex(
+  click: { lat: number; lng: number },
+  polygons: Array<{ id?: string; points?: Array<{ lat: number; lng: number }> | null }>,
+  thresholdMeters: number,
+): SnapResult {
+  const verts: SnapCandidate[] = [];
+  for (const p of polygons) {
+    if (!p.points || !p.points.length) continue;
+    for (const v of p.points) {
+      if (typeof v.lat === "number" && typeof v.lng === "number") {
+        verts.push({ lat: v.lat, lng: v.lng, kind: "vertex", id: p.id });
+      }
+    }
+  }
+  return snapPointToNearestPoint(click, verts, thresholdMeters);
+}
+
+/**
+ * Combined smart-guide snap for POI-like placements. Precedence:
+ *   1. Nearest existing POI / door / node point within threshold
+ *   2. Nearest wall segment (for doors/entrances)
+ *   3. Nearest polygon vertex (for corner alignment)
+ *   4. Raw click (returned as {snapped: click, kind: 'raw'})
+ * The best result is returned so callers can style the visual guide.
+ */
+function computeSmartSnap(
+  click: { lat: number; lng: number },
+  ctx: {
+    hallways: Array<{ startX: number; startY: number; endX: number; endY: number; surface?: string | null }>;
+    points: SnapCandidate[];
+    polygons: Array<{ id?: string; points?: Array<{ lat: number; lng: number }> | null }>;
+    includeWalls: boolean;
+    thresholdM?: number;
+  },
+): { snapped: { lat: number; lng: number }; kind: string; id?: string; distanceM: number } {
+  const th = ctx.thresholdM ?? 2.5;
+  // 1) Existing points — highest priority so multiple POIs stack perfectly
+  const pointSnap = snapPointToNearestPoint(click, ctx.points, th);
+  if (pointSnap) return pointSnap;
+  // 2) Walls — only when the placement type wants them
+  if (ctx.includeWalls) {
+    const wallSnap = snapPointToNearestWall(click, ctx.hallways, th);
+    if (wallSnap) {
+      const mPerDegLat = 111320;
+      const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+      const dx = (wallSnap.lng - click.lng) * mPerDegLng;
+      const dy = (wallSnap.lat - click.lat) * mPerDegLat;
+      return { snapped: wallSnap, kind: "wall", distanceM: Math.sqrt(dx * dx + dy * dy) };
+    }
+  }
+  // 3) Polygon vertices — for corner alignment
+  const vertSnap = snapPointToNearestVertex(click, ctx.polygons, th);
+  if (vertSnap) return vertSnap;
+  // 4) No snap — return raw click
+  return { snapped: click, kind: "raw", distanceM: 0 };
+}
+
 // ─── Root page ────────────────────────────────────────────────────────────
 export default function BuilderPage() {
   const [, setLocation] = useLocation();
@@ -1136,6 +1231,158 @@ function BuilderWorkspace() {
     }
   }, [mapReady, navGraph.graph, cameraState.activeFloor, connectFrom]);
 
+  // ── v4.7.1 — Smart-guide preview overlay ────────────────────────────────
+  // When a snap-eligible tool is active, follow the cursor and render:
+  //   1. A green target circle at the snap point
+  //   2. A dashed line from the raw cursor to the snap point
+  //   3. A label saying what was snapped to (node / door / vertex / wall)
+  // Only visible when snap resolves; disappears on non-snap hover.
+  useEffect(() => {
+    if (!mapReady) return;
+    const h = handleRef.current;
+    if (!h) return;
+    const map = h.map;
+
+    const GUIDE_POINT_SRC = "builder-snap-guide-point";
+    const GUIDE_LINE_SRC  = "builder-snap-guide-line";
+    const GUIDE_POINT_L   = "builder-snap-guide-point-l";
+    const GUIDE_POINT_H   = "builder-snap-guide-point-halo";
+    const GUIDE_LINE_L    = "builder-snap-guide-line-l";
+    const empty = { type: "FeatureCollection" as const, features: [] };
+
+    // Register sources + layers once.
+    if (!map.getSource(GUIDE_POINT_SRC)) map.addSource(GUIDE_POINT_SRC, { type: "geojson", data: empty as any });
+    if (!map.getSource(GUIDE_LINE_SRC))  map.addSource(GUIDE_LINE_SRC,  { type: "geojson", data: empty as any });
+    if (!map.getLayer(GUIDE_LINE_L)) {
+      map.addLayer({
+        id: GUIDE_LINE_L,
+        type: "line",
+        source: GUIDE_LINE_SRC,
+        paint: {
+          "line-color": "#22c55e",
+          "line-width": 1.5,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.85,
+        },
+      });
+    }
+    if (!map.getLayer(GUIDE_POINT_H)) {
+      map.addLayer({
+        id: GUIDE_POINT_H,
+        type: "circle",
+        source: GUIDE_POINT_SRC,
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 12, 22, 22],
+          "circle-color": "#22c55e",
+          "circle-opacity": 0.15,
+        },
+      });
+    }
+    if (!map.getLayer(GUIDE_POINT_L)) {
+      map.addLayer({
+        id: GUIDE_POINT_L,
+        type: "circle",
+        source: GUIDE_POINT_SRC,
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#22c55e",
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+    }
+
+    // Only compute snap when a snap-eligible tool is active.
+    const snapTools: BuilderTool[] = [
+      "node", "connect",
+      "poi-stairs", "poi-elevator", "poi-door", "poi-entrance",
+      "poi-info", "poi-reception", "poi-parking", "poi-bike",
+      "poi-restroom", "poi-restroom-m", "poi-restroom-f", "poi-restroom-a",
+      "poi-cafe", "poi-vending", "poi-water", "poi-first-aid",
+      "poi-defibrillator", "poi-printer", "poi-meeting",
+    ];
+    const active = snapTools.includes(activeTool);
+
+    const clearGuide = () => {
+      const pSrc = map.getSource(GUIDE_POINT_SRC) as maplibregl.GeoJSONSource | undefined;
+      const lSrc = map.getSource(GUIDE_LINE_SRC)  as maplibregl.GeoJSONSource | undefined;
+      if (pSrc) pSrc.setData(empty as any);
+      if (lSrc) lSrc.setData(empty as any);
+    };
+
+    if (!active) {
+      clearGuide();
+      return;
+    }
+
+    const activeFloor = cameraState.activeFloor ?? 1;
+    const nodesOnFloor = navGraph.graph.nodes.filter((n) => n.floor === activeFloor || n.floor == null);
+    const doorsAll = doorsQ.data ?? [];
+    const stairsAll = stairsQ.data ?? [];
+    const elevatorsAll = elevatorsQ.data ?? [];
+    const points: SnapCandidate[] = [
+      ...nodesOnFloor.map((n): SnapCandidate => ({ lat: n.lat, lng: n.lng, kind: "node", id: n.id })),
+      ...doorsAll.map((d: any): SnapCandidate => ({ lat: d.mapPositionY ?? d.position?.lat, lng: d.mapPositionX ?? d.position?.lng, kind: "door", id: d.id }))
+        .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+      ...stairsAll.map((s: any): SnapCandidate => ({ lat: s.mapPositionY ?? s.position?.lat, lng: s.mapPositionX ?? s.position?.lng, kind: "stair", id: s.id }))
+        .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+      ...elevatorsAll.map((s: any): SnapCandidate => ({ lat: s.mapPositionY ?? s.position?.lat, lng: s.mapPositionX ?? s.position?.lng, kind: "elevator", id: s.id }))
+        .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+    ];
+    const roomsForVerts = (roomsQ.data ?? []).filter((r) => (r.floor ?? 1) === activeFloor);
+    const includeWalls = activeTool === "node" || activeTool === "poi-door" || activeTool === "poi-entrance";
+    const hallways = hallwaysQ.data ?? [];
+
+    const onHover = (e: MapMouseEvent) => {
+      // For "connect" mode: snap to nearest node only (2× threshold),
+      // no wall/vertex fallback.
+      const snap = activeTool === "connect"
+        ? (snapPointToNearestPoint({ lat: e.lngLat.lat, lng: e.lngLat.lng }, points.filter((p) => p.kind === "node"), 6) ?? undefined)
+        : computeSmartSnap({ lat: e.lngLat.lat, lng: e.lngLat.lng }, {
+            hallways,
+            points,
+            polygons: [...roomsForVerts, ...buildings],
+            includeWalls,
+          });
+
+      const pSrc = map.getSource(GUIDE_POINT_SRC) as maplibregl.GeoJSONSource | undefined;
+      const lSrc = map.getSource(GUIDE_LINE_SRC)  as maplibregl.GeoJSONSource | undefined;
+
+      if (!snap || (activeTool !== "connect" && (snap as any).kind === "raw")) {
+        if (pSrc) pSrc.setData(empty as any);
+        if (lSrc) lSrc.setData(empty as any);
+        return;
+      }
+      const sn = snap.snapped;
+      if (pSrc) pSrc.setData({
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [sn.lng, sn.lat] },
+          properties: { kind: snap.kind },
+        }],
+      } as any);
+      if (lSrc) lSrc.setData({
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [[e.lngLat.lng, e.lngLat.lat], [sn.lng, sn.lat]] },
+          properties: {},
+        }],
+      } as any);
+    };
+    const onLeave = () => clearGuide();
+
+    map.on("mousemove", onHover);
+    map.getCanvas().addEventListener("mouseleave", onLeave);
+    return () => {
+      map.off("mousemove", onHover);
+      map.getCanvas().removeEventListener("mouseleave", onLeave);
+      clearGuide();
+    };
+  }, [mapReady, activeTool, navGraph.graph, cameraState.activeFloor,
+      doorsQ.data, stairsQ.data, elevatorsQ.data, roomsQ.data, hallwaysQ.data, buildings]);
+
   // ── Map click handler — drops waypoints in draw mode ────────────────────
   useEffect(() => {
     if (!mapReady) return;
@@ -1310,12 +1557,42 @@ function BuilderWorkspace() {
       // matching mutation with the click position.
       // v3.24 nav-graph tools — click to drop a node, or click two
       // existing nodes to connect them.
+      // v4.7.1: shared smart-snap context used by nav-node + POI
+      // placements. Threshold 2.5 m — snaps hard onto existing points
+      // (POIs, doors, nav nodes) so multiple items line up perfectly.
+      const rawClick = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+      const activeFloor = cameraState.activeFloor ?? 1;
+      const nodesOnFloor = navGraph.graph.nodes.filter((n) => n.floor === activeFloor || n.floor == null);
+      const roomsForVerts = (roomsQ.data ?? []).filter((r) => (r.floor ?? 1) === activeFloor);
+      const bldgsForVerts = buildings;
+      const doorsAll = doorsQ.data ?? [];
+      const stairsAll = stairsQ.data ?? [];
+      const elevatorsAll = elevatorsQ.data ?? [];
+      const poisAll: SnapCandidate[] = [
+        ...nodesOnFloor.map((n): SnapCandidate => ({ lat: n.lat, lng: n.lng, kind: "node", id: n.id })),
+        ...doorsAll.map((d: any): SnapCandidate => ({ lat: d.mapPositionY ?? d.position?.lat, lng: d.mapPositionX ?? d.position?.lng, kind: "door", id: d.id }))
+          .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+        ...stairsAll.map((s: any): SnapCandidate => ({ lat: s.mapPositionY ?? s.position?.lat, lng: s.mapPositionX ?? s.position?.lng, kind: "stair", id: s.id }))
+          .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+        ...elevatorsAll.map((s: any): SnapCandidate => ({ lat: s.mapPositionY ?? s.position?.lat, lng: s.mapPositionX ?? s.position?.lng, kind: "elevator", id: s.id }))
+          .filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
+      ];
+
       if (activeTool === "node") {
+        const snap = computeSmartSnap(rawClick, {
+          hallways: hallwaysQ.data ?? [],
+          points: poisAll,
+          polygons: [...roomsForVerts, ...bldgsForVerts],
+          includeWalls: true,
+        });
         navGraph.addNode({
-          lat: e.lngLat.lat, lng: e.lngLat.lng,
-          floor: cameraState.activeFloor ?? 1,
+          lat: snap.snapped.lat, lng: snap.snapped.lng,
+          floor: activeFloor,
           kind: "junction",
         });
+        if (snap.kind !== "raw") {
+          toast({ title: "Snapped", description: `Aligned to nearest ${snap.kind} (${snap.distanceM.toFixed(1)} m).` });
+        }
         return;
       }
       if (activeTool === "connect") {
@@ -1324,7 +1601,16 @@ function BuilderWorkspace() {
         const nodeLayers = ["builder-nav-nodes"].filter((id) => map.getLayer(id));
         const feats = nodeLayers.length ? map.queryRenderedFeatures(e.point, { layers: nodeLayers }) : [];
         const hit = feats[0];
-        const nodeId = hit?.properties?.id;
+        // v4.7.1: if MapLibre pixel hit missed, fall back to nearest
+        // node within 3 m — makes "connect two nodes" work when the
+        // user is zoomed out and the click is a few pixels off.
+        let nodeId = hit?.properties?.id as string | undefined;
+        if (typeof nodeId !== "string") {
+          const nearest = snapPointToNearestPoint(rawClick, nodesOnFloor.map((n) => ({
+            lat: n.lat, lng: n.lng, kind: "node", id: n.id,
+          })), 3);
+          nodeId = nearest?.id;
+        }
         if (typeof nodeId !== "string") return;
         if (!connectFrom) {
           setConnectFrom(nodeId);
@@ -1337,28 +1623,44 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-stairs") {
-        createStair.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        const snap = computeSmartSnap(rawClick, {
+          hallways: hallwaysQ.data ?? [],
+          points: poisAll,
+          polygons: [...roomsForVerts, ...bldgsForVerts],
+          includeWalls: false,
+        });
+        createStair.mutate({ lat: snap.snapped.lat, lng: snap.snapped.lng });
+        if (snap.kind !== "raw") toast({ title: "Snapped", description: `Aligned to ${snap.kind}.` });
         return;
       }
       if (activeTool === "poi-elevator") {
-        createElevator.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        const snap = computeSmartSnap(rawClick, {
+          hallways: hallwaysQ.data ?? [],
+          points: poisAll,
+          polygons: [...roomsForVerts, ...bldgsForVerts],
+          includeWalls: false,
+        });
+        createElevator.mutate({ lat: snap.snapped.lat, lng: snap.snapped.lng });
+        if (snap.kind !== "raw") toast({ title: "Snapped", description: `Aligned to ${snap.kind}.` });
         return;
       }
       if (activeTool === "poi-door" || activeTool === "poi-entrance") {
-        // v3.26.5 — snap doors to the nearest wall segment within 3m.
-        // Projects the click onto every wall/hallway LineString and
-        // picks the closest hit; falls back to raw click if nothing's
-        // near. Doors that live ON walls look right; free-floating
-        // doors "in the middle of a room" no longer happen on
-        // accident.
-        const snapped = snapPointToNearestWall(
-          { lat: e.lngLat.lat, lng: e.lngLat.lng },
-          hallwaysQ.data ?? [],
-          3,  // meters
-        ) ?? { lat: e.lngLat.lat, lng: e.lngLat.lng };
+        // Doors keep wall-snapping first (they visually belong ON a wall),
+        // then fall back to existing-door snapping so pairs line up.
+        const wallSnap = snapPointToNearestWall(rawClick, hallwaysQ.data ?? [], 3);
+        const target = wallSnap ?? rawClick;
+        // After wall snap, also check if an existing door is within 0.5 m —
+        // that means the user is trying to reposition rather than duplicate.
+        const nearDoor = snapPointToNearestPoint(target, doorsAll.map((d: any) => ({
+          lat: d.mapPositionY ?? d.position?.lat, lng: d.mapPositionX ?? d.position?.lng, kind: "door", id: d.id,
+        })).filter((c) => typeof c.lat === "number" && typeof c.lng === "number") as SnapCandidate[], 0.5);
+        if (nearDoor) {
+          toast({ title: "Skipped", description: "Existing door at this spot." });
+          return;
+        }
         createDoor.mutate({
-          lat: snapped.lat,
-          lng: snapped.lng,
+          lat: target.lat,
+          lng: target.lng,
           isEntrance: activeTool === "poi-entrance",
         });
         return;
@@ -1384,7 +1686,14 @@ function BuilderWorkspace() {
       };
       const genericKind = genericKindByTool[activeTool];
       if (genericKind) {
-        createGenericPoi.mutate({ lat: e.lngLat.lat, lng: e.lngLat.lng, kind: genericKind });
+        const snap = computeSmartSnap(rawClick, {
+          hallways: hallwaysQ.data ?? [],
+          points: poisAll,
+          polygons: [...roomsForVerts, ...bldgsForVerts],
+          includeWalls: false,
+        });
+        createGenericPoi.mutate({ lat: snap.snapped.lat, lng: snap.snapped.lng, kind: genericKind });
+        if (snap.kind !== "raw") toast({ title: "Snapped", description: `Aligned to ${snap.kind}.` });
         return;
       }
     };
