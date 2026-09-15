@@ -2884,6 +2884,21 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         return res.status(500).json({ message: 'Delete failed' });
       }
     }
+    // v4.7.3 — PATCH used by the 360° panorama-spot editor to update
+    // label / URL (via metadata) / position after placement.
+    if (apiPath.startsWith('/pois/') && (req.method === 'PATCH' || req.method === 'PUT')) {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { updatePoi } = await import('../server/kvStorage.js');
+        const id = apiPath.slice('/pois/'.length);
+        if (!id) return res.status(400).json({ message: 'Missing id' });
+        const updated = await updatePoi(id, (req.body ?? {}) as Record<string, unknown>);
+        if (!updated) return res.status(404).json({ message: 'POI not found' });
+        return res.status(200).json(updated);
+      } catch {
+        return res.status(500).json({ message: 'Update failed' });
+      }
+    }
 
     // /api/layers — backed by kv_settings with key 'mapLayers'.
     const DEFAULT_LAYERS = [

@@ -114,6 +114,29 @@ export async function deletePoi(id: string) {
   await db.delete(campusPois).where(eq(campusPois.id, id));
 }
 
+/**
+ * v4.7.3 — partial update. Only touches fields the caller sends.
+ * Used by the 360° panorama-spot editor (label / URL / position swaps).
+ */
+export async function updatePoi(id: string, patch: Record<string, unknown>) {
+  const upd: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof patch.label === "string") upd.label = patch.label;
+  if (typeof patch.floor === "number") upd.floor = patch.floor;
+  if (patch.metadata !== undefined) upd.metadata = patch.metadata;
+  const pos = patch.position as { lat?: number; lng?: number } | undefined;
+  const lat = typeof pos?.lat === "number" ? pos.lat
+            : typeof patch.mapPositionY === "number" ? (patch.mapPositionY as number) : null;
+  const lng = typeof pos?.lng === "number" ? pos.lng
+            : typeof patch.mapPositionX === "number" ? (patch.mapPositionX as number) : null;
+  if (lat !== null && lng !== null) {
+    upd.mapPositionX = lng;
+    upd.mapPositionY = lat;
+    upd.position = { lat, lng };
+  }
+  const rows = await db.update(campusPois).set(upd as any).where(eq(campusPois.id, id)).returning();
+  return rows[0] ?? null;
+}
+
 // ── Beacon surveys ────────────────────────────────────────────────────────
 
 export async function getBeaconPositions(roomId: string) {

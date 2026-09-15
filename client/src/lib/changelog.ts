@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.2";
+export const APP_VERSION = "4.7.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.3",
+    date: "September 2026",
+    title: "Builder — Measure tool HUD, midpoint snapping, 360° panorama spots",
+    titleFi: "Rakennustyökalu — mittaus-HUD, keskipiste-snap, 360°-panoraamat",
+    latest: true,
+    highlights: [
+      "**Measure tool HUD** — the M-key tool now surfaces a floating panel with a per-segment breakdown + running total. Click 'Copy' to copy the whole calculation ('12.3 m + 4.5 m = 16.8 m') to the clipboard.",
+      "**Midpoint snapping** — placing a door or POI now snaps to the *midpoint* of the nearest wall segment or room edge. The snap indicator turns amber when you're on a midpoint (green for other snaps). Fixes 'I want this door dead-center on this wall' pixel-hunting.",
+      "**360° panorama spots** — new fuchsia tool in the Builder POI palette (hotkey 3). Click anywhere on the map, paste a Polycam / kuula.co / equirectangular JPG URL, and it lands as a clickable 360° marker. Clicking the marker opens a fullscreen viewer — kuula and other hosted viewers embed as iframes; direct JPG URLs get a drag-to-look-around pan/tilt viewer.",
+      "**Server** — new `/api/pois/:id` PATCH endpoint so panorama URLs (and any other POI metadata) can be edited after placement.",
+    ],
+    highlightsFi: [
+      "**Mittaus-HUD** — M-työkalu näyttää jokaisen segmentin pituuden ja yhteispituuden erillisessä paneelissa. 'Copy' kopioi laskelman leikepöydälle.",
+      "**Keskipiste-snap** — ovien ja POI-pisteiden sijoitus napsahtaa nyt seinäsegmentin tai huoneenreunan keskipisteeseen (oranssi indikaattori).",
+      "**360°-panoraamat** — uusi fuksia-työkalu Builder-työkalupaletissa (pikanäppäin 3). Klikkaa karttaa, liitä Polycam / kuula.co / equirectangular JPG -linkki, ja sijoitat 360°-merkin. Merkin klikkaus avaa fullscreen-katselijan.",
+      "**Serveri** — uusi `/api/pois/:id` PATCH-päätepiste POI-metatietojen (esim. panoraama-URL) muokkaukseen.",
+    ],
+  },
   {
     version: "4.7.2",
     date: "September 2026",
     title: "ScheduleEngine — centralized schedule logic fixes 'Nyt meneillään' wrong-lesson bug at the root",
     titleFi: "ScheduleEngine — keskitetty aikataululogiikka korjaa 'Nyt meneillään' -väärä-tunti-vian juuresta",
-    latest: true,
     highlights: [
       "**Root fix for the 'Nyt meneillään' wrong-lesson bug.** Every widget + the notification scheduler used to compare bare HH:mm times inline; they drifted apart and sometimes showed a lesson from a different day or jakso. All four consumers now go through a single pure-function `ScheduleEngine` that materializes lessons into full `LocalDateTime` timestamps with proper jakso date-range filtering.",
       "**NextLesson widget** re-materializes a 14-day rolling window every update and asks the engine for the first future lesson — so Friday evening it correctly shows Monday morning without any manual day-of-week rollover code.",

@@ -16,7 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.84.0 · web 4.7.2 · pending push)
+## ✅ Just shipped (Android v1.85.0 · web 4.7.3 · pending push)
+
+- **Builder — Measure tool HUD** (M key). Floating right-side panel with per-segment lengths + total. Copy button exports "12.3 m + 4.5 m = 16.8 m" to clipboard. Clear button (or Esc) resets waypoints; tool stays active so you can chain measurements.
+- **Builder — Midpoint snapping** for doors, POIs, and every tool that used `computeSmartSnap`. New `snapPointToNearestMidpoint()` — snaps to the halfway point of the nearest wall segment or room/building edge, sitting between "existing point" and "wall segment" in the precedence chain. Amber indicator distinguishes midpoint snaps from vertex/wall snaps.
+- **Builder — 360° panorama spots**. New tool in the POI palette under a new "Immersive" group; hotkey `3`. Places a `campus_pois` row with `kind = "panorama"` and a URL in metadata. Fullscreen viewer detects hosted panorama URLs (kuula, roundme, momento360, panoraven, 360cities) and embeds as iframe; direct JPG/PNG URLs get a drag-to-look-around pan/tilt viewer. Panorama markers render as fuchsia circles with "360°" label on the Builder map.
+- **Server** — `/api/pois/:id` PATCH / PUT endpoint (via new `updatePoi()` in kvStorage) so panorama metadata is editable after placement.
+
+## ✅ Shipped (Android v1.84.0 · web 4.7.2 · pushed 7d8dd78)
 
 - **ScheduleEngine — root fix for the "Nyt meneillään" wrong-lesson bug.**
   - New pure-function `fi.ksykmaps.schedule.ScheduleEngine` (no Android deps, unit-testable).

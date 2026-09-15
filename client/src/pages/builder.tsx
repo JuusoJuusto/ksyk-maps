@@ -60,6 +60,7 @@ import {
   Layers as LayersIcon,
   PenLine,
   Minus,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -99,7 +100,11 @@ type BuilderTool =
   | "line"
   // v3.45.0 — interior wall: thinner, lighter than the exterior "wall"
   // type. Both produce a Hallway row; `surface` field discriminates.
-  | "wall-inner";
+  | "wall-inner"
+  // v4.7.3 — 360° panorama spot. Click to place; a modal then prompts
+  // for a title + panorama URL (equirectangular JPG/PNG). Rendered on
+  // the map as a purple 360° badge; clicking opens the immersive viewer.
+  | "poi-panorama";
 
 // Local extension of the shared Building for the builder — everything in
 // the shared type plus whatever this file needs beyond it.
@@ -250,11 +255,56 @@ function snapPointToNearestVertex(
 }
 
 /**
+ * v4.7.3 — snap to the midpoint of the nearest wall/hallway segment
+ * OR the midpoint of the nearest polygon edge. Useful for centering
+ * a door on a wall or dropping a POI in the middle of a room edge.
+ */
+function snapPointToNearestMidpoint(
+  click: { lat: number; lng: number },
+  ctx: {
+    hallways: Array<{ startX: number; startY: number; endX: number; endY: number; surface?: string | null }>;
+    polygons: Array<{ points?: Array<{ lat: number; lng: number }> | null }>;
+  },
+  thresholdMeters: number,
+): SnapResult {
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  const midpoints: SnapCandidate[] = [];
+  for (const h of ctx.hallways) {
+    midpoints.push({
+      lat: (h.startY + h.endY) / 2,
+      lng: (h.startX + h.endX) / 2,
+      kind: "midpoint",
+    });
+  }
+  for (const p of ctx.polygons) {
+    const pts = p.points;
+    if (!pts || pts.length < 2) continue;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      if (typeof a.lat !== "number" || typeof b.lat !== "number") continue;
+      midpoints.push({
+        lat: (a.lat + b.lat) / 2,
+        lng: (a.lng + b.lng) / 2,
+        kind: "midpoint",
+      });
+    }
+  }
+  const res = snapPointToNearestPoint(click, midpoints, thresholdMeters);
+  if (!res) return null;
+  const dx = (res.snapped.lng - click.lng) * mPerDegLng;
+  const dy = (res.snapped.lat - click.lat) * mPerDegLat;
+  return { snapped: res.snapped, kind: "midpoint", distanceM: Math.sqrt(dx * dx + dy * dy) };
+}
+
+/**
  * Combined smart-guide snap for POI-like placements. Precedence:
  *   1. Nearest existing POI / door / node point within threshold
- *   2. Nearest wall segment (for doors/entrances)
- *   3. Nearest polygon vertex (for corner alignment)
- *   4. Raw click (returned as {snapped: click, kind: 'raw'})
+ *   2. Nearest midpoint of a wall/polygon edge (v4.7.3)
+ *   3. Nearest wall segment (for doors/entrances)
+ *   4. Nearest polygon vertex (for corner alignment)
+ *   5. Raw click (returned as {snapped: click, kind: 'raw'})
  * The best result is returned so callers can style the visual guide.
  */
 function computeSmartSnap(
@@ -271,7 +321,13 @@ function computeSmartSnap(
   // 1) Existing points — highest priority so multiple POIs stack perfectly
   const pointSnap = snapPointToNearestPoint(click, ctx.points, th);
   if (pointSnap) return pointSnap;
-  // 2) Walls — only when the placement type wants them
+  // 2) Midpoints — center a door/POI on a wall or room edge (v4.7.3)
+  const midSnap = snapPointToNearestMidpoint(click, {
+    hallways: ctx.includeWalls ? ctx.hallways : [],
+    polygons: ctx.polygons,
+  }, th);
+  if (midSnap) return midSnap;
+  // 3) Walls — only when the placement type wants them
   if (ctx.includeWalls) {
     const wallSnap = snapPointToNearestWall(click, ctx.hallways, th);
     if (wallSnap) {
@@ -282,10 +338,10 @@ function computeSmartSnap(
       return { snapped: wallSnap, kind: "wall", distanceM: Math.sqrt(dx * dx + dy * dy) };
     }
   }
-  // 3) Polygon vertices — for corner alignment
+  // 4) Polygon vertices — for corner alignment
   const vertSnap = snapPointToNearestVertex(click, ctx.polygons, th);
   if (vertSnap) return vertSnap;
-  // 4) No snap — return raw click
+  // 5) No snap — return raw click
   return { snapped: click, kind: "raw", distanceM: 0 };
 }
 
@@ -1285,7 +1341,13 @@ function BuilderWorkspace() {
         source: GUIDE_POINT_SRC,
         paint: {
           "circle-radius": 5,
-          "circle-color": "#22c55e",
+          // Midpoint snaps get their own amber colour so users can
+          // tell "you're on the wall midpoint" from "on the wall".
+          "circle-color": [
+            "case",
+            ["==", ["get", "kind"], "midpoint"], "#f59e0b",
+            "#22c55e",
+          ],
           "circle-stroke-color": "#ffffff",
           "circle-stroke-width": 2,
         },
@@ -1300,6 +1362,7 @@ function BuilderWorkspace() {
       "poi-restroom", "poi-restroom-m", "poi-restroom-f", "poi-restroom-a",
       "poi-cafe", "poi-vending", "poi-water", "poi-first-aid",
       "poi-defibrillator", "poi-printer", "poi-meeting",
+      "poi-panorama",
     ];
     const active = snapTools.includes(activeTool);
 
@@ -1696,6 +1759,17 @@ function BuilderWorkspace() {
         if (snap.kind !== "raw") toast({ title: "Snapped", description: `Aligned to ${snap.kind}.` });
         return;
       }
+      if (activeTool === "poi-panorama") {
+        const snap = computeSmartSnap(rawClick, {
+          hallways: hallwaysQ.data ?? [],
+          points: poisAll,
+          polygons: [...roomsForVerts, ...bldgsForVerts],
+          includeWalls: false,
+        });
+        // Open a modal to capture the URL; commit happens on modal save.
+        setPanoramaDraft({ lat: snap.snapped.lat, lng: snap.snapped.lng });
+        return;
+      }
     };
 
     map.on("click", onClick);
@@ -1873,6 +1947,7 @@ function BuilderWorkspace() {
       else if (e.key === "d" || e.key === "D") { setActiveTool("poi-door"); setWaypoints([]); }
       else if (e.key === "n" || e.key === "N") { setActiveTool("poi-entrance"); setWaypoints([]); }
       else if (e.key === "i" || e.key === "I") { setActiveTool("poi-info"); setWaypoints([]); }
+      else if (e.key === "3") { setActiveTool("poi-panorama"); setWaypoints([]); }
       else if (e.key === " ") { setActiveTool("pan"); setWaypoints([]); }
     };
     window.addEventListener("keydown", onKey);
@@ -2125,6 +2200,29 @@ function BuilderWorkspace() {
       try { return await res.json(); } catch { return null; }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/pois"] }); },
+  });
+
+  /** v4.7.3 — 360° panorama spot. Stored in campus_pois with
+   *  kind="panorama" and { url, title } in metadata. Placement is a
+   *  two-step flow: user clicks → we open a modal → they enter a URL
+   *  and title → we POST. Cancelling the modal drops the click. */
+  const [panoramaDraft, setPanoramaDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [panoramaViewerUrl, setPanoramaViewerUrl] = useState<string | null>(null);
+  const createPanoramaSpot = useMutation({
+    mutationFn: async (p: { lat: number; lng: number; url: string; title: string }) => {
+      const res = await apiRequest("POST", "/api/pois", {
+        kind: "panorama",
+        position: { lat: p.lat, lng: p.lng },
+        floor: cameraState.activeFloor ?? 1,
+        label: p.title,
+        metadata: { url: p.url, title: p.title },
+      });
+      try { return await res.json(); } catch { return null; }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/pois"] });
+      toast({ title: "360° spot added", description: "Click the marker to preview." });
+    },
   });
 
   const deleteBuilding = useMutation({
@@ -3475,6 +3573,7 @@ function BuilderWorkspace() {
               map={handleRef.current?.map ?? null}
               activeFloor={cameraState.activeFloor ?? null}
               onSelect={(kind, id) => setSelection({ kind, id })}
+              onOpenPanorama={(url) => setPanoramaViewerUrl(url)}
             />
           )}
 
@@ -3543,6 +3642,96 @@ function BuilderWorkspace() {
               </div>
             );
           })()}
+
+          {/* v4.7.3 — Measure HUD. When the measure tool is active with
+           *  at least 2 waypoints, show a floating panel with each
+           *  segment length + running total. Click Clear or Esc to
+           *  reset. Copy button copies "12.3 m + 4.5 m = 16.8 m". */}
+          {activeTool === "measure" && waypoints.length >= 2 && (() => {
+            const R = 6371000;
+            const toRad = (d: number) => (d * Math.PI) / 180;
+            const haversine = (a: {lat: number; lng: number}, b: {lat: number; lng: number}) => {
+              const dLat = toRad(b.lat - a.lat);
+              const dLng = toRad(b.lng - a.lng);
+              const s =
+                Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+              return 2 * R * Math.asin(Math.sqrt(s));
+            };
+            const segments: number[] = [];
+            for (let i = 0; i < waypoints.length - 1; i++) {
+              segments.push(haversine(waypoints[i], waypoints[i + 1]));
+            }
+            const total = segments.reduce((a, b) => a + b, 0);
+            const fmt = (m: number) => m < 10 ? `${m.toFixed(2)} m` : m < 1000 ? `${m.toFixed(1)} m` : `${(m / 1000).toFixed(2)} km`;
+            const copy = () => {
+              const text = segments.map(fmt).join(" + ") + " = " + fmt(total);
+              try { navigator.clipboard?.writeText(text); toast({ title: "Copied", description: text }); }
+              catch { toast({ title: "Copy failed", description: "Clipboard blocked" }); }
+            };
+            return (
+              <div className="absolute top-16 right-3 z-30 min-w-[220px] max-w-[280px] bg-card/95 border border-border rounded-2xl shadow-xl backdrop-blur-md overflow-hidden pointer-events-auto">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-purple-600 text-white">
+                  <div className="flex items-center gap-1.5">
+                    <Ruler className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Measure</span>
+                  </div>
+                  <button
+                    onClick={() => setWaypoints([])}
+                    className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors"
+                    title="Clear (Esc)"
+                  >Clear</button>
+                </div>
+                <div className="p-2 max-h-[240px] overflow-y-auto text-xs">
+                  {segments.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between px-2 py-1 rounded hover:bg-muted/60 font-mono tabular-nums">
+                      <span className="text-muted-foreground">Seg {i + 1}</span>
+                      <span className="font-semibold">{fmt(m)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-3 py-2 border-t border-border flex items-center justify-between bg-muted/40">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono tabular-nums font-semibold text-sm">{fmt(total)}</span>
+                    <button
+                      onClick={copy}
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      title="Copy to clipboard"
+                    >Copy</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* v4.7.3 — Panorama placement modal. Opens after user clicks
+           *  a spot with the 360° tool. Cancelling aborts placement. */}
+          {panoramaDraft && (
+            <PanoramaPlacementModal
+              onCancel={() => setPanoramaDraft(null)}
+              onSave={(url, title) => {
+                createPanoramaSpot.mutate({
+                  lat: panoramaDraft.lat,
+                  lng: panoramaDraft.lng,
+                  url,
+                  title,
+                });
+                setPanoramaDraft(null);
+              }}
+            />
+          )}
+
+          {/* v4.7.3 — Fullscreen 360° panorama viewer. Uses the browser
+           *  DeviceOrientation-free CSS transform approach for a fallback
+           *  and a proper iframe embed when the URL is a hosted viewer
+           *  (Polycam / kuula / etc). Escape to close. */}
+          {panoramaViewerUrl && (
+            <PanoramaViewer
+              url={panoramaViewerUrl}
+              onClose={() => setPanoramaViewerUrl(null)}
+            />
+          )}
 
           {/* CAD constraint panel — appears while drawing so users can
            *  enter exact segment lengths and divide segments. Floats at
@@ -4170,6 +4359,7 @@ function coachMetaFor(
     case "poi-defibrillator": return { Icon: Zap,           name: "AED",        text: "Click to place defibrillator (AED)", badgeBg: "bg-rose-600" };
     case "poi-printer":       return { Icon: Printer,       name: "Printer",    text: "Click to place printer",             badgeBg: "bg-gray-600" };
     case "poi-meeting":       return { Icon: Flag,          name: "Meeting",    text: "Click to place meeting point",       badgeBg: "bg-emerald-600" };
+    case "poi-panorama":      return { Icon: Camera,        name: "360° Spot",  text: "Click to place a 360° panorama spot", badgeBg: "bg-fuchsia-600" };
     case "line":              return { Icon: PenLine,       name: "Line",       text: n === 0 ? "Click to start · Enter to finish · Ctrl+Z to undo" : `${n} point${n === 1 ? "" : "s"} — Enter to save · click to add more`, badgeBg: "bg-pink-600" };
     case "node":              return { Icon: CircleIcon,    name: "Nav node",   text: "Click to drop a navigation node",    badgeBg: "bg-blue-600" };
     case "connect":           return { Icon: ZapIcon,       name: "Connect",    text: "Click a node, then another to link", badgeBg: "bg-blue-600" };
@@ -4290,6 +4480,13 @@ const POI_GROUPS: Array<{ label: string; tint: string; tools: ToolDef[] }> = [
       { id: "poi-parking", Icon: ParkingCircle, label: "Parking", hotkey: "" },
       { id: "poi-bike",    Icon: Bike,          label: "Bike",    hotkey: "" },
       { id: "poi-printer", Icon: Printer,       label: "Printer", hotkey: "" },
+    ],
+  },
+  {
+    label: "Immersive",
+    tint: "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300",
+    tools: [
+      { id: "poi-panorama", Icon: Camera, label: "360° Spot", hotkey: "3" },
     ],
   },
 ];
@@ -4637,4 +4834,173 @@ function ContextMenuItem({
 
 function ContextMenuSeparator() {
   return <li className="my-1 h-px bg-border" />;
+}
+
+/**
+ * v4.7.3 — Panorama placement modal. Captures a URL + title from the
+ * admin right after they click on the map with the 360° tool.
+ * Accepts equirectangular JPG/PNG URLs, Polycam capture URLs, and
+ * hosted viewer URLs (kuula.co, roundme.com, etc). No file upload —
+ * URLs are cheaper to store + cheaper to serve.
+ */
+function PanoramaPlacementModal({
+  onCancel,
+  onSave,
+}: { onCancel: () => void; onSave: (url: string, title: string) => void }) {
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const canSave = url.trim().length > 0;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="px-5 py-4 border-b border-border bg-fuchsia-600 text-white flex items-center gap-2">
+          <Camera className="h-4 w-4" strokeWidth={2.5} />
+          <div className="text-sm font-bold uppercase tracking-wider">Add 360° Spot</div>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Main lobby"
+              className="mt-1 w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Panorama URL</label>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://... (Polycam share, kuula.co, or equirectangular JPG)"
+              className="mt-1 w-full h-10 px-3 rounded-lg border border-border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canSave) onSave(url.trim(), title.trim() || "360° View");
+                if (e.key === "Escape") onCancel();
+              }}
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Paste a Polycam share URL, a kuula.co link, or a direct link to an equirectangular JPG.
+            </p>
+          </div>
+        </div>
+        <div className="px-5 py-3 border-t border-border bg-muted/40 flex items-center justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="h-9 px-4 rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+          >Cancel</button>
+          <button
+            onClick={() => onSave(url.trim(), title.trim() || "360° View")}
+            disabled={!canSave}
+            className="h-9 px-4 rounded-lg text-sm font-semibold bg-fuchsia-600 text-white hover:bg-fuchsia-700 shadow-sm shadow-fuchsia-600/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >Add spot</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * v4.7.3 — Fullscreen 360° viewer. Detects the URL type:
+ *   - kuula.co / roundme / momento360 → embed as iframe
+ *   - Polycam .glb → link out (interactive 3D needs a separate lib)
+ *   - Direct image URL → render as an equirectangular pan/tilt canvas
+ *     via a simple CSS-perspective approach (good enough for a first
+ *     pass; a follow-up round can replace with panolens.js if needed).
+ */
+function PanoramaViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const isHostedViewer = /kuula\.co|roundme\.com|momento360|panoraven|360cities/i.test(url);
+  const isImage = /\.(jpe?g|png|webp)(\?|$)/i.test(url);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur transition-colors"
+        title="Close (Esc)"
+      >
+        <XIcon className="h-5 w-5" strokeWidth={2.5} />
+      </button>
+      <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-white text-xs font-bold uppercase tracking-wider">
+        360° View
+      </div>
+
+      {isHostedViewer && (
+        <iframe
+          src={url}
+          className="w-full h-full border-0"
+          allow="fullscreen; xr-spatial-tracking; accelerometer; gyroscope"
+          title="360° viewer"
+        />
+      )}
+      {!isHostedViewer && isImage && (
+        <PanoramaImageViewer src={url} />
+      )}
+      {!isHostedViewer && !isImage && (
+        <div className="text-center text-white p-8 max-w-md">
+          <div className="text-sm text-white/70 mb-2">This URL isn't a recognized panorama format.</div>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block mt-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >Open externally</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Poor man's equirectangular viewer — the user drags the image and
+ * we translate it left/right (yaw) with a bit of vertical tilt clamp.
+ * Good enough for a first shipping pass; panolens.js / three.js is
+ * the next-round upgrade for true spherical projection.
+ */
+function PanoramaImageViewer({ src }: { src: string }) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState<{ x: number; y: number } | null>(null);
+  return (
+    <div
+      className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
+      onPointerDown={(e) => {
+        setDragging({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (!dragging) return;
+        const x = e.clientX - dragging.x;
+        const y = Math.max(-200, Math.min(200, e.clientY - dragging.y));
+        setOffset({ x, y });
+      }}
+      onPointerUp={() => setDragging(null)}
+    >
+      <img
+        src={src}
+        alt="360° panorama"
+        draggable={false}
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+          maxWidth: "none",
+          height: "180%",
+          userSelect: "none",
+        }}
+      />
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur text-white text-[11px] font-medium pointer-events-none">
+        Drag to look around
+      </div>
+    </div>
+  );
 }

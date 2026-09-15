@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.85.0",
+        date = "September 2026",
+        titleFi = "Rakennustyökalu — mittaus, keskipiste-snap ja 360°-panoraamat",
+        titleEn = "Builder — measure tool HUD, midpoint snapping, 360° panorama spots",
+        highlightsFi = listOf(
+            "Mittaus-työkalu näyttää per-segmentti-pituudet ja yhteispituuden — Copy kopioi laskelman.",
+            "Ovet ja POI-pisteet napsahtavat seinän tai huoneenreunan keskipisteeseen (oranssi indikaattori).",
+            "Uusi 360°-panoraamatyökalu — sijoita Polycam / kuula.co / equirectangular-linkki karttaan, merkin klikkaus avaa fullscreen-katselijan.",
+            "Serveri: /api/pois/:id PATCH POI-metatietojen (URL, otsikko) muokkaukseen.",
+        ),
+        highlightsEn = listOf(
+            "Measure tool now shows per-segment lengths + running total — Copy button exports the calculation.",
+            "Doors and POIs snap to the midpoint of the nearest wall or room edge (amber indicator).",
+            "New 360° panorama tool — drop a Polycam / kuula.co / equirectangular URL on the map; click the marker to open fullscreen viewer.",
+            "Server: /api/pois/:id PATCH endpoint for editing POI metadata (URLs, titles).",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.84.0",
         date = "September 2026",
         titleFi = "ScheduleEngine — 'Nyt meneillään' -väärä-tunti-vian juurikorjaus",

@@ -36,6 +36,7 @@ const SRC = {
   stairs: "builder-stairs-src",
   elevators: "builder-elevators-src",
   pois: "builder-pois-src",
+  panoramas: "builder-panoramas-src",
 } as const;
 const LYR = {
   doors: "builder-doors",
@@ -46,6 +47,8 @@ const LYR = {
   elevatorsLetter: "builder-elevators-letter",
   pois: "builder-pois",
   poisEmoji: "builder-pois-emoji",
+  panoramas: "builder-panoramas",
+  panoramasLetter: "builder-panoramas-letter",
 } as const;
 
 interface Props {
@@ -56,9 +59,12 @@ interface Props {
    *  poi kinds. Parent uses it to set selection so PropertyPanel
    *  renders the appropriate editor. */
   onSelect?: (kind: "door" | "stair" | "elevator" | "poi", id: string) => void;
+  /** v4.7.3 — clicking a 360° panorama marker fires this so the
+   *  parent can open the fullscreen viewer. */
+  onOpenPanorama?: (url: string, title: string) => void;
 }
 
-export default function BuilderPois({ map, activeFloor = null, onSelect }: Props) {
+export default function BuilderPois({ map, activeFloor = null, onSelect, onOpenPanorama }: Props) {
   const doorsQ = useQuery<DoorFeature[]>({
     queryKey: ["/api/doors"],
     queryFn: async () => {
@@ -133,7 +139,14 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
       });
       const stairsData = build(stairsQ.data ?? []);
       const elevData = build(elevQ.data ?? []);
-      const poisData = build(poisQ.data ?? [], (p) => (p as GenericPoi).kind ?? "other");
+      // v4.7.3 — split panoramas out to their own source so we can
+      // style them distinctively AND wire a separate click handler
+      // that opens the fullscreen viewer instead of PropertyPanel.
+      const poisAll = poisQ.data ?? [];
+      const panoramas = poisAll.filter((p) => p.kind === "panorama");
+      const nonPanoPois = poisAll.filter((p) => p.kind !== "panorama");
+      const poisData = build(nonPanoPois, (p) => (p as GenericPoi).kind ?? "other");
+      const panoData = build(panoramas, () => "panorama");
 
       // ─ DOORS ─
       const doorsSrc = map.getSource(SRC.doors) as maplibregl.GeoJSONSource | undefined;
@@ -343,6 +356,47 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
           },
         });
       }
+
+      // ─ 360° PANORAMA SPOTS ─ v4.7.3
+      // Larger fuchsia circle + "360°" label so users spot them
+      // at a glance and distinguish from regular POI dots.
+      const panoSrc = map.getSource(SRC.panoramas) as maplibregl.GeoJSONSource | undefined;
+      if (panoSrc) {
+        panoSrc.setData(panoData as never);
+      } else {
+        map.addSource(SRC.panoramas, { type: "geojson", data: panoData as never });
+        map.addLayer({
+          id: LYR.panoramas,
+          source: SRC.panoramas,
+          type: "circle",
+          minzoom: 14,
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 14, 20, 20],
+            "circle-color": "#c026d3",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2.5,
+            "circle-opacity": 0.98,
+          },
+        });
+        map.addLayer({
+          id: LYR.panoramasLetter,
+          source: SRC.panoramas,
+          type: "symbol",
+          minzoom: 15,
+          layout: {
+            "text-field": "360°",
+            "text-size": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 11, 20, 14],
+            "text-font": ["Noto Sans Regular"],
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+          paint: {
+            "text-color": "#ffffff",
+            "text-halo-color": "#00000060",
+            "text-halo-width": 0.5,
+          },
+        });
+      }
     };
 
     if (map.isStyleLoaded()) {
@@ -358,16 +412,41 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
   // fires onSelect(kind, id) so the parent can update selection and
   // pop the property panel. Cursor turns pointer on hover.
   useEffect(() => {
-    if (!map || !onSelect) return;
+    if (!map) return;
     const wireClick = (layerId: string, kind: "door" | "stair" | "elevator" | "poi") => {
       const onClick = (e: import("maplibre-gl").MapLayerMouseEvent) => {
         const f = e.features?.[0];
         const id = f?.properties?.id;
-        if (typeof id === "string") {
+        if (typeof id === "string" && onSelect) {
           onSelect(kind, id);
-          // Stop propagation so the builder's own map-click doesn't
-          // ALSO fire (which would try to hit-test buildings/rooms
-          // underneath the POI).
+          e.originalEvent?.stopPropagation();
+        }
+      };
+      const onEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+      const onLeave = () => { map.getCanvas().style.cursor = ""; };
+      map.on("click", layerId, onClick);
+      map.on("mouseenter", layerId, onEnter);
+      map.on("mouseleave", layerId, onLeave);
+      return () => {
+        map.off("click", layerId, onClick);
+        map.off("mouseenter", layerId, onEnter);
+        map.off("mouseleave", layerId, onLeave);
+      };
+    };
+    // v4.7.3 — panorama layer opens the viewer directly.
+    const wirePanorama = () => {
+      const layerId = LYR.panoramas;
+      const onClick = (e: import("maplibre-gl").MapLayerMouseEvent) => {
+        const f = e.features?.[0];
+        const id = f?.properties?.id;
+        if (typeof id !== "string") return;
+        const poi = (poisQ.data ?? []).find((p) => p.id === id);
+        const meta = (poi as unknown as { metadata?: { url?: string; title?: string } })?.metadata;
+        if (meta?.url && onOpenPanorama) {
+          onOpenPanorama(meta.url, meta.title ?? "360° View");
+          e.originalEvent?.stopPropagation();
+        } else if (onSelect) {
+          onSelect("poi", id);
           e.originalEvent?.stopPropagation();
         }
       };
@@ -387,9 +466,10 @@ export default function BuilderPois({ map, activeFloor = null, onSelect }: Props
       wireClick(LYR.stairs, "stair"),
       wireClick(LYR.elevators, "elevator"),
       wireClick(LYR.pois, "poi"),
+      wirePanorama(),
     ];
     return () => { for (const c of cleanups) c(); };
-  }, [map, onSelect]);
+  }, [map, onSelect, onOpenPanorama, poisQ.data]);
 
   // Cleanup on unmount — remove all layers + sources we added.
   useEffect(() => {
