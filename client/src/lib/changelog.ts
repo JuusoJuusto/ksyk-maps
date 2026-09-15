@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.3";
+export const APP_VERSION = "4.7.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.4",
+    date: "September 2026",
+    title: "Panorama viewer — Polycam support, pretty markers on public map, SVG floor-plan import wired to toolbar",
+    titleFi: "Panoraama-katselija — Polycam-tuki, hienot merkit julkisella kartalla, SVG-pohjapiirustusten tuonti työkalupalkkiin",
+    latest: true,
+    highlights: [
+      "**Polycam URLs just work.** Paste a `poly.cam/capture/...` share URL and the viewer auto-rewrites to `/embed`. Also handles kuula.co (auto-fullscreen flag), roundme, momento360, panoraven, 360cities, and Google Street View shares.",
+      "**Real spherical viewer for image URLs.** Direct `.jpg` / `.png` panoramas now render via pannellum (loaded lazily from CDN) so you get proper mouse/touch/gyroscope look-around, not the toy flat-drag preview from 4.7.3.",
+      "**Panorama markers on the public map.** Every 360° spot placed in the Builder now shows on the main map too — fuchsia glow + white ring + '360°' label sitting above every other POI so students spot them. Clicking anywhere opens the same fullscreen viewer.",
+      "**Prettier Builder markers** — added a soft outer glow halo and a white 3px ring so panoramas pop off the map without needing an animation.",
+      "**Import Floor Plan button in the Builder toolbar** — no longer hidden behind the command palette. Also: if a building is selected before you import, every SVG shape becomes a room *in that building* on the current floor (Polycam floor-plan workflow). Otherwise shapes still land as buildings.",
+    ],
+    highlightsFi: [
+      "**Polycam-URL:t toimivat suoraan.** Liitä `poly.cam/capture/...` ja katselija muuntaa sen automaattisesti `/embed`-muotoon. Myös kuula.co, roundme, momento360, panoraven, 360cities ja Google Street View toimivat.",
+      "**Oikea pallo-projektio kuvatiedostoille.** Suorat `.jpg` / `.png`-panoraamat renderöityvät nyt pannellum-kirjaston kautta (ladataan CDN:stä tarvittaessa) — täysi hiiri/kosketus/gyroskooppi-tuki.",
+      "**Panoraamamerkit julkisella kartalla.** Jokainen Builderissa tehty 360°-piste näkyy nyt myös pääkartalla — fuksia-hehku, valkoinen rengas ja '360°'-teksti erottavat sen muista POI-pisteistä. Klikkaus avaa katselijan.",
+      "**Kauniimmat merkit Builder-kartalla** — pehmeä hehku ja 3px valkoinen rengas.",
+      "**Tuo pohjapiirustus -painike työkalupalkkiin** — ei enää piilossa komentopaletissa. Jos rakennus on valittuna, kaikki SVG-muodot tuodaan huoneiksi kyseiseen rakennukseen aktiiviselle kerrokselle. Muutoin ne tulevat rakennuksiksi.",
+    ],
+  },
   {
     version: "4.7.3",
     date: "September 2026",
     title: "Builder — Measure tool HUD, midpoint snapping, 360° panorama spots",
     titleFi: "Rakennustyökalu — mittaus-HUD, keskipiste-snap, 360°-panoraamat",
-    latest: true,
     highlights: [
       "**Measure tool HUD** — the M-key tool now surfaces a floating panel with a per-segment breakdown + running total. Click 'Copy' to copy the whole calculation ('12.3 m + 4.5 m = 16.8 m') to the clipboard.",
       "**Midpoint snapping** — placing a door or POI now snaps to the *midpoint* of the nearest wall segment or room edge. The snap indicator turns amber when you're on a midpoint (green for other snaps). Fixes 'I want this door dead-center on this wall' pixel-hunting.",

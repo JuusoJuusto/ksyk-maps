@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.86.0",
+        date = "September 2026",
+        titleFi = "Panoraama-katselija — Polycam-tuki, hienot merkit ja SVG-tuonti",
+        titleEn = "Panorama viewer — Polycam support, pretty map markers, SVG floor-plan import",
+        highlightsFi = listOf(
+            "Polycam-URL:t toimivat suoraan — liitä poly.cam/capture/... -linkki ja se avautuu embed-muodossa.",
+            "Suorat .jpg-panoraamat renderöityvät oikeana pallo-projektiona (pannellum) — hiiri, kosketus ja gyroskooppi.",
+            "Panoraamamerkit näkyvät nyt myös pääkartalla, ei vain Builderissa. Klikkaus avaa katselijan.",
+            "Kauniimmat merkit: pehmeä fuksia-hehku ja valkoinen rengas.",
+            "Tuo pohjapiirustus -painike näkyy nyt työkalupalkissa. Valitse rakennus ensin → SVG-muodot tuodaan huoneiksi.",
+        ),
+        highlightsEn = listOf(
+            "Polycam URLs just work — paste a poly.cam/capture/... share URL, viewer auto-rewrites to embed.",
+            "Direct .jpg panoramas render as a real spherical view (pannellum) with mouse/touch/gyro controls.",
+            "Panorama markers now show on the public map too. Click to open the fullscreen viewer.",
+            "Prettier markers: soft fuchsia glow + white ring.",
+            "Import Floor Plan button now visible in the Builder toolbar. Select a building first to import SVG shapes as rooms.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.85.0",
         date = "September 2026",
         titleFi = "Rakennustyökalu — mittaus, keskipiste-snap ja 360°-panoraamat",

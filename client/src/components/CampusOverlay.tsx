@@ -36,6 +36,7 @@ const SOURCES = {
   rooms: "campus-rooms",
   hallways: "campus-hallways",
   pois: "campus-pois",
+  panoramas: "campus-panoramas",
 } as const;
 
 const LAYERS = {
@@ -62,6 +63,11 @@ const LAYERS = {
   poi3D: "campus-pois-pillar-3d",
   doorMarker: "campus-doors-marker",
   entranceMarker: "campus-entrances-marker",
+  // v4.7.4 — 360° panorama spots. Rendered on top of everything else
+  // so they always find a way to be tapped, even on 3D-tilted views.
+  panoramas: "campus-panoramas",
+  panoramasGlow: "campus-panoramas-glow",
+  panoramasLetter: "campus-panoramas-letter",
   // v3.23 — simulated ambient occlusion + flood light. MapLibre 5.x
   // doesn't expose Mapbox's fill-extrusion AO / flood-light paints
   // upstream, so we fake them with hand-authored ring polygons: a
@@ -165,6 +171,7 @@ export default function CampusOverlay({
       // Generic POI pillars + door/entrance markers in 3D.
       installPoiPillars(map, pois, doors, activeFloor ?? null, hiddenPoiKinds);
       installPOIs(map, { stairs, elevators, doors, rooms, generic: pois }, activeFloor ?? null, hiddenPoiKinds);
+      installPanoramas(map, pois, activeFloor ?? null);
       // Sky layer disabled — current MapLibre version doesn't support type:"sky"
       // and logs a "missing required property source" error.
       // installSky(map);
@@ -2454,6 +2461,107 @@ function installPOIs(
     },
     minzoom: 14,
   });
+}
+
+/**
+ * v4.7.4 — install 360° panorama spots on the public map. Distinct
+ * fuchsia glow badge with "360°" label; sits above every other POI
+ * layer so users spot them at a glance. Uses the panorama_click
+ * event bus (window CustomEvent) so consumers — home page shell,
+ * map view, embedded widget — can each decide what to do on click
+ * without hard-wiring the viewer here.
+ */
+function installPanoramas(
+  map: MaplibreMap,
+  pois: Array<{ id: string; kind?: string | null; floor?: number | null; position?: { lat: number; lng: number } | null; label?: string | null; metadata?: unknown }>,
+  activeFloor: number | null,
+) {
+  const feats: unknown[] = [];
+  for (const p of pois) {
+    if (p.kind !== "panorama") continue;
+    if (activeFloor !== null && p.floor !== null && p.floor !== undefined && p.floor !== activeFloor) continue;
+    const lat = p.position?.lat;
+    const lng = p.position?.lng;
+    if (typeof lat !== "number" || typeof lng !== "number") continue;
+    const md = (p.metadata ?? {}) as { url?: string; title?: string };
+    feats.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lng, lat] },
+      properties: {
+        id: p.id,
+        url: md.url ?? "",
+        title: md.title ?? p.label ?? "360° View",
+      },
+    });
+  }
+  const fc = { type: "FeatureCollection", features: feats };
+  upsertGeoJSONSource(map, SOURCES.panoramas, fc);
+
+  addLayerIfMissing(map, {
+    id: LAYERS.panoramasGlow,
+    source: SOURCES.panoramas,
+    type: "circle",
+    minzoom: 13,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 14, 18, 24, 20, 34],
+      "circle-color": "#c026d3",
+      "circle-opacity": 0.22,
+      "circle-blur": 0.5,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.panoramas,
+    source: SOURCES.panoramas,
+    type: "circle",
+    minzoom: 14,
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 11, 18, 17, 20, 24],
+      "circle-color": "#c026d3",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 3,
+      "circle-opacity": 1,
+    },
+  });
+  addLayerIfMissing(map, {
+    id: LAYERS.panoramasLetter,
+    source: SOURCES.panoramas,
+    type: "symbol",
+    minzoom: 15,
+    layout: {
+      "text-field": "360°",
+      "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 13, 20, 17],
+      "text-font": ["Noto Sans Regular"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-letter-spacing": 0.05,
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-halo-color": "#831843",
+      "text-halo-width": 0.8,
+    },
+  });
+
+  // Wire click → dispatch a window event so the host page can open the viewer.
+  const layerId = LAYERS.panoramas;
+  const onClick = (e: import("maplibre-gl").MapLayerMouseEvent) => {
+    const f = e.features?.[0];
+    const url = f?.properties?.url;
+    const title = f?.properties?.title;
+    if (typeof url === "string" && url) {
+      window.dispatchEvent(new CustomEvent("ksyk:panorama:open", { detail: { url, title } }));
+      e.originalEvent?.stopPropagation();
+    }
+  };
+  const onEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+  const onLeave = () => { map.getCanvas().style.cursor = ""; };
+  // Detach previous handlers (dedup) then attach.
+  map.off("click", layerId, onClick);
+  map.off("mouseenter", layerId, onEnter);
+  map.off("mouseleave", layerId, onLeave);
+  map.on("click", layerId, onClick);
+  map.on("mouseenter", layerId, onEnter);
+  map.on("mouseleave", layerId, onLeave);
 }
 
 /** Simple polygon centroid — average of vertex positions. Good enough

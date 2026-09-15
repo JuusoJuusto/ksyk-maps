@@ -36,6 +36,7 @@ import { polygonCentroid } from "@ksyk/shared";
 import type { Building as SharedBuilding } from "@ksyk/shared";
 import { useCampusData } from "@/hooks/useCampusData";
 import posthog from "@/lib/posthog";
+import PanoramaViewer, { usePanoramaViewer } from "@/components/PanoramaViewer";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -53,6 +54,9 @@ interface Building extends Pick<SharedBuilding, "id" | "name" | "floors" | "poin
 
 export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { searchQuery = "", showGpsLocation = false } = props;
+  // v4.7.4 — listen for panorama-marker clicks from CampusOverlay and
+  // pop the fullscreen viewer above the map.
+  const panorama = usePanoramaViewer();
   const { settings, update } = useAppSettings();
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
@@ -971,6 +975,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           map={mapInstance}
           polygon={highlightPolygon}
           onFinished={() => setHighlightPolygon(null)}
+        />
+      )}
+
+      {/* v4.7.4 — Fullscreen 360° viewer, wired to panorama marker
+       *  clicks dispatched by CampusOverlay's installPanoramas. */}
+      {panorama.view && (
+        <PanoramaViewer
+          url={panorama.view.url}
+          title={panorama.view.title}
+          onClose={panorama.close}
         />
       )}
     </div>

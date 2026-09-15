@@ -76,6 +76,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { MapPin, X as XIcon, Keyboard } from "lucide-react";
 import Minimap from "@/components/builder/Minimap";
 import SvgImportDialog, { type ImportedPolygon } from "@/components/builder/SvgImportDialog";
+import PanoramaViewer from "@/components/PanoramaViewer";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 
 type BuilderTool =
@@ -3400,6 +3401,7 @@ function BuilderWorkspace() {
             try { window.dispatchEvent(new CustomEvent("ksyk:builder-import-image")); }
             catch { /* older browsers — non-fatal */ }
           }}
+          onImportSvg={() => setShowSvgImport(true)}
           onToggleGrid={() => setGridEnabled((g) => !g)}
           onToggleSnap={() => setSnapEnabled((s) => !s)}
           orthoEnabled={orthoEnabled}
@@ -3722,10 +3724,9 @@ function BuilderWorkspace() {
             />
           )}
 
-          {/* v4.7.3 — Fullscreen 360° panorama viewer. Uses the browser
-           *  DeviceOrientation-free CSS transform approach for a fallback
-           *  and a proper iframe embed when the URL is a hosted viewer
-           *  (Polycam / kuula / etc). Escape to close. */}
+          {/* v4.7.4 — Fullscreen 360° viewer, shared with the public
+           *  map. Recognizes Polycam / kuula / roundme / equirectangular
+           *  URLs and picks the right renderer. Escape closes. */}
           {panoramaViewerUrl && (
             <PanoramaViewer
               url={panoramaViewerUrl}
@@ -3955,21 +3956,38 @@ function BuilderWorkspace() {
         onClose={() => setShowSvgImport(false)}
         map={handleRef.current?.map ?? null}
         onImport={(polygons: ImportedPolygon[]) => {
-          // Each parsed shape becomes a building — user can convert
-          // to rooms manually via drag-select later. Buildings are
-          // the safe default since we don't know the containing
-          // building context at import time.
-          for (const poly of polygons) {
-            const name = poly.label ?? String.fromCharCode(65 + (buildings.length % 26));
-            createBuilding.mutate({
-              name,
-              points: poly.points.map((p) => ({ lat: p.lat, lng: p.lng })),
+          // v4.7.4 — if a building is currently selected, treat this as
+          // a Polycam-style floor-plan import (rooms into that building
+          // on the active floor). Otherwise fall back to bulk buildings.
+          const targetBuildingId = selection?.kind === "building" ? selection.id : null;
+          const targetFloor = cameraState.activeFloor ?? 1;
+          if (targetBuildingId) {
+            for (const poly of polygons) {
+              const roomNumber = poly.label ?? `IMP-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+              createRoom.mutate({
+                roomNumber,
+                buildingId: targetBuildingId,
+                floor: targetFloor,
+                points: poly.points.map((p) => ({ lng: p.lng, lat: p.lat })),
+              });
+            }
+            toast({
+              title: `Imported ${polygons.length} room${polygons.length === 1 ? "" : "s"}`,
+              description: `Placed on floor ${targetFloor}. Drag vertices to refine.`,
+            });
+          } else {
+            for (const poly of polygons) {
+              const name = poly.label ?? String.fromCharCode(65 + (buildings.length % 26));
+              createBuilding.mutate({
+                name,
+                points: poly.points.map((p) => ({ lat: p.lat, lng: p.lng })),
+              });
+            }
+            toast({
+              title: `Imported ${polygons.length} shape${polygons.length === 1 ? "" : "s"}`,
+              description: "Tip: select a building first, then import — shapes will become rooms in that building.",
             });
           }
-          toast({
-            title: `Imported ${polygons.length} shape${polygons.length === 1 ? "" : "s"}`,
-            description: "Drag vertices to refine the alignment. Right-click a shape to convert to Room.",
-          });
         }}
       />
 
@@ -4903,104 +4921,3 @@ function PanoramaPlacementModal({
   );
 }
 
-/**
- * v4.7.3 — Fullscreen 360° viewer. Detects the URL type:
- *   - kuula.co / roundme / momento360 → embed as iframe
- *   - Polycam .glb → link out (interactive 3D needs a separate lib)
- *   - Direct image URL → render as an equirectangular pan/tilt canvas
- *     via a simple CSS-perspective approach (good enough for a first
- *     pass; a follow-up round can replace with panolens.js if needed).
- */
-function PanoramaViewer({ url, onClose }: { url: string; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const isHostedViewer = /kuula\.co|roundme\.com|momento360|panoraven|360cities/i.test(url);
-  const isImage = /\.(jpe?g|png|webp)(\?|$)/i.test(url);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur transition-colors"
-        title="Close (Esc)"
-      >
-        <XIcon className="h-5 w-5" strokeWidth={2.5} />
-      </button>
-      <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-white text-xs font-bold uppercase tracking-wider">
-        360° View
-      </div>
-
-      {isHostedViewer && (
-        <iframe
-          src={url}
-          className="w-full h-full border-0"
-          allow="fullscreen; xr-spatial-tracking; accelerometer; gyroscope"
-          title="360° viewer"
-        />
-      )}
-      {!isHostedViewer && isImage && (
-        <PanoramaImageViewer src={url} />
-      )}
-      {!isHostedViewer && !isImage && (
-        <div className="text-center text-white p-8 max-w-md">
-          <div className="text-sm text-white/70 mb-2">This URL isn't a recognized panorama format.</div>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block mt-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >Open externally</a>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Poor man's equirectangular viewer — the user drags the image and
- * we translate it left/right (yaw) with a bit of vertical tilt clamp.
- * Good enough for a first shipping pass; panolens.js / three.js is
- * the next-round upgrade for true spherical projection.
- */
-function PanoramaImageViewer({ src }: { src: string }) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState<{ x: number; y: number } | null>(null);
-  return (
-    <div
-      className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
-      onPointerDown={(e) => {
-        setDragging({ x: e.clientX - offset.x, y: e.clientY - offset.y });
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      }}
-      onPointerMove={(e) => {
-        if (!dragging) return;
-        const x = e.clientX - dragging.x;
-        const y = Math.max(-200, Math.min(200, e.clientY - dragging.y));
-        setOffset({ x, y });
-      }}
-      onPointerUp={() => setDragging(null)}
-    >
-      <img
-        src={src}
-        alt="360° panorama"
-        draggable={false}
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
-          maxWidth: "none",
-          height: "180%",
-          userSelect: "none",
-        }}
-      />
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur text-white text-[11px] font-medium pointer-events-none">
-        Drag to look around
-      </div>
-    </div>
-  );
-}

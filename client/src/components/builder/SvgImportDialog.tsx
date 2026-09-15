@@ -212,9 +212,9 @@ export default function SvgImportDialog({ open, onClose, map, onImport }: SvgImp
               <FileUp className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-base">Import SVG floor plan</DialogTitle>
+              <DialogTitle className="text-base">Import floor plan</DialogTitle>
               <DialogDescription className="text-xs">
-                From Figma, Illustrator, or any SVG editor.
+                Polycam · Figma · Illustrator · any SVG.
               </DialogDescription>
             </div>
           </div>
@@ -250,7 +250,12 @@ export default function SvgImportDialog({ open, onClose, map, onImport }: SvgImp
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               Every <code className="bg-muted px-1 rounded">&lt;polygon&gt;</code>, <code className="bg-muted px-1 rounded">&lt;rect&gt;</code>,
               and simple <code className="bg-muted px-1 rounded">&lt;path&gt;</code> becomes a KSYK polygon.
-              Tip: in Figma, select every shape → Object → Flatten before exporting so curves become straight edges.
+              <br />
+              <span className="text-emerald-700 dark:text-emerald-300 font-medium">Polycam tip:</span> use the "Export → SVG (2D floor plan)" option.
+              <br />
+              <span className="text-blue-700 dark:text-blue-300 font-medium">Rooms vs buildings:</span> select a building first to import shapes as rooms inside it; otherwise they become buildings.
+              <br />
+              Figma tip: select every shape → Object → Flatten before exporting so curves become straight edges.
             </p>
             {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
           </div>

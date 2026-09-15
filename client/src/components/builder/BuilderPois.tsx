@@ -48,6 +48,7 @@ const LYR = {
   pois: "builder-pois",
   poisEmoji: "builder-pois-emoji",
   panoramas: "builder-panoramas",
+  panoramasGlow: "builder-panoramas-glow",
   panoramasLetter: "builder-panoramas-letter",
 } as const;
 
@@ -357,25 +358,42 @@ export default function BuilderPois({ map, activeFloor = null, onSelect, onOpenP
         });
       }
 
-      // ─ 360° PANORAMA SPOTS ─ v4.7.3
-      // Larger fuchsia circle + "360°" label so users spot them
-      // at a glance and distinguish from regular POI dots.
+      // ─ 360° PANORAMA SPOTS ─ v4.7.3 (upgraded v4.7.4)
+      // Three-layer marker: outer glow halo, solid fuchsia badge,
+      // "360°" label. The glow is a semi-transparent larger circle
+      // beneath the badge so panoramas visually pop off the map
+      // without needing an animated pulse (MapLibre paint expressions
+      // don't animate cleanly across all backends).
       const panoSrc = map.getSource(SRC.panoramas) as maplibregl.GeoJSONSource | undefined;
       if (panoSrc) {
         panoSrc.setData(panoData as never);
       } else {
         map.addSource(SRC.panoramas, { type: "geojson", data: panoData as never });
+        // Glow halo (soft, larger).
+        map.addLayer({
+          id: LYR.panoramasGlow,
+          source: SRC.panoramas,
+          type: "circle",
+          minzoom: 13,
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 14, 18, 24, 20, 34],
+            "circle-color": "#c026d3",
+            "circle-opacity": 0.22,
+            "circle-blur": 0.5,
+          },
+        });
+        // Main badge.
         map.addLayer({
           id: LYR.panoramas,
           source: SRC.panoramas,
           type: "circle",
           minzoom: 14,
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 14, 20, 20],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 11, 18, 17, 20, 24],
             "circle-color": "#c026d3",
             "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 2.5,
-            "circle-opacity": 0.98,
+            "circle-stroke-width": 3,
+            "circle-opacity": 1,
           },
         });
         map.addLayer({
@@ -385,15 +403,16 @@ export default function BuilderPois({ map, activeFloor = null, onSelect, onOpenP
           minzoom: 15,
           layout: {
             "text-field": "360°",
-            "text-size": ["interpolate", ["linear"], ["zoom"], 15, 8, 18, 11, 20, 14],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 13, 20, 17],
             "text-font": ["Noto Sans Regular"],
             "text-allow-overlap": true,
             "text-ignore-placement": true,
+            "text-letter-spacing": 0.05,
           },
           paint: {
             "text-color": "#ffffff",
-            "text-halo-color": "#00000060",
-            "text-halo-width": 0.5,
+            "text-halo-color": "#831843",
+            "text-halo-width": 0.8,
           },
         });
       }

@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
   RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check, Image as ImageIcon,
-  RectangleHorizontal, PenLine, Crosshair,
+  RectangleHorizontal, PenLine, Crosshair, FileUp,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -50,6 +50,9 @@ export interface TopToolbarProps {
    *  MapLibre raster overlay. Optional so pre-3.26.5 callers still
    *  compile. */
   onImportImage?: () => void;
+  /** v4.7.4 — imports a Polycam / Figma / Illustrator SVG floor plan
+   *  as bulk building polygons the user can then refine. */
+  onImportSvg?: () => void;
   onToggleGrid: () => void;
   onToggleSnap: () => void;
   onZoomIn: () => void;
@@ -116,6 +119,11 @@ export default function TopToolbar(p: TopToolbarProps) {
       {p.onImportImage && (
         <IconButton onClick={p.onImportImage} label="Import reference image (PNG/JPG)">
           <ImageIcon className="h-4 w-4" />
+        </IconButton>
+      )}
+      {p.onImportSvg && (
+        <IconButton onClick={p.onImportSvg} label="Import floor plan (Polycam / Figma SVG)">
+          <FileUp className="h-4 w-4" />
         </IconButton>
       )}
 

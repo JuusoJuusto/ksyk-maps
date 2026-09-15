@@ -16,7 +16,18 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.85.0 · web 4.7.3 · pending push)
+## ✅ Just shipped (Android v1.86.0 · web 4.7.4 · pending push)
+
+- **Panorama viewer — Polycam support.** `poly.cam` / `polycam.ai` share URLs auto-rewrite to `/embed` form; kuula.co gets `?fs=1`; direct `.jpg` panoramas render via pannellum (lazy-loaded from CDN) for proper spherical projection with mouse/touch/gyro. Recognizes roundme, momento360, panoraven, 360cities, Google Street View.
+- **PanoramaViewer extracted to `client/src/components/PanoramaViewer.tsx`** so both the Builder AND the public map use the same viewer + URL classifier.
+- **`usePanoramaViewer` hook + `ksyk:panorama:open` window event** — CampusOverlay dispatches; KSYKMapView listens. Clean pub/sub, no prop drilling.
+- **Panorama markers on the public map** — new fuchsia glow + white ring + "360°" label rendered above every other POI layer. Same styling as the Builder now.
+- **Better Builder markers** — soft outer glow halo, 3px white ring, tighter letterspacing on the "360°" label.
+- **"Import Floor Plan" button in TopToolbar** — no longer hidden in the command palette. If a building is selected before importing, every SVG shape becomes a *room* in that building on the current floor (Polycam workflow); otherwise shapes still land as buildings.
+- **SvgImportDialog copy updated** — mentions Polycam explicitly, explains the room-vs-building selection behavior.
+- **Server contract unchanged** — panoramas still ride on `campus_pois` with `kind="panorama"`, URL in `metadata.url`; no new tables.
+
+## ✅ Shipped (Android v1.85.0 · web 4.7.3 · pushed b7d327b)
 
 - **Builder — Measure tool HUD** (M key). Floating right-side panel with per-segment lengths + total. Copy button exports "12.3 m + 4.5 m = 16.8 m" to clipboard. Clear button (or Esc) resets waypoints; tool stays active so you can chain measurements.
 - **Builder — Midpoint snapping** for doors, POIs, and every tool that used `computeSmartSnap`. New `snapPointToNearestMidpoint()` — snaps to the halfway point of the nearest wall segment or room/building edge, sitting between "existing point" and "wall segment" in the precedence chain. Amber indicator distinguishes midpoint snaps from vertex/wall snaps.
