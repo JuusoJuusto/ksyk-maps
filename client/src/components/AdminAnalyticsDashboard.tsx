@@ -197,6 +197,87 @@ function TimeseriesChart({ range }: { range: Range }) {
   );
 }
 
+// v4.7.8 — Retention cohort chart. Renders a line chart of day-N
+// retention over the last 60-day cohort. Uses /api/analytics/retention.
+interface RetentionResponse {
+  cohortSize: number;
+  days: Array<{ day: number; retained: number; retainedPct: number }>;
+}
+function useRetention() {
+  return useQuery<RetentionResponse | null>({
+    queryKey: ["admin-analytics-retention"],
+    queryFn: () => fetchObject<RetentionResponse>("/api/analytics/retention"),
+    refetchInterval: 300_000,
+  });
+}
+
+function RetentionChart() {
+  const { data, isLoading } = useRetention();
+  const rows = data?.days ?? [];
+  const cohortSize = data?.cohortSize ?? 0;
+  const d1 = rows.find(r => r.day === 1)?.retainedPct ?? 0;
+  const d7 = rows.find(r => r.day === 7)?.retainedPct ?? 0;
+  const d30 = rows.find(r => r.day === 30)?.retainedPct ?? 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="h-4 w-4" /> Retention (last 60 days)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              % of the anchor cohort ({cohortSize.toLocaleString()} users) who came back N days later. Anonymous sessions counted via anonymous_id.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span className="text-muted-foreground">D1: <b className="text-foreground">{d1.toFixed(1)}%</b></span>
+            <span className="text-muted-foreground">D7: <b className="text-foreground">{d7.toFixed(1)}%</b></span>
+            <span className="text-muted-foreground">D30: <b className="text-foreground">{d30.toFixed(1)}%</b></span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="h-56 pl-0">
+        {isLoading && <div className="p-4 text-xs text-muted-foreground">Loading…</div>}
+        {!isLoading && rows.length === 0 && (
+          <div className="p-4 text-xs text-muted-foreground">No cohort data yet.</div>
+        )}
+        {!isLoading && rows.length > 0 && (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows}>
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 10 }}
+                tickFormatter={(d: number) => `D${d}`}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v: number) => `${v}%`}
+                width={40}
+                domain={[0, 100]}
+              />
+              <Tooltip
+                formatter={(v: number, _: string, item: { payload?: { retained?: number } }) => [
+                  `${v}% (${item?.payload?.retained ?? 0} users)`, "Retention",
+                ]}
+                labelFormatter={(d: number) => `Day ${d}`}
+              />
+              <Line
+                type="monotone"
+                dataKey="retainedPct"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Stat card with sparkline ────────────────────────────────────────
 function StatCard({
   icon: Icon, label, value, sparkline, tone = "blue", trend,
@@ -1389,6 +1470,9 @@ export default function AdminAnalyticsDashboard() {
 
       {/* Timeseries chart */}
       <TimeseriesChart range={range} />
+
+      {/* v4.7.8 — retention cohort */}
+      <RetentionChart />
 
       {/* Detail tabs */}
       <Tabs defaultValue="features">

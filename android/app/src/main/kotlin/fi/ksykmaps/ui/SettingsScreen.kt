@@ -89,6 +89,8 @@ fun SettingsScreen(
     onOpenFeedback: () -> Unit = {},
     onOpenBugReport: () -> Unit = {},
     onOpenChangelog: () -> Unit = {},
+    /** v1.89.0 — opens the Home tab section reorder screen. */
+    onOpenHomeSections: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
@@ -199,6 +201,15 @@ fun SettingsScreen(
                             DynamicColorState.enabled = it
                             prefs.edit().putBoolean("dynamic_colour", it).apply()
                         },
+                    )
+                    RowDivider()
+                    LinkGroupRow(
+                        icon = Icons.Outlined.Reorder,
+                        iconTint = Color(0xFF3B82F6),
+                        title = if (isFi) "Muokkaa etusivua" else "Customize home",
+                        subtitle = if (isFi) "Piilota tai järjestä osiot uudelleen"
+                                   else "Hide or reorder home sections",
+                        onClick = onOpenHomeSections,
                     )
                 }
             }

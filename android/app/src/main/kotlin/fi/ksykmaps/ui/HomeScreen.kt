@@ -73,6 +73,15 @@ fun HomeScreen(
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
+    // v1.89.0 — persisted section order + visibility. Reloaded whenever
+    // the screen enters composition so returning from HomeSectionsScreen
+    // (via Settings) picks up user edits without a whole activity restart.
+    var homeLayout by remember { mutableStateOf(HomeSectionPrefs.load(ctx)) }
+    DisposableEffect(Unit) {
+        // Re-read on every focus in case the user changed it in Settings.
+        homeLayout = HomeSectionPrefs.load(ctx)
+        onDispose { }
+    }
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
     var announcementCount by remember { mutableStateOf(0) }
@@ -227,142 +236,141 @@ fun HomeScreen(
                     }
                 }
 
-                // Quick action chip row — horizontal, Google Maps "explore" style
-                item {
-                    QuickChipRow(
-                        lang = lang,
-                        onOpenRooms = onOpenRooms,
-                        onOpenBuildings = onOpenBuildings,
-                        onOpenTimetable = onOpenTimetable,
-                        onOpenLunch = onOpenLunch,
-                        onOpenAnnouncements = onOpenAnnouncements,
-                    )
-                }
-
-                // Current / next lesson — the "ongoing" card, mirrors Google Maps' active-trip card
-                item {
-                    LessonStatusCard(
-                        current = currentLesson,
-                        next = nextLesson,
-                        hasWilmaSetup = hasWilmaSetup,
-                        lang = lang,
-                        onOpenTimetable = onOpenTimetable,
-                        onNavigate = { lesson ->
-                            if (lesson.roomId.isNotBlank()) {
-                                MapNavIntent.pendingRoomId = lesson.roomId
-                                onOpenRooms()
-                            }
-                        },
-                    )
-                }
-
-                // Today's remaining schedule (compact timeline)
-                if (upcoming.size > 1) {
-                    item { SectionLabel(if (lang == "fi") "Loput tunnit" else "Rest of your day") }
-                    item {
-                        ScheduleStrip(
-                            lessons = upcoming.take(5),
-                            currentSubject = currentLesson?.subject,
-                            lang = lang,
-                            onOpenTimetable = onOpenTimetable,
-                        )
-                    }
-                }
-
-                // Tomorrow preview — shown when today is finished or has no lessons
+                // v1.89.0 — sections rendered in user-configured order.
+                // See HomeSectionPrefs / HomeSectionsScreen.
                 val todayDone = hasWilmaSetup && upcoming.isEmpty()
-                if (todayDone && tomorrowSchedule.isNotEmpty()) {
-                    item { SectionLabel(if (lang == "fi") "Huomenna" else "Tomorrow") }
-                    item {
-                        ScheduleStrip(
-                            lessons = tomorrowSchedule.take(5),
-                            currentSubject = null,
-                            lang = lang,
-                            onOpenTimetable = onOpenTimetable,
-                        )
-                    }
-                } else if (todayDone && hasWilmaSetup) {
-                    // Wilma set up but nothing tomorrow either — light info card
-                    item {
-                        Card(
-                            Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                            elevation = CardDefaults.cardElevation(0.dp),
-                        ) {
-                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Outlined.WbSunny, null,
-                                    tint = Color(0xFFF59E0B),
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    if (lang == "fi") "Ei tunteja huomenna" else "No lessons tomorrow",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Campus overview stat tiles — colored accent per metric
-                item { SectionLabel(if (lang == "fi") "Kampus" else "Campus") }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatPill(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.MeetingRoom,
-                            value = rooms.toString(),
-                            label = if (lang == "fi") "Luokat" else "Rooms",
-                            accent = Color(0xFF3B82F6),
-                            onClick = onOpenRooms,
-                        )
-                        StatPill(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.Business,
-                            value = buildings.toString(),
-                            label = if (lang == "fi") "Rakennukset" else "Buildings",
-                            accent = Color(0xFF10B981),
-                            onClick = onOpenBuildings,
-                        )
-                        StatPill(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.Campaign,
-                            value = announcementCount.toString(),
-                            label = if (lang == "fi") "Uutiset" else "News",
-                            accent = Color(0xFFF59E0B),
-                            onClick = onOpenAnnouncements,
-                        )
-                    }
-                }
-
-                // Recent announcements
-                if (recentAnnouncements.isNotEmpty()) {
-                    item {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            SectionLabel(
-                                if (lang == "fi") "Uusimmat uutiset" else "Latest news",
-                                modifier = Modifier.weight(1f),
+                homeLayout.sections.forEach { (section, visible) ->
+                    if (!visible) return@forEach
+                    when (section) {
+                        HomeSection.QUICK_ACTIONS -> item {
+                            QuickChipRow(
+                                lang = lang,
+                                onOpenRooms = onOpenRooms,
+                                onOpenBuildings = onOpenBuildings,
+                                onOpenTimetable = onOpenTimetable,
+                                onOpenLunch = onOpenLunch,
+                                onOpenAnnouncements = onOpenAnnouncements,
                             )
-                            TextButton(
-                                onClick = onOpenAnnouncements,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            ) {
-                                Text(
-                                    if (lang == "fi") "Näytä kaikki" else "See all",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
+                        }
+                        HomeSection.LESSON_STATUS -> item {
+                            LessonStatusCard(
+                                current = currentLesson,
+                                next = nextLesson,
+                                hasWilmaSetup = hasWilmaSetup,
+                                lang = lang,
+                                onOpenTimetable = onOpenTimetable,
+                                onNavigate = { lesson ->
+                                    if (lesson.roomId.isNotBlank()) {
+                                        MapNavIntent.pendingRoomId = lesson.roomId
+                                        onOpenRooms()
+                                    }
+                                },
+                            )
+                        }
+                        HomeSection.TODAY_SCHEDULE -> if (upcoming.size > 1) {
+                            item { SectionLabel(if (lang == "fi") "Loput tunnit" else "Rest of your day") }
+                            item {
+                                ScheduleStrip(
+                                    lessons = upcoming.take(5),
+                                    currentSubject = currentLesson?.subject,
+                                    lang = lang,
+                                    onOpenTimetable = onOpenTimetable,
                                 )
                             }
                         }
+                        HomeSection.TOMORROW_PREVIEW -> {
+                            if (todayDone && tomorrowSchedule.isNotEmpty()) {
+                                item { SectionLabel(if (lang == "fi") "Huomenna" else "Tomorrow") }
+                                item {
+                                    ScheduleStrip(
+                                        lessons = tomorrowSchedule.take(5),
+                                        currentSubject = null,
+                                        lang = lang,
+                                        onOpenTimetable = onOpenTimetable,
+                                    )
+                                }
+                            } else if (todayDone && hasWilmaSetup) {
+                                item {
+                                    Card(
+                                        Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                                        elevation = CardDefaults.cardElevation(0.dp),
+                                    ) {
+                                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Outlined.WbSunny, null,
+                                                tint = Color(0xFFF59E0B),
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(
+                                                if (lang == "fi") "Ei tunteja huomenna" else "No lessons tomorrow",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        HomeSection.CAMPUS_STATS -> {
+                            item { SectionLabel(if (lang == "fi") "Kampus" else "Campus") }
+                            item {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    StatPill(
+                                        modifier = Modifier.weight(1f),
+                                        icon = Icons.Outlined.MeetingRoom,
+                                        value = rooms.toString(),
+                                        label = if (lang == "fi") "Luokat" else "Rooms",
+                                        accent = Color(0xFF3B82F6),
+                                        onClick = onOpenRooms,
+                                    )
+                                    StatPill(
+                                        modifier = Modifier.weight(1f),
+                                        icon = Icons.Outlined.Business,
+                                        value = buildings.toString(),
+                                        label = if (lang == "fi") "Rakennukset" else "Buildings",
+                                        accent = Color(0xFF10B981),
+                                        onClick = onOpenBuildings,
+                                    )
+                                    StatPill(
+                                        modifier = Modifier.weight(1f),
+                                        icon = Icons.Outlined.Campaign,
+                                        value = announcementCount.toString(),
+                                        label = if (lang == "fi") "Uutiset" else "News",
+                                        accent = Color(0xFFF59E0B),
+                                        onClick = onOpenAnnouncements,
+                                    )
+                                }
+                            }
+                        }
+                        HomeSection.ANNOUNCEMENTS -> if (recentAnnouncements.isNotEmpty()) {
+                            item {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    SectionLabel(
+                                        if (lang == "fi") "Uusimmat uutiset" else "Latest news",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(
+                                        onClick = onOpenAnnouncements,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    ) {
+                                        Text(
+                                            if (lang == "fi") "Näytä kaikki" else "See all",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                    }
+                                }
+                            }
+                            items(recentAnnouncements) { a -> AnnouncementPreview(a, onOpenAnnouncements) }
+                        }
                     }
-                    items(recentAnnouncements) { a -> AnnouncementPreview(a, onOpenAnnouncements) }
                 }
 
                 item { Spacer(Modifier.height(24.dp)) }

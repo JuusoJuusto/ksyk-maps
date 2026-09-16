@@ -34,6 +34,7 @@ import fi.ksykmaps.ui.AnnouncementPollWorker
 import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.HomeScreen
+import fi.ksykmaps.ui.HomeSectionsScreen
 import fi.ksykmaps.ui.LessonReminderScheduler
 import fi.ksykmaps.ui.LogsScreen
 import fi.ksykmaps.ui.LoginScreen
@@ -316,6 +317,7 @@ private fun AppShell() {
                         subScreen == "feedback" -> FeedbackScreen(onBack = { subScreen = null })
                         subScreen == "bugreport" -> BugReportScreen(onBack = { subScreen = null })
                         subScreen == "changelog" -> ChangelogScreen(onBack = { subScreen = null })
+                        subScreen == "homeSections" -> HomeSectionsScreen(onBack = { subScreen = null })
                         selectedTab == "home" -> HomeScreen(
                             onOpenRooms         = { subScreen = "rooms" },
                             onOpenBeacons       = {},
@@ -348,6 +350,7 @@ private fun AppShell() {
                             onOpenFeedback  = { subScreen = "feedback" },
                             onOpenBugReport = { subScreen = "bugreport" },
                             onOpenChangelog = { subScreen = "changelog" },
+                            onOpenHomeSections = { subScreen = "homeSections" },
                         )
                     }
                 }

@@ -428,6 +428,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.8 — Retention chart. Computes day-N cohort retention over
+    // telemetry_sessions for the last 60 days. Returns:
+    //   [ { day: 0..30, retainedPct: 0..100, retained: number }, ... ]
+    // where D0 is the anchor (first-session-day cohort size), and
+    // each subsequent day is the % of that cohort who came back N
+    // days later. Admin-only.
+    if ((apiPath === '/analytics/retention' || apiPath.startsWith('/analytics/retention?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        // Uses COALESCE so anonymous sessions (no user_id) still track.
+        const rows = await db.execute<{ day: number; retained: number }>(dsql`
+          WITH first_seen AS (
+            SELECT COALESCE(user_id, anonymous_id, session_id) AS actor,
+                   MIN(DATE(started_at)) AS first_day
+            FROM telemetry_sessions
+            WHERE started_at > NOW() - INTERVAL '60 days'
+            GROUP BY 1
+          ),
+          activity AS (
+            SELECT COALESCE(user_id, anonymous_id, session_id) AS actor,
+                   DATE(started_at) AS day
+            FROM telemetry_sessions
+            WHERE started_at > NOW() - INTERVAL '60 days'
+            GROUP BY 1, 2
+          ),
+          paired AS (
+            SELECT a.actor, (a.day - f.first_day)::int AS day_offset
+            FROM activity a JOIN first_seen f USING (actor)
+            WHERE (a.day - f.first_day) BETWEEN 0 AND 30
+          )
+          SELECT day_offset AS day, COUNT(DISTINCT actor)::int AS retained
+          FROM paired
+          GROUP BY 1
+          ORDER BY 1
+        `);
+        const arr = Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? []);
+        const rawRows = arr as Array<{ day: number; retained: number }>;
+        const d0 = rawRows.find(r => Number(r.day) === 0)?.retained ?? 0;
+        const map = new Map<number, number>();
+        for (const r of rawRows) map.set(Number(r.day), Number(r.retained));
+        const out: Array<{ day: number; retained: number; retainedPct: number }> = [];
+        for (let d = 0; d <= 30; d++) {
+          const retained = map.get(d) ?? 0;
+          const pct = d0 > 0 ? (retained / d0) * 100 : 0;
+          out.push({ day: d, retained, retainedPct: Number(pct.toFixed(1)) });
+        }
+        return res.status(200).json({ cohortSize: d0, days: out });
+      } catch {
+        return res.status(200).json({ cohortSize: 0, days: [] });
+      }
+    }
+
     // GET /api/analytics/searches â€” recent / top searches.
     if ((apiPath === '/analytics/searches' || apiPath.startsWith('/analytics/searches?')) && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;

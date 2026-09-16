@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.7";
+export const APP_VERSION = "4.7.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.8",
+    date: "September 2026",
+    title: "Home reorder · Retention chart",
+    titleFi: "Etusivun järjestely · Retention-kaavio",
+    latest: true,
+    highlights: [
+      "**Customize the Home tab** (Android). New Settings → Appearance → Customize home screen: drag any section (Quick actions · Now/next lesson · Rest of day · Tomorrow · Campus stats · Announcements) to reorder via long-press-drag, or toggle it off entirely. Persisted per-user via SharedPreferences. Reset button restores defaults.",
+      "**Retention chart in admin analytics** — new line chart showing what percentage of the last-60-day cohort came back N days later (Day 0 → Day 30). Cohort SQL runs over `telemetry_sessions` with `COALESCE(user_id, anonymous_id, session_id)` so anonymous students still count. D1 / D7 / D30 quick-look numbers in the card header. `/api/analytics/retention` endpoint, admin-only.",
+    ],
+    highlightsFi: [
+      "**Muokkaa etusivua** (Android). Uusi Asetukset → Ulkoasu → Muokkaa etusivua: paina pitkään kortin oikeaa reunaa ja vedä ylös/alas järjestääksesi osiot, tai vaihda kytkin piilottaaksesi osion.",
+      "**Retention-kaavio admin-analytiikassa** — viivakaavio näyttää kuinka moni käyttäjä palasi N päivän kuluttua. 60 päivän kohortti. D1 / D7 / D30 -pikalukemat.",
+    ],
+  },
   {
     version: "4.7.7",
     date: "September 2026",
     title: "Widget config wired up · session replay scrubber upgraded",
     titleFi: "Widget-asetukset toimivat · session-toiston skrabari päivittynyt",
-    latest: true,
     highlights: [
       "**Widget long-press config now actually does something.** The TodaySchedule widget's Hide-Past / Auto-Roll / Show-Chip toggles used to live in the config screen but nothing read them at render time. Now every widget update honors all three per widget-id. Also added a new **Default Day** picker (Yesterday · Today · Tomorrow · +2d · +3d) — pin the widget to a specific day so tomorrow-morning students always see tomorrow's schedule when they wake up.",
       "**Session replay scrubber — proper timeline controls.** Was a play/pause + prev/next + jump-to-error. Now adds: kind-filter chips (hide pageviews to focus on errors etc.) with per-kind event counts, playback speed selector (0.5× · 1× · 2× · 4×), loop toggle, real mm:ss / total elapsed display, keyboard shortcuts (Space play/pause · ← → step · L loop), auto-open event list with per-row +elapsed timestamps and a max-height scroller instead of a giant page-height list.",

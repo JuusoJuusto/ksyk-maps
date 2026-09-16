@@ -16,7 +16,13 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.88.0 · web 4.7.7 · pending push)
+## ✅ Just shipped (Android v1.89.0 · web 4.7.8 · pending push)
+
+- **Home tab section reorder (Android)** — new `HomeSectionsScreen` reached from Settings → Appearance → Customize home. Long-press the drag handle on the right side of any row and drag up/down. Each section (6 of them: Quick actions · Now/next lesson · Rest of day · Tomorrow preview · Campus stats · Announcements) can also be hidden via a Switch. Persisted in `SharedPreferences("ksyk_home_layout")` as a CSV of `section_id:visible` pairs. `HomeScreen` iterates `HomeSectionPrefs.load(ctx).sections.forEach` so the same handlers all still work — just in user-chosen order.
+- **Retention chart in admin analytics** — new `RetentionChart` card below the timeseries. Line chart of D0→D30 cohort retention over the last 60 days. `/api/analytics/retention` cohort SQL uses `COALESCE(user_id, anonymous_id, session_id)` so anonymous students still track. D1 / D7 / D30 quick-look numbers in the card header.
+- Kotlin compile clean; TypeScript clean.
+
+## ✅ Shipped (Android v1.88.0 · web 4.7.7 · pushed 1f62dcb)
 
 - **Widget long-press config actually does something now.** The TodayScheduleWidget config activity had 3 toggles (Hide Past / Auto Roll / Show Chip) that never took effect because the widget's `updateWidget()` never read them. Fixed: every render honors all three per widget-id. Added a **fourth pref — Default Day** picker (`-1 = Yesterday · 0 = Today · 1 = Tomorrow · 2 · 3`) so users can pin a widget to a specific day.
 - **Session replay scrubber upgraded** in `AdminAnalyticsDashboard.tsx`:

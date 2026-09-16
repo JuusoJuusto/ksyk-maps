@@ -36,6 +36,26 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.89.0",
+        date = "September 2026",
+        titleFi = "Muokkaa etusivua — vedä järjestääksesi",
+        titleEn = "Customize home — drag to reorder sections",
+        highlightsFi = listOf(
+            "Uusi Asetukset → Ulkoasu → Muokkaa etusivua -ruutu.",
+            "Paina pitkään kortin oikeaa reunaa ja vedä ylös/alas järjestääksesi osiot.",
+            "Vaihda kytkin piilottaaksesi osion (esim. jos et käytä Wilmaa).",
+            "Osiot: Pikapainikkeet · Nyt/seuraava tunti · Loput päivän tunnit · Huomisen ennakko · Kampus-tiedot · Uutiset.",
+            "Palauta-nappi palauttaa oletukset.",
+        ),
+        highlightsEn = listOf(
+            "New Settings → Appearance → Customize home screen.",
+            "Long-press the drag handle on the right side of any section and drag up/down to reorder.",
+            "Toggle the switch to hide a section (e.g. skip Wilma-only sections).",
+            "Sections: Quick actions · Now/next lesson · Rest of day · Tomorrow preview · Campus stats · Announcements.",
+            "Reset button restores the shipped defaults.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.88.0",
         date = "September 2026",
         titleFi = "Widget-asetukset toimivat + Oletuspäivä-valitsin",
