@@ -26,17 +26,17 @@
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
-        <!-- Prev day button -->
+        <!-- Prev day button — v1.87.0 way bigger tap target -->
         <TextView
             android:id="@+id/btn_prev_day"
-            android:layout_width="56dp"
-            android:layout_height="48dp"
+            android:layout_width="72dp"
+            android:layout_height="60dp"
             android:text="&#8249;"
-            android:textSize="34sp"
+            android:textSize="42sp"
             android:textColor="#DDFFFFFF"
             android:gravity="center"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:fontFamily="sans-serif" />
 
         <!-- Day display: "MON · 14" -->
@@ -53,17 +53,17 @@
             android:minWidth="48dp"
             android:gravity="center" />
 
-        <!-- Next day button -->
+        <!-- Next day button — v1.87.0 way bigger tap target -->
         <TextView
             android:id="@+id/btn_next_day"
-            android:layout_width="56dp"
-            android:layout_height="48dp"
+            android:layout_width="72dp"
+            android:layout_height="60dp"
             android:text="&#8250;"
-            android:textSize="34sp"
+            android:textSize="42sp"
             android:textColor="#DDFFFFFF"
             android:gravity="center"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:fontFamily="sans-serif" />
     </LinearLayout>
 

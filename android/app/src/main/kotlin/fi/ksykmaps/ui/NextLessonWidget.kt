@@ -68,14 +68,18 @@ class NextLessonWidget : AppWidgetProvider() {
             // Adaptive text sizes based on widget width
             val widgetWidth = manager.getAppWidgetOptions(id)
                 .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+            // v1.87.0 — pushed the top two buckets up so widgets that
+            // stretch to the max look right (users complained the XL
+            // sizes still felt small on tablets and 5-across launchers).
             val (subjectSize, detailSize, countdownSize) = when {
-                widgetWidth < 200   -> Triple(14f, 10f, 9f)
-                widgetWidth > 1000  -> Triple(56f, 26f, 22f)
-                widgetWidth > 800   -> Triple(44f, 22f, 18f)
-                widgetWidth > 560   -> Triple(32f, 18f, 15f)
-                widgetWidth > 380   -> Triple(24f, 15f, 13f)
-                widgetWidth > 280   -> Triple(20f, 13f, 11f)
-                else                -> Triple(17f, 11f, 10f)
+                widgetWidth < 200   -> Triple(15f, 11f, 10f)
+                widgetWidth > 1400  -> Triple(84f, 34f, 28f)
+                widgetWidth > 1000  -> Triple(68f, 30f, 24f)
+                widgetWidth > 800   -> Triple(52f, 26f, 20f)
+                widgetWidth > 560   -> Triple(38f, 20f, 16f)
+                widgetWidth > 380   -> Triple(27f, 16f, 14f)
+                widgetWidth > 280   -> Triple(22f, 14f, 12f)
+                else                -> Triple(18f, 12f, 11f)
             }
             views.setTextViewTextSize(R.id.widget_subject, TypedValue.COMPLEX_UNIT_SP, subjectSize)
             views.setTextViewTextSize(R.id.widget_details, TypedValue.COMPLEX_UNIT_SP, detailSize)

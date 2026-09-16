@@ -36,6 +36,24 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.87.0",
+        date = "September 2026",
+        titleFi = "Tuplaikoni-korjaus, suosio-heatmap ja isommat widgetit",
+        titleEn = "Duplicate 360° icon fix, popularity heatmap, bigger widgets",
+        highlightsFi = listOf(
+            "Julkisen kartan 360°-tuplaikoni korjattu — nyt näkyy vain fuksia-merkki.",
+            "Vain adminille: 🔥-nappi näyttää huoneiden suosion heatmap-tasona (viimeiset 30 päivää).",
+            "Widgeteille uusi XXL-koko (>1400dp) — teksti isompi tableteilla.",
+            "TodaySchedule-widgetin päivä-navigointinapit 72×60dp, 42sp nuolet.",
+        ),
+        highlightsEn = listOf(
+            "Fixed duplicate 360° icon on the public map — only the fuchsia badge shows now.",
+            "Admin-only 🔥 button toggles a popular-rooms heatmap layer (last 30 days).",
+            "New XXL widget bucket (>1400dp) — bigger text on tablets and stretched widgets.",
+            "TodaySchedule day-navigation buttons upsized to 72×60dp with 42sp arrows.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.86.0",
         date = "September 2026",
         titleFi = "Panoraama-katselija — Polycam-tuki, hienot merkit ja SVG-tuonti",

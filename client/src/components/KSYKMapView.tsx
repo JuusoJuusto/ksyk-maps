@@ -57,6 +57,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // v4.7.4 — listen for panorama-marker clicks from CampusOverlay and
   // pop the fullscreen viewer above the map.
   const panorama = usePanoramaViewer();
+  // v4.7.5 — admin-only heatmap. Detects admin via localStorage token
+  // (same convention as the Builder). The endpoint is admin-guarded
+  // server-side, so non-admins can't force it on via devtools.
+  const [heatmapOn, setHeatmapOn] = useState(false);
+  const isAdmin = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try { return !!localStorage.getItem("ksyk_admin_token"); } catch { return false; }
+  }, []);
   const { settings, update } = useAppSettings();
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
@@ -279,6 +287,68 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showGpsLocation, mapInstance]);
+
+  // v4.7.5 — room-popularity heatmap. Admin-only toggle. Fetches
+  // aggregated room_view counts from /api/analytics/room-popularity
+  // and paints a MapLibre heatmap layer keyed by count. Removed when
+  // toggled off so it doesn't compete with POI chips.
+  useEffect(() => {
+    if (!mapInstance) return;
+    const SRC = "ksyk-room-popularity";
+    const LAYER = "ksyk-room-popularity-heat";
+    const cleanup = () => {
+      try {
+        if (mapInstance.getLayer(LAYER)) mapInstance.removeLayer(LAYER);
+        if (mapInstance.getSource(SRC)) mapInstance.removeSource(SRC);
+      } catch { /* mid-style change — non-fatal */ }
+    };
+    if (!heatmapOn) { cleanup(); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem("ksyk_admin_token") ?? "";
+        const res = await fetch("/api/analytics/room-popularity", {
+          headers: token ? { "x-admin-token": token } : {},
+        });
+        if (!res.ok) return;
+        const rows = (await res.json()) as Array<{ roomId: string; count: number; lat: number; lng: number }>;
+        if (cancelled || !rows.length) return;
+        const maxCount = Math.max(1, ...rows.map(r => r.count));
+        const feats = rows.map(r => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [r.lng, r.lat] },
+          properties: { count: r.count, weight: r.count / maxCount },
+        }));
+        const fc = { type: "FeatureCollection", features: feats };
+        const src = mapInstance.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+        if (src) {
+          src.setData(fc as never);
+        } else {
+          mapInstance.addSource(SRC, { type: "geojson", data: fc as never });
+          mapInstance.addLayer({
+            id: LAYER,
+            type: "heatmap",
+            source: SRC,
+            paint: {
+              "heatmap-weight": ["get", "weight"],
+              "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 15, 0.6, 20, 2.5],
+              "heatmap-color": [
+                "interpolate", ["linear"], ["heatmap-density"],
+                0,    "rgba(0,0,0,0)",
+                0.15, "rgba(34,197,94,0.4)",
+                0.4,  "rgba(234,179,8,0.6)",
+                0.7,  "rgba(249,115,22,0.75)",
+                1,    "rgba(220,38,38,0.9)",
+              ],
+              "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 15, 18, 20, 55],
+              "heatmap-opacity": 0.85,
+            },
+          });
+        }
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [mapInstance, heatmapOn]);
 
   // Full campus data — used to resolve a feature id from a click into
   // the full entity so the info sheet has everything to display.
@@ -784,6 +854,24 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           >
             <LocateFixed className="h-4 w-4" strokeWidth={2.25} />
           </button>
+          {/* v4.7.5 — Popularity heatmap toggle. Admin-only. */}
+          {isAdmin && (
+            <button
+              type="button"
+              aria-label={heatmapOn ? "Hide popularity heatmap" : "Show popularity heatmap"}
+              aria-pressed={heatmapOn}
+              onClick={() => setHeatmapOn(v => !v)}
+              title={heatmapOn ? "Heatmap on — click to hide" : "Popular rooms heatmap (admin)"}
+              className={cn(
+                "w-10 h-10 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
+                heatmapOn
+                  ? "bg-orange-600 text-white border-orange-700/40 shadow-orange-600/30"
+                  : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-500/10 dark:hover:text-orange-300 shadow-black/10",
+              )}
+            >
+              <span className="text-base leading-none" aria-hidden="true">🔥</span>
+            </button>
+          )}
           {/* GPS button — admin campus-map tab only */}
           {showGpsLocation && (
             <button

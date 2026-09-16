@@ -16,7 +16,15 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.86.0 · web 4.7.4 · pending push)
+## ✅ Just shipped (Android v1.87.0 · web 4.7.5 · pending push)
+
+- **Fixed duplicate 360° icon on the public map.** `installPOIs` and `installPoiPillars` now skip `kind='panorama'` so only the dedicated fuchsia layer shows. Was rendering the panorama TWICE — once as a grey POI chip and once as the fuchsia 360° badge stacked on top.
+- **Popular-rooms heatmap (admin-only)** — 🔥 toggle in the bottom-right button stack, visible only when `ksyk_admin_token` is present. New `/api/analytics/room-popularity` aggregates last-30-day `room_view` events grouped by `metadata.roomId`, joins to `rooms.points` centroid, returns `{ roomId, count, lat, lng }`. Rendered as a MapLibre heatmap layer with green→yellow→orange→red gradient.
+- **Updated `room_view` telemetry** — every call site now passes `roomId + roomNumber` in metadata so the heatmap has real data going forward.
+- **Widget scaling for stretched sizes.** New XXL bucket (>1400dp) on all three widgets. NextLesson/CurrentLesson subject text up to 84sp; TodaySchedule subject up to 56sp.
+- **WAY bigger day-navigation buttons in TodaySchedule** — 72×60dp (was 56×48) with 42sp arrows (was 34sp).
+
+## ✅ Shipped (Android v1.86.0 · web 4.7.4 · pushed 84682f9)
 
 - **Panorama viewer — Polycam support.** `poly.cam` / `polycam.ai` share URLs auto-rewrite to `/embed` form; kuula.co gets `?fs=1`; direct `.jpg` panoramas render via pannellum (lazy-loaded from CDN) for proper spherical projection with mouse/touch/gyro. Recognizes roundme, momento360, panoraven, 360cities, Google Street View.
 - **PanoramaViewer extracted to `client/src/components/PanoramaViewer.tsx`** so both the Builder AND the public map use the same viewer + URL classifier.

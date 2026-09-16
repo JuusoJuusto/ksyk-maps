@@ -384,6 +384,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.5 — Room popularity for the heatmap. Aggregates featureUsage
+    // rows with feature='room_view' by metadata.roomId + joins to
+    // rooms.points to return { roomId, count, lat, lng }. Admin-only.
+    if ((apiPath === '/analytics/room-popularity' || apiPath.startsWith('/analytics/room-popularity?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { featureUsage, rooms } = await import('../shared/schema.js');
+        const { sql: dsql, eq: deq } = await import('drizzle-orm');
+        // Pull last-30-day room_view rows with a non-empty roomId.
+        const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+        const rows = await db.select({
+          roomId: dsql<string>`(${featureUsage.metadata}->>'roomId')`,
+          count: dsql<number>`count(*)::int`,
+        })
+          .from(featureUsage)
+          .where(dsql`${featureUsage.feature} = 'room_view' AND ${featureUsage.createdAt} >= ${cutoff} AND (${featureUsage.metadata}->>'roomId') IS NOT NULL`)
+          .groupBy(dsql`(${featureUsage.metadata}->>'roomId')`);
+
+        if (!rows.length) return res.status(200).json([]);
+        // Fetch positions for each roomId. Use polygon centroid.
+        const roomIds = rows.map(r => r.roomId).filter(Boolean) as string[];
+        const roomRows = await db.select().from(rooms);
+        const positionById = new Map<string, { lat: number; lng: number }>();
+        for (const r of roomRows) {
+          const pts = (r.points as Array<{ lat: number; lng: number }> | null) ?? [];
+          if (!pts.length) continue;
+          let lat = 0, lng = 0;
+          for (const p of pts) { lat += p.lat; lng += p.lng; }
+          positionById.set(r.id, { lat: lat / pts.length, lng: lng / pts.length });
+        }
+        const out = rows
+          .map(r => {
+            const pos = r.roomId ? positionById.get(r.roomId) : null;
+            if (!pos) return null;
+            return { roomId: r.roomId, count: r.count, lat: pos.lat, lng: pos.lng };
+          })
+          .filter((x): x is { roomId: string; count: number; lat: number; lng: number } => x !== null);
+        return res.status(200).json(out);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
     // GET /api/analytics/searches â€” recent / top searches.
     if ((apiPath === '/analytics/searches' || apiPath.startsWith('/analytics/searches?')) && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;

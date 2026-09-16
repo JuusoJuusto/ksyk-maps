@@ -171,14 +171,17 @@ class TodayScheduleWidget : AppWidgetProvider() {
             // don't render tiny text. Previous cap was 15sp subjects; new
             // cap at wider than 380dp is 18sp — matches the readability of
             // Apple Calendar's XL widget.
+            // v1.87.0 — added XXL bucket + bumped every tier so stretched
+            // widgets look right on tablets and 5-column launchers.
             val (timeSize, subjectSize, roomSize) = when {
-                widgetWidth < 200   -> Triple(9f, 11f, 9f)
-                widgetWidth > 1000  -> Triple(30f, 40f, 24f)
-                widgetWidth > 800   -> Triple(24f, 32f, 20f)
-                widgetWidth > 560   -> Triple(18f, 24f, 16f)
-                widgetWidth > 380   -> Triple(14f, 18f, 13f)
-                widgetWidth > 280   -> Triple(12f, 15f, 11f)
-                else                -> Triple(10f, 13f, 10f)
+                widgetWidth < 200   -> Triple(10f, 12f, 10f)
+                widgetWidth > 1400  -> Triple(42f, 56f, 32f)
+                widgetWidth > 1000  -> Triple(36f, 48f, 28f)
+                widgetWidth > 800   -> Triple(28f, 38f, 22f)
+                widgetWidth > 560   -> Triple(20f, 28f, 17f)
+                widgetWidth > 380   -> Triple(15f, 20f, 14f)
+                widgetWidth > 280   -> Triple(13f, 17f, 12f)
+                else                -> Triple(11f, 14f, 11f)
             }
             // Widget layout has 6 row slots (row1..row6); can't exceed that.
             val maxRows = when {

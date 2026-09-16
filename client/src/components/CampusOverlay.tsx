@@ -1298,6 +1298,9 @@ function installPoiPillars(
   const visiblePois = pois
     .filter((p) => typeof p.position?.lat === "number" && typeof p.position?.lng === "number")
     .filter((p) => !hiddenKinds.has(p.kind))
+    // v4.7.5 — panoramas render via installPanoramas; excluding here
+    // prevents a duplicate 3D pillar sitting under the fuchsia badge.
+    .filter((p) => p.kind !== "panorama")
     .filter((p) => activeFloor === null || p.floor === null || p.floor === undefined || p.floor === activeFloor);
 
   // Ground base plate — a wide flat disc at ground level so the pin
@@ -2237,10 +2240,16 @@ function installPOIs(
   // Skip door/entrance/exit — those are rendered by installPoiPillars
   // via campus-doors-* / campus-entrances-* dedicated layers. Old DB
   // records with these kinds would create ghost duplicate chips here.
+  // v4.7.5 — also skip "panorama" — those get their own fuchsia
+  // installPanoramas() layer above every POI layer. Without this
+  // guard the public map showed TWO markers per panorama spot: the
+  // generic grey POI chip AND the fuchsia 360° badge stacked.
   const DOOR_KINDS = new Set(['door', 'entrance', 'exit']);
+  const SEPARATE_LAYER_KINDS = new Set(['panorama']);
   for (const p of data.generic) {
     if (typeof p.position?.lat !== "number" || typeof p.position?.lng !== "number") continue;
     if (DOOR_KINDS.has(p.kind)) continue;
+    if (SEPARATE_LAYER_KINDS.has(p.kind)) continue;
     push(p.id, p.kind, p.floor ?? null, p.position.lat, p.position.lng, p.label ?? null);
   }
   // Auto-derive POI markers from typed rooms (bathroom, elevator, stairs).

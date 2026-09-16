@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.4";
+export const APP_VERSION = "4.7.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.5",
+    date: "September 2026",
+    title: "Fix double 360° icon · popular-rooms heatmap · bigger widget text & buttons",
+    titleFi: "Tuplaikoni-korjaus · huoneiden suosio-heatmap · isommat widget-tekstit ja napit",
+    latest: true,
+    highlights: [
+      "**Fixed the duplicate 360° icon on the public map.** Panoramas were rendering twice — once as a generic grey POI chip and once as the fuchsia 360° badge. `installPOIs` and `installPoiPillars` now skip `kind='panorama'` so only the dedicated fuchsia layer shows. Same fix applies in 3D mode.",
+      "**Popular-rooms heatmap (admin-only).** New 🔥 toggle in the bottom-right button stack — visible only when the admin token is present. New `/api/analytics/room-popularity` endpoint aggregates `room_view` telemetry from the last 30 days, joins each roomId to its polygon centroid, and returns `{ roomId, count, lat, lng }`. Rendered as a MapLibre heatmap layer with a green→yellow→orange→red gradient. `room_view` events now include `roomId` + `roomNumber` in metadata so the aggregation actually has data to work with going forward.",
+      "**Widget scaling for stretched sizes.** Added an XXL bucket (>1400dp) for NextLesson/CurrentLesson/TodaySchedule so tablet + 5-column-launcher widgets no longer look small. Subject text goes up to 84sp; TodaySchedule subject up to 56sp.",
+      "**WAY bigger day-navigation buttons on TodaySchedule** — 72×60dp (was 56×48) with 42sp arrows (was 34sp), 10dp padding.",
+    ],
+    highlightsFi: [
+      "**Tuplaikoni-korjaus julkisella kartalla.** 360°-panoraamat renderöityivät kahdesti — kerran POI-chipinä ja kerran fuksiana. Nyt näkyy vain fuksia-merkki.",
+      "**Suosio-heatmap (vain admin).** 🔥-nappi näkyy oikeassa alakulmassa vain kirjautuneille admineille. Uusi `/api/analytics/room-popularity`-päätepiste laskee 30 päivän `room_view`-telemetria-tapahtumat huoneittain ja renderöi heatmapin.",
+      "**Isommat widget-tekstit.** Uusi XXL-koko (>1400dp) — oppitunnin nimi jopa 84sp:llä tableteilla.",
+      "**Isommat päivännavigointi-napit** TodaySchedule-widgetissä — 72×60dp, 42sp nuolet.",
+    ],
+  },
   {
     version: "4.7.4",
     date: "September 2026",
     title: "Panorama viewer — Polycam support, pretty markers on public map, SVG floor-plan import wired to toolbar",
     titleFi: "Panoraama-katselija — Polycam-tuki, hienot merkit julkisella kartalla, SVG-pohjapiirustusten tuonti työkalupalkkiin",
-    latest: true,
     highlights: [
       "**Polycam URLs just work.** Paste a `poly.cam/capture/...` share URL and the viewer auto-rewrites to `/embed`. Also handles kuula.co (auto-fullscreen flag), roundme, momento360, panoraven, 360cities, and Google Street View shares.",
       "**Real spherical viewer for image URLs.** Direct `.jpg` / `.png` panoramas now render via pannellum (loaded lazily from CDN) so you get proper mouse/touch/gyroscope look-around, not the toy flat-drag preview from 4.7.3.",

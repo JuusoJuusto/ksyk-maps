@@ -356,7 +356,7 @@ export default function Home() {
                     key={room.id}
                     className={`p-2 md:p-3 cursor-pointer border-b last:border-b-0 transition-all ${darkMode ? 'hover:bg-gray-600 border-gray-600' : 'hover:bg-blue-100 border-gray-200'}`}
                     onClick={() => {
-                      analytics.trackFeatureUse('room_view');
+                      analytics.trackFeatureUse('room_view', { roomId: room.id, roomNumber: room.roomNumber });
                       setSelectedRoom(room);
                       setSelectedFloor(room.floor);
                       setSearchQuery("");
@@ -1125,7 +1125,7 @@ export default function Home() {
                     
                     return (
                       <g key={room.id} className="cursor-pointer" onClick={() => {
-                        analytics.trackFeatureUse('room_view');
+                        analytics.trackFeatureUse('room_view', { roomId: room.id, roomNumber: room.roomNumber });
                         setSelectedRoom(room);
                       }}>
                         {/* Room shadow - 2 layers */}
