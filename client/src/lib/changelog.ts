@@ -10,15 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.6";
+export const APP_VERSION = "4.7.7";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.7",
+    date: "September 2026",
+    title: "Widget config wired up · session replay scrubber upgraded",
+    titleFi: "Widget-asetukset toimivat · session-toiston skrabari päivittynyt",
+    latest: true,
+    highlights: [
+      "**Widget long-press config now actually does something.** The TodaySchedule widget's Hide-Past / Auto-Roll / Show-Chip toggles used to live in the config screen but nothing read them at render time. Now every widget update honors all three per widget-id. Also added a new **Default Day** picker (Yesterday · Today · Tomorrow · +2d · +3d) — pin the widget to a specific day so tomorrow-morning students always see tomorrow's schedule when they wake up.",
+      "**Session replay scrubber — proper timeline controls.** Was a play/pause + prev/next + jump-to-error. Now adds: kind-filter chips (hide pageviews to focus on errors etc.) with per-kind event counts, playback speed selector (0.5× · 1× · 2× · 4×), loop toggle, real mm:ss / total elapsed display, keyboard shortcuts (Space play/pause · ← → step · L loop), auto-open event list with per-row +elapsed timestamps and a max-height scroller instead of a giant page-height list.",
+      "**Event list rows** now show +elapsed offset from session start instead of wall-clock time — makes debugging user flows easier ('the error happened 8s after search').",
+    ],
+    highlightsFi: [
+      "**Widget-asetukset toimivat oikeasti.** Piilota menneet / automaattinen rullaus / näytä chip -kytkimet luetaan nyt jokaisen widgetin päivityksessä. Uusi **Oletuspäivä**-valitsin — kiinnitä widget haluamaasi päivään (eilen / tänään / huomenna / +2d / +3d).",
+      "**Session-toiston skrabari kunnollisilla kontrolleilla.** Uutta: laji-suodatuschipit, toistonopeuden valitsin (0.5×–4×), loop-kytkin, mm:ss / kokonaisaika, näppäinkomennot (välilyönti = play/pause, nuolet, L = loop), event-lista +elapsed-aikaleimoilla.",
+    ],
+  },
   {
     version: "4.7.6",
     date: "September 2026",
     title: "Admin Analytics & Logs — cleaned up, deduped, clearer pill nav",
     titleFi: "Admin: Analytics & Logs — siivottu, duplikaatit poistettu, selkeämpi navigointi",
-    latest: true,
     highlights: [
       "**Analytics & Logs page cleanup.** Every aggregate card used to appear TWICE — once in the Analytics pill and once under the Logs pill's own Analytics/Insights/Easter Eggs tabs. Fixed. Logs is now a pure raw-event stream; aggregate views live only under Analytics.",
       "**Log tabs trimmed from 7 to 4** — All Logs · Live Events · Logins · App Events. The old Analytics / Insights / Easter Eggs tabs are gone; those already existed in the Analytics dashboard.",

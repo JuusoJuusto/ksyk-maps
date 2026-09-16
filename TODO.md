@@ -16,7 +16,18 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.6 · pending push)
+## ✅ Just shipped (Android v1.88.0 · web 4.7.7 · pending push)
+
+- **Widget long-press config actually does something now.** The TodayScheduleWidget config activity had 3 toggles (Hide Past / Auto Roll / Show Chip) that never took effect because the widget's `updateWidget()` never read them. Fixed: every render honors all three per widget-id. Added a **fourth pref — Default Day** picker (`-1 = Yesterday · 0 = Today · 1 = Tomorrow · 2 · 3`) so users can pin a widget to a specific day.
+- **Session replay scrubber upgraded** in `AdminAnalyticsDashboard.tsx`:
+  - **Kind filter chips** (Errors · Search · Pageviews · Nav · Other) with per-kind counts. Click to hide/show.
+  - **Playback speed selector** (0.5× · 1× · 2× · 4×) — big time-saver on long sessions.
+  - **Loop toggle** for repeated review.
+  - **Real mm:ss / total elapsed display** replacing "+Ns from start".
+  - **Keyboard shortcuts**: `Space` play/pause · `←/→` step · `L` loop.
+  - Event list opens by default with a max-height scroller instead of a giant page-height list, and rows now show `+elapsed` offset from session start instead of wall-clock time.
+
+## ✅ Shipped (web 4.7.6 · pushed 7304c37)
 
 - **Admin Analytics & Logs cleanup — the primary ask.**
   - `AppLogsManager` (Logs pill) had **7 tabs**: All Logs, Live Events, Logins, App Events, Analytics, Insights, Easter Eggs. The last three all had aggregate views that ALSO existed in `AdminAnalyticsDashboard`. Trimmed to **4 tabs** — raw log streams only.

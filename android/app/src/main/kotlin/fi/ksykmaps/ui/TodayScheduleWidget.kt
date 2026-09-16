@@ -109,7 +109,18 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
             val entries = parseWidgetEntries(prefs.getString("entries_json", null))
             val jaksot  = parseWidgetJaksot(prefs.getString("jaksot_json", null))
-            val offset = prefs.getInt(KEY_DAY_OFFSET, 0)
+            // v1.88.0 — per-widget preferences from long-press config screen.
+            val cfgHidePast   = TodayScheduleWidgetConfigActivity.hidePast(context, id)
+            val cfgAutoRoll   = TodayScheduleWidgetConfigActivity.autoRoll(context, id)
+            val cfgShowChip   = TodayScheduleWidgetConfigActivity.showChip(context, id)
+            val cfgDefaultOff = TodayScheduleWidgetConfigActivity.defaultDayOffset(context, id)
+            // The global offset is shared across widgets; when it's 0 and
+            // the user has picked a non-zero default day in the config, use
+            // that as the initial offset. Arrow presses still write back
+            // to the global offset, so once the user actively browses,
+            // they're driving.
+            val rawOffset = prefs.getInt(KEY_DAY_OFFSET, 0)
+            val offset = if (rawOffset == 0 && cfgDefaultOff != 0) cfgDefaultOff else rawOffset
             val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_today_schedule)
 
@@ -195,10 +206,16 @@ class TodayScheduleWidget : AppWidgetProvider() {
             var effectiveDate = displayDate
             var classified = ScheduleEngine.classifyForDate(allLessons, effectiveDate, nowDt)
 
+            // v1.88.0 — hide past classes when the user asked for it in
+            // the config screen (default off = show past dimmed).
+            if (cfgHidePast) {
+                classified = classified.filter { it.state != LessonState.PAST }
+            }
             // Auto-roll: when the user is on "today" AND every lesson has
             // ended (or the day is empty), jump forward to the next school
-            // day that has lessons. Respects manual browsing (offset != 0).
-            if (offset == 0) {
+            // day that has lessons. Respects manual browsing (offset != 0)
+            // and the user's config toggle (default on).
+            if (offset == 0 && cfgAutoRoll) {
                 val allEndedOrEmpty = classified.isEmpty() || classified.all { it.state == LessonState.PAST }
                 if (allEndedOrEmpty) {
                     val nextDay = ScheduleEngine.nextSchoolDayWithLessons(
@@ -225,7 +242,12 @@ class TodayScheduleWidget : AppWidgetProvider() {
             } else {
                 "${effectiveDate.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${effectiveDate.dayOfMonth}"
             }
-            val effectiveLabel = if (effectiveChip != null) "$effectiveChip · $effectiveDayAbbr $effectiveDatePart" else "$effectiveDayAbbr · $effectiveDatePart"
+            // v1.88.0 — respect the "show chip" config toggle. When off,
+            // just show the day abbrev + date (no TODAY/TOMORROW prefix).
+            val effectiveLabel = if (cfgShowChip && effectiveChip != null)
+                "$effectiveChip · $effectiveDayAbbr $effectiveDatePart"
+            else
+                "$effectiveDayAbbr · $effectiveDatePart"
             views.setTextViewText(R.id.widget_day, effectiveLabel)
 
             if (classified.isEmpty()) {

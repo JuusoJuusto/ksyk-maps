@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -55,6 +56,14 @@ class TodayScheduleWidgetConfigActivity : ComponentActivity() {
         fun showChip(ctx: Context, id: Int): Boolean =
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getBoolean("${keyPrefix(id)}show_chip", true)
+
+        /** v1.88.0 — per-widget "default day" preference. 0 = today (auto-roll
+         *  can still push forward). Set to e.g. 1 to always land on tomorrow
+         *  the first time the widget opens each session. Only applied when
+         *  the offset hasn't been manually adjusted via the arrows. */
+        fun defaultDayOffset(ctx: Context, id: Int): Int =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt("${keyPrefix(id)}default_offset", 0)
 
         private fun set(ctx: Context, id: Int, key: String, value: Boolean) {
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -109,10 +118,15 @@ private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
     var hidePast by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.hidePast(ctx, widgetId)) }
     var autoRoll by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.autoRoll(ctx, widgetId)) }
     var showChip by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.showChip(ctx, widgetId)) }
+    var defaultOffset by remember { mutableStateOf(TodayScheduleWidgetConfigActivity.defaultDayOffset(ctx, widgetId)) }
 
     fun save(key: String, value: Boolean) {
         val prefs = ctx.getSharedPreferences("ksyk_widget_config", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("widget_${widgetId}_$key", value).apply()
+    }
+    fun saveInt(key: String, value: Int) {
+        val prefs = ctx.getSharedPreferences("ksyk_widget_config", Context.MODE_PRIVATE)
+        prefs.edit().putInt("widget_${widgetId}_$key", value).apply()
     }
 
     Scaffold(
@@ -218,6 +232,83 @@ private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
                 checked = showChip,
                 onChange = { showChip = it; save("show_chip", it) },
             )
+
+            // v1.88.0 — default day picker. Segmented row (Yesterday / Today
+            // / Tomorrow / +2d / +3d) so users can pin the widget to a day
+            // that suits their workflow (e.g. always show tomorrow in the
+            // evening after school).
+            DefaultDayRow(
+                isFi = isFi,
+                value = defaultOffset,
+                onChange = { defaultOffset = it; saveInt("default_offset", it) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DefaultDayRow(isFi: Boolean, value: Int, onChange: (Int) -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                if (isFi) "Oletuspäivä" else "Default day",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                if (isFi) "Mille päivälle widget avautuu kun avaat sen ensimmäistä kertaa"
+                else "Which day the widget opens on when first shown",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            val options = listOf(
+                -1 to (if (isFi) "Eilen" else "Yesterday"),
+                0  to (if (isFi) "Tänään" else "Today"),
+                1  to (if (isFi) "Huomenna" else "Tomorrow"),
+                2  to "+2d",
+                3  to "+3d",
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                options.forEach { (offset, label) ->
+                    val selected = offset == value
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (selected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .clickable { onChange(offset) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (selected)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

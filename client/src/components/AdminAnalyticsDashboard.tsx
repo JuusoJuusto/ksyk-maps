@@ -440,85 +440,205 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
  */
 function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: string; detail: string }> }) {
   // Sort oldest-first for playback semantics; the caller sorts newest-first.
-  const events = useMemo(
+  const allEvents = useMemo(
     () => [...rows].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()),
     [rows],
   );
+
+  // v4.7.7 — richer scrubber: kind filter chips, playback speed, real
+  // wall-clock elapsed display, keyboard shortcuts, jump-to-error, loop.
+  type Kind = "error" | "search" | "pageview" | "nav" | "other";
+  const kindOf = (k: string): Kind => {
+    if (k.includes("error"))    return "error";
+    if (k.includes("search"))   return "search";
+    if (k.includes("pageview")) return "pageview";
+    if (k.includes("nav"))      return "nav";
+    return "other";
+  };
+  const kindColor: Record<Kind, string> = {
+    error:    "#EF4444",
+    search:   "#F59E0B",
+    pageview: "#3B82F6",
+    nav:      "#8B5CF6",
+    other:    "#10B981",
+  };
+  const kindLabel: Record<Kind, string> = {
+    error: "Errors", search: "Search", pageview: "Pageviews", nav: "Nav", other: "Other",
+  };
+
+  const [hidden, setHidden] = useState<Set<Kind>>(new Set());
+  const events = useMemo(
+    () => allEvents.filter(e => !hidden.has(kindOf(e.kind))),
+    [allEvents, hidden],
+  );
+
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<0.5 | 1 | 2 | 4>(1);
+  const [loop, setLoop] = useState(false);
+
+  // Clamp idx when the filter shrinks the visible set.
+  useEffect(() => {
+    if (idx >= events.length && events.length > 0) setIdx(events.length - 1);
+    if (events.length === 0) setIdx(0);
+  }, [events.length, idx]);
 
   useEffect(() => {
     if (!playing) return;
-    if (idx >= events.length - 1) { setPlaying(false); return; }
-    const t = setTimeout(() => setIdx((i) => Math.min(i + 1, events.length - 1)), 1000);
+    if (idx >= events.length - 1) {
+      if (loop) { setIdx(0); return; }
+      setPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setIdx((i) => Math.min(i + 1, events.length - 1)), 1000 / speed);
     return () => clearTimeout(t);
-  }, [playing, idx, events.length]);
+  }, [playing, idx, events.length, speed, loop]);
+
+  // Keyboard: space toggles play, ←/→ step, . jumps to first error, l toggles loop.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key === " ") { e.preventDefault(); setPlaying(p => !p); return; }
+      if (e.key === "ArrowLeft")  { setIdx(i => Math.max(0, i - 1)); return; }
+      if (e.key === "ArrowRight") { setIdx(i => Math.min(events.length - 1, i + 1)); return; }
+      if (e.key === "l" || e.key === "L") { setLoop(l => !l); return; }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [events.length]);
 
   const current = events[idx];
   const start = events[0]?.ts ? new Date(events[0].ts).getTime() : 0;
   const end = events[events.length - 1]?.ts ? new Date(events[events.length - 1].ts).getTime() : start;
   const total = Math.max(1, end - start);
   const elapsed = current ? new Date(current.ts).getTime() - start : 0;
-
-  const kindColor = (k: string) => {
-    if (k.includes("error"))    return "#EF4444";
-    if (k.includes("search"))   return "#F59E0B";
-    if (k.includes("pageview")) return "#3B82F6";
-    if (k.includes("nav"))      return "#8B5CF6";
-    return "#10B981";
-  };
+  const totalDurationMs = total;
 
   const firstErrorIdx = events.findIndex((e) => e.kind.includes("error"));
 
+  const fmtMs = (ms: number) => {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  };
+
+  const toggleKind = (k: Kind) => {
+    setHidden(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
+
+  // Precompute filter chip counts from the unfiltered set so the numbers
+  // don't shrink when the user hides categories.
+  const counts = useMemo(() => {
+    const c: Record<Kind, number> = { error: 0, search: 0, pageview: 0, nav: 0, other: 0 };
+    for (const e of allEvents) c[kindOf(e.kind)]++;
+    return c;
+  }, [allEvents]);
+
+  if (events.length === 0) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        No events match the current filter.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 py-3">
+      {/* Filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span className="text-muted-foreground font-medium mr-1">Filter:</span>
+        {(Object.keys(counts) as Kind[]).map((k) => {
+          const isOn = !hidden.has(k);
+          return (
+            <button
+              key={k}
+              onClick={() => toggleKind(k)}
+              disabled={counts[k] === 0}
+              className={`px-2 py-1 rounded-md font-mono font-semibold flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                isOn ? "bg-slate-100 dark:bg-slate-800" : "bg-transparent opacity-50 hover:opacity-80"
+              }`}
+              title={isOn ? `Hide ${kindLabel[k]}` : `Show ${kindLabel[k]}`}
+            >
+              <span className="inline-block w-2 h-2 rounded-full" style={{ background: kindColor[k] }} />
+              <span>{kindLabel[k]}</span>
+              <span className="text-muted-foreground">({counts[k]})</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Current-event card */}
       {current && (
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3">
           <div className="flex items-center gap-2 mb-1">
             <span
               className="inline-block w-2 h-2 rounded-full"
-              style={{ background: kindColor(current.kind) }}
+              style={{ background: kindColor[kindOf(current.kind)] }}
             />
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wide" style={{ color: kindColor(current.kind) }}>
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wide" style={{ color: kindColor[kindOf(current.kind)] }}>
               {current.kind}
             </span>
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">
-              {new Date(current.ts).toLocaleTimeString()} · +{Math.round(elapsed / 1000)}s from start
+              {new Date(current.ts).toLocaleTimeString()} · +{fmtMs(elapsed)} from start
             </span>
           </div>
-          <p className="text-sm break-all">{current.detail || "—"}</p>
+          <p className="text-sm break-all font-mono">{current.detail || "—"}</p>
         </div>
       )}
 
       {/* Playback controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setIdx((i) => Math.max(0, i - 1))}
           disabled={idx === 0}
           className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 disabled:opacity-40 flex items-center justify-center font-bold"
+          title="Previous event (←)"
         >‹</button>
         <button
           onClick={() => setPlaying((p) => !p)}
-          className="w-9 h-9 rounded-full bg-primary text-primary-foreground hover:opacity-90 flex items-center justify-center"
+          className="w-10 h-10 rounded-full bg-primary text-primary-foreground hover:opacity-90 flex items-center justify-center font-bold shadow-sm"
+          title={playing ? "Pause (Space)" : "Play (Space)"}
         >{playing ? "❚❚" : "▶"}</button>
         <button
           onClick={() => setIdx((i) => Math.min(events.length - 1, i + 1))}
           disabled={idx >= events.length - 1}
           className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 disabled:opacity-40 flex items-center justify-center font-bold"
+          title="Next event (→)"
         >›</button>
-        <div className="flex-1 flex items-center gap-2 ml-2">
-          <span className="text-[10px] text-muted-foreground font-mono w-8 text-right">{idx + 1}</span>
-          <input
-            type="range"
-            min={0}
-            max={events.length - 1}
-            value={idx}
-            onChange={(e) => setIdx(Number(e.target.value))}
-            className="flex-1"
-          />
-          <span className="text-[10px] text-muted-foreground font-mono w-8">{events.length}</span>
+
+        {/* Speed selector */}
+        <div className="flex items-center gap-0.5 rounded-md bg-slate-100 dark:bg-slate-800 p-0.5">
+          {([0.5, 1, 2, 4] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSpeed(s)}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition ${
+                speed === s ? "bg-white dark:bg-slate-950 shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+              title={`Playback speed ${s}×`}
+            >{s}×</button>
+          ))}
         </div>
+
+        {/* Loop toggle */}
+        <button
+          onClick={() => setLoop(l => !l)}
+          className={`px-2 py-1 rounded-md text-[11px] font-semibold transition ${
+            loop ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground hover:bg-muted/70"
+          }`}
+          title="Loop playback (L)"
+        >↻ Loop</button>
+
+        {/* Elapsed / total */}
+        <span className="ml-auto text-[11px] font-mono tabular-nums text-muted-foreground">
+          {fmtMs(elapsed)} / {fmtMs(totalDurationMs)}
+        </span>
+
         {firstErrorIdx >= 0 && (
           <button
             onClick={() => setIdx(firstErrorIdx)}
@@ -530,16 +650,31 @@ function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: strin
         )}
       </div>
 
-      {/* Timeline strip */}
-      <div className="relative h-6 rounded bg-slate-100 dark:bg-slate-900 overflow-hidden">
+      {/* Scrubber slider */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground font-mono w-10 text-right tabular-nums">{idx + 1}</span>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(0, events.length - 1)}
+          value={idx}
+          onChange={(e) => setIdx(Number(e.target.value))}
+          className="flex-1"
+        />
+        <span className="text-[10px] text-muted-foreground font-mono w-10 tabular-nums">{events.length}</span>
+      </div>
+
+      {/* Timeline strip — event ticks */}
+      <div className="relative h-8 rounded bg-slate-100 dark:bg-slate-900 overflow-hidden">
         {events.map((e, i) => {
           const pos = ((new Date(e.ts).getTime() - start) / total) * 100;
+          const k = kindOf(e.kind);
           return (
             <div
               key={i}
               onClick={() => setIdx(i)}
-              className="absolute top-0 bottom-0 w-[3px] cursor-pointer hover:w-[5px] transition-all"
-              style={{ left: `${pos}%`, background: kindColor(e.kind) }}
+              className="absolute top-0 bottom-0 w-[3px] cursor-pointer hover:w-[6px] transition-all"
+              style={{ left: `${pos}%`, background: kindColor[k] }}
               title={`${e.kind} @ ${new Date(e.ts).toLocaleTimeString()}`}
             />
           );
@@ -551,32 +686,36 @@ function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: strin
       </div>
 
       {/* Full event list (for reference / copy) */}
-      <details className="text-xs">
-        <summary className="cursor-pointer text-muted-foreground py-2 select-none">
-          All {events.length} events (click to expand)
+      <details className="text-xs" open>
+        <summary className="cursor-pointer text-muted-foreground py-2 select-none font-medium">
+          All {events.length} events (click any row to jump)
         </summary>
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800 mt-2">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 mt-2 max-h-64 overflow-y-auto rounded border border-slate-200 dark:border-slate-800">
           {events.map((r, i) => (
             <li
               key={i}
               onClick={() => setIdx(i)}
-              className={`py-1.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded ${i === idx ? "bg-primary/10" : "hover:bg-muted/50"}`}
+              className={`py-1.5 px-2 flex items-center justify-between gap-3 cursor-pointer ${i === idx ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"}`}
             >
-              <div className="min-w-0 flex items-center gap-2">
+              <div className="min-w-0 flex items-center gap-2 flex-1">
                 <span
                   className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: kindColor(r.kind) }}
+                  style={{ background: kindColor[kindOf(r.kind)] }}
                 />
-                <span className="font-mono text-[10px] font-semibold w-16 shrink-0">{r.kind.slice(0, 12)}</span>
+                <span className="font-mono text-[10px] font-semibold w-16 shrink-0">{r.kind.slice(0, 14)}</span>
                 <span className="text-[11px] text-muted-foreground truncate">{r.detail || "—"}</span>
               </div>
               <p className="text-[10px] text-muted-foreground whitespace-nowrap font-mono">
-                {new Date(r.ts).toLocaleTimeString()}
+                +{fmtMs(new Date(r.ts).getTime() - start)}
               </p>
             </li>
           ))}
         </ul>
       </details>
+
+      <p className="text-[10px] text-muted-foreground">
+        Shortcuts: <kbd className="px-1 rounded bg-muted">Space</kbd> play/pause · <kbd className="px-1 rounded bg-muted">←/→</kbd> step · <kbd className="px-1 rounded bg-muted">L</kbd> loop
+      </p>
     </div>
   );
 }

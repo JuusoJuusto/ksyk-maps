@@ -36,6 +36,22 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.88.0",
+        date = "September 2026",
+        titleFi = "Widget-asetukset toimivat + Oletuspäivä-valitsin",
+        titleEn = "Widget config toggles wired up + Default Day picker",
+        highlightsFi = listOf(
+            "Piilota menneet / automaattinen rullaus / näytä päivämerkki -kytkimet toimivat nyt oikeasti — jokainen widgetin päivitys lukee ne per widget-ID.",
+            "Uusi Oletuspäivä-valitsin (Eilen · Tänään · Huomenna · +2d · +3d) — kiinnitä widget haluamaasi päivään.",
+            "Painamalla widgettiä pitkään pääset asetuksiin ja voit muuttaa jokaista widgettiä erikseen.",
+        ),
+        highlightsEn = listOf(
+            "Hide-past / Auto-roll / Show-chip toggles are actually honored on every widget render (previously the config screen wrote them but the widget didn't read them).",
+            "New Default Day picker (Yesterday · Today · Tomorrow · +2d · +3d) — pin the widget to a specific day.",
+            "Long-press the widget to reach settings; every widget instance is configured independently.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.87.0",
         date = "September 2026",
         titleFi = "Tuplaikoni-korjaus, suosio-heatmap ja isommat widgetit",
