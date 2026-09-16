@@ -557,20 +557,29 @@ function NotificationsPanel({
  * admin needs when investigating an issue on one screen.
  */
 function InsightsPanel() {
-  const [inner, setInner] = useState<"analytics" | "errors" | "logs" | "external" | "feedback">("analytics");
-  const pills: { key: typeof inner; label: string }[] = [
-    { key: "analytics", label: "Analytics" },
-    { key: "errors",    label: "Errors (Sentry)" },
-    { key: "logs",      label: "Logs" },
-    { key: "external",  label: "External" },
-    { key: "feedback",  label: "Feedback, Bugs & Crashes" },
+  // v4.7.6 — reorganized. Pills now group by *purpose*:
+  //   Analytics  → usage metrics, features, sessions (aggregate views)
+  //   Live logs  → raw log stream (login/app/live events)
+  //   Errors     → Sentry launcher
+  //   Feedback   → user-submitted feedback + crashes
+  //   External   → third-party dashboards (PostHog etc.)
+  // Aggregate views used to live in BOTH Analytics and Logs — the Logs
+  // tabs have been pruned to raw streams only.
+  const [inner, setInner] = useState<"analytics" | "logs" | "errors" | "feedback" | "external">("analytics");
+  const pills: { key: typeof inner; label: string; hint: string }[] = [
+    { key: "analytics", label: "Analytics",     hint: "Usage metrics, features, sessions" },
+    { key: "logs",      label: "Live logs",     hint: "Raw event stream + logins + app events" },
+    { key: "errors",    label: "Errors",        hint: "Sentry issues launcher" },
+    { key: "feedback",  label: "Feedback",      hint: "User feedback, bugs & crashes" },
+    { key: "external",  label: "External",      hint: "Third-party dashboards" },
   ];
+  const activePill = pills.find(p => p.key === inner);
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold">Analytics &amp; Logs</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Usage metrics, error logs, external dashboards, and user-submitted feedback in one place.
+          {activePill?.hint ?? "Usage metrics, error logs, dashboards, and user feedback in one place."}
         </p>
       </div>
       <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
@@ -578,6 +587,7 @@ function InsightsPanel() {
           <button
             key={p.key}
             onClick={() => setInner(p.key)}
+            title={p.hint}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${inner === p.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
           >
             {p.label}
@@ -585,10 +595,10 @@ function InsightsPanel() {
         ))}
       </div>
       {inner === "analytics" && <AdminAnalyticsDashboard />}
-      {inner === "errors"    && <ErrorsPanel />}
       {inner === "logs"      && <AppLogsManager />}
-      {inner === "external"  && <AnalyticsExternalPanel />}
+      {inner === "errors"    && <ErrorsPanel />}
       {inner === "feedback"  && <FeedbackPanel />}
+      {inner === "external"  && <AnalyticsExternalPanel />}
     </div>
   );
 }

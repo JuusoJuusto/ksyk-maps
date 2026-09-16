@@ -5,12 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, TrendingUp, BarChart3, Trophy, Filter } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import EasterEggStats from '@/components/EasterEggStats';
+import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, Filter } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
-import { fetchList, fetchObject } from '@/lib/fetchList';
+import { fetchList } from '@/lib/fetchList';
 
 interface LoginLog {
   id: string;
@@ -121,23 +119,10 @@ export default function AppLogsManager() {
     refetchInterval: 10000,
   });
 
-  const { data: analyticsSummary, isLoading: analyticsLoading } = useQuery<any>({
-    queryKey: ['analytics-summary'],
-    queryFn: async () => (await fetchObject<Record<string, unknown>>('/api/telemetry/summary')) as any,
-    refetchInterval: 60000,
-  });
-
-  const { data: topSearches, isLoading: searchesLoading } = useQuery<any[]>({
-    queryKey: ['analytics-searches'],
-    queryFn: async () => (await fetchList<unknown>('/api/telemetry/searches')) as any[],
-    refetchInterval: 60000,
-  });
-
-  const { data: popularRooms, isLoading: roomsLoading } = useQuery<any[]>({
-    queryKey: ['analytics-rooms'],
-    queryFn: async () => (await fetchList<unknown>('/api/telemetry/rooms')) as any[],
-    refetchInterval: 60000,
-  });
+  // v4.7.6 — removed analytics-summary, analytics-searches, and
+  // analytics-rooms queries here. Their tabs moved to AdminAnalyticsDashboard
+  // which owns the aggregate views; keeping the fetches here just wasted
+  // /api round-trips.
 
   // ── Log filters ────────────────────────────────────────────────────
   // The unfiltered stream can be firehose-loud on a busy day, so we surface
@@ -229,7 +214,7 @@ export default function AppLogsManager() {
     return lvl === 'warning' || lvl === 'error';
   }).length;
 
-  const isLoading = loginLogsLoading || appLogsLoading || analyticsLoading || searchesLoading || roomsLoading || eventsLoading;
+  const isLoading = loginLogsLoading || appLogsLoading || eventsLoading;
 
   // Prepare chart data from real analytics
   const activityByHour = Array.from({ length: 24 }, (_, hour) => {
@@ -389,8 +374,9 @@ export default function AppLogsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {/* v4.7.6 — trimmed from 5 stat cards to 2. Visitors, Searches,
+       *  and Page Views used to appear here AND in the Analytics tab. */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -419,10 +405,10 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Visitors</p>
-                <p className="text-3xl font-bold text-purple-600">{analyticsSummary?.totalVisitors || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">Logins</p>
+                <p className="text-3xl font-bold text-amber-600">{loginLogs.length}</p>
               </div>
-              <Users className="h-10 w-10 text-purple-500" />
+              <Shield className="h-10 w-10 text-amber-500" />
             </div>
           </CardContent>
         </Card>
@@ -431,22 +417,10 @@ export default function AppLogsManager() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Searches</p>
-                <p className="text-3xl font-bold text-orange-600">{analyticsSummary?.totalSearches || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">App Events</p>
+                <p className="text-3xl font-bold text-indigo-600">{appLogs.length}</p>
               </div>
-              <Search className="h-10 w-10 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Page Views</p>
-                <p className="text-3xl font-bold text-blue-600">{analyticsSummary?.totalPageViews || 0}</p>
-              </div>
-              <Eye className="h-10 w-10 text-blue-500" />
+              <Info className="h-10 w-10 text-indigo-500" />
             </div>
           </CardContent>
         </Card>
@@ -577,24 +551,23 @@ export default function AppLogsManager() {
       {/* Logs Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle>Application Logs</CardTitle>
+          <CardTitle>Live log stream</CardTitle>
           <CardDescription>
-            Track all system activity, logins, and events (latest 100 · filters apply)
+            Raw event stream, logins, and app events (latest 100 · filters apply).
+            For aggregate metrics, features, and sessions see the <b>Analytics</b> pill.
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* v4.7.6 — trimmed from 7 to 4 tabs. Analytics / Insights /
+           *  Easter Eggs used to live here AND in the Analytics pill —
+           *  admins asked why every card appeared twice. Kept only the
+           *  raw-log views here; aggregate views live in Analytics. */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">All Logs ({allLogs.length})</TabsTrigger>
               <TabsTrigger value="live">Live Events ({analyticsEvents.length})</TabsTrigger>
               <TabsTrigger value="logins">Logins ({loginLogs.length})</TabsTrigger>
               <TabsTrigger value="app">App Events ({appLogs.length})</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
-              <TabsTrigger value="easter-eggs" className="flex items-center gap-1">
-                <Trophy className="h-3 w-3" />
-                Easter Eggs
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="live" className="mt-4">
@@ -731,323 +704,6 @@ export default function AppLogsManager() {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="analytics" className="mt-4">
-              <div className="space-y-6">
-                {/* Analytics Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-8 w-8 text-blue-600" />
-                        <div>
-                          <p className="text-2xl font-bold">{analyticsSummary?.totalVisitors || 0}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Total Visitors</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Monitor className="h-8 w-8 text-green-600" />
-                        <div>
-                          <p className="text-2xl font-bold">{analyticsSummary?.totalPageViews || 0}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Page Views</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Search className="h-8 w-8 text-purple-600" />
-                        <div>
-                          <p className="text-2xl font-bold">{analyticsSummary?.totalSearches || 0}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Searches</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Navigation className="h-8 w-8 text-orange-600" />
-                        <div>
-                          <p className="text-2xl font-bold">{analyticsSummary?.totalNavigationRequests || 0}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Navigation</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Activity by Hour Chart */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Activity by Hour (Last 24 Hours)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={activityByHour}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Area type="monotone" dataKey="events" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                {/* Event Types Distribution */}
-                {eventTypeData.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Event Types Distribution</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <ResponsiveContainer width="100%" height={300}>
-                          <PieChart>
-                            <Pie
-                              data={eventTypeData}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                            >
-                              {eventTypeData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={eventTypeData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="value" fill="#3b82f6" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Top Searches */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top Searches</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {topSearches && topSearches.length > 0 ? (
-                      <div className="space-y-3">
-                        {topSearches.slice(0, 10).map((search: any, index: number) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <div className="flex items-center space-x-2">
-                              <Search className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">"{search.query}"</span>
-                              <Badge variant="outline" className="text-xs">{search.type}</Badge>
-                            </div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{search.count} times</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                        No search data available yet
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Popular Rooms */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Most Visited Rooms</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {popularRooms && popularRooms.length > 0 ? (
-                      <div className="space-y-3">
-                        {popularRooms.slice(0, 10).map((room: any, index: number) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">{room.roomNumber}</span>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">({room.building})</span>
-                            </div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{room.visits} visits</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                        No room visit data available yet
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="insights" className="mt-4">
-              <div className="space-y-6">
-                {/* Geographic Insights */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Geographic Distribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {analyticsSummary?.topCountries && analyticsSummary.topCountries.length > 0 ? (
-                      <>
-                        <div className="space-y-3 mb-6">
-                          {analyticsSummary.topCountries.map((country: any, index: number) => (
-                            <div key={index} className="flex justify-between items-center">
-                              <span className="font-medium">{country.country}</span>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                  <div
-                                    className="bg-blue-600 h-2 rounded-full"
-                                    style={{ width: `${(country.count / (analyticsSummary.topCountries[0]?.count || 1)) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{country.count}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={analyticsSummary.topCountries}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="country" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="count" fill="#3b82f6" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </>
-                    ) : (
-                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                        No geographic data available yet
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Browser Usage */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Browser Usage</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {analyticsSummary?.topBrowsers && analyticsSummary.topBrowsers.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          {analyticsSummary.topBrowsers.map((browser: any, index: number) => (
-                            <div key={index} className="flex justify-between items-center">
-                              <span className="font-medium">{browser.browser}</span>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                  <div
-                                    className="bg-green-600 h-2 rounded-full"
-                                    style={{ width: `${(browser.count / (analyticsSummary.topBrowsers[0]?.count || 1)) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{browser.count}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <PieChart>
-                            <Pie
-                              data={analyticsSummary.topBrowsers}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ browser, count }) => `${browser}: ${count}`}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="count"
-                            >
-                              {analyticsSummary.topBrowsers.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                        No browser data available yet
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Usage Patterns */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Usage Patterns</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          {analyticsSummary?.avgSessionDuration ? Math.floor(analyticsSummary.avgSessionDuration / 60) : 0}m {analyticsSummary?.avgSessionDuration ? Math.round(analyticsSummary.avgSessionDuration % 60) : 0}s
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Avg Session Duration</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-100 dark:border-green-900">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                          {analyticsSummary?.peakHours?.join(', ') || 'N/A'}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Peak Hours</div>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900">
-                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                          {Math.round((1 - (analyticsSummary?.bounceRate || 0)) * 100)}%
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Engagement Rate</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Real-time Activity Trend */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Activity Trend</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={activityByHour}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="events" stroke="#8b5cf6" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="easter-eggs" className="mt-4">
-              <EasterEggStats />
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

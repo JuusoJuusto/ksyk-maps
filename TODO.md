@@ -16,7 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.87.0 · web 4.7.5 · pending push)
+## ✅ Just shipped (web 4.7.6 · pending push)
+
+- **Admin Analytics & Logs cleanup — the primary ask.**
+  - `AppLogsManager` (Logs pill) had **7 tabs**: All Logs, Live Events, Logins, App Events, Analytics, Insights, Easter Eggs. The last three all had aggregate views that ALSO existed in `AdminAnalyticsDashboard`. Trimmed to **4 tabs** — raw log streams only.
+  - Top stat cards in Logs went from **5 → 4** — dropped Total Visitors, Total Searches, Page Views (those live in Analytics tab). Kept Total Logs / Live Events / Logins / App Events.
+  - Reorganized pill nav in `InsightsPanel` — clearer order (Analytics → Live logs → Errors → Feedback → External), each pill has a hint tooltip, header subtitle updates to match the active pill.
+  - Removed 3 redundant `/api/telemetry/*` fetches that only fed the deleted duplicate cards.
+  - Renamed the Logs card title from "Application Logs" → "Live log stream" with an explanatory sub-text pointing admins to the Analytics pill for aggregate views.
+
+## ✅ Shipped (Android v1.87.0 · web 4.7.5 · pushed fa8022d)
 
 - **Fixed duplicate 360° icon on the public map.** `installPOIs` and `installPoiPillars` now skip `kind='panorama'` so only the dedicated fuchsia layer shows. Was rendering the panorama TWICE — once as a grey POI chip and once as the fuchsia 360° badge stacked on top.
 - **Popular-rooms heatmap (admin-only)** — 🔥 toggle in the bottom-right button stack, visible only when `ksyk_admin_token` is present. New `/api/analytics/room-popularity` aggregates last-30-day `room_view` events grouped by `metadata.roomId`, joins to `rooms.points` centroid, returns `{ roomId, count, lat, lng }`. Rendered as a MapLibre heatmap layer with green→yellow→orange→red gradient.

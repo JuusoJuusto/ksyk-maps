@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.5";
+export const APP_VERSION = "4.7.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.6",
+    date: "September 2026",
+    title: "Admin Analytics & Logs — cleaned up, deduped, clearer pill nav",
+    titleFi: "Admin: Analytics & Logs — siivottu, duplikaatit poistettu, selkeämpi navigointi",
+    latest: true,
+    highlights: [
+      "**Analytics & Logs page cleanup.** Every aggregate card used to appear TWICE — once in the Analytics pill and once under the Logs pill's own Analytics/Insights/Easter Eggs tabs. Fixed. Logs is now a pure raw-event stream; aggregate views live only under Analytics.",
+      "**Log tabs trimmed from 7 to 4** — All Logs · Live Events · Logins · App Events. The old Analytics / Insights / Easter Eggs tabs are gone; those already existed in the Analytics dashboard.",
+      "**Log-page stat cards trimmed from 5 to 4** — Total Logs / Live Events / Logins / App Events. Total Visitors, Total Searches, and Page Views used to appear here AND in the Analytics tab; only the log-focused counts remain.",
+      "**Reorganized pill nav** — Analytics · Live logs · Errors · Feedback · External. Each pill has a hint tooltip explaining what lives there. The header subtitle updates to match the active pill so admins always know where they are.",
+      "**Server round-trip savings** — removed the redundant `/api/telemetry/summary`, `/api/telemetry/searches`, and `/api/telemetry/rooms` fetches that Logs was making just to feed the deleted duplicate cards.",
+    ],
+    highlightsFi: [
+      "**Admin: Analytics & Logs -sivun siivous.** Aggregoidut mittarit näkyivät kahdesti — sekä Analytics- että Logs-välilehdellä. Nyt Logs on pelkkä raakadata-virta; aggregaatit vain Analytics-välilehdellä.",
+      "**Loki-välilehdet 7:stä 4:ään** — All Logs · Live Events · Logins · App Events. Vanhat Analytics / Insights / Easter Eggs -välilehdet poistettu (löytyvät Analyticsista).",
+      "**Loki-sivun tilastokortit 5:stä 4:ään** — pelkkiä lokikohtaisia lukuja.",
+      "**Uudelleenjärjestetty pill-navigointi** — Analytics · Live logs · Errors · Feedback · External. Jokaisella pillillä oma tooltip-vihje.",
+      "**Turhia serverikutsuja karsittu** — Logs ei enää hae `/api/telemetry/{summary,searches,rooms}` -tietoja tuplakortteja varten.",
+    ],
+  },
   {
     version: "4.7.5",
     date: "September 2026",
     title: "Fix double 360° icon · popular-rooms heatmap · bigger widget text & buttons",
     titleFi: "Tuplaikoni-korjaus · huoneiden suosio-heatmap · isommat widget-tekstit ja napit",
-    latest: true,
     highlights: [
       "**Fixed the duplicate 360° icon on the public map.** Panoramas were rendering twice — once as a generic grey POI chip and once as the fuchsia 360° badge. `installPOIs` and `installPoiPillars` now skip `kind='panorama'` so only the dedicated fuchsia layer shows. Same fix applies in 3D mode.",
       "**Popular-rooms heatmap (admin-only).** New 🔥 toggle in the bottom-right button stack — visible only when the admin token is present. New `/api/analytics/room-popularity` endpoint aggregates `room_view` telemetry from the last 30 days, joins each roomId to its polygon centroid, and returns `{ roomId, count, lat, lng }`. Rendered as a MapLibre heatmap layer with a green→yellow→orange→red gradient. `room_view` events now include `roomId` + `roomNumber` in metadata so the aggregation actually has data to work with going forward.",
