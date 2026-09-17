@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.8";
+export const APP_VERSION = "4.7.9";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.9",
+    date: "September 2026",
+    title: "Campus events on map · onboarding walkthrough · FCM report",
+    titleFi: "Kampuksen tapahtumat kartalla · esittelykierros · FCM-raportti",
+    latest: true,
+    highlights: [
+      "**Campus events show as pins on the map.** New `/api/events/map` endpoint returns future active events with a resolved lat/lng — via linked room polygon centroid, or a `lat,lng` fallback parsed from the `location` field. Rendered as amber ★ pins with a fuchsia-style glow layer. Click a pin → floating popover with title, start/end time, location, and description. Filter is public-active-future only.",
+      "**3-screen post-setup walkthrough (Android).** New `PostSetupWalkthrough` — fires ONCE right after a user's first successful Wilma import, walking them through Home / Timetable / Widgets features so they don't miss what's there. Skippable at any page; state persisted in SharedPreferences (`walkthrough_seen_v1`) so it never nags again.",
+      "**FCM verification report** — new `FCM-STATUS.md` at repo root: end-to-end architecture, env-var reference, historical bug fixes with commit anchors, common failure diagnostic table, non-goals. This is the single source of truth for FCM going forward.",
+    ],
+    highlightsFi: [
+      "**Kampuksen tapahtumat kartalla.** Uusi `/api/events/map`-päätepiste palauttaa tulevat aktiiviset tapahtumat resolvoidun sijainnin kanssa. Renderöityvät karttaan meripihka-★-nastoina — klikkaus avaa popoverin, jossa otsikko, kellonaika ja kuvaus.",
+      "**Wilma-tuonnin jälkeinen esittelykierros (Android).** Uusi 3-sivuinen tour joka näytetään KERRAN ensimmäisen onnistuneen Wilma-tuonnin jälkeen. Kertoo Etusivusta, Lukujärjestyksestä ja Widgeteistä.",
+      "**FCM-tila-raportti** — uusi `FCM-STATUS.md` repo-juuressa: arkkitehtuuri, ympäristömuuttujat, vikahistoria, diagnostiikkataulukko.",
+    ],
+  },
   {
     version: "4.7.8",
     date: "September 2026",
     title: "Home reorder · Retention chart",
     titleFi: "Etusivun järjestely · Retention-kaavio",
-    latest: true,
     highlights: [
       "**Customize the Home tab** (Android). New Settings → Appearance → Customize home screen: drag any section (Quick actions · Now/next lesson · Rest of day · Tomorrow · Campus stats · Announcements) to reorder via long-press-drag, or toggle it off entirely. Persisted per-user via SharedPreferences. Reset button restores defaults.",
       "**Retention chart in admin analytics** — new line chart showing what percentage of the last-60-day cohort came back N days later (Day 0 → Day 30). Cohort SQL runs over `telemetry_sessions` with `COALESCE(user_id, anonymous_id, session_id)` so anonymous students still count. D1 / D7 / D30 quick-look numbers in the card header. `/api/analytics/retention` endpoint, admin-only.",

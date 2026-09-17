@@ -37,6 +37,7 @@ import type { Building as SharedBuilding } from "@ksyk/shared";
 import { useCampusData } from "@/hooks/useCampusData";
 import posthog from "@/lib/posthog";
 import PanoramaViewer, { usePanoramaViewer } from "@/components/PanoramaViewer";
+import CampusEventsLayer from "@/components/CampusEventsLayer";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -1075,6 +1076,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           onClose={panorama.close}
         />
       )}
+
+      {/* v4.7.9 — Campus events layer. Loads active + upcoming events
+       *  from /api/events/map, renders as amber star pins, and shows
+       *  a popover with title/time/description on click. */}
+      <CampusEventsLayer map={mapInstance} lang="fi" />
     </div>
   );
 }

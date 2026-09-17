@@ -16,7 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.89.0 · web 4.7.8 · pending push)
+## ✅ Just shipped (Android v1.90.0 · web 4.7.9 · pending push)
+
+- **Campus events on the map** — new `/api/events/map` endpoint returns future active events with resolved lat/lng (roomId polygon centroid, or `lat,lng` regex fallback on the `location` field). New `CampusEventsLayer` component renders as amber ★ pins on `KSYKMapView` with a glow halo; click opens a floating popover with title, start/end time, location, and description. Auto-refreshes every 60s.
+- **Post-Wilma-setup walkthrough (Android)** — new `PostSetupWalkthrough` composable, 3 pages via `HorizontalPager` (Home · Timetable · Widgets). `WilmaConnectScreen.onImported` calls `schedulePostSetupWalkthrough(ctx)`; `AppShell` checks `isPostSetupWalkthroughPending(ctx)` on next composition and shows the tour full-screen. `markPostSetupWalkthroughSeen` on dismiss so it never nags again. All state in `SharedPreferences("ksyk_walkthrough")`.
+- **FCM verification report** — new `FCM-STATUS.md` at repo root documenting architecture, env-vars, historical bug fixes with commit refs, common failure modes with diagnosis + fix table, and deliberate non-goals (iOS, topics, delivery receipts, rich notifications).
+- Kotlin compile clean, TypeScript clean.
+
+## ✅ Shipped (Android v1.89.0 · web 4.7.8 · pushed 41e8198)
 
 - **Home tab section reorder (Android)** — new `HomeSectionsScreen` reached from Settings → Appearance → Customize home. Long-press the drag handle on the right side of any row and drag up/down. Each section (6 of them: Quick actions · Now/next lesson · Rest of day · Tomorrow preview · Campus stats · Announcements) can also be hidden via a Switch. Persisted in `SharedPreferences("ksyk_home_layout")` as a CSV of `section_id:visible` pairs. `HomeScreen` iterates `HomeSectionPrefs.load(ctx).sections.forEach` so the same handlers all still work — just in user-chosen order.
 - **Retention chart in admin analytics** — new `RetentionChart` card below the timeseries. Line chart of D0→D30 cohort retention over the last 60 days. `/api/analytics/retention` cohort SQL uses `COALESCE(user_id, anonymous_id, session_id)` so anonymous students still track. D1 / D7 / D30 quick-look numbers in the card header.

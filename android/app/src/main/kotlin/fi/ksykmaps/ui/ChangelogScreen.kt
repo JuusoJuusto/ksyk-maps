@@ -36,6 +36,22 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.90.0",
+        date = "September 2026",
+        titleFi = "Kampuksen tapahtumat kartalla + esittelykierros",
+        titleEn = "Campus events on map + welcome walkthrough",
+        highlightsFi = listOf(
+            "Kampuksen tulevat tapahtumat näkyvät nyt karttaan ★-nastoina — klikkaus avaa popoverin (otsikko, aika, kuvaus).",
+            "Wilma-tuonnin jälkeen näytetään kerran 3-sivuinen esittelykierros — Etusivu, Lukujärjestys, Widgetit.",
+            "Kierros on ohitettavissa. Nähtyään sitä ei enää näytetä.",
+        ),
+        highlightsEn = listOf(
+            "Future campus events show as ★ pins on the map — click to open a popover with title, time, description.",
+            "First Wilma import triggers a 3-screen welcome tour explaining Home / Timetable / Widgets.",
+            "Tour is skippable. Once seen, it never appears again.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.89.0",
         date = "September 2026",
         titleFi = "Muokkaa etusivua — vedä järjestääksesi",

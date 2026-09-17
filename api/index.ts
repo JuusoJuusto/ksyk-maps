@@ -428,6 +428,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.9 — Campus events on map. Public endpoint returning
+    // active + upcoming events with a resolved lat/lng. Position comes
+    // from the linked room polygon centroid when roomId is set,
+    // otherwise from a "lat,lng" pattern in the `location` string.
+    // Events without a resolvable position are dropped so the map
+    // layer doesn't render orphan pins.
+    if ((apiPath === '/events/map' || apiPath.startsWith('/events/map?')) && req.method === 'GET') {
+      try {
+        const { db } = await import('../server/db.js');
+        const { events, rooms } = await import('../shared/schema.js');
+        const { sql: dsql, and: dand, gt: dgt, eq: deq } = await import('drizzle-orm');
+        const now = new Date();
+        const evRows = await db.select()
+          .from(events)
+          .where(dand(dgt(events.endTime, now), deq(events.isActive, true), deq(events.isPublic, true)));
+        if (!evRows.length) return res.status(200).json([]);
+        const roomIds = Array.from(new Set(evRows.map((e: any) => e.roomId).filter(Boolean))) as string[];
+        const positionByRoomId = new Map<string, { lat: number; lng: number }>();
+        if (roomIds.length) {
+          const roomRows = await db.select().from(rooms);
+          for (const r of roomRows) {
+            if (!roomIds.includes(r.id)) continue;
+            const pts = (r.points as Array<{ lat: number; lng: number }> | null) ?? [];
+            if (!pts.length) continue;
+            let lat = 0, lng = 0;
+            for (const p of pts) { lat += p.lat; lng += p.lng; }
+            positionByRoomId.set(r.id, { lat: lat / pts.length, lng: lng / pts.length });
+          }
+        }
+        const out: unknown[] = [];
+        for (const e of evRows) {
+          let pos: { lat: number; lng: number } | null = null;
+          if (e.roomId && positionByRoomId.has(e.roomId)) {
+            pos = positionByRoomId.get(e.roomId) ?? null;
+          }
+          if (!pos && typeof e.location === 'string') {
+            const m = e.location.match(/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/);
+            if (m) pos = { lat: Number(m[1]), lng: Number(m[2]) };
+          }
+          if (!pos) continue;
+          out.push({
+            id: e.id,
+            title: e.titleFi ?? e.title,
+            titleEn: e.titleEn ?? e.title,
+            description: e.descriptionFi ?? e.description ?? '',
+            descriptionEn: e.descriptionEn ?? e.description ?? '',
+            startTime: e.startTime,
+            endTime: e.endTime,
+            location: e.location,
+            roomId: e.roomId,
+            lat: pos.lat,
+            lng: pos.lng,
+          });
+        }
+        return res.status(200).json(out);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
     // v4.7.8 — Retention chart. Computes day-N cohort retention over
     // telemetry_sessions for the last 60 days. Returns:
     //   [ { day: 0..30, retainedPct: 0..100, retained: number }, ... ]

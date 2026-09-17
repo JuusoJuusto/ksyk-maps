@@ -43,6 +43,10 @@ import fi.ksykmaps.ui.LunchScreen
 import fi.ksykmaps.ui.MapNavIntent
 import fi.ksykmaps.ui.MapScreen
 import fi.ksykmaps.ui.OnboardingScreen
+import fi.ksykmaps.ui.PostSetupWalkthrough
+import fi.ksykmaps.ui.isPostSetupWalkthroughPending
+import fi.ksykmaps.ui.markPostSetupWalkthroughSeen
+import fi.ksykmaps.ui.schedulePostSetupWalkthrough
 import fi.ksykmaps.ui.RoomFinderScreen
 import fi.ksykmaps.ui.BugReportScreen
 import fi.ksykmaps.ui.ChangelogScreen
@@ -242,6 +246,19 @@ private fun AppShell() {
         OnboardingScreen(onDone = { onboardingDone = true })
         return
     }
+    // v1.90.0 — post-setup 3-screen walkthrough. Shown once after the
+    // user's first successful Wilma import. WilmaConnectScreen.onImported
+    // schedules it; here we check the flag on every composition so it
+    // pops the next time the user lands on the shell (not blocking the
+    // Wilma flow itself).
+    var showWalkthrough by remember { mutableStateOf(isPostSetupWalkthroughPending(ctx)) }
+    if (showWalkthrough) {
+        PostSetupWalkthrough(onDone = {
+            markPostSetupWalkthroughSeen(ctx)
+            showWalkthrough = false
+        })
+        return
+    }
     if (showLogin) {
         LoginScreen(onLoggedIn = {
             showLogin = false
@@ -310,7 +327,12 @@ private fun AppShell() {
                         subScreen == "news" -> AnnouncementsScreen()
                         subScreen == "wilmaConnect" -> WilmaConnectScreen(
                             onBack     = { subScreen = null },
-                            onImported = { subScreen = null },
+                            onImported = {
+                                // v1.90.0 — queue the 3-screen walkthrough
+                                // so it fires next time the shell renders.
+                                schedulePostSetupWalkthrough(ctx)
+                                subScreen = null
+                            },
                         )
                         subScreen == "beaconCapture" -> BeaconScreen()
                         subScreen == "logs" -> LogsScreen(onBack = { subScreen = null })
