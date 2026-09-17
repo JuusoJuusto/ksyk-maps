@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.9";
+export const APP_VERSION = "4.7.10";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.10",
+    date: "September 2026",
+    title: "Heatmap → admin panel · Announcement CTR · Analytics polish",
+    titleFi: "Heatmap → admin-paneeli · Ilmoitusten CTR · Analytiikan hiontaa",
+    latest: true,
+    highlights: [
+      "**Removed the 🔥 heatmap toggle from the public map.** It was cluttering the students' map. Same data now lives in **Admin → Analytics → Popular rooms** as a proper top-10 horizontal-bar list with CSV export.",
+      "**Announcement CTR (click-through rate) in admin analytics.** New card shows per-announcement impressions vs clicks with CTR% color-coded (green ≥30%, amber ≥10%, grey below). Overall CTR summary at the top. Client fires `announcement_view` once per id shown and `announcement_click` when the banner is tapped.",
+      "**Range picker now affects Sessions and Recent tabs too.** Both endpoints (`/api/admin/analytics/sessions`, `.../recent-events`) got a `range` param, respecting 24h / 7d / 30d / 90d like every other analytics query.",
+      "**Header now tells you what the range affects.** New italic hint under the sticky Analytics header: 'Range affects every card except Eggs (lifetime) & the audit log (7d)' — no more confusion about why Eggs numbers don't move when you switch to 7d.",
+      "**Cosmetic**: 'Web / Android' stat tile renamed to 'Web · Android' (was misread as a fraction).",
+    ],
+    highlightsFi: [
+      "**Poistettu 🔥-heatmap-nappi julkisen kartan päältä.** Sama data on nyt Admin → Analytiikka → Suositut huoneet -kortissa (top-10 palkkilista + CSV-vienti).",
+      "**Ilmoitusten CTR admin-analytiikassa.** Kortti näyttää näyttökerrat vs klikit + CTR% väreillä (vihreä ≥30%, keltainen ≥10%). Yhteenveto ylhäällä.",
+      "**Aikaväli vaikuttaa nyt myös Sessions- ja Recent-välilehtiin.** Molemmat päätepisteet lukevat `range`-parametrin.",
+      "**Otsikko kertoo mihin aikaväli vaikuttaa** — 'Aikaväli vaikuttaa jokaiseen korttiin paitsi Eggs (elinaika) ja auditlog (7 pv)'.",
+    ],
+  },
   {
     version: "4.7.9",
     date: "September 2026",
     title: "Campus events on map · onboarding walkthrough · FCM report",
     titleFi: "Kampuksen tapahtumat kartalla · esittelykierros · FCM-raportti",
-    latest: true,
     highlights: [
       "**Campus events show as pins on the map.** New `/api/events/map` endpoint returns future active events with a resolved lat/lng — via linked room polygon centroid, or a `lat,lng` fallback parsed from the `location` field. Rendered as amber ★ pins with a fuchsia-style glow layer. Click a pin → floating popover with title, start/end time, location, and description. Filter is public-active-future only.",
       "**3-screen post-setup walkthrough (Android).** New `PostSetupWalkthrough` — fires ONCE right after a user's first successful Wilma import, walking them through Home / Timetable / Widgets features so they don't miss what's there. Skippable at any page; state persisted in SharedPreferences (`walkthrough_seen_v1`) so it never nags again.",

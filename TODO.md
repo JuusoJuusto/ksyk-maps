@@ -16,7 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.90.0 · web 4.7.9 · pending push)
+## ✅ Just shipped (web 4.7.10 · pending push)
+
+- **Removed 🔥 heatmap toggle from public map** — `KSYKMapView` no longer imports/renders `heatmapOn` state, the useEffect layer, or the toggle button. Same data now shows in `AdminAnalyticsDashboard` as a `RoomPopularityCard` (top-10 horizontal-bar list with CSV export). Reuses the existing `/api/analytics/room-popularity` endpoint.
+- **Announcement CTR** — new `/api/analytics/announcement-ctr` endpoint aggregates `feature_usage` `announcement_view` vs `announcement_click` rows grouped by `metadata.announcementId`, joins to `announcements` for titles. Returns rows sorted by CTR%. New `AnnouncementCtrCard` in the admin dashboard with color-coded CTR% (green ≥30%, amber ≥10%, grey below) and overall CTR summary. Client `AnnouncementBanner` now fires `announcement_view` once per id shown + `announcement_click` when the banner is tapped.
+- **Range picker fixes** — `SessionsPanel` and `RecentEventsPanel` now take a `range` prop and pass it to their endpoints. Server-side, `/api/admin/analytics/sessions` and `.../recent-events` both read `range=` and compute `since` from it (24h / 7d / 30d / 90d).
+- **UX clarity** — new italic hint in the sticky Analytics header: "Range affects every card except Eggs (lifetime) & the audit log (7d)". `Web / Android` tile renamed to `Web · Android` since it was misread as a fraction.
+
+## ✅ Shipped (Android v1.90.0 · web 4.7.9 · pushed 956175c)
 
 - **Campus events on the map** — new `/api/events/map` endpoint returns future active events with resolved lat/lng (roomId polygon centroid, or `lat,lng` regex fallback on the `location` field). New `CampusEventsLayer` component renders as amber ★ pins on `KSYKMapView` with a glow halo; click opens a floating popover with title, start/end time, location, and description. Auto-refreshes every 60s.
 - **Post-Wilma-setup walkthrough (Android)** — new `PostSetupWalkthrough` composable, 3 pages via `HorizontalPager` (Home · Timetable · Widgets). `WilmaConnectScreen.onImported` calls `schedulePostSetupWalkthrough(ctx)`; `AppShell` checks `isPostSetupWalkthroughPending(ctx)` on next composition and shows the tour full-screen. `markPostSetupWalkthroughSeen` on dismiss so it never nags again. All state in `SharedPreferences("ksyk_walkthrough")`.

@@ -23,7 +23,7 @@ import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
   Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
   Eye, Filter, Gauge, MousePointer2, RefreshCw, Search, Shield,
-  Sparkles, TrendingUp, Users,
+  Sparkles, TrendingUp, Users, MapPin,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
@@ -197,8 +197,176 @@ function TimeseriesChart({ range }: { range: Range }) {
   );
 }
 
-// v4.7.8 — Retention cohort chart. Renders a line chart of day-N
-// retention over the last 60-day cohort. Uses /api/analytics/retention.
+// v4.7.10 — Popular rooms card. Was a 🔥 toggle on the public map;
+// moved here because the audience for aggregate room-view data is
+// admins, not students. Fetches /api/analytics/room-popularity and
+// shows a top-10 horizontal-bar list plus the total volume.
+interface PopularRoom { roomId: string; count: number; lat: number; lng: number }
+function useRoomPopularity() {
+  return useQuery<PopularRoom[]>({
+    queryKey: ["admin-analytics-room-popularity"],
+    queryFn: async () => (await fetchList<PopularRoom>("/api/analytics/room-popularity")) ?? [],
+    refetchInterval: 300_000,
+  });
+}
+function RoomPopularityCard() {
+  const { data, isLoading } = useRoomPopularity();
+  // Also fetch rooms so we can show human-readable numbers instead of UUIDs.
+  const { data: rooms } = useQuery<Array<{ id: string; roomNumber?: string; name?: string }>>({
+    queryKey: ["/api/rooms-min"],
+    queryFn: async () => (await fetchList("/api/rooms")) as Array<{ id: string; roomNumber?: string; name?: string }>,
+    staleTime: 300_000,
+  });
+  const roomLabel = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of rooms ?? []) m.set(r.id, r.roomNumber ?? r.name ?? r.id.slice(0, 8));
+    return m;
+  }, [rooms]);
+  const sorted = useMemo(() => (data ?? []).slice().sort((a, b) => b.count - a.count), [data]);
+  const top = sorted.slice(0, 10);
+  const total = (data ?? []).reduce((sum, r) => sum + r.count, 0);
+  const max = top[0]?.count ?? 1;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MapPin className="h-4 w-4" /> Popular rooms
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Top 10 rooms opened from search or the map in the last 30 days. Total: {total.toLocaleString()} views.
+            </CardDescription>
+          </div>
+          <button
+            onClick={() => downloadCSV(sorted.map(r => ({ roomId: r.roomId, label: roomLabel.get(r.roomId) ?? r.roomId, count: r.count })), "popular-rooms.csv")}
+            className="text-[10px] font-semibold px-2 py-1 rounded bg-muted hover:bg-muted/70 flex items-center gap-1"
+            title="Download all rooms as CSV"
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {!isLoading && top.length === 0 && (
+          <p className="text-xs text-muted-foreground py-2">
+            No room-view telemetry in the last 30 days. Aggregation starts populating once users open rooms in v4.7.5+.
+          </p>
+        )}
+        {top.length > 0 && (
+          <ul className="space-y-1.5">
+            {top.map((r, i) => {
+              const label = roomLabel.get(r.roomId) ?? r.roomId.slice(0, 8);
+              const pct = Math.round((r.count / max) * 100);
+              return (
+                <li key={r.roomId} className="flex items-center gap-2 text-xs">
+                  <span className="w-4 text-right font-mono text-muted-foreground">{i + 1}.</span>
+                  <span className="w-20 font-mono font-semibold truncate">{label}</span>
+                  <div className="flex-1 h-4 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-blue-500/70 dark:bg-blue-500/60 rounded"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right font-mono tabular-nums">{r.count.toLocaleString()}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// v4.7.10 — Announcement CTR. Groups feature_usage announcement_view
+// vs announcement_click by metadata.announcementId. Table shows title,
+// views, clicks, CTR%. Honors the range picker.
+interface AnnouncementCtrRow {
+  announcementId: string;
+  title: string;
+  views: number;
+  clicks: number;
+  ctrPct: number;
+}
+function useAnnouncementCtr(range: Range) {
+  return useQuery<AnnouncementCtrRow[]>({
+    queryKey: ["admin-analytics-announcement-ctr", range],
+    queryFn: async () => (await fetchList<AnnouncementCtrRow>(`/api/analytics/announcement-ctr?range=${range}`)) ?? [],
+    refetchInterval: 300_000,
+  });
+}
+function AnnouncementCtrCard({ range }: { range: Range }) {
+  const { data = [], isLoading } = useAnnouncementCtr(range);
+  const totalViews = data.reduce((s, r) => s + r.views, 0);
+  const totalClicks = data.reduce((s, r) => s + r.clicks, 0);
+  const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MousePointer2 className="h-4 w-4" /> Announcement CTR
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Impressions vs clicks per announcement in the {range} window. Overall: {totalClicks.toLocaleString()} / {totalViews.toLocaleString()} = <b>{overallCtr.toFixed(1)}%</b>.
+            </CardDescription>
+          </div>
+          <button
+            onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "announcement-ctr.csv")}
+            className="text-[10px] font-semibold px-2 py-1 rounded bg-muted hover:bg-muted/70 flex items-center gap-1"
+            disabled={!data.length}
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {!isLoading && data.length === 0 && (
+          <p className="text-xs text-muted-foreground py-2">
+            No announcement telemetry yet. `announcement_view` fires on impression once per id; `announcement_click` fires when the banner is tapped (v4.7.10+).
+          </p>
+        )}
+        {data.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-[10px] uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="text-left px-2 py-1.5">Announcement</th>
+                  <th className="text-right px-2 py-1.5">Views</th>
+                  <th className="text-right px-2 py-1.5">Clicks</th>
+                  <th className="text-right px-2 py-1.5">CTR</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.slice(0, 10).map((r) => (
+                  <tr key={r.announcementId} className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                    <td className="px-2 py-1.5 truncate max-w-[180px]" title={r.title}>{r.title}</td>
+                    <td className="text-right font-mono tabular-nums px-2 py-1.5">{r.views.toLocaleString()}</td>
+                    <td className="text-right font-mono tabular-nums px-2 py-1.5">{r.clicks.toLocaleString()}</td>
+                    <td className="text-right font-mono tabular-nums font-semibold px-2 py-1.5">
+                      <span className={
+                        r.ctrPct >= 30 ? "text-emerald-600 dark:text-emerald-400"
+                        : r.ctrPct >= 10 ? "text-amber-600 dark:text-amber-400"
+                        : "text-slate-500"
+                      }>{r.ctrPct.toFixed(1)}%</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// v4.7.10 — Popular rooms card. Was a 🔥 toggle on the public map;
 interface RetentionResponse {
   cohortSize: number;
   days: Array<{ day: number; retained: number; retainedPct: number }>;
@@ -356,11 +524,11 @@ interface TelemetrySession {
   appVersion: string | null; osVersion: string | null; deviceType: string | null;
   startedAt: string; lastSeenAt: string; endedAt: string | null; durationMs: number | null;
 }
-function SessionsPanel() {
+function SessionsPanel({ range }: { range: Range }) {
   const [drillSid, setDrillSid] = useState<string | null>(null);
   const { data = [], isLoading, refetch } = useQuery<TelemetrySession[]>({
-    queryKey: ["admin-analytics-sessions"],
-    queryFn: () => fetchList<TelemetrySession>("/api/admin/analytics/sessions?limit=100"),
+    queryKey: ["admin-analytics-sessions", range],
+    queryFn: () => fetchList<TelemetrySession>(`/api/admin/analytics/sessions?limit=100&range=${range}`),
     refetchInterval: 60_000,
   });
   return (
@@ -1326,10 +1494,10 @@ function EggsPanel() {
 }
 
 // ── Recent events firehose ──────────────────────────────────────────
-function RecentEventsPanel() {
+function RecentEventsPanel({ range }: { range: Range }) {
   const { data = [], isLoading } = useQuery<any[]>({
-    queryKey: ["admin-analytics-recent"],
-    queryFn: () => fetchList<any>("/api/admin/analytics/recent-events?limit=200"),
+    queryKey: ["admin-analytics-recent", range],
+    queryFn: () => fetchList<any>(`/api/admin/analytics/recent-events?limit=200&range=${range}`),
     refetchInterval: 10_000,
   });
   return (
@@ -1442,7 +1610,7 @@ export default function AdminAnalyticsDashboard() {
             <BarChart3 className="h-5 w-5" /> Analytics
           </h2>
           <p className="text-[11px] text-muted-foreground">
-            Postgres-backed · auto-refresh 30 s
+            Postgres-backed · auto-refresh 30 s · <span className="italic">Range affects every card except Eggs (lifetime) &amp; the audit log (7d)</span>
             {dataUpdatedAt && <span> · updated {new Date(dataUpdatedAt).toLocaleTimeString()}</span>}
           </p>
         </div>
@@ -1460,9 +1628,9 @@ export default function AdminAnalyticsDashboard() {
         <StatCard icon={Sparkles} label="Easter eggs" value={overview?.easterEggs ?? "…"} tone="amber" />
         <StatCard
           icon={TrendingUp}
-          label="Web / Android"
+          label="Web · Android"
           value={overview
-            ? `${overview.bySource?.web ?? 0} / ${overview.bySource?.android ?? 0}`
+            ? `${overview.bySource?.web ?? 0} · ${overview.bySource?.android ?? 0}`
             : "…"}
           tone="emerald"
         />
@@ -1471,8 +1639,12 @@ export default function AdminAnalyticsDashboard() {
       {/* Timeseries chart */}
       <TimeseriesChart range={range} />
 
-      {/* v4.7.8 — retention cohort */}
-      <RetentionChart />
+      {/* v4.7.10 — retention + popular rooms + announcement CTR row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <RetentionChart />
+        <RoomPopularityCard />
+      </div>
+      <AnnouncementCtrCard range={range} />
 
       {/* Detail tabs */}
       <Tabs defaultValue="features">
@@ -1487,11 +1659,11 @@ export default function AdminAnalyticsDashboard() {
         </TabsList>
         <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
         <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
-        <TabsContent value="sessions"><SessionsPanel /></TabsContent>
+        <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
         <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
         <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
         <TabsContent value="eggs"><EggsPanel /></TabsContent>
-        <TabsContent value="recent"><RecentEventsPanel /></TabsContent>
+        <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
       </Tabs>
 
       <Card>

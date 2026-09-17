@@ -7,6 +7,7 @@ import { Megaphone, Clock, X, ChevronLeft, ChevronRight, AlertTriangle, Pause, P
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { trackFeatureUse } from "@/lib/analytics";
 
 // Helper function to convert Firebase Timestamp to Date
 const convertFirebaseDate = (timestamp: any): Date => {
@@ -52,13 +53,31 @@ export default function AnnouncementBanner() {
   // Auto-scroll every 10 seconds
   useEffect(() => {
     if (activeAnnouncements.length <= 1 || isPaused || isDialogOpen) return;
-    
+
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
     }, 10000); // 10 seconds
-    
+
     return () => clearInterval(interval);
   }, [activeAnnouncements.length, isPaused, isDialogOpen]);
+
+  // v4.7.10 — impression tracking. Fires once per announcement id
+  // as it appears in the banner slot. `feature = 'announcement_view'`
+  // with the announcement id in metadata; the CTR endpoint groups
+  // by id and joins against 'announcement_click' events.
+  const [seenIds] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const current = activeAnnouncements[currentIndex];
+    if (!current) return;
+    if (seenIds.has(current.id)) return;
+    seenIds.add(current.id);
+    try {
+      trackFeatureUse('announcement_view', {
+        announcementId: current.id,
+        priority: current.priority,
+      });
+    } catch { /* non-fatal */ }
+  }, [currentIndex, activeAnnouncements, seenIds]);
 
   if (!isVisible || activeAnnouncements.length === 0) {
     return null;
@@ -121,7 +140,15 @@ export default function AnnouncementBanner() {
             "relative rounded-2xl shadow-lg transition-colors duration-300 cursor-pointer overflow-hidden",
             priorityBg,
           )}
-          onClick={() => setIsDialogOpen(true)}
+          onClick={() => {
+            try {
+              trackFeatureUse('announcement_click', {
+                announcementId: currentAnnouncement.id,
+                priority: currentAnnouncement.priority,
+              });
+            } catch { /* non-fatal */ }
+            setIsDialogOpen(true);
+          }}
         >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
           {/* v3.28.0 — reverted the 3.27.5 size bump per feedback.

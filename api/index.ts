@@ -428,6 +428,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.10 — Announcement CTR. Aggregates feature_usage rows with
+    // feature='announcement_view' vs 'announcement_click' grouped by
+    // metadata.announcementId. Joins to announcements for the title.
+    // Returns rows sorted by CTR descending. Admin-only.
+    if ((apiPath === '/analytics/announcement-ctr' || apiPath.startsWith('/analytics/announcement-ctr?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { featureUsage, announcements } = await import('../shared/schema.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const cutoff = new Date(Date.now() - rangeHours * 3600 * 1000);
+        const rawViews = await db.select({
+          announcementId: dsql<string>`(${featureUsage.metadata}->>'announcementId')`,
+          count: dsql<number>`count(*)::int`,
+        })
+          .from(featureUsage)
+          .where(dsql`${featureUsage.feature} = 'announcement_view' AND ${featureUsage.createdAt} >= ${cutoff} AND (${featureUsage.metadata}->>'announcementId') IS NOT NULL`)
+          .groupBy(dsql`(${featureUsage.metadata}->>'announcementId')`);
+        const rawClicks = await db.select({
+          announcementId: dsql<string>`(${featureUsage.metadata}->>'announcementId')`,
+          count: dsql<number>`count(*)::int`,
+        })
+          .from(featureUsage)
+          .where(dsql`${featureUsage.feature} = 'announcement_click' AND ${featureUsage.createdAt} >= ${cutoff} AND (${featureUsage.metadata}->>'announcementId') IS NOT NULL`)
+          .groupBy(dsql`(${featureUsage.metadata}->>'announcementId')`);
+        const viewsById = new Map<string, number>();
+        const clicksById = new Map<string, number>();
+        for (const r of rawViews) if (r.announcementId) viewsById.set(r.announcementId, Number(r.count));
+        for (const r of rawClicks) if (r.announcementId) clicksById.set(r.announcementId, Number(r.count));
+        const ids = new Set<string>([...viewsById.keys(), ...clicksById.keys()]);
+        // Resolve titles.
+        const anns = await db.select().from(announcements);
+        const titleById = new Map<string, string>();
+        for (const a of anns) titleById.set(a.id, a.titleFi ?? a.title ?? a.id);
+        const rows = Array.from(ids).map((id) => {
+          const views = viewsById.get(id) ?? 0;
+          const clicks = clicksById.get(id) ?? 0;
+          const ctr = views > 0 ? (clicks / views) * 100 : 0;
+          return {
+            announcementId: id,
+            title: titleById.get(id) ?? id.slice(0, 8),
+            views,
+            clicks,
+            ctrPct: Number(ctr.toFixed(1)),
+          };
+        }).sort((a, b) => b.ctrPct - a.ctrPct || b.views - a.views);
+        return res.status(200).json(rows);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
     // v4.7.9 — Campus events on map. Public endpoint returning
     // active + upcoming events with a resolved lat/lng. Position comes
     // from the linked room polygon centroid when roomId is set,
@@ -4013,7 +4070,16 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         const { desc, gte } = await import('drizzle-orm');
         const q = req.query as Record<string, string>;
         const limit = Math.min(parseInt(q.limit || '100', 10), 500);
-        const since = q.since ? new Date(q.since) : new Date(Date.now() - 24 * 3600 * 1000);
+        // v4.7.10 — honor the range picker like every other admin
+        // analytics endpoint. Falls back to 24h when neither since
+        // nor range are supplied.
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const since = q.since
+          ? new Date(q.since)
+          : new Date(Date.now() - rangeHours * 3600 * 1000);
         const rows = await pgDb.select().from(telemetrySessions)
           .where(gte(telemetrySessions.startedAt, since))
           .orderBy(desc(telemetrySessions.lastSeenAt))
@@ -4401,10 +4467,17 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { telemetryEvents } = await import('../shared/schema.js');
-        const { desc } = await import('drizzle-orm');
+        const { desc, gte } = await import('drizzle-orm');
         const q = req.query as Record<string, string>;
         const limit = Math.min(parseInt(q.limit || '200', 10), 500);
+        // v4.7.10 — honor range picker for the Recent tab.
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const since = new Date(Date.now() - rangeHours * 3600 * 1000);
         const rows = await pgDb.select().from(telemetryEvents)
+          .where(gte(telemetryEvents.createdAt, since))
           .orderBy(desc(telemetryEvents.createdAt))
           .limit(limit).catch(() => [] as any[]);
         res.setHeader('Cache-Control', 'no-store');
