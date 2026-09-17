@@ -428,6 +428,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.11 — Route popularity top-20. Aggregates feature_usage
+    // rows with feature='route_computed' grouped by from+to endpoint,
+    // resolves labels from the metadata payload (client wrote them at
+    // event time, so we don't need a room/building join). Returns
+    // top-20 by count. Admin-only.
+    if ((apiPath === '/analytics/route-popularity' || apiPath.startsWith('/analytics/route-popularity?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db } = await import('../server/db.js');
+        const { featureUsage } = await import('../shared/schema.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const cutoff = new Date(Date.now() - rangeHours * 3600 * 1000);
+        const rows = await db.select({
+          fromId:    dsql<string>`(${featureUsage.metadata}->>'fromId')`,
+          toId:      dsql<string>`(${featureUsage.metadata}->>'toId')`,
+          fromLabel: dsql<string>`(${featureUsage.metadata}->>'fromLabel')`,
+          toLabel:   dsql<string>`(${featureUsage.metadata}->>'toLabel')`,
+          avgDistance: dsql<number>`AVG(((${featureUsage.metadata}->>'distanceMeters')::int))::int`,
+          count:     dsql<number>`count(*)::int`,
+        })
+          .from(featureUsage)
+          .where(dsql`${featureUsage.feature} = 'route_computed' AND ${featureUsage.createdAt} >= ${cutoff} AND (${featureUsage.metadata}->>'fromId') IS NOT NULL AND (${featureUsage.metadata}->>'toId') IS NOT NULL`)
+          .groupBy(
+            dsql`(${featureUsage.metadata}->>'fromId')`,
+            dsql`(${featureUsage.metadata}->>'toId')`,
+            dsql`(${featureUsage.metadata}->>'fromLabel')`,
+            dsql`(${featureUsage.metadata}->>'toLabel')`,
+          )
+          .orderBy(dsql`count(*) DESC`)
+          .limit(20);
+        return res.status(200).json(rows);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
     // v4.7.10 — Announcement CTR. Aggregates feature_usage rows with
     // feature='announcement_view' vs 'announcement_click' grouped by
     // metadata.announcementId. Joins to announcements for the title.

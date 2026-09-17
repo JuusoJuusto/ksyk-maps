@@ -16,7 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.10 · pending push)
+## ✅ Just shipped (Android v1.91.0 · web 4.7.11 · pending push)
+
+- **Route popularity top-20** — client `NavigationPanel` fires `route_computed` telemetry once per unique from→to endpoint pair per session when a graph route resolves. Metadata carries `fromId`, `toId`, `fromLabel`, `toLabel`, `distanceMeters`, `floors`, `accessibleOnly`. `/api/analytics/route-popularity` groups by from+to, computes AVG distance, returns top-20. New `RoutePopularityCard` in admin analytics with ranked list, violet proportional bars, average-distance display, CSV export.
+- **Material You dynamic-color widgets (Android 12+)** — new `drawable-v31/` versions of `widget_background`, `widget_background_active`, `widget_row_current` using `@android:color/system_accent1_800/700/900`, `system_accent2_600/500/700`, `system_neutral1_200`. Res qualifier applies automatically on Android 12+; older versions keep the shipped navy gradient. No opt-in switch.
+- **Admin URL routing** — the Analytics & Logs pill (Analytics / Live logs / Errors / Feedback / External) now persists in `window.location.hash`. Reload lands on the same pill, share links deep-link. `hashchange` listener wires browser back/forward.
+- **Range picker sanity** (from last round follow-through) — italic hint in analytics header, sessions/recent endpoints honor range, "Web · Android" tile fixed.
+
+## ✅ Shipped (web 4.7.10 · pushed 36044fe)
 
 - **Removed 🔥 heatmap toggle from public map** — `KSYKMapView` no longer imports/renders `heatmapOn` state, the useEffect layer, or the toggle button. Same data now shows in `AdminAnalyticsDashboard` as a `RoomPopularityCard` (top-10 horizontal-bar list with CSV export). Reuses the existing `/api/analytics/room-popularity` endpoint.
 - **Announcement CTR** — new `/api/analytics/announcement-ctr` endpoint aggregates `feature_usage` `announcement_view` vs `announcement_click` rows grouped by `metadata.announcementId`, joins to `announcements` for titles. Returns rows sorted by CTR%. New `AnnouncementCtrCard` in the admin dashboard with color-coded CTR% (green ≥30%, amber ≥10%, grey below) and overall CTR summary. Client `AnnouncementBanner` now fires `announcement_view` once per id shown + `announcement_click` when the banner is tapped.

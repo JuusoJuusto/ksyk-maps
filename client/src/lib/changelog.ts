@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.10";
+export const APP_VERSION = "4.7.11";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.11",
+    date: "September 2026",
+    title: "Route popularity · Material You widgets · admin URL routing",
+    titleFi: "Reittien suosio · Material You -widgetit · admin-URL-reititys",
+    latest: true,
+    highlights: [
+      "**Route popularity top-20 in admin analytics.** Client fires `route_computed` once per unique from→to endpoint pair whenever the navigation panel resolves a graph route. `/api/analytics/route-popularity` groups by `metadata.fromId + toId`, resolves labels from the event payload (no join needed), returns top 20 sorted by count. Admin card shows the ranked list with average distance and a violet proportional bar per row. CSV export.",
+      "**Material You widgets (Android 12+).** New `drawable-v31/` overrides for `widget_background`, `widget_background_active`, and `widget_row_current` using `@android:color/system_accent1_*` and `system_accent2_*` refs — the OS remaps these to the user's wallpaper palette automatically. Older Android versions keep the shipped navy gradient. No opt-in switch — the res qualifier picks the right file at runtime.",
+      "**Admin URL routing.** The Analytics & Logs pill selection (Analytics / Live logs / Errors / Feedback / External) now persists in the URL hash — reload lands on the same pill, share links deep-link to a specific view. Listens for `hashchange` so browser back/forward navigates between pills.",
+    ],
+    highlightsFi: [
+      "**Reittien suosio -top-20 admin-analytiikassa.** Karttasovellus tallentaa jokaisen lasketun reitin (`route_computed`) uniikilla lähtö→kohde-parilla. Uusi kortti näyttää suosituimmat reitit, keskietäisyyden ja lukumäärän.",
+      "**Material You -widgetit (Android 12+).** Widget-taustat käyttävät nyt käyttäjän taustakuvasta johdettuja värejä (`system_accent1/2`).",
+      "**Admin-URL-reititys.** Analytics & Logs -pill-välilehden valinta pysyy nyt URL-osoitteen fragmentissa — sivun lataus / jaettu linkki avaa saman näkymän.",
+    ],
+  },
   {
     version: "4.7.10",
     date: "September 2026",
     title: "Heatmap → admin panel · Announcement CTR · Analytics polish",
     titleFi: "Heatmap → admin-paneeli · Ilmoitusten CTR · Analytiikan hiontaa",
-    latest: true,
     highlights: [
       "**Removed the 🔥 heatmap toggle from the public map.** It was cluttering the students' map. Same data now lives in **Admin → Analytics → Popular rooms** as a proper top-10 horizontal-bar list with CSV export.",
       "**Announcement CTR (click-through rate) in admin analytics.** New card shows per-announcement impressions vs clicks with CTR% color-coded (green ≥30%, amber ≥10%, grey below). Overall CTR summary at the top. Client fires `announcement_view` once per id shown and `announcement_click` when the banner is tapped.",

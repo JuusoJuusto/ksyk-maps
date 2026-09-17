@@ -23,7 +23,7 @@ import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
   Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
   Eye, Filter, Gauge, MousePointer2, RefreshCw, Search, Shield,
-  Sparkles, TrendingUp, Users, MapPin,
+  Sparkles, TrendingUp, Users, MapPin, Navigation,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
@@ -271,6 +271,87 @@ function RoomPopularityCard() {
                     />
                   </div>
                   <span className="w-12 text-right font-mono tabular-nums">{r.count.toLocaleString()}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// v4.7.11 — Route popularity top-20. Aggregates route_computed
+// telemetry from feature_usage grouped by from+to endpoint labels.
+interface RouteRow {
+  fromId: string;
+  toId: string;
+  fromLabel: string;
+  toLabel: string;
+  avgDistance: number;
+  count: number;
+}
+function useRoutePopularity(range: Range) {
+  return useQuery<RouteRow[]>({
+    queryKey: ["admin-analytics-route-popularity", range],
+    queryFn: async () => (await fetchList<RouteRow>(`/api/analytics/route-popularity?range=${range}`)) ?? [],
+    refetchInterval: 300_000,
+  });
+}
+function RoutePopularityCard({ range }: { range: Range }) {
+  const { data = [], isLoading } = useRoutePopularity(range);
+  const total = data.reduce((s, r) => s + r.count, 0);
+  const max = data[0]?.count ?? 1;
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Navigation className="h-4 w-4" /> Popular routes
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Top 20 origin → destination pairs in the {range} window. Total: {total.toLocaleString()} routes computed.
+            </CardDescription>
+          </div>
+          <button
+            onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "route-popularity.csv")}
+            className="text-[10px] font-semibold px-2 py-1 rounded bg-muted hover:bg-muted/70 flex items-center gap-1"
+            disabled={!data.length}
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {!isLoading && data.length === 0 && (
+          <p className="text-xs text-muted-foreground py-2">
+            No route telemetry yet. `route_computed` fires from the navigation panel every time a graph route resolves for a unique from→to pair (v4.7.11+).
+          </p>
+        )}
+        {data.length > 0 && (
+          <ul className="space-y-1.5">
+            {data.map((r, i) => {
+              const pct = Math.round((r.count / max) * 100);
+              return (
+                <li key={`${r.fromId}->${r.toId}`} className="flex items-center gap-2 text-xs">
+                  <span className="w-4 text-right font-mono text-muted-foreground">{i + 1}.</span>
+                  <span className="flex-1 min-w-0 truncate" title={`${r.fromLabel} → ${r.toLabel}`}>
+                    <span className="font-semibold">{r.fromLabel}</span>
+                    <ArrowRight className="inline h-3 w-3 mx-1 text-muted-foreground" />
+                    <span className="font-semibold">{r.toLabel}</span>
+                  </span>
+                  <div className="w-24 h-3 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-violet-500/70 dark:bg-violet-500/60 rounded"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="w-14 text-right font-mono tabular-nums" title="Average distance">
+                    {r.avgDistance ? `${r.avgDistance}m` : "—"}
+                  </span>
+                  <span className="w-10 text-right font-mono tabular-nums font-semibold">{r.count.toLocaleString()}</span>
                 </li>
               );
             })}
@@ -1639,12 +1720,16 @@ export default function AdminAnalyticsDashboard() {
       {/* Timeseries chart */}
       <TimeseriesChart range={range} />
 
-      {/* v4.7.10 — retention + popular rooms + announcement CTR row */}
+      {/* v4.7.10 — retention + popular rooms side-by-side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <RetentionChart />
         <RoomPopularityCard />
       </div>
-      <AnnouncementCtrCard range={range} />
+      {/* v4.7.11 — routes + announcement CTR side-by-side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <RoutePopularityCard range={range} />
+        <AnnouncementCtrCard range={range} />
+      </div>
 
       {/* Detail tabs */}
       <Tabs defaultValue="features">

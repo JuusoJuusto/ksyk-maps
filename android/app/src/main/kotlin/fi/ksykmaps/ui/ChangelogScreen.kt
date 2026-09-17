@@ -36,6 +36,22 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.91.0",
+        date = "September 2026",
+        titleFi = "Material You -widgetit + reittitelemetria",
+        titleEn = "Material You widgets + route telemetry",
+        highlightsFi = listOf(
+            "Widget-taustat käyttävät nyt Android 12+ -laitteissa taustakuvastasi johdettuja värejä (system_accent1/2).",
+            "Vanhemmissa Android-versioissa käytössä on edelleen alkuperäinen navy-liukuväri.",
+            "Reittien suosio-analyysi: jokainen laskettu kartan reitti raportoidaan admin-paneeliin top-20-listalle.",
+        ),
+        highlightsEn = listOf(
+            "On Android 12+ the widget backgrounds now use colours derived from your wallpaper (system_accent1/2).",
+            "Older Android versions keep the original navy gradient.",
+            "Route popularity telemetry: every navigation panel route lands in the admin top-20 list.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.90.0",
         date = "September 2026",
         titleFi = "Kampuksen tapahtumat kartalla + esittelykierros",

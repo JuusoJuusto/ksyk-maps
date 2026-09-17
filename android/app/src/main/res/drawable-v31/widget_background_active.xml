@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  v1.91.0 — Material You dynamic-color "now in class" background.
+  Uses accent2 (secondary palette) so the active state contrasts
+  the idle background even when both are wallpaper-derived. On
+  Android <12 the drawable/ variant applies.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@android:color/system_accent2_600"
+        android:centerColor="@android:color/system_accent2_500"
+        android:endColor="@android:color/system_accent2_700"
+        android:angle="135"
+        android:type="linear" />
+    <corners android:radius="24dp" />
+</shape>

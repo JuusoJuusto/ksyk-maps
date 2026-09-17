@@ -28,6 +28,7 @@ import {
 } from "@ksyk/routing";
 import { cn } from "@/lib/utils";
 import { useCampusData } from "@/hooks/useCampusData";
+import { trackFeatureUse } from "@/lib/analytics";
 
 interface NavigationPanelProps {
   map: MaplibreMap | null;
@@ -246,6 +247,32 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
       navRoute: null,
     };
   }, [from, to, graph, accessibleOnly, snapEndpoint]);
+
+  // v4.7.11 — route completion telemetry. Fires once per unique
+  // (fromId → toId) pair per session when a graph route resolves.
+  // Dedup Set is scoped to the panel instance so opening the same
+  // route again is cheap and doesn't spam events.
+  const trackedRoutesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!route || route.kind !== "graph") return;
+    if (!from || !to) return;
+    const fromId = from.kind === "room" ? from.room.id : from.building.id;
+    const toId   = to.kind   === "room" ? to.room.id   : to.building.id;
+    const key = `${from.kind}:${fromId}->${to.kind}:${toId}`;
+    if (trackedRoutesRef.current.has(key)) return;
+    trackedRoutesRef.current.add(key);
+    try {
+      trackFeatureUse('route_computed', {
+        fromId, toId,
+        fromKind: from.kind, toKind: to.kind,
+        fromLabel: endpointLabel(from),
+        toLabel: endpointLabel(to),
+        distanceMeters: Math.round(route.distanceMeters),
+        floors: route.floors,
+        accessibleOnly,
+      });
+    } catch { /* non-fatal */ }
+  }, [route, from, to, accessibleOnly]);
 
   // Derive turn-by-turn hints from the underlying nav route (graph
   // routes only — straight-line fallback has nothing to narrate).

@@ -565,8 +565,32 @@ function InsightsPanel() {
   //   External   → third-party dashboards (PostHog etc.)
   // Aggregate views used to live in BOTH Analytics and Logs — the Logs
   // tabs have been pruned to raw streams only.
-  const [inner, setInner] = useState<"analytics" | "logs" | "errors" | "feedback" | "external">("analytics");
-  const pills: { key: typeof inner; label: string; hint: string }[] = [
+  type Pill = "analytics" | "logs" | "errors" | "feedback" | "external";
+  const VALID_PILLS: Pill[] = ["analytics", "logs", "errors", "feedback", "external"];
+  // v4.7.11 — persist pill selection in URL hash so reload / share
+  // links land on the same sub-view. Also listens for browser back/
+  // forward so hash navigation works.
+  const readHash = (): Pill => {
+    if (typeof window === "undefined") return "analytics";
+    const h = window.location.hash.replace(/^#/, "") as Pill;
+    return VALID_PILLS.includes(h) ? h : "analytics";
+  };
+  const [inner, setInnerRaw] = useState<Pill>(readHash);
+  const setInner = (p: Pill) => {
+    setInnerRaw(p);
+    if (typeof window !== "undefined") {
+      const next = `#${p}`;
+      if (window.location.hash !== next) {
+        history.replaceState(null, "", next);
+      }
+    }
+  };
+  useEffect(() => {
+    const onHash = () => setInnerRaw(readHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const pills: { key: Pill; label: string; hint: string }[] = [
     { key: "analytics", label: "Analytics",     hint: "Usage metrics, features, sessions" },
     { key: "logs",      label: "Live logs",     hint: "Raw event stream + logins + app events" },
     { key: "errors",    label: "Errors",        hint: "Sentry issues launcher" },
