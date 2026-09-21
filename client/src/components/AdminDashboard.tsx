@@ -1260,21 +1260,32 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                         key={value}
                         type="button"
                         onClick={onClick}
+                        aria-current={isActive ? "page" : undefined}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                          "relative w-full flex items-center gap-3 pl-3 pr-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-100",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
                           isActive
-                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-900/60 shadow-sm"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100",
+                            ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100",
                         )}
                       >
+                        {/* v4.7.17 sidebar audit — replaced the flashy
+                         *  ring + shadow active state with a subtle blue
+                         *  accent bar on the left (Apple Settings pattern).
+                         *  Quiet, obvious, no visual noise. */}
+                        {isActive && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-600 dark:bg-blue-400"
+                          />
+                        )}
                         <Icon className={cn(
-                          "h-4 w-4 shrink-0",
-                          isActive ? "text-blue-600 dark:text-blue-400" : "",
+                          "h-[15px] w-[15px] shrink-0",
+                          isActive
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-400 dark:text-gray-500",
                         )} />
                         <span className="truncate flex-1 text-left">{label}</span>
-                        {isActive && (
-                          <ChevronRight className="h-3.5 w-3.5 ml-auto shrink-0 opacity-60" />
-                        )}
                       </button>
                     );
                   })}

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, Filter } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,13 @@ const normalizeLevel = (level: string): AppLogLevel => {
 export default function AppLogsManager() {
   const { darkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('all');
+  // v4.7.17 — row-click opens a right-side sheet with full details
+  // instead of inline expansion (which made every row a huge card).
+  const [openLog, setOpenLog] = useState<LogEntry | null>(null);
+  // v4.7.17 — client-side pagination on the fetched limit.
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [activeTab]);
 
   // Every list query goes through fetchList so a 404 / auth redirect
   // can't leak a non-array into the `.map` chains that used to crash
@@ -255,6 +263,50 @@ export default function AppLogsManager() {
       </Card>
     );
   }
+
+  /**
+   * v4.7.17 — compact row renderer. Every log (login or app) collapses
+   * to a single scannable line: time · level chip · message · source.
+   * Row click opens the detail sheet with everything else. Old
+   * bulky renderers replaced entirely.
+   */
+  const renderCompactRow = (log: LogEntry) => {
+    const time = formatDate(log.createdAt);
+    const isLogin = log.type === "login";
+    const level = isLogin
+      ? ((log as LoginLog).loginStatus === "success" ? "success" : "error")
+      : normalizeLevel((log as AppLog).level);
+    const levelColor: Record<string, string> = {
+      info:    "text-blue-600 dark:text-blue-400",
+      success: "text-emerald-600 dark:text-emerald-400",
+      warning: "text-amber-600 dark:text-amber-400",
+      error:   "text-red-600 dark:text-red-400",
+    };
+    const message = isLogin
+      ? `${(log as LoginLog).userName || (log as LoginLog).email} · ${(log as LoginLog).loginStatus}`
+      : (log as AppLog).message;
+    const source = isLogin ? "login" : ((log as AppLog).action ?? "app");
+    return (
+      <tr
+        key={log.id}
+        onClick={() => setOpenLog(log)}
+        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/60 focus-visible:outline-none focus-visible:bg-slate-100 dark:focus-visible:bg-slate-900"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenLog(log); }}}
+      >
+        <td className="px-3 py-2 text-[11px] font-mono text-slate-500 whitespace-nowrap tabular-nums">
+          {time}
+        </td>
+        <td className="px-3 py-2">
+          <span className={cn("text-[10px] font-bold uppercase tracking-wider", levelColor[level])}>
+            {level}
+          </span>
+        </td>
+        <td className="px-3 py-2 text-sm max-w-[520px] truncate">{message}</td>
+        <td className="px-3 py-2 text-[11px] text-slate-500 font-mono">{source}</td>
+      </tr>
+    );
+  };
 
   const renderLoginLog = (log: LoginLog) => (
     <div
@@ -608,64 +660,51 @@ export default function AppLogsManager() {
             </TabsContent>
 
             <TabsContent value="all" className="mt-4">
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-3">
-                  {allLogs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Activity className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        No logs yet
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {searchQuery || levelFilter !== 'all' || rangeFilter !== '24h'
-                          ? 'No logs match the current filters. Try widening the range or clearing the search.'
-                          : 'Actions will show up here as users use the app.'}
-                      </p>
-                    </div>
-                  ) : (
-                    allLogs.map((log) =>
-                      log.type === 'login' ? renderLoginLog(log as LoginLog) : renderAppLog(log as AppLog)
-                    )
-                  )}
-                </div>
-              </ScrollArea>
+              <LogTable
+                rows={allLogs}
+                page={page}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                emptyTitle="No logs yet"
+                emptyHint={searchQuery || levelFilter !== 'all' || rangeFilter !== '24h'
+                  ? 'No logs match the current filters.'
+                  : 'System activity will appear here.'}
+                renderRow={renderCompactRow}
+              />
             </TabsContent>
 
             <TabsContent value="logins" className="mt-4">
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-3">
-                  {loginLogs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Shield className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Login Logs Yet</h3>
-                      <p className="text-gray-500 dark:text-gray-400">Login activity will appear here</p>
-                    </div>
-                  ) : (
-                    loginLogs.map((log: LoginLog) => renderLoginLog(log))
-                  )}
-                </div>
-              </ScrollArea>
+              <LogTable
+                rows={loginLogs as LogEntry[]}
+                page={page}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                emptyTitle="No login activity"
+                emptyHint="Login attempts will appear here."
+                renderRow={renderCompactRow}
+              />
             </TabsContent>
 
             <TabsContent value="app" className="mt-4">
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-3">
-                  {appLogs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Info className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No App Logs Yet</h3>
-                      <p className="text-gray-500 dark:text-gray-400">Application events will appear here</p>
-                    </div>
-                  ) : (
-                    appLogs.map((log: AppLog) => renderAppLog(log))
-                  )}
-                </div>
-              </ScrollArea>
+              <LogTable
+                rows={appLogs as LogEntry[]}
+                page={page}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                emptyTitle="No app events"
+                emptyHint="Application events will appear here."
+                renderRow={renderCompactRow}
+              />
             </TabsContent>
 
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* v4.7.17 — row-click detail sheet. Full log payload with
+       *  human-readable fields on top and monospace technical fields
+       *  below. Escape closes; focus is trapped by the Sheet. */}
+      <LogDetailSheet log={openLog} onClose={() => setOpenLog(null)} />
     </div>
   );
 }
@@ -685,6 +724,213 @@ function StatInline({ label, value }: { label: string; value: number }) {
       <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white mt-0.5 leading-none">
         {value.toLocaleString()}
       </span>
+    </div>
+  );
+}
+
+/**
+ * v4.7.17 — clean log table + pagination. Renders `rows.slice(page,
+ * page+pageSize)` in a compact scannable table. When the row set is
+ * empty and there's no filter, shows the two-line empty state; when
+ * a filter is applied, shows a Clear-filters affordance path
+ * (surfaced by the parent via `emptyHint`).
+ */
+function LogTable({
+  rows,
+  page,
+  pageSize,
+  onPageChange,
+  emptyTitle,
+  emptyHint,
+  renderRow,
+}: {
+  rows: LogEntry[];
+  page: number;
+  pageSize: number;
+  onPageChange: (p: number) => void;
+  emptyTitle: string;
+  emptyHint: string;
+  renderRow: (log: LogEntry) => JSX.Element;
+}) {
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const clampedPage = Math.min(page, totalPages - 1);
+  const start = clampedPage * pageSize;
+  const slice = rows.slice(start, start + pageSize);
+
+  if (total === 0) {
+    return (
+      <div className="py-14 text-center">
+        <p className="text-sm text-slate-700 dark:text-slate-200">{emptyTitle}</p>
+        <p className="text-xs text-slate-500 mt-1">{emptyHint}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50/70 dark:bg-slate-900/40 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+              <tr>
+                <th className="text-left px-3 py-2 font-semibold">Time</th>
+                <th className="text-left px-3 py-2 font-semibold">Level</th>
+                <th className="text-left px-3 py-2 font-semibold">Message</th>
+                <th className="text-left px-3 py-2 font-semibold">Source</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {slice.map(renderRow)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* v4.7.17 — pagination footer. Prev/Next + page indicator.
+       *  Server-side cursor pagination is a follow-up round. */}
+      <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+        <span className="tabular-nums">
+          Showing {start + 1}–{Math.min(start + pageSize, total)} of {total.toLocaleString()}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.max(0, clampedPage - 1))}
+            disabled={clampedPage === 0}
+            className={cn(
+              "h-7 px-2 rounded-md font-semibold transition-colors",
+              "hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+            )}
+          >
+            ‹ Prev
+          </button>
+          <span className="tabular-nums px-2">
+            {clampedPage + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.min(totalPages - 1, clampedPage + 1))}
+            disabled={clampedPage >= totalPages - 1}
+            className={cn(
+              "h-7 px-2 rounded-md font-semibold transition-colors",
+              "hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+            )}
+          >
+            Next ›
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * v4.7.17 — log detail sheet. Right-side slide-in with the full log
+ * payload split into human-readable fields (top) and monospace
+ * technical detail (below). Escape closes; focus is trapped by the
+ * Sheet primitive.
+ */
+function LogDetailSheet({
+  log,
+  onClose,
+}: {
+  log: LogEntry | null;
+  onClose: () => void;
+}) {
+  const isOpen = log !== null;
+  return (
+    <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        {log && (
+          <>
+            <SheetHeader>
+              <SheetTitle className="text-base font-semibold">
+                {log.type === "login" ? "Login event" : "App event"}
+              </SheetTitle>
+              <SheetDescription className="text-xs">
+                {new Date(log.createdAt).toLocaleString()}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-4">
+              {log.type === "login" && (
+                <>
+                  <Field label="User" value={(log as LoginLog).userName || (log as LoginLog).email} />
+                  <Field label="Email" value={(log as LoginLog).email} mono />
+                  <Field label="Status" value={(log as LoginLog).loginStatus} />
+                  {(log as LoginLog).failureReason && (
+                    <Field label="Failure reason" value={(log as LoginLog).failureReason!} />
+                  )}
+                  {(log as LoginLog).ipAddress && (
+                    <Field label="IP" value={(log as LoginLog).ipAddress!} mono />
+                  )}
+                  {(log as LoginLog).sessionId && (
+                    <Field label="Session" value={(log as LoginLog).sessionId!} mono />
+                  )}
+                  {(log as LoginLog).userAgent && (
+                    <Field label="User agent" value={(log as LoginLog).userAgent!} mono wrap />
+                  )}
+                </>
+              )}
+              {log.type === "app" && (
+                <>
+                  <Field label="Level" value={(log as AppLog).level} />
+                  <Field label="Message" value={(log as AppLog).message} />
+                  {(log as AppLog).action && (
+                    <Field label="Action" value={(log as AppLog).action!} mono />
+                  )}
+                  {(log as AppLog).userName && (
+                    <Field label="User" value={(log as AppLog).userName!} />
+                  )}
+                  {(log as AppLog).details && (
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 mb-1">
+                        Details
+                      </p>
+                      <pre className="text-[11px] font-mono bg-slate-50 dark:bg-slate-900 p-3 rounded-lg overflow-x-auto max-h-64 whitespace-pre-wrap break-all">
+                        {(log as AppLog).details}
+                      </pre>
+                    </div>
+                  )}
+                </>
+              )}
+              <Field label="Log ID" value={log.id} mono />
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono = false,
+  wrap = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  wrap?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "text-sm text-slate-900 dark:text-slate-100 mt-0.5",
+          mono && "font-mono text-[12px]",
+          wrap && "break-all",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

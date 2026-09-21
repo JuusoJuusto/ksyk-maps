@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.16";
+export const APP_VERSION = "4.7.17";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.17",
+    date: "September 2026",
+    title: "Log detail sheet · pagination · sidebar audit · mobile fixes",
+    titleFi: "Lokien yksityiskohtapaneeli · sivutus · sivupalkki-audit",
+    latest: true,
+    highlights: [
+      "**Log explorer redesign** — bulky per-row cards replaced with a compact scannable table (Time · Level · Message · Source). Click any row → right-side sheet with the full details split into human fields (top) + monospace technical block (below). Empty state simplified to a factual two-line pattern.",
+      "**Log pagination** — new Prev/Next controls with page-size 50 and 'Showing X–Y of Z' indicator. Filters/tabs reset to page 1. Server-side cursor pagination (a data-shape change) queues for its own round; this ships a real UX improvement on the existing endpoint.",
+      "**Sidebar audit** — dropped the flashy `bg-blue-50 ring-1 shadow-sm` active state and replaced with a subtle blue accent bar on the left (Apple Settings pattern). Nav item padding tightened, `aria-current=\"page\"` added, focus-visible ring for keyboard navigation.",
+      "**Mobile viewport pass** — sticky analytics header now `flex-wrap` so the range picker drops below the title instead of overflowing at 375px. All tables already had `overflow-x-auto` + `min-w-[…]` — verified they scroll cleanly.",
+      "**Focus + keyboard**: log rows are `tabIndex={0}` + Enter/Space activate. `aria-current` on active sidebar item. Sheet focus-traps via the primitive.",
+    ],
+    highlightsFi: [
+      "**Lokien uusi ulkoasu** — massiiviset rivikortit korvattu kompaktilla taulukolla. Rivin klikkaus avaa oikean reunan paneelin täydellisillä yksityiskohdilla.",
+      "**Sivutus** — Prev/Next-napit 50 kohteen sivukoolla + 'Näytetään X–Y / Z' -laskuri.",
+      "**Sivupalkin audit** — flashy aktiivinen tila korvattu hiljaisella sinisellä palkilla vasemmalla (Apple Settings -tyyli).",
+      "**Mobiili** — analytics-otsikko flex-wrap:iä käyttäen 375px:llä ei enää ylivuoda.",
+    ],
+  },
   {
     version: "4.7.16",
     date: "September 2026",
     title: "Sub-panel card-hell removal · ErrorRetry wired everywhere · empty-state polish",
     titleFi: "Alipaneelien korttihelvetin purku · virheiden retry-nappi kaikkialla",
-    latest: true,
     highlights: [
       "**Sub-panel card-hell removal.** Dropped the redundant `rounded-xl border bg-white p-4` wrapper from Features, Errors, and Performance panels — the tab strip already provides structural separation, so the extra bordered box was pure visual noise. Rows carry their own rhythm via divider lists or bars.",
       "**`<ErrorRetry>` wired into every sub-panel fetch** — Features, Errors, Performance, Sessions, RecentEvents. Failed fetches now surface an honest 'Couldn't load X' banner with a real Try-again button instead of silently showing zeros.",

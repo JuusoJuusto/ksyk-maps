@@ -16,7 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.16 · pending push)
+## ✅ Just shipped (web 4.7.17 · pending push)
+
+- **Log explorer — compact table + row-click detail sheet.** Bulky per-row cards replaced with a 4-column scannable table (Time · Level · Message · Source). Row click opens a right-side Sheet with the full log payload split into human fields (top) and monospace technical block (below). Login vs App logs share the same compact renderer.
+- **Pagination** — new `LogTable` helper with Prev/Next controls, page size 50, "Showing X–Y of Z" indicator, disabled states, focus-visible rings. Filters/tabs reset to page 1 via `useEffect`. Server-side cursor pagination (a data-shape change) deferred to its own round.
+- **Sidebar audit** — the `bg-blue-50 ring-1 shadow-sm` active state was flashy. Replaced with a subtle 3px blue accent bar on the left (Apple Settings pattern). Nav items tightened to 13px, `aria-current="page"` on active, `focus-visible` ring for keyboard navigation, ChevronRight removed (redundant with the accent bar).
+- **Mobile pass — analytics header** now uses `flex-wrap` so the range picker drops below the title at narrow widths instead of overflowing. Tables already had `overflow-x-auto` + `min-w-[N]` — verified.
+- **Keyboard/a11y**: log rows are `tabIndex={0}` with Enter/Space activation. `aria-current` on sidebar. Sheet focus-traps via primitive.
+
+## 🚧 Admin redesign — remaining
+
+- **Server-side cursor pagination** (`/api/app-logs?since=&level=&limit=&cursor=`) — data-shape change; own round.
+- **Real device mobile test** — CSS-level pass done, but narrow-viewport interactions (sheet-on-mobile, sidebar collapse behavior) need real device time.
+
+## ✅ Shipped (web 4.7.16 · pushed 2dffe1c)
 
 - **Sub-panel card-hell removed** — Features / Errors / Performance / Recent panels dropped their outer bordered-card wrappers. Content flows directly under the tab strip. Row counts moved to a compact toolbar.
 - **`<ErrorRetry>` wired into every sub-panel fetch** — Features, Errors, Performance, Sessions, RecentEvents. Any failed fetch now shows the honest banner + Try-again instead of silently zero.
