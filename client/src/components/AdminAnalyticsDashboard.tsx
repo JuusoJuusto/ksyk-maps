@@ -634,16 +634,18 @@ interface TelemetrySession {
 }
 function SessionsPanel({ range }: { range: Range }) {
   const [drillSid, setDrillSid] = useState<string | null>(null);
-  const { data = [], isLoading, refetch } = useQuery<TelemetrySession[]>({
+  const queryResult = useQuery<TelemetrySession[]>({
     queryKey: ["admin-analytics-sessions", range],
     queryFn: () => fetchList<TelemetrySession>(`/api/admin/analytics/sessions?limit=100&range=${range}`),
     refetchInterval: 60_000,
   });
+  const { data = [], isLoading, refetch } = queryResult;
   return (
-    <>
+    <div className="space-y-2 pt-3">
+      <ErrorRetry query={queryResult} label="sessions" />
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${data.length} sessions`}
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+          {isLoading ? "Loading…" : `${data.length} session${data.length === 1 ? "" : "s"}`}
         </p>
         <div className="flex gap-1">
           <button
@@ -714,7 +716,7 @@ function SessionsPanel({ range }: { range: Range }) {
         </div>
       </div>
       <SessionDrillDialog sessionId={drillSid} onClose={() => setDrillSid(null)} />
-    </>
+    </div>
   );
 }
 
@@ -1080,47 +1082,54 @@ function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: strin
 // ── Features panel ──────────────────────────────────────────────────
 interface FeatureRow { feature: string; action: string; n: number; }
 function FeaturesPanel({ range }: { range: Range }) {
-  const { data = [], isLoading } = useQuery<FeatureRow[]>({
+  const queryResult = useQuery<FeatureRow[]>({
     queryKey: ["admin-analytics-features", range],
     queryFn: () => fetchList<FeatureRow>(`/api/admin/analytics/features?range=${range}`),
     refetchInterval: 60_000,
   });
+  const { data = [], isLoading } = queryResult;
   const totals = new Map<string, number>();
   for (const r of data) totals.set(r.feature, (totals.get(r.feature) || 0) + Number(r.n));
   const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
   const max = ranked[0]?.[1] || 1;
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-end">
+    <div className="space-y-3 pt-3">
+      <ErrorRetry query={queryResult} label="features" />
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+          {isLoading ? "Loading…" : `${ranked.length} of ${totals.size} features`}
+        </p>
         <button
           type="button"
           onClick={() => downloadCSV(data as any, "ksyk-features.csv")}
           disabled={!data.length}
-          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
         >
           <Download className="h-3 w-3" /> CSV
         </button>
       </div>
-      <div className="rounded-xl border bg-white dark:bg-slate-950 p-4">
-        {isLoading && <p role="status" aria-live="polite" className="text-sm text-muted-foreground py-6 text-center">Loading…</p>}
-        {!isLoading && ranked.length === 0 && (
-          <p className="text-sm text-muted-foreground py-6 text-center">
-            No feature usage recorded yet in this range.
-          </p>
-        )}
-        <div className="space-y-2">
-          {ranked.map(([f, n]) => (
-            <div key={f}>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="font-medium">{f}</span>
-                <span className="text-xs text-muted-foreground">{n.toLocaleString()}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.max(3, (n / max) * 100)}%` }} />
-              </div>
-            </div>
-          ))}
+      {/* v4.7.16 — dropped the rounded-xl bordered card wrapper; the
+       *  tab already provides structural separation and the bars
+       *  themselves carry the visual rhythm. */}
+      {isLoading && <p role="status" aria-live="polite" className="text-sm text-slate-500 py-6 text-center">Loading feature usage…</p>}
+      {!isLoading && ranked.length === 0 && !queryResult.isError && (
+        <div className="py-8 text-center">
+          <p className="text-sm text-slate-700 dark:text-slate-200">No feature usage in this range</p>
+          <p className="text-xs text-slate-500 mt-1">Try a wider window with the range picker above.</p>
         </div>
+      )}
+      <div className="space-y-2">
+        {ranked.map(([f, n]) => (
+          <div key={f}>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="font-medium">{f}</span>
+              <span className="text-xs text-slate-500 tabular-nums">{n.toLocaleString()}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.max(3, (n / max) * 100)}%` }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1382,44 +1391,51 @@ function BounceRateCard({ range }: { range: Range }) {
 }
 
 function ErrorsPanel({ range }: { range: Range }) {
-  const { data = [], isLoading } = useQuery<ErrorRow[]>({
+  const queryResult = useQuery<ErrorRow[]>({
     queryKey: ["admin-analytics-errors", range],
     queryFn: () => fetchList<ErrorRow>(`/api/admin/analytics/errors?range=${range}`),
     refetchInterval: 30_000,
   });
+  const { data = [], isLoading } = queryResult;
   const [expanded, setExpanded] = useState<string | null>(null);
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 pt-3">
+      <ErrorRetry query={queryResult} label="error log" />
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${data.length} errors`}
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+          {isLoading ? "Loading…" : `${data.length} error${data.length === 1 ? "" : "s"}`}
         </p>
         <button
           type="button"
           onClick={() => downloadCSV(data as any, "ksyk-errors.csv")}
           disabled={!data.length}
-          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
         >
           <Download className="h-3 w-3" /> CSV
         </button>
       </div>
-      <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
-        {!isLoading && data.length === 0 && (
-          <p className="text-sm text-muted-foreground p-6 text-center">
-            No errors in this range. 🎉
-          </p>
-        )}
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      {/* v4.7.16 — dropped the outer bordered card. Rows carry their
+       *  own visual rhythm via the divider list. */}
+      {isLoading && <p role="status" aria-live="polite" className="text-sm text-slate-500 py-6 text-center">Loading errors…</p>}
+      {!isLoading && data.length === 0 && !queryResult.isError && (
+        <div className="py-8 text-center">
+          <p className="text-sm text-slate-700 dark:text-slate-200">No errors</p>
+          <p className="text-xs text-slate-500 mt-1">Nothing has been reported in this range.</p>
+        </div>
+      )}
+      {data.length > 0 && (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 border-t border-b border-slate-100 dark:border-slate-800">
           {data.map((e) => (
-            <li key={e.id} className="p-3">
+            <li key={e.id} className="py-3">
               <button
                 type="button"
                 onClick={() => setExpanded(expanded === e.id ? null : e.id)}
-                className="w-full flex items-start justify-between gap-3 text-left"
+                aria-expanded={expanded === e.id}
+                className="w-full flex items-start justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{e.message}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     {new Date(e.createdAt).toLocaleString()}
                     {e.url && <span> · {e.url}</span>}
                   </p>
@@ -1434,7 +1450,7 @@ function ErrorsPanel({ range }: { range: Range }) {
             </li>
           ))}
         </ul>
-      </div>
+      )}
     </div>
   );
 }
@@ -1442,20 +1458,25 @@ function ErrorsPanel({ range }: { range: Range }) {
 // ── Performance ─────────────────────────────────────────────────────
 interface PerfRow { metric_name: string; n: number; p50: number; p95: number; p99: number; avg: number; }
 function PerformancePanel({ range }: { range: Range }) {
-  const { data = [], isLoading } = useQuery<PerfRow[]>({
+  const queryResult = useQuery<PerfRow[]>({
     queryKey: ["admin-analytics-perf", range],
     queryFn: () => fetchList<PerfRow>(`/api/admin/analytics/performance?range=${range}`),
     refetchInterval: 60_000,
   });
+  const { data = [], isLoading } = queryResult;
   const fmt = (v: number | null) => v == null ? "—" : v >= 1000 ? `${(v / 1000).toFixed(2)}s` : `${Math.round(v)}ms`;
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-end">
+    <div className="space-y-3 pt-3">
+      <ErrorRetry query={queryResult} label="performance samples" />
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+          {isLoading ? "Loading…" : `${data.length} metric${data.length === 1 ? "" : "s"}`}
+        </p>
         <button
           type="button"
           onClick={() => downloadCSV(data as any, "ksyk-perf.csv")}
           disabled={!data.length}
-          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
         >
           <Download className="h-3 w-3" /> CSV
         </button>
@@ -1603,14 +1624,22 @@ function EggsPanel() {
 
 // ── Recent events firehose ──────────────────────────────────────────
 function RecentEventsPanel({ range }: { range: Range }) {
-  const { data = [], isLoading } = useQuery<any[]>({
+  const queryResult = useQuery<any[]>({
     queryKey: ["admin-analytics-recent", range],
     queryFn: () => fetchList<any>(`/api/admin/analytics/recent-events?limit=200&range=${range}`),
     refetchInterval: 10_000,
   });
+  const { data = [], isLoading } = queryResult;
   return (
-    <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="space-y-3 pt-3">
+      <ErrorRetry query={queryResult} label="recent events" />
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+          {isLoading ? "Loading…" : `${data.length} event${data.length === 1 ? "" : "s"}`}
+        </p>
+      </div>
+      <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[540px]">
           <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
             <tr>
@@ -1643,6 +1672,7 @@ function RecentEventsPanel({ range }: { range: Range }) {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );

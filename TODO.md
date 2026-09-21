@@ -16,7 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.15 · pending push)
+## ✅ Just shipped (web 4.7.16 · pending push)
+
+- **Sub-panel card-hell removed** — Features / Errors / Performance / Recent panels dropped their outer bordered-card wrappers. Content flows directly under the tab strip. Row counts moved to a compact toolbar.
+- **`<ErrorRetry>` wired into every sub-panel fetch** — Features, Errors, Performance, Sessions, RecentEvents. Any failed fetch now shows the honest banner + Try-again instead of silently zero.
+- **Empty states standardized** across sub-panels: title (factual, short) + hint (one sentence, actionable). No emoji, no version refs, no hype.
+- **Focus rings + `aria-expanded`** on expandable error rows and CSV buttons. Same focus-visible pattern everywhere in the dashboard.
+
+## 🚧 Admin redesign — remaining
+
+- **Log table redesign**: filter drawer + right-side detail sheet per log row + server-side pagination. This is a data-shape change (`/api/app-logs?since=&level=&limit=&offset=`) as much as a UI change — own round.
+- **Sidebar layout audit** — the admin sidebar is untouched. Own pass.
+- **Mobile viewport pass** — deferred; needs actual device testing at narrow widths.
+
+## ✅ Shipped (web 4.7.15 · pushed bf02107)
 
 - **Boot-splash spinner freeze — real fix.** Two layers:
   1. Inline `#preboot` HTML spinner rendered by the parser before JS parses; pure CSS conic-gradient + mask on a `contain: layout paint` compositor layer. MutationObserver kills it seamlessly once React inserts into `#root`.

@@ -10,15 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.15";
+export const APP_VERSION = "4.7.16";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.16",
+    date: "September 2026",
+    title: "Sub-panel card-hell removal · ErrorRetry wired everywhere · empty-state polish",
+    titleFi: "Alipaneelien korttihelvetin purku · virheiden retry-nappi kaikkialla",
+    latest: true,
+    highlights: [
+      "**Sub-panel card-hell removal.** Dropped the redundant `rounded-xl border bg-white p-4` wrapper from Features, Errors, and Performance panels — the tab strip already provides structural separation, so the extra bordered box was pure visual noise. Rows carry their own rhythm via divider lists or bars.",
+      "**`<ErrorRetry>` wired into every sub-panel fetch** — Features, Errors, Performance, Sessions, RecentEvents. Failed fetches now surface an honest 'Couldn't load X' banner with a real Try-again button instead of silently showing zeros.",
+      "**Empty states rewritten** to a two-line pattern: title (factual: 'No feature usage in this range') + hint ('Try a wider window with the range picker above'). No emoji, no marketing hype. Also added row counts to the toolbar so admins see how much data is displayed before scanning.",
+      "**Accessibility**: expandable error rows have `aria-expanded`, expand button gets a focus-visible ring, CSV button too. Consistent focus-ring pattern across the dashboard.",
+      "**Explicit deferral**: Log detail sheet (right-side drawer per row) + server-side pagination is a focused round on its own — that's a data-model + query-shape change, not just UI.",
+    ],
+    highlightsFi: [
+      "**Alipaneelien korttihelvetin purku.** Features / Errors / Performance -paneeleista poistettu ylimääräinen reunustettu laatikko.",
+      "**`<ErrorRetry>`** kytketty kaikkiin alipaneeleiden hakuihin — epäonnistuneet lataukset näyttävät oikean virhepalautus-bannerin.",
+      "**Tyhjätilat uudelleenkirjoitettu** kaksirivisiksi (otsikko + vihje). Ei emojia, ei markkinointikieltä.",
+      "**Saavutettavuus**: laajennettavat rivit `aria-expanded`, näppäimistön focus-rings yhdenmukaisesti.",
+    ],
+  },
   {
     version: "4.7.15",
     date: "September 2026",
     title: "Preboot spinner · retry buttons · aria-live · ErrorRetry component",
     titleFi: "Preboot-latausanimaatio · uudelleenyritys-napit · aria-live",
-    latest: true,
     highlights: [
       "**Real fix for the boot spinner freeze.** The React SplashScreen re-rendered on every query state change, which stalled the SVG animation during heavy hydration. Two fixes: (1) HTML-level preboot spinner that renders before any JS parses — pure CSS `conic-gradient` on a GPU-composited layer via `will-change: transform` + `contain: layout paint`. Handoff is seamless via `MutationObserver` on `#root`. (2) React spinner extracted into `BootSpinner` — memo'd, prop-free, never reconciles during query updates.",
       "**New `<ErrorRetry>` component** — standard error-recovery block for admin fetches. Shows honest 'Couldn't load X' copy (not 'Something happened'), announces via `role=\"alert\" aria-live=\"polite\"`, includes a real `Try again` button that calls `refetch()`. Compact + full variants. Wired into analytics overview; more panels next round.",
