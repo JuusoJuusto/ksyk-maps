@@ -100,9 +100,98 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 
+    <!-- v4.7.15 — inline preboot spinner. Drawn by the HTML parser
+         before any JS parses, so users never see a blank screen or a
+         "frozen" first frame while React bundles load. Pure CSS on a
+         GPU-composited compositor layer via conic-gradient + mask;
+         React's SplashScreen replaces this once mounted. -->
+    <style>
+      @keyframes preboot-spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      #preboot {
+        position: fixed;
+        inset: 0;
+        z-index: 9998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        contain: layout paint;
+      }
+      #preboot-wrap {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      #preboot-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid #e5e7eb;
+        box-sizing: border-box;
+      }
+      #preboot-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: conic-gradient(#2563eb 90deg, transparent 90deg 360deg);
+        -webkit-mask: radial-gradient(circle, transparent calc(50% - 3px), #000 calc(50% - 3px) calc(50%), transparent calc(50%));
+                mask: radial-gradient(circle, transparent calc(50% - 3px), #000 calc(50% - 3px) calc(50%), transparent calc(50%));
+        animation: preboot-spin 0.95s linear infinite;
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      #preboot-logo {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        margin: -22px 0 0 -22px;
+      }
+      @media (prefers-color-scheme: dark) {
+        #preboot { background: #030712; }
+        #preboot-track { border-color: #1f2937; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #preboot-ring { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <!-- Preboot spinner — SplashScreen replaces it once React mounts. -->
+    <div id="preboot" aria-hidden="true">
+      <div id="preboot-wrap">
+        <div id="preboot-track"></div>
+        <div id="preboot-ring"></div>
+        <img id="preboot-logo" src="/favicon-128.png" alt="" decoding="async" />
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove preboot as soon as React inserts anything into #root.
+      // MutationObserver fires synchronously on first child insert so
+      // the handoff is seamless.
+      (function () {
+        var root = document.getElementById('root');
+        var preboot = document.getElementById('preboot');
+        if (!root || !preboot) return;
+        var kill = function () {
+          try { preboot.style.opacity = '0'; preboot.style.pointerEvents = 'none'; } catch (_) {}
+          setTimeout(function () { try { preboot.remove(); } catch (_) {} }, 250);
+        };
+        preboot.style.transition = 'opacity 250ms ease-out';
+        var mo = new MutationObserver(function () {
+          if (root.childNodes.length > 0) { mo.disconnect(); kill(); }
+        });
+        mo.observe(root, { childList: true });
+        // Safety cap — kill after 10s even if React fails.
+        setTimeout(function () { mo.disconnect(); kill(); }, 10000);
+      })();
+    </script>
   </body>
 </html>

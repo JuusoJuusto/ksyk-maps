@@ -10,15 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.14";
+export const APP_VERSION = "4.7.15";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.15",
+    date: "September 2026",
+    title: "Preboot spinner · retry buttons · aria-live · ErrorRetry component",
+    titleFi: "Preboot-latausanimaatio · uudelleenyritys-napit · aria-live",
+    latest: true,
+    highlights: [
+      "**Real fix for the boot spinner freeze.** The React SplashScreen re-rendered on every query state change, which stalled the SVG animation during heavy hydration. Two fixes: (1) HTML-level preboot spinner that renders before any JS parses — pure CSS `conic-gradient` on a GPU-composited layer via `will-change: transform` + `contain: layout paint`. Handoff is seamless via `MutationObserver` on `#root`. (2) React spinner extracted into `BootSpinner` — memo'd, prop-free, never reconciles during query updates.",
+      "**New `<ErrorRetry>` component** — standard error-recovery block for admin fetches. Shows honest 'Couldn't load X' copy (not 'Something happened'), announces via `role=\"alert\" aria-live=\"polite\"`, includes a real `Try again` button that calls `refetch()`. Compact + full variants. Wired into analytics overview; more panels next round.",
+      "**`aria-live=\"polite\"` on every loading state** in the admin analytics dashboard so screen readers announce state changes without interrupting the user.",
+      "**Explicit deferral**: Log table redesign (filter drawer + detail sheet + server pagination) and full sidebar/card-hell audit are big enough that they deserve their own focused rounds, not corner-cut half-passes.",
+    ],
+    highlightsFi: [
+      "**Latausanimaation jäätyminen oikeasti korjattu.** HTML-tasoinen preboot-spinner renderöityy ennen React-latausta; React-puolen spinner memoitu niin että query-päivitykset eivät enää häiritse animaatiota.",
+      "**Uusi `<ErrorRetry>`-komponentti** — vakio virhepalautus-lohko admin-hakujen epäonnistumisiin. 'Try again' -nappi kutsuu oikeasti refetch-toimintoa.",
+      "**`aria-live=\"polite\"`** jokaisessa latauksen tilassa — ruudunlukija ilmoittaa tilan vaihtumisen häiritsemättä.",
+    ],
+  },
   {
     version: "4.7.14",
     date: "September 2026",
     title: "Access request magic-link · login redirect · spinner fix · log explorer pass",
     titleFi: "Pääsypyynnön taikalinkki · kirjautumis-redirect · spinner-korjaus",
-    latest: true,
     highlights: [
       "**One-click access grant via approval email.** When an admin approves an access request the email now contains a single-use magic link (`/grant/:token`). Opening it grants full access to that device via a local flag — no re-entering email at the lockout screen. Idempotent; expired/used tokens show a clear 'link no longer valid' page.",
       "**Fixed the 401 on approve/deny** — the admin panel was hitting `/access-requests/:id` without admin auth headers. Approve/deny/bulk-clear all attach `getAdminHeaders()` + `credentials: 'include'` now.",

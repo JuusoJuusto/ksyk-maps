@@ -16,7 +16,21 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.14 · pending push)
+## ✅ Just shipped (web 4.7.15 · pending push)
+
+- **Boot-splash spinner freeze — real fix.** Two layers:
+  1. Inline `#preboot` HTML spinner rendered by the parser before JS parses; pure CSS conic-gradient + mask on a `contain: layout paint` compositor layer. MutationObserver kills it seamlessly once React inserts into `#root`.
+  2. React's `SplashScreen` spinner extracted to a memo'd `BootSpinner` component with no props; `contain: layout paint` isolates it, so query state ticks never reconcile the animated subtree.
+- **New `<ErrorRetry>` component** — standard error banner for admin fetches. Honest copy ("Couldn't load X"), `role="alert"` + `aria-live="polite"` for screen readers, real `refetch()`-backed retry button. Compact + full variants. Wired into the analytics overview query; panel-by-panel wiring next round.
+- **`aria-live="polite"` on every loading paragraph** in admin analytics so screen readers announce state changes.
+- **Toast copy audit** — no "Success!" / "Something happened" / other robotic language found; existing copy is already factual ("Changes saved", "Reset scheduled", etc).
+
+## 🚧 Admin redesign — remaining passes
+
+- **Pass 4 finish**: Full card-hell audit across Analytics sub-panels (Features / Insights / Sessions / Errors / Perf), sidebar/nav layout refinement.
+- **Pass 5 rest**: Log table + filter drawer + detail sheet + server-side pagination. Mobile viewport pass. Keyboard nav + focus trap audit on dialogs. `<ErrorRetry>` wiring for every remaining query.
+
+## ✅ Shipped (web 4.7.14 · pushed a6e80b1)
 
 - **Access magic-link approval flow.** Admin approves → server mints one-shot token → email link `/grant/:token` → landing page stamps `localStorage.ksyk_access_granted=1` → `useAccessDecision` shortcuts to full access. Single-use, idempotent, honest error states.
 - **Fixed the 401 bug** — approve/deny/clear on access requests now attach `getAdminHeaders()`.

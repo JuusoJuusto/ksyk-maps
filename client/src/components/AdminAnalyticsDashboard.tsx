@@ -30,6 +30,7 @@ import {
 } from "recharts";
 import { RrwebSessionsCard } from "@/components/RrwebReplay";
 import { cn } from "@/lib/utils";
+import ErrorRetry from "@/components/ErrorRetry";
 
 type Range = "24h" | "7d" | "30d" | "90d";
 
@@ -266,7 +267,7 @@ function RoomPopularityCard() {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {isLoading && <p role="status" aria-live="polite" className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && top.length === 0 && (
           <div className="py-2">
             <p className="text-sm">No room views recorded</p>
@@ -342,7 +343,7 @@ function RoutePopularityCard({ range }: { range: Range }) {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {isLoading && <p role="status" aria-live="polite" className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && data.length === 0 && (
           <div className="py-2">
             <p className="text-sm">No routes computed</p>
@@ -425,7 +426,7 @@ function AnnouncementCtrCard({ range }: { range: Range }) {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
+        {isLoading && <p role="status" aria-live="polite" className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && data.length === 0 && (
           <div className="py-2">
             <p className="text-sm">No announcement activity</p>
@@ -508,7 +509,7 @@ function RetentionChart() {
         </div>
       </CardHeader>
       <CardContent className="h-56 pl-0">
-        {isLoading && <div className="p-4 text-xs text-muted-foreground">Loading…</div>}
+        {isLoading && <div role="status" aria-live="polite" className="p-4 text-xs text-muted-foreground">Loading…</div>}
         {!isLoading && rows.length === 0 && (
           <div className="p-4">
             <p className="text-sm">Not enough data</p>
@@ -1101,7 +1102,7 @@ function FeaturesPanel({ range }: { range: Range }) {
         </button>
       </div>
       <div className="rounded-xl border bg-white dark:bg-slate-950 p-4">
-        {isLoading && <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>}
+        {isLoading && <p role="status" aria-live="polite" className="text-sm text-muted-foreground py-6 text-center">Loading…</p>}
         {!isLoading && ranked.length === 0 && (
           <p className="text-sm text-muted-foreground py-6 text-center">
             No feature usage recorded yet in this range.
@@ -1695,7 +1696,8 @@ function AuditPanel() {
 // ── Top-level ───────────────────────────────────────────────────────
 export default function AdminAnalyticsDashboard() {
   const [range, setRange] = useState<Range>("24h");
-  const { data: overview, dataUpdatedAt } = useOverview(range);
+  const overviewQ = useOverview(range);
+  const { data: overview, dataUpdatedAt } = overviewQ;
   const { data: timeseries } = useTimeseries(range);
 
   // Sparklines derived from timeseries so we don't fetch twice.
@@ -1740,6 +1742,11 @@ export default function AdminAnalyticsDashboard() {
       <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-2 italic">
         Range affects every card except Eggs (lifetime) &amp; the audit log (fixed 7d window).
       </p>
+
+      {/* v4.7.15 — surface fetch failures instead of silently
+       *  showing zeros across every card. Retry actually calls
+       *  react-query's refetch. */}
+      <ErrorRetry query={overviewQ} label="analytics overview" />
 
       {/* Stat grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

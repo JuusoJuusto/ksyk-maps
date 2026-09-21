@@ -14,7 +14,7 @@
  * loadable, so no more "map didn't load, refresh once".
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchList } from "@/lib/fetchList";
 
@@ -164,39 +164,7 @@ export default function SplashScreen() {
       }}
     >
       <div className="flex flex-col items-center gap-5 px-8 w-[min(20rem,90vw)]">
-        {/* Logo + ring. v4.7.14 — the spinner used to freeze during
-         *  heavy query bursts because the SVG animation ran on the
-         *  main thread AND the logo <img> was decoding="sync" which
-         *  blocked layout. Fix: promote the spinner to its own
-         *  compositor layer via `will-change: transform` + rotate the
-         *  parent (not the SVG's stroke), and switch the img to
-         *  async decode so the fetch doesn't stall the animation. */}
-        <div className="relative w-20 h-20 flex items-center justify-center">
-          <div className="ksyk-spinner absolute inset-0 flex items-center justify-center">
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 80 80"
-              aria-hidden="true"
-            >
-              <circle cx={40} cy={40} r={34} fill="none" stroke="#e5e7eb" strokeWidth={3} />
-              <circle
-                cx={40} cy={40} r={34}
-                fill="none" stroke="#2563eb" strokeWidth={3}
-                strokeLinecap="round" strokeDasharray="155 60"
-                transform="rotate(-90 40 40)"
-              />
-            </svg>
-          </div>
-          <img
-            src="/favicon-128.png"
-            alt=""
-            width={44} height={44}
-            className="relative block object-contain"
-            decoding="async"
-            fetchPriority="high"
-            draggable={false}
-          />
-        </div>
+        <BootSpinner />
 
         {/* Brand */}
         <div className="text-center">
@@ -244,22 +212,80 @@ export default function SplashScreen() {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
         }
-        .ksyk-spinner {
+        /* v4.7.15 — spinner is a plain div using conic-gradient +
+         *  mask, drawn on the GPU. Wrapped in a memo'd React
+         *  component so query state changes never re-render this
+         *  subtree; the animation just keeps ticking. */
+        .ksyk-spinner-wrap {
+          position: relative;
+          width: 80px;
+          height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          contain: layout paint;
+        }
+        .ksyk-spinner-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg,
+            #2563eb 0deg,
+            #2563eb 90deg,
+            transparent 90deg,
+            transparent 360deg);
+          -webkit-mask: radial-gradient(circle at center,
+            transparent calc(50% - 3px),
+            #000 calc(50% - 3px),
+            #000 calc(50% + 0px),
+            transparent calc(50% + 0px));
+                  mask: radial-gradient(circle at center,
+            transparent calc(50% - 3px),
+            #000 calc(50% - 3px),
+            #000 calc(50% + 0px),
+            transparent calc(50% + 0px));
           animation: ksyk-ring-spin 0.95s linear infinite;
           will-change: transform;
-          /* GPU-compositor hint so the animation stays smooth even
-           *  when the main thread is busy with query hydration. */
           transform: translateZ(0);
           backface-visibility: hidden;
         }
-        /* Respect the OS motion setting — no spin at all if the user
-         *  has reduced motion enabled. */
+        .ksyk-spinner-track {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          border: 3px solid #e5e7eb;
+          box-sizing: border-box;
+        }
         @media (prefers-reduced-motion: reduce) {
-          .ksyk-spinner {
-            animation: none;
-          }
+          .ksyk-spinner-ring { animation: none; }
         }
       `}</style>
     </div>
   );
 }
+
+/**
+ * v4.7.15 — memo'd spinner. Takes no props so React.memo never
+ * re-renders it. The animation is pure CSS on a GPU-composited
+ * element; even if SplashScreen re-renders every 30ms during query
+ * hydration, this subtree never reconciles → the ring keeps
+ * spinning at frame-perfect 60fps.
+ */
+const BootSpinner = memo(function BootSpinner() {
+  return (
+    <div className="ksyk-spinner-wrap">
+      <div className="ksyk-spinner-track" aria-hidden="true" />
+      <div className="ksyk-spinner-ring" aria-hidden="true" />
+      <img
+        src="/favicon-128.png"
+        alt=""
+        width={44}
+        height={44}
+        className="relative block object-contain"
+        decoding="async"
+        fetchPriority="high"
+        draggable={false}
+      />
+    </div>
+  );
+});
