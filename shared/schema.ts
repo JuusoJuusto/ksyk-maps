@@ -1077,6 +1077,33 @@ export const featureUsage = pgTable(
 );
 
 /**
+ * v4.7.12 — rrweb DOM snapshot storage. Each row is a batch of
+ * serialized rrweb events (typically 50–500 events per batch, ~5 s
+ * of wall-clock activity). Session id + batch seq lets the player
+ * replay in order across multiple upload batches without ambiguity.
+ *
+ * We keep the events blob raw — no server-side parsing. The rrweb
+ * player deserializes on demand in the admin viewer.
+ */
+export const rrwebBatches = pgTable(
+  "rrweb_batches",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sessionId: varchar("session_id").notNull(),
+    seq: integer("seq").notNull(),               // batch order within the session
+    startedAt: timestamp("started_at").notNull(),
+    endedAt: timestamp("ended_at").notNull(),
+    eventCount: integer("event_count").notNull(),
+    events: jsonb("events").notNull(),           // raw rrweb event array
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_rrweb_session").on(table.sessionId),
+    index("idx_rrweb_created_at").on(table.createdAt),
+  ],
+);
+
+/**
  * Easter-egg discoveries. Duplicated from the existing easterEggCounters
  * KV blob so admins can see the time series (when eggs were found), not
  * just totals.

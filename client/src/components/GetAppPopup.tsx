@@ -16,7 +16,9 @@ const DISMISSED_KEY = "ksyk_get_app_dismissed_v1";
 
 export default function GetAppPopup() {
   const [visible, setVisible] = useState(false);
-  const [href, setHref] = useState("https://ksykmaps.fi/download");
+  // v4.7.12 — default to relative /download so it works on any host
+  // (localhost, preview deploy, prod) without a hardcoded domain.
+  const [href, setHref] = useState("/download");
 
   useEffect(() => {
     // Skip on the app itself — this is only for web visitors.

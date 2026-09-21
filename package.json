@@ -141,6 +141,8 @@
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.4",
     "resend": "^6.5.2",
+    "rrweb": "^2.1.5",
+    "rrweb-player": "^2.1.5",
     "sharp": "^0.35.4",
     "speakeasy": "^2.0.0",
     "tailwind-merge": "^2.6.0",

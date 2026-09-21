@@ -78,7 +78,19 @@ export default function Header({
   const handleSearchChange = useCallback((value: string) => {
     setDraftSearch(value);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => { onSearchChange?.(value); }, 200);
+    searchDebounceRef.current = setTimeout(() => {
+      onSearchChange?.(value);
+      // v4.7.12 — fire search telemetry so the admin dashboard's
+      // "Searches" tile stops showing 0. Only for non-empty queries
+      // longer than 1 char so we don't count backspaced keystrokes.
+      const q = value.trim();
+      if (q.length >= 2) {
+        void import("@/lib/analytics").then(m => {
+          try { m.trackFeatureUse('search_performed', { queryLength: q.length }); }
+          catch { /* non-fatal */ }
+        });
+      }
+    }, 200);
   }, [onSearchChange]);
   useEffect(() => {
     if (!onSearchChange) return;

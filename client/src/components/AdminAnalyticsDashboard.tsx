@@ -28,6 +28,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
 } from "recharts";
+import { RrwebSessionsCard } from "@/components/RrwebReplay";
 
 type Range = "24h" | "7d" | "30d" | "90d";
 
@@ -1730,6 +1731,9 @@ export default function AdminAnalyticsDashboard() {
         <RoutePopularityCard range={range} />
         <AnnouncementCtrCard range={range} />
       </div>
+
+      {/* v4.7.12 — session replay list */}
+      <RrwebSessionsCard range={range} />
 
       {/* Detail tabs */}
       <Tabs defaultValue="features">

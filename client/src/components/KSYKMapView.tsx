@@ -332,7 +332,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     };
     const onRecenter = () => { handleRef.current?.recenter(); };
     const onResetBearing = () => { handleRef.current?.setBearing(0); };
-    const onOpenDirections = () => setShowNav(true);
+    const onOpenDirections = () => {
+      setShowNav(true);
+      // v4.7.12 — fire nav telemetry so the admin "Navigations" tile
+      // stops showing 0. route_computed fires per unique from→to
+      // pair inside the panel; this fires per open.
+      void import("@/lib/analytics").then(m => {
+        try { m.trackFeatureUse('navigation_opened'); } catch { /* non-fatal */ }
+      });
+    };
     const onFlyTo = (e: Event) => {
       const d = (e as CustomEvent<{ lat: number; lng: number; zoom?: number; floor?: number | null }>).detail;
       const h = handleRef.current;

@@ -242,14 +242,24 @@ export default function AccessLockoutScreen({ decision }: Props) {
                   {isFi ? "Tai" : "Or"}
                 </p>
               </div>
-              <Button
+              <button
+                type="button"
                 onClick={handleMsLogin}
-                className="w-full h-11 font-semibold rounded-xl gap-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
+                className={cn(
+                  "w-full h-11 rounded-xl text-sm font-semibold flex items-center gap-2.5 px-4 transition-all duration-150",
+                  "bg-blue-600 text-white shadow-sm shadow-blue-600/25",
+                  "hover:bg-blue-700 hover:shadow-md hover:shadow-blue-700/30 hover:-translate-y-px",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  darkMode ? "focus-visible:ring-offset-gray-950" : "focus-visible:ring-offset-white",
+                  "active:translate-y-0 active:shadow-sm active:scale-[0.98]",
+                )}
               >
                 <MicrosoftLogo />
-                {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
-                <ArrowRight className="h-4 w-4 ml-auto opacity-80" />
-              </Button>
+                <span className="flex-1 text-left">
+                  {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
+                </span>
+                <ArrowRight className="h-4 w-4 opacity-80" />
+              </button>
             </div>
           )}
 
@@ -308,32 +318,60 @@ export default function AccessLockoutScreen({ decision }: Props) {
                       : "bg-white border-gray-300 text-gray-900",
                   )}
                 />
-                <Button
+                <button
                   type="button"
                   onClick={handleRequestAccess}
-                  disabled={submitting}
-                  variant="outline"
+                  disabled={submitting || !email.trim()}
                   className={cn(
-                    "w-full h-10 font-medium rounded-lg gap-2 text-sm",
-                    darkMode
-                      ? "bg-transparent border-gray-800 text-gray-200 hover:bg-white/5"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50",
+                    "w-full h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-150",
+                    // Base — solid primary blue with real depth so the CTA reads
+                    "bg-blue-600 text-white shadow-sm shadow-blue-600/25",
+                    // Hover — lift + darker fill (only when enabled)
+                    "hover:enabled:bg-blue-700 hover:enabled:shadow-md hover:enabled:shadow-blue-700/30 hover:enabled:-translate-y-px",
+                    // Focus ring — visible for keyboard users
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    darkMode ? "focus-visible:ring-offset-gray-950" : "focus-visible:ring-offset-white",
+                    // Active — press it back down
+                    "active:enabled:translate-y-0 active:enabled:shadow-sm active:enabled:scale-[0.98]",
+                    // Disabled — clearly non-interactive
+                    "disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none",
                   )}
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  <Send className={cn("h-3.5 w-3.5", submitting && "animate-pulse")} />
                   {submitting
                     ? (isFi ? "Lähetetään…" : "Sending…")
                     : (isFi ? "Lähetä pyyntö" : "Send request")}
-                </Button>
+                </button>
               </div>
             </div>
           ) : (
-            <p className={cn(
-              "max-w-md mx-auto text-center text-sm font-semibold",
-              darkMode ? "text-emerald-400" : "text-emerald-600",
+            <div className={cn(
+              "max-w-md mx-auto rounded-2xl border p-5 text-center",
+              darkMode
+                ? "border-emerald-900/50 bg-emerald-950/30"
+                : "border-emerald-200 bg-emerald-50/70",
             )}>
-              ✓ {isFi ? "Pyyntö lähetetty admin-paneeliin." : "Request sent to the admin panel."}
-            </p>
+              <div className={cn(
+                "inline-flex items-center justify-center h-10 w-10 rounded-full mb-3",
+                darkMode ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-100 text-emerald-700",
+              )}>
+                <Send className="h-5 w-5" strokeWidth={2.25} />
+              </div>
+              <p className={cn(
+                "text-sm font-semibold mb-1",
+                darkMode ? "text-emerald-200" : "text-emerald-800",
+              )}>
+                {isFi ? "Pyyntö lähetetty" : "Request sent"}
+              </p>
+              <p className={cn(
+                "text-xs",
+                darkMode ? "text-emerald-400/80" : "text-emerald-700/80",
+              )}>
+                {isFi
+                  ? "Sähköpostiisi tulee vastaus kun admin on hyväksynyt tai hylännyt pyynnön."
+                  : "You'll get an email when an admin approves or denies your request."}
+              </p>
+            </div>
           )}
         </div>
       </main>

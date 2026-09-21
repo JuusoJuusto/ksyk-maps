@@ -10,15 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.11";
+export const APP_VERSION = "4.7.12";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.12",
+    date: "September 2026",
+    title: "rrweb session replay · /download page · one-click access approval",
+    titleFi: "rrweb-session-replay · /download-sivu · yhden klikkauksen pääsyn hyväksyntä",
+    latest: true,
+    highlights: [
+      "**rrweb DOM session replay foundation.** Public-route visits now record full DOM snapshots + input events via rrweb (skips admin sessions, /admin, /builder, opt-outs, DNT). Batched every 5s or 300 events to `/api/sessions/rrweb`. Sessions land in Admin → Analytics → Session replays with per-session batches/events/duration. Click 'Play' → fullscreen rrweb-player (lazy-loaded so it doesn't hit the initial bundle). New `rrweb_batches` table.",
+      "**/download page** — new canonical route for 'get the app' links. Signed Android APK direct-install, iOS honestly marked coming-later (no dead button). Version bumps with each release. QR codes and the in-app popup both point here now.",
+      "**'Get the app' popup wired to /download** — the popup already respected the admin `showGetAppPopup` toggle; now the default link is relative /download instead of a hardcoded domain, so it works on every host.",
+      "**One-click access-request approval** — the admin Security tab's request inbox no longer needs a manual Save after approve/deny. New `PATCH /api/security-settings/access-requests/:id` writes just that request; approving auto-adds the user exception AND fires the approval email in one action.",
+      "**Access-restricted page polish** — request-access button gets real hover/focus/active states (blue shadow lift, focus ring, translate-y press), Microsoft sign-in button same treatment. Success state redesigned as a proper card with an icon instead of a plain green line.",
+      "**Missing telemetry wired** — `search_performed` fires from the header search on any query ≥2 chars (Analytics 'Searches' tile stops showing 0). `navigation_opened` fires when the map's Directions button opens the panel ('Navigations' tile likewise).",
+    ],
+    highlightsFi: [
+      "**rrweb-session-replay-perustus.** Julkiset kartan käynnit tallennetaan DOM-snapshotteina. Admin → Analytics → Session replays -kortti listaa sessiot, Play avaa fullscreen-toistimen.",
+      "**/download-sivu** — kanoninen 'lataa sovellus' -reitti. Android-APK suoraan, iOS 'tulossa myöhemmin'.",
+      "**'Hae sovellus' -popup toimii** — käyttää /download-linkkiä, joka toimii kaikilla hosteilla.",
+      "**Pääsypyynnön yhden klikkauksen hyväksyntä** — Security-tabin admin ei enää tarvitse painaa Save-nappia hyväksynnän/hylkäyksen jälkeen. Uusi PATCH-päätepiste + auto-email.",
+      "**Pääsyrajoitus-sivun napit** — oikeat hover/focus/active-tilat. Onnistumis-tila korttinä.",
+      "**Puuttuvat telemetriakutsut** — search_performed + navigation_opened kirjautuvat nyt oikein.",
+    ],
+  },
   {
     version: "4.7.11",
     date: "September 2026",
     title: "Route popularity · Material You widgets · admin URL routing",
     titleFi: "Reittien suosio · Material You -widgetit · admin-URL-reititys",
-    latest: true,
     highlights: [
       "**Route popularity top-20 in admin analytics.** Client fires `route_computed` once per unique from→to endpoint pair whenever the navigation panel resolves a graph route. `/api/analytics/route-popularity` groups by `metadata.fromId + toId`, resolves labels from the event payload (no join needed), returns top 20 sorted by count. Admin card shows the ranked list with average distance and a violet proportional bar per row. CSV export.",
       "**Material You widgets (Android 12+).** New `drawable-v31/` overrides for `widget_background`, `widget_background_active`, and `widget_row_current` using `@android:color/system_accent1_*` and `system_accent2_*` refs — the OS remaps these to the user's wallpaper palette automatically. Older Android versions keep the shipped navy gradient. No opt-in switch — the res qualifier picks the right file at runtime.",

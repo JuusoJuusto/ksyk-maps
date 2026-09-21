@@ -295,6 +295,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // v4.7.12 — one-click approve/deny for an individual access request.
+    // Path: /api/security-settings/access-requests/:id  method: PATCH
+    // Body: { status: 'approved' | 'denied' }
+    // Writes just that request in place — no need to PUT the whole
+    // securitySettings blob from the admin UI. Fires the approval email
+    // automatically when the status transitions to 'approved'.
+    {
+      const m = apiPath.match(/^\/security-settings\/access-requests\/([^\/]+)$/);
+      if (m && (req.method === 'PATCH' || req.method === 'DELETE')) {
+        if (!requireAdminAuth(req, res)) return;
+        try {
+          const id = m[1];
+          const nextStatus = req.method === 'DELETE'
+            ? 'deleted'
+            : (((req.body ?? {}) as any).status as string);
+          if (!['approved', 'denied', 'pending', 'deleted'].includes(nextStatus)) {
+            return res.status(400).json({ message: 'status must be approved | denied | pending | deleted' });
+          }
+          const { kvGet, kvSet } = await import('../server/kvStorage.js');
+          const current = ((await kvGet('securitySettings')) as any) || {};
+          const requests: any[] = Array.isArray(current.accessRequests) ? current.accessRequests : [];
+          const idx = requests.findIndex((r: any) => r.id === id);
+          if (idx < 0) return res.status(404).json({ message: 'Not found' });
+          const prevStatus = requests[idx].status;
+          if (nextStatus === 'deleted') {
+            requests.splice(idx, 1);
+          } else {
+            requests[idx] = {
+              ...requests[idx],
+              status: nextStatus,
+              decidedAt: new Date().toISOString(),
+            };
+          }
+          await kvSet('securitySettings', { ...current, accessRequests: requests });
+          // Auto-email on transition to approved.
+          if (nextStatus === 'approved' && prevStatus !== 'approved') {
+            try {
+              const email = requests[idx]?.email;
+              if (email) {
+                const { sendAccessApprovalEmail } = await import('../server/emailService.js');
+                sendAccessApprovalEmail(email, requests[idx].reason ?? undefined)
+                  .catch((e: any) => console.error('Approval email error:', e?.message));
+              }
+            } catch { /* email best-effort */ }
+          }
+          return res.status(200).json({ success: true, id, status: nextStatus });
+        } catch (err) {
+          console.error('access-request PATCH error:', err);
+          return res.status(500).json({ message: 'Failed to update request' });
+        }
+      }
+    }
+
     // POST /api/security-settings/request-access — queues a guest access request.
     if (apiPath === '/security-settings/request-access' && req.method === 'POST') {
       try {
@@ -425,6 +478,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(out);
       } catch {
         return res.status(200).json([]);
+      }
+    }
+
+    // v4.7.12 — rrweb DOM snapshot batch upload. Accepts JSON body
+    // { sessionId, seq, startedAt, endedAt, eventCount, events[] }
+    // and inserts one row into rrweb_batches. No auth — same
+    // trust model as /telemetry/track. Rate limit relies on the
+    // batch size cap already enforced client-side (300 events max).
+    if (apiPath === '/sessions/rrweb' && req.method === 'POST') {
+      try {
+        const body = (req.body ?? {}) as Record<string, unknown>;
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
+        const seq = typeof body.seq === 'number' ? body.seq : null;
+        const startedAt = typeof body.startedAt === 'string' ? new Date(body.startedAt) : null;
+        const endedAt = typeof body.endedAt === 'string' ? new Date(body.endedAt) : null;
+        const eventCount = typeof body.eventCount === 'number' ? body.eventCount : null;
+        const events = Array.isArray(body.events) ? body.events : null;
+        if (!sessionId || seq === null || !startedAt || !endedAt || eventCount === null || !events) {
+          return res.status(400).json({ message: 'Missing fields' });
+        }
+        // Guard against absurd payloads (rough cap ~5 MB serialized).
+        if (events.length > 500) return res.status(413).json({ message: 'Batch too large' });
+        const { db: pgDb } = await import('../server/db.js');
+        const { rrwebBatches } = await import('../shared/schema.js');
+        await pgDb.insert(rrwebBatches).values({
+          sessionId, seq, startedAt, endedAt, eventCount, events: events as unknown,
+        } as any);
+        return res.status(202).end();
+      } catch (e: any) {
+        console.warn('POST /sessions/rrweb failed:', e?.message);
+        return res.status(500).json({ message: 'Upload failed' });
+      }
+    }
+
+    // GET /api/sessions/rrweb — admin: list recorded sessions with
+    // metadata (batch count, event count, first/last activity).
+    if ((apiPath === '/sessions/rrweb' || apiPath.startsWith('/sessions/rrweb?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { rrwebBatches } = await import('../shared/schema.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const cutoff = new Date(Date.now() - rangeHours * 3600 * 1000);
+        const rows = await pgDb.select({
+          sessionId: rrwebBatches.sessionId,
+          batches: dsql<number>`count(*)::int`,
+          totalEvents: dsql<number>`sum(${rrwebBatches.eventCount})::int`,
+          startedAt: dsql<string>`MIN(${rrwebBatches.startedAt})`,
+          endedAt: dsql<string>`MAX(${rrwebBatches.endedAt})`,
+        })
+          .from(rrwebBatches)
+          .where(dsql`${rrwebBatches.createdAt} >= ${cutoff}`)
+          .groupBy(rrwebBatches.sessionId)
+          .orderBy(dsql`MAX(${rrwebBatches.endedAt}) DESC`)
+          .limit(100);
+        return res.status(200).json(rows);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // GET /api/sessions/rrweb/:sessionId — admin: concatenated events
+    // across all batches in start-time order, ready for the player.
+    {
+      const m = apiPath.match(/^\/sessions\/rrweb\/([^\/]+)$/);
+      if (m && req.method === 'GET') {
+        if (!requireAdminAuth(req, res)) return;
+        try {
+          const sessionId = m[1];
+          const { db: pgDb } = await import('../server/db.js');
+          const { rrwebBatches } = await import('../shared/schema.js');
+          const { asc, eq } = await import('drizzle-orm');
+          const batches = await pgDb.select().from(rrwebBatches)
+            .where(eq(rrwebBatches.sessionId, sessionId))
+            .orderBy(asc(rrwebBatches.seq));
+          const events = batches.flatMap((b: any) => (b.events as unknown[]) ?? []);
+          return res.status(200).json({ sessionId, eventCount: events.length, events });
+        } catch (e: any) {
+          console.warn('GET /sessions/rrweb/:id failed:', e?.message);
+          return res.status(500).json({ message: 'Fetch failed' });
+        }
       }
     }
 

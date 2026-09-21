@@ -16,7 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (Android v1.91.0 · web 4.7.11 · pending push)
+## ✅ Just shipped (web 4.7.12 · pending push)
+
+- **rrweb DOM session replay foundation.** Recorder in `client/src/lib/rrwebRecorder.ts` — records public routes only (skips admin/builder/opt-outs/DNT), batches every 5s or 300 events, uses `sendBeacon` where available. New `rrweb_batches` schema + migration `0003_rrweb_batches.sql`. Server: `POST /api/sessions/rrweb` (upload), `GET /api/sessions/rrweb` (admin list with counts), `GET /api/sessions/rrweb/:id` (concatenated events). New `RrwebSessionsCard` in admin analytics with per-session Play button that lazy-loads `rrweb-player` in a fullscreen modal. Escape closes.
+- **`/download` and `/app` routes** with signed Android APK direct install (`public/releases/ksykmaps-release-1.91.0.apk`), iOS honestly marked coming-later, telemetry (`download_page_view`, `download_apk_click`). `GetAppPopup` now defaults its href to relative `/download` instead of a hardcoded domain.
+- **One-click access-request approval** — new `PATCH /api/security-settings/access-requests/:id` (also DELETE for bulk-clear). Admin `SecuritySettingsPanel` `onApprove`/`onDeny` now hit the endpoint directly and auto-`saveSecurityToServer` so admins never need to press Save. Approval side-effects (email, add user exception) fire in one action.
+- **Access-restricted page button polish** — request submit + Microsoft sign-in get real hover/focus/active states (shadow lift, focus ring, press translate). Success state redesigned as a proper emerald card with icon instead of a plain green line.
+- **Missing telemetry wired** — `search_performed` fires from the header search debounce for any query ≥2 chars. `navigation_opened` fires when the map's directions panel opens. Both feed the Analytics dashboard's Searches / Navigations tiles.
+- **Search + Nav telemetry now visible in Admin → Analytics** — Searches / Navigations tiles will stop showing 0 as students start using v4.7.12.
+
+## ✅ Shipped (Android v1.91.0 · web 4.7.11 · pushed 3388107)
 
 - **Route popularity top-20** — client `NavigationPanel` fires `route_computed` telemetry once per unique from→to endpoint pair per session when a graph route resolves. Metadata carries `fromId`, `toId`, `fromLabel`, `toLabel`, `distanceMeters`, `floors`, `accessibleOnly`. `/api/analytics/route-popularity` groups by from+to, computes AVG distance, returns top-20. New `RoutePopularityCard` in admin analytics with ranked list, violet proportional bars, average-distance display, CSV export.
 - **Material You dynamic-color widgets (Android 12+)** — new `drawable-v31/` versions of `widget_background`, `widget_background_active`, `widget_row_current` using `@android:color/system_accent1_800/700/900`, `system_accent2_600/500/700`, `system_neutral1_200`. Res qualifier applies automatically on Android 12+; older versions keep the shipped navy gradient. No opt-in switch.

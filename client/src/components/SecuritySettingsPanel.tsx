@@ -332,19 +332,58 @@ export default function SecuritySettingsPanel() {
         <CardContent>
           <RequestsInbox
             requests={draft.accessRequests}
-            onApprove={(req) => {
-              const next = draft.accessRequests.map((r) => r.id === req.id ? { ...r, status: "approved" as const } : r);
+            onApprove={async (req) => {
+              // v4.7.12 — one-click approve. PATCH the single request
+              // via the dedicated endpoint AND add the user exception
+              // in one save so admins don't need to hit "Save" after.
+              try {
+                await fetch(`/api/security-settings/access-requests/${req.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "approved" }),
+                });
+              } catch { /* toast handled below */ }
+              const nextRequests = draft.accessRequests.map((r) =>
+                r.id === req.id ? { ...r, status: "approved" as const } : r,
+              );
               const ex: UserException = {
                 id: genId(), email: req.email, tier: "full",
                 note: req.reason || "Approved from request inbox",
               };
-              patch("userExceptions", [...draft.userExceptions, ex]);
-              patch("accessRequests", next);
+              const nextExceptions = [...draft.userExceptions, ex];
+              // Update local draft + persist the exceptions in one go.
+              patch("userExceptions", nextExceptions);
+              patch("accessRequests", nextRequests);
+              // Auto-save the whole draft so exceptions stick without
+              // the admin remembering to press "Save".
+              try {
+                await saveSecurityToServer({
+                  ...draft,
+                  userExceptions: nextExceptions,
+                  accessRequests: nextRequests,
+                });
+              } catch { /* silent */ }
             }}
-            onDeny={(req) => {
-              patch("accessRequests", draft.accessRequests.map((r) => r.id === req.id ? { ...r, status: "denied" as const } : r));
+            onDeny={async (req) => {
+              try {
+                await fetch(`/api/security-settings/access-requests/${req.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "denied" }),
+                });
+              } catch { /* silent */ }
+              patch("accessRequests", draft.accessRequests.map((r) =>
+                r.id === req.id ? { ...r, status: "denied" as const } : r,
+              ));
             }}
-            onClear={() => patch("accessRequests", draft.accessRequests.filter((r) => r.status === "pending"))}
+            onClear={async () => {
+              // Bulk-clear resolved requests via the DELETE endpoint per id.
+              const resolved = draft.accessRequests.filter((r) => r.status !== "pending");
+              await Promise.all(resolved.map((r) =>
+                fetch(`/api/security-settings/access-requests/${r.id}`, { method: "DELETE" }).catch(() => null),
+              ));
+              patch("accessRequests", draft.accessRequests.filter((r) => r.status === "pending"));
+            }}
           />
         </CardContent>
       </Card>
