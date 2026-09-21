@@ -39,6 +39,37 @@ export default function AdminLogin() {
     setShake((s) => s + 1);
   };
 
+  /**
+   * v4.7.14 — post-login redirect target. Reads `?redirect=` from the
+   * URL and validates it's a safe internal path before honoring it.
+   *
+   * Rejected forms (open-redirect vectors):
+   *   - absolute URLs        (http://…, https://…)
+   *   - protocol-relative    (//evil.com)
+   *   - non-http schemes     (javascript:, data:)
+   *   - anything not starting with a single `/`
+   *
+   * Falls back to the canonical admin base URL when the param is
+   * missing or fails validation. Never trusts the raw value.
+   */
+  const resolveRedirect = (): string => {
+    const fallback = "/admin-ksyk-management-portal";
+    if (typeof window === "undefined") return fallback;
+    try {
+      const raw = new URLSearchParams(window.location.search).get("redirect");
+      if (!raw) return fallback;
+      // Must start with exactly one `/` (single leading slash), no protocol.
+      if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
+      if (/^[a-z]+:/i.test(raw)) return fallback;
+      // Reject anything trying to escape the origin via URL parsing.
+      const u = new URL(raw, window.location.origin);
+      if (u.origin !== window.location.origin) return fallback;
+      return u.pathname + u.search + u.hash;
+    } catch {
+      return fallback;
+    }
+  };
+
   const loginMutation = useMutation({
     mutationFn: async (creds: { email: string; password: string }): Promise<LoginResponse> => {
       const r = await fetch("/api/auth/admin-login", {
@@ -66,7 +97,7 @@ export default function AdminLogin() {
         if (data.requirePasswordChange) {
           setScreen("changepw");
         } else {
-          window.location.href = "/admin-ksyk-management-portal";
+          window.location.href = resolveRedirect();
         }
       } else {
         triggerError(data.message || "Login failed");

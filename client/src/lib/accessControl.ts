@@ -37,6 +37,7 @@ export interface AccessDecision {
     | "disabled"
     | "owner-bypass"
     | "user-exception"
+    | "granted-by-token"
     | "holiday"
     | "outside-hours"
     | "off-network"

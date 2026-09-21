@@ -326,22 +326,35 @@ export async function sendTicketEmail(
 
 /**
  * Access request approval — sent when an admin approves a lockout-screen request.
+ * v4.7.14 — includes a per-request grant token so the recipient can be
+ * signed into the map directly from the email without re-entering their
+ * email at the lockout page. The token is opaque and single-purpose:
+ * hitting /grant/:token stamps the client's localStorage with a "granted"
+ * flag; the access-control gate honours that flag.
  */
-export async function sendAccessApprovalEmail(email: string, reason?: string) {
+export async function sendAccessApprovalEmail(email: string, reason?: string, grantToken?: string) {
   const transporter = createTransporter();
   if (!transporter) return { success: false, mode: 'console', error: 'Email not configured' };
 
+  const grantHref = grantToken
+    ? `${APP_URL.replace(/\/$/, '')}/grant/${encodeURIComponent(grantToken)}`
+    : APP_URL;
+
   const body = `
     <p style="margin:0 0 16px 0;color:#334155;">
-      Great news — your request to access <strong>KSYK Maps</strong> has been approved.
-      You can now open the campus map and use all features.
+      Your request to access <strong>KSYK Maps</strong> has been approved.
+    </p>
+    <p style="margin:0 0 20px 0;color:#334155;">
+      Use the button below to open the map. The link works from this device — you don't need to re-enter anything.
     </p>
     ${reason ? `<div style="margin:0 0 20px 0;padding:14px 16px;background:#f8fafc;border-radius:10px;border-left:3px solid #2563eb;">
       <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#94a3b8;">Your request</p>
       <p style="margin:4px 0 0;font-size:14px;color:#334155;">${reason}</p>
     </div>` : ''}
     <p style="margin:0;font-size:13px;color:#64748b;">
-      If you have any questions, reply to this email or visit ksykmaps.fi.
+      If the button doesn't work, copy this address into your browser:
+      <br>
+      <a href="${grantHref}" style="color:#2563eb;word-break:break-all;">${grantHref}</a>
     </p>
   `;
 
@@ -349,20 +362,20 @@ export async function sendAccessApprovalEmail(email: string, reason?: string) {
     title: 'Access approved',
     preheader: 'Your KSYK Maps access request has been approved.',
     body,
-    cta: { label: 'Open KSYK Maps', href: APP_URL },
+    cta: { label: 'Open KSYK Maps', href: grantHref },
   });
 
   try {
     const info = await transporter.sendMail({
       from: `"KSYK Maps" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: '✅ Your KSYK Maps access has been approved',
+      subject: 'Your KSYK Maps access has been approved',
       html,
-      text: `Your request to access KSYK Maps has been approved.\n\nVisit: ${APP_URL}\n\n— KSYK Maps`,
+      text: `Your KSYK Maps access has been approved.\n\nOpen the map: ${grantHref}\n\n— KSYK Maps`,
     });
     return { success: true, mode: 'email', messageId: info.messageId };
   } catch (error: any) {
-    console.error('❌ Access approval email error:', error.message);
+    console.error('Access approval email error:', error.message);
     return { success: false, error, mode: 'console' };
   }
 }

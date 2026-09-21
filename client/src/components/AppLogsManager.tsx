@@ -374,56 +374,15 @@ export default function AppLogsManager() {
 
   return (
     <div className="space-y-6">
-      {/* v4.7.6 — trimmed from 5 stat cards to 2. Visitors, Searches,
-       *  and Page Views used to appear here AND in the Analytics tab. */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Logs</p>
-                <p className="text-3xl font-bold">{allLogs.length}</p>
-              </div>
-              <Activity className="h-10 w-10 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Live Events</p>
-                <p className="text-3xl font-bold text-green-600">{analyticsEvents.length}</p>
-              </div>
-              <Zap className="h-10 w-10 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Logins</p>
-                <p className="text-3xl font-bold text-amber-600">{loginLogs.length}</p>
-              </div>
-              <Shield className="h-10 w-10 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">App Events</p>
-                <p className="text-3xl font-bold text-indigo-600">{appLogs.length}</p>
-              </div>
-              <Info className="h-10 w-10 text-indigo-500" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* v4.7.14 apple-design pass 2 — trimmed the 4 giant colored stat
+       *  cards into a single quiet inline row. Same information, a
+       *  quarter of the visual weight. Icons only where they help
+       *  recognition; no colored circles. */}
+      <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3 text-sm border-b border-border pb-4">
+        <StatInline label="Total logs"  value={allLogs.length} />
+        <StatInline label="Live events" value={analyticsEvents.length} />
+        <StatInline label="Logins"      value={loginLogs.length} />
+        <StatInline label="App events"  value={appLogs.length} />
       </div>
 
       {/* Sparkline — 24h log volume in a compact strip so the admin can
@@ -707,6 +666,25 @@ export default function AppLogsManager() {
           </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * v4.7.14 — quiet inline stat. Replaces the giant colored StatCard
+ * per admin redesign pass 2. No card, no icon circle, no colored bar
+ * — just a label and a large tabular value that reads well next to
+ * its siblings.
+ */
+function StatInline({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+      <span className="text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white mt-0.5 leading-none">
+        {value.toLocaleString()}
+      </span>
     </div>
   );
 }

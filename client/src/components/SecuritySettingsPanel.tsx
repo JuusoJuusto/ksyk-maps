@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useSecuritySettings, saveSecurityToServer, loadSecurityFromServer } from "@/hooks/useSecuritySettings";
+import { getAdminHeaders } from "@/lib/adminAuth";
 import { evaluateAccess } from "@/lib/accessControl";
 import {
   DAY_KEYS,
@@ -339,7 +340,8 @@ export default function SecuritySettingsPanel() {
               try {
                 await fetch(`/api/security-settings/access-requests/${req.id}`, {
                   method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
+                  headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+                  credentials: "include",
                   body: JSON.stringify({ status: "approved" }),
                 });
               } catch { /* toast handled below */ }
@@ -368,7 +370,8 @@ export default function SecuritySettingsPanel() {
               try {
                 await fetch(`/api/security-settings/access-requests/${req.id}`, {
                   method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
+                  headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+                  credentials: "include",
                   body: JSON.stringify({ status: "denied" }),
                 });
               } catch { /* silent */ }
@@ -380,7 +383,11 @@ export default function SecuritySettingsPanel() {
               // Bulk-clear resolved requests via the DELETE endpoint per id.
               const resolved = draft.accessRequests.filter((r) => r.status !== "pending");
               await Promise.all(resolved.map((r) =>
-                fetch(`/api/security-settings/access-requests/${r.id}`, { method: "DELETE" }).catch(() => null),
+                fetch(`/api/security-settings/access-requests/${r.id}`, {
+                  method: "DELETE",
+                  headers: { ...getAdminHeaders() },
+                  credentials: "include",
+                }).catch(() => null),
               ));
               patch("accessRequests", draft.accessRequests.filter((r) => r.status === "pending"));
             }}

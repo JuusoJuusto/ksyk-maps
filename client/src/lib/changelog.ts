@@ -10,15 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.13";
+export const APP_VERSION = "4.7.14";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.14",
+    date: "September 2026",
+    title: "Access request magic-link · login redirect · spinner fix · log explorer pass",
+    titleFi: "Pääsypyynnön taikalinkki · kirjautumis-redirect · spinner-korjaus",
+    latest: true,
+    highlights: [
+      "**One-click access grant via approval email.** When an admin approves an access request the email now contains a single-use magic link (`/grant/:token`). Opening it grants full access to that device via a local flag — no re-entering email at the lockout screen. Idempotent; expired/used tokens show a clear 'link no longer valid' page.",
+      "**Fixed the 401 on approve/deny** — the admin panel was hitting `/access-requests/:id` without admin auth headers. Approve/deny/bulk-clear all attach `getAdminHeaders()` + `credentials: 'include'` now.",
+      "**Fixed the boot-splash spinner freeze.** The logo used `decoding=\"sync\"` which stalled the main thread; the SVG animation wasn't GPU-composited so query bursts froze it. Fix: async decode + `will-change: transform` on a dedicated compositor layer. Respects `prefers-reduced-motion`.",
+      "**Admin redesign pass 2 — Log explorer stat row.** Killed the 4 giant colored stat cards, replaced with a single quiet inline row (label + tabular value, no icon circles, no bordered cards). Same info, ¼ the visual weight.",
+      "**Admin redesign pass 3 — Login redirect preservation.** Session expiry now stashes the current path as `/admin?redirect=/admin/analytics`. Login success validates the param is a same-origin path (rejects `http://…`, `//evil.com`, `javascript:…`) and returns to the original page.",
+    ],
+    highlightsFi: [
+      "**Yhden klikkauksen pääsyoikeus sähköpostilla.** Admin-hyväksytty pyyntö saa nyt taikalinkin `/grant/:token` — avaus myöntää käyttöoikeuden laitteelle ilman uudelleenkirjautumista.",
+      "**401-korjaus admin-paneelin hyväksyntä/hylkäys-napeille.** Puuttuvat admin-headerit lisätty.",
+      "**Latauskuvakkeen jäätymiskorjaus.** Logo lataa nyt asynkronisesti, animaatio kulkee GPU-tasolla.",
+      "**Admin-uudistus vaihe 2 — Lokien tilasto-rivi.** 4 iso värillistä korttia korvattu yhdellä hiljaisella tilastorivillä.",
+      "**Admin-uudistus vaihe 3 — Kirjautumisen redirect-säilytys.** Sessio umpeutuessa palautetaan alkuperäiselle sivulle (validoitu same-origin).",
+    ],
+  },
   {
     version: "4.7.13",
     date: "September 2026",
     title: "Admin redesign pass 1 · Settings › Features tab · empty-state audit",
     titleFi: "Admin-uudistus vaihe 1 · Asetukset › Ominaisuudet · tyhjätila-audit",
-    latest: true,
     highlights: [
       "**Admin redesign pass 1 of 5.** Analytics header rebuilt per Apple HIG (Live/refresh/timestamp meta row with pulsing dot, tighter type scale, translucent sticky backdrop). Stat cards moved to a quieter rounded-xl surface with tabular figures + dedicated sparkline strip below (no more overlap). Range picker rebuilt as a proper segmented control with focus rings + hover states. Sub-tabs got a 'Details' section header. Audit log promoted out of its floating card into a proper section.",
       "**Empty-state audit — no more AI slop.** Rewrote 8 empty states in Analytics with short factual copy. Dropped developer language like ``\\`route_computed\\` fires from the navigation panel``, version references (v4.7.11+), and marketing hype (`Aggregation starts populating…`). New copy: 'No routes computed / Every time a student computes a route on the map, it lands here.' Loading states properly gate empty states so nothing flickers.",

@@ -987,7 +987,15 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
       localStorage.removeItem("ksyk_admin_token");
-      window.location.replace("/admin");
+      // v4.7.14 — preserve the current path so the login screen can
+      // redirect the admin back to where they were after re-auth.
+      // Never sends off-origin data: window.location.pathname is
+      // whatever the browser resolved for this navigation.
+      const target = window.location.pathname + window.location.search + window.location.hash;
+      const q = target && target !== "/admin"
+        ? `?redirect=${encodeURIComponent(target)}`
+        : "";
+      window.location.replace(`/admin${q}`);
     };
     if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
       wipeAndRedirect();

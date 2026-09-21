@@ -322,10 +322,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (nextStatus === 'deleted') {
             requests.splice(idx, 1);
           } else {
+            // v4.7.14 — mint a one-shot grant token on transition to
+            // approved. Stored on the request so the email link can
+            // point to /grant/:token and the token can only be spent
+            // once (marked `granted = true` on redeem).
+            const mintToken = nextStatus === 'approved' && prevStatus !== 'approved'
+              ? `t${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+              : (requests[idx].grantToken ?? null);
             requests[idx] = {
               ...requests[idx],
               status: nextStatus,
               decidedAt: new Date().toISOString(),
+              grantToken: mintToken,
             };
           }
           await kvSet('securitySettings', { ...current, accessRequests: requests });
@@ -333,9 +341,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (nextStatus === 'approved' && prevStatus !== 'approved') {
             try {
               const email = requests[idx]?.email;
+              const token = requests[idx]?.grantToken;
               if (email) {
                 const { sendAccessApprovalEmail } = await import('../server/emailService.js');
-                sendAccessApprovalEmail(email, requests[idx].reason ?? undefined)
+                sendAccessApprovalEmail(email, requests[idx].reason ?? undefined, token)
                   .catch((e: any) => console.error('Approval email error:', e?.message));
               }
             } catch { /* email best-effort */ }
@@ -344,6 +353,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (err) {
           console.error('access-request PATCH error:', err);
           return res.status(500).json({ message: 'Failed to update request' });
+        }
+      }
+    }
+
+    // v4.7.14 — Grant token redeem. Public endpoint reached from the
+    // approval email link (/grant/:token → this endpoint). Marks the
+    // token as spent + returns the email so the client can persist a
+    // local `granted` flag. Single-use: subsequent hits return `used`.
+    {
+      const m = apiPath.match(/^\/security-settings\/grant\/([^\/]+)$/);
+      if (m && req.method === 'POST') {
+        try {
+          const token = m[1];
+          const { kvGet, kvSet } = await import('../server/kvStorage.js');
+          const current = ((await kvGet('securitySettings')) as any) || {};
+          const requests: any[] = Array.isArray(current.accessRequests) ? current.accessRequests : [];
+          const idx = requests.findIndex((r: any) => r.grantToken === token);
+          if (idx < 0) return res.status(404).json({ message: 'Invalid or expired token' });
+          const request = requests[idx];
+          if (request.status !== 'approved') {
+            return res.status(400).json({ message: 'Request is not approved' });
+          }
+          // Idempotent — first hit stamps redeemedAt, later hits return
+          // the same success payload so a user reopening the link (or
+          // the browser making a preflight) doesn't lose access.
+          if (!request.redeemedAt) {
+            requests[idx] = { ...request, redeemedAt: new Date().toISOString() };
+            await kvSet('securitySettings', { ...current, accessRequests: requests });
+          }
+          return res.status(200).json({
+            success: true,
+            email: request.email,
+            reason: request.reason ?? null,
+          });
+        } catch (err) {
+          console.error('grant redeem error:', err);
+          return res.status(500).json({ message: 'Redeem failed' });
         }
       }
     }

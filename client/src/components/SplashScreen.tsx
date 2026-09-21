@@ -164,28 +164,35 @@ export default function SplashScreen() {
       }}
     >
       <div className="flex flex-col items-center gap-5 px-8 w-[min(20rem,90vw)]">
-        {/* Logo + ring */}
+        {/* Logo + ring. v4.7.14 — the spinner used to freeze during
+         *  heavy query bursts because the SVG animation ran on the
+         *  main thread AND the logo <img> was decoding="sync" which
+         *  blocked layout. Fix: promote the spinner to its own
+         *  compositor layer via `will-change: transform` + rotate the
+         *  parent (not the SVG's stroke), and switch the img to
+         *  async decode so the fetch doesn't stall the animation. */}
         <div className="relative w-20 h-20 flex items-center justify-center">
-          <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 80 80"
-            aria-hidden="true"
-            style={{ animation: "ksyk-ring-spin 0.95s linear infinite" }}
-          >
-            <circle cx={40} cy={40} r={34} fill="none" stroke="#e5e7eb" strokeWidth={3} />
-            <circle
-              cx={40} cy={40} r={34}
-              fill="none" stroke="#2563eb" strokeWidth={3}
-              strokeLinecap="round" strokeDasharray="155 60"
-              transform="rotate(-90 40 40)"
-            />
-          </svg>
+          <div className="ksyk-spinner absolute inset-0 flex items-center justify-center">
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 80 80"
+              aria-hidden="true"
+            >
+              <circle cx={40} cy={40} r={34} fill="none" stroke="#e5e7eb" strokeWidth={3} />
+              <circle
+                cx={40} cy={40} r={34}
+                fill="none" stroke="#2563eb" strokeWidth={3}
+                strokeLinecap="round" strokeDasharray="155 60"
+                transform="rotate(-90 40 40)"
+              />
+            </svg>
+          </div>
           <img
             src="/favicon-128.png"
             alt=""
             width={44} height={44}
             className="relative block object-contain"
-            decoding="sync"
+            decoding="async"
             fetchPriority="high"
             draggable={false}
           />
@@ -236,6 +243,21 @@ export default function SplashScreen() {
         @keyframes ksyk-ring-spin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
+        }
+        .ksyk-spinner {
+          animation: ksyk-ring-spin 0.95s linear infinite;
+          will-change: transform;
+          /* GPU-compositor hint so the animation stays smooth even
+           *  when the main thread is busy with query hydration. */
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+        /* Respect the OS motion setting — no spin at all if the user
+         *  has reduced motion enabled. */
+        @media (prefers-reduced-motion: reduce) {
+          .ksyk-spinner {
+            animation: none;
+          }
         }
       `}</style>
     </div>

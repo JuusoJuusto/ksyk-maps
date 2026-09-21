@@ -16,7 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.13 · pending push)
+## ✅ Just shipped (web 4.7.14 · pending push)
+
+- **Access magic-link approval flow.** Admin approves → server mints one-shot token → email link `/grant/:token` → landing page stamps `localStorage.ksyk_access_granted=1` → `useAccessDecision` shortcuts to full access. Single-use, idempotent, honest error states.
+- **Fixed the 401 bug** — approve/deny/clear on access requests now attach `getAdminHeaders()`.
+- **Fixed boot-splash spinner freeze** — `decoding=\"async\"` on the logo, GPU-composited `.ksyk-spinner` with `will-change: transform`, honours `prefers-reduced-motion`.
+- **Admin redesign pass 2** (Log explorer): killed 4 colored stat cards, replaced with quiet inline `StatInline` row. Log page went from card grid + big colored icons to a proper information-dense header.
+- **Admin redesign pass 3** (Login redirect + open-redirect guard): AdminDashboard session-expiry preserves current path as `?redirect=…`; `admin-login.tsx` validates via `resolveRedirect()` — rejects absolute URLs, protocol-relative `//`, non-http schemes, cross-origin. Falls back to canonical admin base if the param is missing or fails validation.
+
+## 🚧 Admin redesign — remaining passes
+
+- **Pass 4**: Sidebar/nav layout, remove card hell in Analytics sub-panels (Features / Insights / Sessions / Errors / Perf).
+- **Pass 5**: Log table + filter drawer + detail sheet + server-side pagination; mobile viewport; a11y audit (keyboard, focus traps, aria-live); toast audit; `[Try again]` on every fetch failure.
+
+## ✅ Shipped (web 4.7.13 · pushed d26fdea)
 
 **Admin redesign — pass 1 of ~5.** Following the full rework spec, this pass covers:
 

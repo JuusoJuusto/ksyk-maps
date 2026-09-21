@@ -52,7 +52,22 @@ export function useAccessDecision(): AccessDecision {
   }, []);
 
   return useMemo(
-    () => evaluateAccess({ settings, user, ip, now: new Date() }),
+    () => {
+      // v4.7.14 — magic-link grant. When the user has redeemed an
+      // approval email link on this device, /grant/:token sets
+      // `ksyk_access_granted=1`. Treat that as a full-tier pass, so
+      // the access gate stops asking them to sign in every visit.
+      try {
+        if (typeof window !== "undefined" && localStorage.getItem("ksyk_access_granted") === "1") {
+          return {
+            tier: "full" as const,
+            reasonCode: "granted-by-token" as const,
+            reason: "Granted via approval link",
+          };
+        }
+      } catch { /* storage denied — fall through to normal evaluation */ }
+      return evaluateAccess({ settings, user, ip, now: new Date() });
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [settings, user, ip, tick],
   );

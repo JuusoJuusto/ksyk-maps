@@ -36,6 +36,7 @@ const ICON_FOR_REASON: Record<AccessDecision["reasonCode"], typeof Clock> = {
   disabled: Shield,
   "owner-bypass": Shield,
   "user-exception": Shield,
+  "granted-by-token": Shield,
   holiday: Calendar,
   "outside-hours": Clock,
   "off-network": Wifi,
