@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.12";
+export const APP_VERSION = "4.7.13";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.13",
+    date: "September 2026",
+    title: "Admin redesign pass 1 · Settings › Features tab · empty-state audit",
+    titleFi: "Admin-uudistus vaihe 1 · Asetukset › Ominaisuudet · tyhjätila-audit",
+    latest: true,
+    highlights: [
+      "**Admin redesign pass 1 of 5.** Analytics header rebuilt per Apple HIG (Live/refresh/timestamp meta row with pulsing dot, tighter type scale, translucent sticky backdrop). Stat cards moved to a quieter rounded-xl surface with tabular figures + dedicated sparkline strip below (no more overlap). Range picker rebuilt as a proper segmented control with focus rings + hover states. Sub-tabs got a 'Details' section header. Audit log promoted out of its floating card into a proper section.",
+      "**Empty-state audit — no more AI slop.** Rewrote 8 empty states in Analytics with short factual copy. Dropped developer language like ``\\`route_computed\\` fires from the navigation panel``, version references (v4.7.11+), and marketing hype (`Aggregation starts populating…`). New copy: 'No routes computed / Every time a student computes a route on the map, it lands here.' Loading states properly gate empty states so nothing flickers.",
+      "**Settings → Features tab (new).** Admin can now toggle client-facing features without a deploy: session replay recording, campus events map layer, panorama spots layer, admin heatmap card, announcement banner, footer credits. `enableSessionReplay` is respected by the rrweb recorder client-side (checks `/api/settings` on start, honors the flag, caches in sessionStorage).",
+      "**Remaining redesign work** — passes 2-5 cover: login page, sidebar/nav layout, log explorer table + drawer, session lifecycle (timeout warning, redirect preservation, open-redirect validation), error recovery buttons, mobile layout, accessibility audit.",
+    ],
+    highlightsFi: [
+      "**Admin-uudistus vaihe 1/5.** Analytics-otsikko uudistettu, tilastokortit rauhoitettu (rounded-xl, tabular-numeroita), aikaväli-valitsin oikea segmented control, alavälilehdet oma 'Details'-otsikko.",
+      "**Tyhjätila-audit — AI-lörinä pois.** 8 tyhjätilaa uudelleenkirjoitettu lyhyeen ja asialliseen tyyliin. Kehittäjäkielinen tekstitys (`route_computed`, versioviittaukset) poistettu.",
+      "**Asetukset → Ominaisuudet -välilehti (uusi).** Admin voi ottaa käyttöön/pois: session replay, kampus-tapahtumat, panoraamapisteet, heatmap, ilmoitusbanneri, footer-tunnisteet — ilman deployta. Session replay -kytkin toimii rrweb-nauhoitteessa.",
+      "**Uudistuksen jäljellä olevat vaiheet** (2-5) — kirjautumissivu, sivupalkki, lokitutkin, session-elinkaari, virheiden recovery, mobiili, saavutettavuus.",
+    ],
+  },
   {
     version: "4.7.12",
     date: "September 2026",
     title: "rrweb session replay · /download page · one-click access approval",
     titleFi: "rrweb-session-replay · /download-sivu · yhden klikkauksen pääsyn hyväksyntä",
-    latest: true,
     highlights: [
       "**rrweb DOM session replay foundation.** Public-route visits now record full DOM snapshots + input events via rrweb (skips admin sessions, /admin, /builder, opt-outs, DNT). Batched every 5s or 300 events to `/api/sessions/rrweb`. Sessions land in Admin → Analytics → Session replays with per-session batches/events/duration. Click 'Play' → fullscreen rrweb-player (lazy-loaded so it doesn't hit the initial bundle). New `rrweb_batches` table.",
       "**/download page** — new canonical route for 'get the app' links. Signed Android APK direct-install, iOS honestly marked coming-later (no dead button). Version bumps with each release. QR codes and the in-app popup both point here now.",

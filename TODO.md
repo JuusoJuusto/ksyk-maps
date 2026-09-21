@@ -16,7 +16,34 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.12 · pending push)
+## ✅ Just shipped (web 4.7.13 · pending push)
+
+**Admin redesign — pass 1 of ~5.** Following the full rework spec, this pass covers:
+
+- **Analytics header** rebuilt per HIG: Live/refresh/timestamp meta row with pulsing green dot, tighter 17px semibold h2, translucent `bg-white/85 backdrop-blur-md` sticky backdrop, hierarchical color usage (`slate-900/dark:white` for values, `slate-500/400` for meta).
+- **StatCard** apple-design pass: rounded-xl instead of shadow-heavy cards, 26px semibold value with `tabular-nums` + `tracking-tight`, sparkline strip dedicated space below (no more overlap of numbers), quieter uppercase label with 0.12em tracking.
+- **RangePicker** rebuilt as proper segmented control: 0.5px gap inner spacing, active state uses subtle shadow on white/slate-800 fill, hover on inactive tabs, focus rings, `role="tablist"` + `aria-selected` for a11y.
+- **Sub-tabs got a 'Details' section header** so the strip isn't floating between cards.
+- **Audit log promoted** out of a floating Card into its own section with matching Details-style header.
+
+**Empty-state audit — 8 rewrites.** Killed AI-slop copy across analytics cards. Before/after examples:
+- ~~"No route telemetry yet. `route_computed` fires from the navigation panel every time a graph route resolves for a unique from→to pair (v4.7.11+)."~~ → "No routes computed / Every time a student computes a route on the map, it lands here."
+- ~~"No performance samples yet. Web Vitals populate this after real page loads."~~ → "No performance samples in this range."
+- ~~"No firehose events yet. Every non-dedicated event type lands here."~~ → "No events recorded in this range."
+- ~~"No audit rows yet."~~ → "No admin actions logged in the last 7 days."
+
+All loading states properly gate empty states via `!isLoading && data.length === 0` so nothing flickers.
+
+**Settings → Features tab (new).** New tab in `AppSettingsManager` with 6 admin toggles: session replay recording, campus events layer, panorama spots, admin heatmap card, announcement banner, footer credits. Custom `FeatureRow` component with icon+title+subtitle+switch layout. `enableSessionReplay` respected by rrweb recorder — checks `/api/settings` on start, caches in sessionStorage, fail-open on network error so we don't silently drop analytics from a transient outage.
+
+## 🚧 Admin redesign — remaining passes
+
+- **Pass 2**: Log explorer redesign (clean table, filter drawer, detail sheet), server-side pagination.
+- **Pass 3**: Login page + session lifecycle (timeout warning, redirect preservation via `?redirect=`, open-redirect validation).
+- **Pass 4**: Sidebar/nav layout (clean, unfilled unless icons genuinely help), remove card hell across Analytics sub-panels.
+- **Pass 5**: Mobile viewport pass, accessibility audit (keyboard, focus traps, aria-live for loading/error), toast audit, error-recovery buttons on every fetch failure.
+
+## ✅ Shipped (web 4.7.12 · pushed c4d0490)
 
 - **rrweb DOM session replay foundation.** Recorder in `client/src/lib/rrwebRecorder.ts` — records public routes only (skips admin/builder/opt-outs/DNT), batches every 5s or 300 events, uses `sendBeacon` where available. New `rrweb_batches` schema + migration `0003_rrweb_batches.sql`. Server: `POST /api/sessions/rrweb` (upload), `GET /api/sessions/rrweb` (admin list with counts), `GET /api/sessions/rrweb/:id` (concatenated events). New `RrwebSessionsCard` in admin analytics with per-session Play button that lazy-loads `rrweb-player` in a fullscreen modal. Escape closes.
 - **`/download` and `/app` routes** with signed Android APK direct install (`public/releases/ksykmaps-release-1.91.0.apk`), iOS honestly marked coming-later, telemetry (`download_page_view`, `download_apk_click`). `GetAppPopup` now defaults its href to relative `/download` instead of a hardcoded domain.

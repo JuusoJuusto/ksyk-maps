@@ -29,27 +29,42 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
 } from "recharts";
 import { RrwebSessionsCard } from "@/components/RrwebReplay";
+import { cn } from "@/lib/utils";
 
 type Range = "24h" | "7d" | "30d" | "90d";
 
 // ── Range picker (sticky in dashboard header) ───────────────────────
+// v4.7.13 apple-design pass — proper segmented control feel, tighter
+// spacing, active state uses subtle shadow + blue fill rather than
+// competing chrome.
 function RangePicker({ range, onChange }: { range: Range; onChange: (r: Range) => void }) {
   return (
-    <div className="flex gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-1 shadow-sm">
-      {(["24h", "7d", "30d", "90d"] as Range[]).map((r) => (
-        <button
-          key={r}
-          type="button"
-          onClick={() => onChange(r)}
-          className={`px-3 py-1 rounded-md text-xs font-semibold transition min-w-[42px] ${
-            range === r
-              ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          {r}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      aria-label="Date range"
+      className="inline-flex items-center gap-0.5 rounded-lg bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800"
+    >
+      {(["24h", "7d", "30d", "90d"] as Range[]).map((r) => {
+        const active = range === r;
+        return (
+          <button
+            key={r}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(r)}
+            className={cn(
+              "px-3 h-7 rounded-md text-[11px] font-semibold tabular-nums transition-all min-w-[42px]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-900",
+              active
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50",
+            )}
+          >
+            {r}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -156,7 +171,8 @@ function TimeseriesChart({ range }: { range: Range }) {
         {!isLoading && rows.length === 0 && (
           <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
             <BarChart3 className="h-6 w-6 opacity-40" />
-            <p>No pageviews in this range yet — generate some traffic to see the chart populate.</p>
+            <p className="text-sm">Not enough data</p>
+            <p className="text-xs text-muted-foreground mt-1">Pageviews will appear here as they're recorded.</p>
           </div>
         )}
         {rows.length > 0 && (
@@ -252,9 +268,10 @@ function RoomPopularityCard() {
       <CardContent>
         {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && top.length === 0 && (
-          <p className="text-xs text-muted-foreground py-2">
-            No room-view telemetry in the last 30 days. Aggregation starts populating once users open rooms in v4.7.5+.
-          </p>
+          <div className="py-2">
+            <p className="text-sm">No room views recorded</p>
+            <p className="text-xs text-muted-foreground mt-1">This list populates as students open rooms from search or the map.</p>
+          </div>
         )}
         {top.length > 0 && (
           <ul className="space-y-1.5">
@@ -327,9 +344,10 @@ function RoutePopularityCard({ range }: { range: Range }) {
       <CardContent>
         {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && data.length === 0 && (
-          <p className="text-xs text-muted-foreground py-2">
-            No route telemetry yet. `route_computed` fires from the navigation panel every time a graph route resolves for a unique from→to pair (v4.7.11+).
-          </p>
+          <div className="py-2">
+            <p className="text-sm">No routes computed</p>
+            <p className="text-xs text-muted-foreground mt-1">Every time a student computes a route on the map, it lands here.</p>
+          </div>
         )}
         {data.length > 0 && (
           <ul className="space-y-1.5">
@@ -409,9 +427,10 @@ function AnnouncementCtrCard({ range }: { range: Range }) {
       <CardContent>
         {isLoading && <p className="text-xs text-muted-foreground py-2">Loading…</p>}
         {!isLoading && data.length === 0 && (
-          <p className="text-xs text-muted-foreground py-2">
-            No announcement telemetry yet. `announcement_view` fires on impression once per id; `announcement_click` fires when the banner is tapped (v4.7.10+).
-          </p>
+          <div className="py-2">
+            <p className="text-sm">No announcement activity</p>
+            <p className="text-xs text-muted-foreground mt-1">Impressions and clicks appear once announcements are published and shown.</p>
+          </div>
         )}
         {data.length > 0 && (
           <div className="overflow-x-auto">
@@ -491,7 +510,10 @@ function RetentionChart() {
       <CardContent className="h-56 pl-0">
         {isLoading && <div className="p-4 text-xs text-muted-foreground">Loading…</div>}
         {!isLoading && rows.length === 0 && (
-          <div className="p-4 text-xs text-muted-foreground">No cohort data yet.</div>
+          <div className="p-4">
+            <p className="text-sm">Not enough data</p>
+            <p className="text-xs text-muted-foreground mt-1">Retention needs at least one full week of session activity to draw a meaningful curve.</p>
+          </div>
         )}
         {!isLoading && rows.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
@@ -548,36 +570,39 @@ function StatCard({
   };
   const t = toneClass[tone];
   const chartData = (sparkline || []).map((n, i) => ({ i, n }));
+  // v4.7.13 — apple-design pass. Rounded-xl card, tabular figures,
+  // quieter label with more tracking, sparkline sits below the value
+  // with dedicated space instead of overlapping.
   return (
-    <Card className="border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-      <CardContent className="p-4">
+    <div className="relative overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm">
+      <div className="p-4 pb-3">
         <div className="flex items-start gap-3">
-          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${t.bg}`}>
-            <Icon className="h-4 w-4" />
+          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${t.bg}`}>
+            <Icon className="h-4 w-4" strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
               {label}
             </p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
+            <p className="text-[26px] font-semibold text-slate-900 dark:text-white leading-none mt-1 tabular-nums tracking-tight">
               {value}
             </p>
             {trend && (
-              <p className="text-[10px] text-slate-400 mt-0.5">{trend}</p>
+              <p className="text-[10px] text-slate-400 mt-1">{trend}</p>
             )}
           </div>
         </div>
-        {chartData.length > 1 && (
-          <div className="absolute -bottom-1 left-0 right-0 h-10 opacity-60 pointer-events-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                <Line type="monotone" dataKey="n" stroke={t.stroke} strokeWidth={1.5} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      {chartData.length > 1 && (
+        <div className="h-8 opacity-70 pointer-events-none">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+              <Line type="monotone" dataKey="n" stroke={t.stroke} strokeWidth={1.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -741,7 +766,7 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
           {isLoading && <p className="text-sm text-muted-foreground py-6 text-center">Loading events…</p>}
           {!isLoading && rows.length === 0 && (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              No events recorded for this session yet.
+              No events recorded for this session.
             </p>
           )}
           {rows.length > 0 && <SessionReplayTimeline rows={rows} />}
@@ -1453,7 +1478,7 @@ function PerformancePanel({ range }: { range: Range }) {
               )}
               {!isLoading && data.length === 0 && (
                 <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground text-xs">
-                  No performance samples yet. Web Vitals populate this after real page loads.
+                  No performance samples in this range.
                 </td></tr>
               )}
               {data.map((r) => (
@@ -1600,7 +1625,7 @@ function RecentEventsPanel({ range }: { range: Range }) {
             )}
             {!isLoading && data.length === 0 && (
               <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground text-xs">
-                No firehose events yet. Every non-dedicated event type lands here.
+                No events recorded in this range.
               </td></tr>
             )}
             {data.map((r) => (
@@ -1647,7 +1672,7 @@ function AuditPanel() {
             )}
             {!isLoading && data.length === 0 && (
               <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground text-xs">
-                No audit rows yet.
+                No admin actions logged in the last 7 days.
               </td></tr>
             )}
             {data.map((r) => (
@@ -1685,19 +1710,36 @@ export default function AdminAnalyticsDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      {/* v4.7.13 apple-design header — tighter type scale, calmer
+       *  meta line, sticky with translucent backdrop. */}
+      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" /> Analytics
+          <h2 className="text-[17px] font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <BarChart3 className="h-[18px] w-[18px] text-slate-500 dark:text-slate-400" strokeWidth={2} />
+            Analytics
           </h2>
-          <p className="text-[11px] text-muted-foreground">
-            Postgres-backed · auto-refresh 30 s · <span className="italic">Range affects every card except Eggs (lifetime) &amp; the audit log (7d)</span>
-            {dataUpdatedAt && <span> · updated {new Date(dataUpdatedAt).toLocaleTimeString()}</span>}
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+            <span className="opacity-60">·</span>
+            <span>auto-refresh 30 s</span>
+            {dataUpdatedAt && (
+              <>
+                <span className="opacity-60">·</span>
+                <span className="tabular-nums">
+                  updated {new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <RangePicker range={range} onChange={setRange} />
       </div>
+      <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-2 italic">
+        Range affects every card except Eggs (lifetime) &amp; the audit log (fixed 7d window).
+      </p>
 
       {/* Stat grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1735,37 +1777,50 @@ export default function AdminAnalyticsDashboard() {
       {/* v4.7.12 — session replay list */}
       <RrwebSessionsCard range={range} />
 
-      {/* Detail tabs */}
-      <Tabs defaultValue="features">
-        <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full">
-          <TabsTrigger value="features"><Gauge className="h-3.5 w-3.5 mr-1" />Features</TabsTrigger>
-          <TabsTrigger value="insights"><Search className="h-3.5 w-3.5 mr-1" />Insights</TabsTrigger>
-          <TabsTrigger value="sessions"><Users className="h-3.5 w-3.5 mr-1" />Sessions</TabsTrigger>
-          <TabsTrigger value="errors"><AlertTriangle className="h-3.5 w-3.5 mr-1" />Errors</TabsTrigger>
-          <TabsTrigger value="perf"><Clock className="h-3.5 w-3.5 mr-1" />Perf</TabsTrigger>
-          <TabsTrigger value="eggs"><Sparkles className="h-3.5 w-3.5 mr-1" />Eggs</TabsTrigger>
-          <TabsTrigger value="recent"><Filter className="h-3.5 w-3.5 mr-1" />Recent</TabsTrigger>
-        </TabsList>
-        <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
-        <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
-        <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
-        <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
-        <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
-        <TabsContent value="eggs"><EggsPanel /></TabsContent>
-        <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
-      </Tabs>
+      {/* Detail tabs — v4.7.13 apple-design pass */}
+      <div className="pt-2">
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-white">
+            Details
+          </h3>
+          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
+            Drill into a category
+          </p>
+        </div>
+        <Tabs defaultValue="features">
+          <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full h-9">
+            <TabsTrigger value="features" className="text-[11px] font-semibold gap-1.5"><Gauge className="h-3.5 w-3.5" />Features</TabsTrigger>
+            <TabsTrigger value="insights" className="text-[11px] font-semibold gap-1.5"><Search className="h-3.5 w-3.5" />Insights</TabsTrigger>
+            <TabsTrigger value="sessions" className="text-[11px] font-semibold gap-1.5"><Users className="h-3.5 w-3.5" />Sessions</TabsTrigger>
+            <TabsTrigger value="errors"   className="text-[11px] font-semibold gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Errors</TabsTrigger>
+            <TabsTrigger value="perf"     className="text-[11px] font-semibold gap-1.5"><Clock className="h-3.5 w-3.5" />Perf</TabsTrigger>
+            <TabsTrigger value="eggs"     className="text-[11px] font-semibold gap-1.5"><Sparkles className="h-3.5 w-3.5" />Eggs</TabsTrigger>
+            <TabsTrigger value="recent"   className="text-[11px] font-semibold gap-1.5"><Filter className="h-3.5 w-3.5" />Recent</TabsTrigger>
+          </TabsList>
+          <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
+          <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
+          <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
+          <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
+          <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
+          <TabsContent value="eggs"><EggsPanel /></TabsContent>
+          <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
+        </Tabs>
+      </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Shield className="h-4 w-4" /> Admin audit log
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Every privileged action lands here. Views of the audit log itself are not audited to avoid infinite loops.
-          </CardDescription>
-        </CardHeader>
-        <CardContent><AuditPanel /></CardContent>
-      </Card>
+      {/* Audit log — its own section, unstyled container instead of a card
+       *  so it lives next to the details tab list, not floating separately. */}
+      <div className="pt-4">
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+            Admin audit log
+          </h3>
+          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
+            Last 7 days of privileged actions
+          </p>
+        </div>
+        <AuditPanel />
+      </div>
     </div>
   );
 }

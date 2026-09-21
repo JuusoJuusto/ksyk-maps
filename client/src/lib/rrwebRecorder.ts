@@ -102,6 +102,33 @@ export function startRrwebRecording(): void {
   }
   if (stopFn) return; // already recording
 
+  // v4.7.13 — respect admin's enableSessionReplay flag from /api/settings.
+  // Fetched async; recording waits until we get the answer so we never
+  // record against the admin's will. Cached in sessionStorage on success
+  // so subsequent tabs don't re-fetch.
+  void (async () => {
+    try {
+      const cached = sessionStorage.getItem("ksyk_enable_replay");
+      if (cached === "0") { if (import.meta.env.DEV) console.info("[rrweb] disabled by admin"); return; }
+      if (cached === "1") { doStart(); return; }
+      const r = await fetch("/api/settings", { credentials: "include" });
+      if (!r.ok) { doStart(); return; } // fail-open: default to record
+      const s = await r.json().catch(() => ({} as { enableSessionReplay?: boolean }));
+      const on = s.enableSessionReplay !== false; // default true
+      try { sessionStorage.setItem("ksyk_enable_replay", on ? "1" : "0"); } catch { /* quota */ }
+      if (!on) { if (import.meta.env.DEV) console.info("[rrweb] disabled by admin"); return; }
+      doStart();
+    } catch {
+      // fail-open — if settings fetch fails, still record so we don't
+      // silently drop analytics from a transient network issue.
+      doStart();
+    }
+  })();
+}
+
+function doStart(): void {
+  if (stopFn) return;
+
   try {
     stopFn = record({
       emit(event) {

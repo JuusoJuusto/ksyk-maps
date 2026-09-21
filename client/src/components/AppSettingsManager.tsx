@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
   Globe, Bell, Wrench, Save, AlertTriangle, Settings,
-  RefreshCw, Eye, EyeOff, Egg,
+  RefreshCw, Eye, EyeOff, Egg, Sparkles, Video, Calendar, Camera, Flame, Megaphone,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAdminHeaders } from '@/lib/adminAuth';
@@ -37,6 +37,14 @@ interface AppSettings {
   footerTextFi?: string | null;
   showGetAppPopup?: boolean;
   getAppUrl?: string | null;
+  // v4.7.13 — Feature toggles for recently-shipped surfaces so admins
+  // can turn things off without a deploy.
+  enableSessionReplay?: boolean;      // rrweb recorder on public routes
+  enableCampusEvents?: boolean;       // events pin layer on the public map
+  enablePanoramaSpots?: boolean;      // 360° panorama layer on the public map
+  enableHeatmapForAdmins?: boolean;   // room-popularity heatmap in admin analytics
+  enableAnnouncementBanner?: boolean; // top-of-map announcement carousel
+  enableFooterCredits?: boolean;      // "Made by…" line in the footer
   [key: string]: any;
 }
 
@@ -59,7 +67,13 @@ const DEFAULT_SETTINGS: AppSettings = {
   footerTextEn: '',
   footerTextFi: '',
   showGetAppPopup: false,
-  getAppUrl: 'https://ksykmaps.fi/download',
+  getAppUrl: '/download',
+  enableSessionReplay: true,
+  enableCampusEvents: true,
+  enablePanoramaSpots: true,
+  enableHeatmapForAdmins: true,
+  enableAnnouncementBanner: true,
+  enableFooterCredits: true,
 };
 
 export default function AppSettingsManager() {
@@ -174,12 +188,15 @@ export default function AppSettingsManager() {
       )}
 
       <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-4 h-9">
+        <TabsList className="grid w-full grid-cols-5 h-9">
           <TabsTrigger value="general" className="gap-1.5 text-xs">
             <Globe className="h-3.5 w-3.5" />General
           </TabsTrigger>
           <TabsTrigger value="content" className="gap-1.5 text-xs">
             <Bell className="h-3.5 w-3.5" />Content
+          </TabsTrigger>
+          <TabsTrigger value="features" className="gap-1.5 text-xs">
+            <Sparkles className="h-3.5 w-3.5" />Features
           </TabsTrigger>
           <TabsTrigger value="schedule" className="gap-1.5 text-xs">
             <Wrench className="h-3.5 w-3.5" />Schedule
@@ -366,6 +383,80 @@ export default function AppSettingsManager() {
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Where the "Download" button in the popup takes the user.</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Features (v4.7.13) ──────────────────────────────
+         *  Client-facing feature flags. Each toggle maps to a runtime
+         *  check in a component; turning something off here hides it
+         *  from students without needing a deploy. */}
+        <TabsContent value="features" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Public map features</CardTitle>
+              <CardDescription>Layers and overlays students see on the main campus map.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <FeatureRow
+                icon={Calendar}
+                title="Campus events on map"
+                subtitle="Amber star pins for active/upcoming events. Click opens details."
+                checked={s.enableCampusEvents !== false}
+                onChange={(v) => update({ enableCampusEvents: v })}
+              />
+              <FeatureRow
+                icon={Camera}
+                title="360° panorama spots"
+                subtitle="Fuchsia pins that open a fullscreen spherical viewer on click."
+                checked={s.enablePanoramaSpots !== false}
+                onChange={(v) => update({ enablePanoramaSpots: v })}
+              />
+              <FeatureRow
+                icon={Megaphone}
+                title="Announcement banner"
+                subtitle="Top-of-map carousel of active announcements."
+                checked={s.enableAnnouncementBanner !== false}
+                onChange={(v) => update({ enableAnnouncementBanner: v })}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Analytics + telemetry</CardTitle>
+              <CardDescription>Recording and admin-only visualizations.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <FeatureRow
+                icon={Video}
+                title="Session replay recording"
+                subtitle="Record DOM snapshots on public routes for admin playback (rrweb). Turn off to stop new recordings."
+                checked={s.enableSessionReplay !== false}
+                onChange={(v) => update({ enableSessionReplay: v })}
+              />
+              <FeatureRow
+                icon={Flame}
+                title="Heatmap in admin analytics"
+                subtitle="Room-popularity heatmap card in the Analytics tab. Admin-only anyway; toggle hides the card entirely."
+                checked={s.enableHeatmapForAdmins !== false}
+                onChange={(v) => update({ enableHeatmapForAdmins: v })}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Miscellaneous</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <FeatureRow
+                icon={EyeOff}
+                title="Footer credits"
+                subtitle="Show 'Made by…' line in the page footer."
+                checked={s.enableFooterCredits !== false}
+                onChange={(v) => update({ enableFooterCredits: v })}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -606,5 +697,37 @@ function JaksotEditor() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * v4.7.13 — one-row feature toggle. Icon on the left, title + subtitle,
+ * Switch on the right. Same footprint as the existing ad-hoc rows in
+ * the Content tab, extracted so the Features tab stays consistent.
+ */
+function FeatureRow({
+  icon: Icon,
+  title,
+  subtitle,
+  checked,
+  onChange,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-card/60 p-3">
+      <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground leading-snug">{subtitle}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
   );
 }
