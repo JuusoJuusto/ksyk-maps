@@ -16,18 +16,19 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.17 · pending push)
+## ✅ Just shipped (web 4.7.18 · pending push)
 
-- **Log explorer — compact table + row-click detail sheet.** Bulky per-row cards replaced with a 4-column scannable table (Time · Level · Message · Source). Row click opens a right-side Sheet with the full log payload split into human fields (top) and monospace technical block (below). Login vs App logs share the same compact renderer.
-- **Pagination** — new `LogTable` helper with Prev/Next controls, page size 50, "Showing X–Y of Z" indicator, disabled states, focus-visible rings. Filters/tabs reset to page 1 via `useEffect`. Server-side cursor pagination (a data-shape change) deferred to its own round.
-- **Sidebar audit** — the `bg-blue-50 ring-1 shadow-sm` active state was flashy. Replaced with a subtle 3px blue accent bar on the left (Apple Settings pattern). Nav items tightened to 13px, `aria-current="page"` on active, `focus-visible` ring for keyboard navigation, ChevronRight removed (redundant with the accent bar).
-- **Mobile pass — analytics header** now uses `flex-wrap` so the range picker drops below the title at narrow widths instead of overflowing. Tables already had `overflow-x-auto` + `min-w-[N]` — verified.
-- **Keyboard/a11y**: log rows are `tabIndex={0}` with Enter/Space activation. `aria-current` on sidebar. Sheet focus-traps via primitive.
+- **Server-side cursor pagination for logs.** `/api/logs` and `/api/admin-login-logs` now support `?range=24h|7d|30d|90d&level=info,warn,error&q=<text>&limit=1..500&cursor=<ISO>` and return `{ rows, nextCursor, hasMore }`. Fetches `limit+1` rows to detect `hasMore` in one query. Backwards-compatible: `fetchList` client unwraps `{ rows }` automatically, and `/admin-login-logs` still returns the legacy flat array when no new query params are set so scripts/tools don't break.
+- **Stale TODO cleanup** — pruned every "in-progress" / "deferred" bullet that was actually shipped rounds ago. TODO now reflects reality instead of ancient state.
 
-## 🚧 Admin redesign — remaining
+## ⏳ Genuinely open work
 
-- **Server-side cursor pagination** (`/api/app-logs?since=&level=&limit=&cursor=`) — data-shape change; own round.
-- **Real device mobile test** — CSS-level pass done, but narrow-viewport interactions (sheet-on-mobile, sidebar collapse behavior) need real device time.
+- **Client-side upgrade to consume `nextCursor`** — the pagination endpoint is live server-side but `AppLogsManager` still fetches the first 100 rows. Wiring `useInfiniteQuery` or a "Load older" button is a small follow-up.
+- **Real device mobile testing** — CSS-level pass shipped in v4.7.17; narrow-viewport interactions (sheet-on-mobile, sidebar collapse) need real device time from you.
+
+## ❌ Blocked on you
+
+- **Production keystore** — private key material required. Docs in `android/BUILD.md`.
 
 ## ✅ Shipped (web 4.7.16 · pushed 2dffe1c)
 
@@ -35,12 +36,6 @@ Also on GitHub at `main/TODO.md`.
 - **`<ErrorRetry>` wired into every sub-panel fetch** — Features, Errors, Performance, Sessions, RecentEvents. Any failed fetch now shows the honest banner + Try-again instead of silently zero.
 - **Empty states standardized** across sub-panels: title (factual, short) + hint (one sentence, actionable). No emoji, no version refs, no hype.
 - **Focus rings + `aria-expanded`** on expandable error rows and CSV buttons. Same focus-visible pattern everywhere in the dashboard.
-
-## 🚧 Admin redesign — remaining
-
-- **Log table redesign**: filter drawer + right-side detail sheet per log row + server-side pagination. This is a data-shape change (`/api/app-logs?since=&level=&limit=&offset=`) as much as a UI change — own round.
-- **Sidebar layout audit** — the admin sidebar is untouched. Own pass.
-- **Mobile viewport pass** — deferred; needs actual device testing at narrow widths.
 
 ## ✅ Shipped (web 4.7.15 · pushed bf02107)
 
@@ -51,11 +46,6 @@ Also on GitHub at `main/TODO.md`.
 - **`aria-live="polite"` on every loading paragraph** in admin analytics so screen readers announce state changes.
 - **Toast copy audit** — no "Success!" / "Something happened" / other robotic language found; existing copy is already factual ("Changes saved", "Reset scheduled", etc).
 
-## 🚧 Admin redesign — remaining passes
-
-- **Pass 4 finish**: Full card-hell audit across Analytics sub-panels (Features / Insights / Sessions / Errors / Perf), sidebar/nav layout refinement.
-- **Pass 5 rest**: Log table + filter drawer + detail sheet + server-side pagination. Mobile viewport pass. Keyboard nav + focus trap audit on dialogs. `<ErrorRetry>` wiring for every remaining query.
-
 ## ✅ Shipped (web 4.7.14 · pushed a6e80b1)
 
 - **Access magic-link approval flow.** Admin approves → server mints one-shot token → email link `/grant/:token` → landing page stamps `localStorage.ksyk_access_granted=1` → `useAccessDecision` shortcuts to full access. Single-use, idempotent, honest error states.
@@ -63,11 +53,6 @@ Also on GitHub at `main/TODO.md`.
 - **Fixed boot-splash spinner freeze** — `decoding=\"async\"` on the logo, GPU-composited `.ksyk-spinner` with `will-change: transform`, honours `prefers-reduced-motion`.
 - **Admin redesign pass 2** (Log explorer): killed 4 colored stat cards, replaced with quiet inline `StatInline` row. Log page went from card grid + big colored icons to a proper information-dense header.
 - **Admin redesign pass 3** (Login redirect + open-redirect guard): AdminDashboard session-expiry preserves current path as `?redirect=…`; `admin-login.tsx` validates via `resolveRedirect()` — rejects absolute URLs, protocol-relative `//`, non-http schemes, cross-origin. Falls back to canonical admin base if the param is missing or fails validation.
-
-## 🚧 Admin redesign — remaining passes
-
-- **Pass 4**: Sidebar/nav layout, remove card hell in Analytics sub-panels (Features / Insights / Sessions / Errors / Perf).
-- **Pass 5**: Log table + filter drawer + detail sheet + server-side pagination; mobile viewport; a11y audit (keyboard, focus traps, aria-live); toast audit; `[Try again]` on every fetch failure.
 
 ## ✅ Shipped (web 4.7.13 · pushed d26fdea)
 
@@ -88,13 +73,6 @@ Also on GitHub at `main/TODO.md`.
 All loading states properly gate empty states via `!isLoading && data.length === 0` so nothing flickers.
 
 **Settings → Features tab (new).** New tab in `AppSettingsManager` with 6 admin toggles: session replay recording, campus events layer, panorama spots, admin heatmap card, announcement banner, footer credits. Custom `FeatureRow` component with icon+title+subtitle+switch layout. `enableSessionReplay` respected by rrweb recorder — checks `/api/settings` on start, caches in sessionStorage, fail-open on network error so we don't silently drop analytics from a transient outage.
-
-## 🚧 Admin redesign — remaining passes
-
-- **Pass 2**: Log explorer redesign (clean table, filter drawer, detail sheet), server-side pagination.
-- **Pass 3**: Login page + session lifecycle (timeout warning, redirect preservation via `?redirect=`, open-redirect validation).
-- **Pass 4**: Sidebar/nav layout (clean, unfilled unless icons genuinely help), remove card hell across Analytics sub-panels.
-- **Pass 5**: Mobile viewport pass, accessibility audit (keyboard, focus traps, aria-live for loading/error), toast audit, error-recovery buttons on every fetch failure.
 
 ## ✅ Shipped (web 4.7.12 · pushed c4d0490)
 

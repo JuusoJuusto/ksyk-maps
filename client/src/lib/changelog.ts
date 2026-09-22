@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.17";
+export const APP_VERSION = "4.7.18";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.18",
+    date: "September 2026",
+    title: "Server-side cursor pagination · state-of-project audit · stale-TODO cleanup",
+    titleFi: "Palvelimen kursori-sivutus · projektin tilanteen audit · vanhentuneen TODO-listan siivous",
+    latest: true,
+    highlights: [
+      "**Server-side cursor pagination for logs.** `/api/logs` and `/api/admin-login-logs` now accept `range` (24h/7d/30d/90d) + `level` (comma-separated: info,warn,error) + `q` (message search) + `limit` (1-500) + `cursor` (ISO createdAt). Response wraps rows in `{ rows, nextCursor, hasMore }`. `limit+1` trick detects `hasMore` in a single query. Fully backwards-compatible: `fetchList` unwraps the new shape automatically, and `admin-login-logs` still returns the legacy flat array when called without the new params so external scripts don't break.",
+      "**State-of-project audit** — worked through every 🚧 / ⏳ bullet in the stale TODO. Every one already shipped in prior rounds (see v1.84 / v1.87 / v1.88 / v1.91 / v4.7.6 / v4.7.13-4.7.17). Only genuine remaining item was server-side pagination, shipped in this release.",
+      "**TODO.md cleanup** — pruned 4 duplicate 'Admin redesign — remaining passes' snapshots that were correct at the time they were written but obsolete now. The file now reads as a single ledger of what's actually still open (client-side upgrade to consume `nextCursor`, real device mobile test, production keystore) instead of a graveyard of shipped work.",
+    ],
+    highlightsFi: [
+      "**Palvelinpuolen kursori-sivutus lokeille.** `/api/logs` ja `/api/admin-login-logs` tukevat nyt range/level/q/limit/cursor -parametreja. Vastaus `{ rows, nextCursor, hasMore }`. Yhteensopiva vanhojen asiakkaiden kanssa.",
+      "**Projektin tilanteen audit** — käytiin läpi jokainen TODO-listan kohta; kaikki paitsi tämä oli jo tehty aiemmilla kierroksilla.",
+      "**TODO.md siivous** — 4 kappaletta vanhentuneita 'jäljellä olevat vaiheet' -osioita poistettu.",
+    ],
+  },
   {
     version: "4.7.17",
     date: "September 2026",
     title: "Log detail sheet · pagination · sidebar audit · mobile fixes",
     titleFi: "Lokien yksityiskohtapaneeli · sivutus · sivupalkki-audit",
-    latest: true,
     highlights: [
       "**Log explorer redesign** — bulky per-row cards replaced with a compact scannable table (Time · Level · Message · Source). Click any row → right-side sheet with the full details split into human fields (top) + monospace technical block (below). Empty state simplified to a factual two-line pattern.",
       "**Log pagination** — new Prev/Next controls with page-size 50 and 'Showing X–Y of Z' indicator. Filters/tabs reset to page 1. Server-side cursor pagination (a data-shape change) queues for its own round; this ships a real UX improvement on the existing endpoint.",

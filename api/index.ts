@@ -454,13 +454,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // GET /api/admin-login-logs â€” recent admin sign-in events (admin only).
+    // v4.7.18 — GET /api/admin-login-logs with cursor pagination.
+    // Same shape as /api/logs — returns `{ rows, nextCursor, hasMore }`
+    // when a cursor param is present, else falls back to the legacy
+    // flat array response so old clients keep working.
     if ((apiPath === '/admin-login-logs' || apiPath.startsWith('/admin-login-logs?')) && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
       try {
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(500, Math.max(1, parseInt(q.limit ?? '100', 10) || 100));
+        const useCursor = q.cursor !== undefined || q.range !== undefined || q.q !== undefined;
+        if (useCursor) {
+          const { db: pgDb } = await import('../server/db.js');
+          const { adminLoginLogs } = await import('../shared/schema.js');
+          const { desc, and, gte, lt, or, ilike } = await import('drizzle-orm');
+          const rangeHours = q.range === '90d' ? 24 * 90
+            : q.range === '30d' ? 24 * 30
+            : q.range === '7d'  ? 24 * 7
+            : 24;
+          const since = new Date(Date.now() - rangeHours * 3600 * 1000);
+          const cursor = q.cursor ? new Date(q.cursor) : null;
+          const search = (q.q ?? '').trim();
+          const conds: any[] = [gte(adminLoginLogs.createdAt, since)];
+          if (cursor && !Number.isNaN(cursor.getTime())) conds.push(lt(adminLoginLogs.createdAt, cursor));
+          if (search) conds.push(or(
+            ilike(adminLoginLogs.email, `%${search}%`),
+            ilike(adminLoginLogs.userName, `%${search}%`),
+          ));
+          const rows = await pgDb.select().from(adminLoginLogs)
+            .where(conds.length > 1 ? and(...conds) : conds[0])
+            .orderBy(desc(adminLoginLogs.createdAt))
+            .limit(limit + 1)
+            .catch(() => [] as any[]);
+          const hasMore = (rows as any[]).length > limit;
+          const page = (rows as any[]).slice(0, limit);
+          const nextCursor = hasMore && page.length
+            ? (page[page.length - 1].createdAt as Date)?.toISOString() ?? null
+            : null;
+          return res.status(200).json({ rows: page, nextCursor, hasMore });
+        }
+        // Legacy flat-array response — kept so pre-v4.7.18 clients
+        // (including any admin panels that haven't reloaded) don't break.
         if ((storage as any).getAdminLoginLogs) {
-          const limit = parseInt((req.query.limit as string) || '100', 10);
-          const logs = await (storage as any).getAdminLoginLogs(Math.min(limit, 500));
+          const logs = await (storage as any).getAdminLoginLogs(limit);
           return res.status(200).json(logs);
         }
         return res.status(200).json([]);
@@ -1672,29 +1708,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ message: "Failed to process log" });
       }
     }
-    // GET /api/logs — admin viewer for existing AppLogsManager. Reads
-    // recent appLogs rows and rewraps them into the shape the client
-    // expects (id/level/message/source/timestamp).
-    if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'GET') {
+    // v4.7.18 — GET /api/logs with real server-side pagination.
+    //   Query params (all optional):
+    //     range   24h | 7d | 30d | 90d      default 24h — since filter
+    //     level   info | warn | error | debug — comma-separated OK
+    //     q       search string (message contains)
+    //     limit   1..500                    default 50
+    //     cursor  ISO timestamp (createdAt) — page break; rows strictly older
+    //   Response:
+    //     { rows: [...], nextCursor: string | null, hasMore: boolean }
+    //
+    // Cursor is the ISO createdAt of the LAST row in the returned page.
+    // Client requests older pages by sending `cursor=<lastCreatedAt>` on
+    // the next call. Sorted DESC by createdAt.
+    if ((apiPath === '/logs' || apiPath === '/api/logs' ||
+         apiPath.startsWith('/logs?') || apiPath.startsWith('/api/logs?')) && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { appLogs } = await import('../shared/schema.js');
-        const { desc } = await import('drizzle-orm');
+        const { desc, and, gte, lt, ilike, inArray, sql: dsql } = await import('drizzle-orm');
+        const q = req.query as Record<string, string>;
+        const limit = Math.min(500, Math.max(1, parseInt(q.limit ?? '50', 10) || 50));
+        const rangeHours = q.range === '90d' ? 24 * 90
+          : q.range === '30d' ? 24 * 30
+          : q.range === '7d'  ? 24 * 7
+          : 24;
+        const since = new Date(Date.now() - rangeHours * 3600 * 1000);
+        const levels = (q.level ?? '').split(',').map(s => s.trim()).filter(Boolean);
+        const search = (q.q ?? '').trim();
+        const cursor = q.cursor ? new Date(q.cursor) : null;
+
+        const conds: any[] = [gte(appLogs.createdAt, since)];
+        if (cursor && !Number.isNaN(cursor.getTime())) conds.push(lt(appLogs.createdAt, cursor));
+        if (levels.length) conds.push(inArray(appLogs.level, levels));
+        if (search) conds.push(ilike(appLogs.message, `%${search}%`));
+
         const rows = await pgDb.select().from(appLogs)
+          .where(conds.length > 1 ? and(...conds) : conds[0])
           .orderBy(desc(appLogs.createdAt))
-          .limit(300).catch(() => [] as any[]);
-        return res.status(200).json(
-          (rows as any[]).map(r => ({
+          .limit(limit + 1)  // fetch one extra to detect hasMore
+          .catch(() => [] as any[]);
+        const hasMore = (rows as any[]).length > limit;
+        const page = (rows as any[]).slice(0, limit);
+        const nextCursor = hasMore && page.length
+          ? (page[page.length - 1].createdAt as Date)?.toISOString() ?? null
+          : null;
+        return res.status(200).json({
+          rows: page.map(r => ({
             id: r.id,
             level: r.level,
             message: r.message,
             source: (r.userAgent || '').includes('KSYK-Maps-Android') ? 'android' : 'web',
             timestamp: r.createdAt,
           })),
-        );
+          nextCursor,
+          hasMore,
+        });
       } catch {
-        return res.status(200).json([]);
+        return res.status(200).json({ rows: [], nextCursor: null, hasMore: false });
       }
     }
 
