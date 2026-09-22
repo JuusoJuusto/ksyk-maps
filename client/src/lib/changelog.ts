@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.18";
+export const APP_VERSION = "4.7.19";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.19",
+    date: "September 2026",
+    title: "Load older logs · keystore generator script · zero TS errors",
+    titleFi: "Lataa vanhempia lokeja · avainten luontiskripti · nolla TS-virhettä",
+    latest: true,
+    highlights: [
+      "**Load older logs button** — App events tab now consumes the v4.7.18 `nextCursor` server-side pagination. Fetch is stack-based: first page auto-loads (100 rows), 'Load older' appends the next 100 via `?cursor=<lastCreatedAt>`, disappears when `hasMore=false`. Cursor stack resets on the auto-refetch every 30s so new events at the top don't shift the browsed pages.",
+      "**Production keystore how-to — no more excuses.** New `android/make-production-keystore.ps1` script prompts for passwords, generates a 4096-bit RSA key with 68-year validity, prints the SHA-1/SHA-256 fingerprints (for Play Console), prints the exact `$env:` build lines to paste, prints a backup checklist. Zero-guess flow: run it, done.",
+      "**Zero TypeScript errors** — cleaned the stale `@ts-expect-error` in `server/rateLimiter.ts` (firebase-admin types ARE installed, so the directive was tripping tsc every run for 6+ rounds). First fully-clean `tsc --noEmit` since v4.7.13.",
+      "**Dead code purge** — deleted `EnhancedScheduleBuilder.tsx` and `EnhancedSubstituteSystem.tsx` (orphans, never imported, just TODO stubs).",
+    ],
+    highlightsFi: [
+      "**Lataa vanhempia lokeja -nappi** — sovelluslokit tukevat nyt palvelimen kursori-sivutusta.",
+      "**Tuotanto-avainten luontiskripti** — `android/make-production-keystore.ps1` hoitaa koko flow'n Play Storen luontia varten.",
+      "**Nolla TypeScript-virhettä** — vanha `@ts-expect-error` poistettu, tsc ajaa nyt puhtaana.",
+      "**Kuollutta koodia poistettu** — 2 kertaakaan käyttämätöntä komponenttia poistettu.",
+    ],
+  },
   {
     version: "4.7.18",
     date: "September 2026",
     title: "Server-side cursor pagination · state-of-project audit · stale-TODO cleanup",
     titleFi: "Palvelimen kursori-sivutus · projektin tilanteen audit · vanhentuneen TODO-listan siivous",
-    latest: true,
     highlights: [
       "**Server-side cursor pagination for logs.** `/api/logs` and `/api/admin-login-logs` now accept `range` (24h/7d/30d/90d) + `level` (comma-separated: info,warn,error) + `q` (message search) + `limit` (1-500) + `cursor` (ISO createdAt). Response wraps rows in `{ rows, nextCursor, hasMore }`. `limit+1` trick detects `hasMore` in a single query. Fully backwards-compatible: `fetchList` unwraps the new shape automatically, and `admin-login-logs` still returns the legacy flat array when called without the new params so external scripts don't break.",
       "**State-of-project audit** — worked through every 🚧 / ⏳ bullet in the stale TODO. Every one already shipped in prior rounds (see v1.84 / v1.87 / v1.88 / v1.91 / v4.7.6 / v4.7.13-4.7.17). Only genuine remaining item was server-side pagination, shipped in this release.",

@@ -3,7 +3,9 @@
  * Prevents brute force attacks by limiting failed login attempts
  */
 
-// @ts-expect-error firebase-admin types not installed in this workspace
+// v4.7.19 — firebase-admin types ARE installed (we use it for FCM in
+// server/fcm.ts). The stale @ts-expect-error was tripping tsc every
+// run for 6+ rounds because the "expected" error never actually fires.
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Lazy-load Firestore to avoid initialization issues

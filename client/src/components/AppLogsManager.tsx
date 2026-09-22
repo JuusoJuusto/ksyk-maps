@@ -97,14 +97,90 @@ export default function AppLogsManager() {
     refetchInterval: 30000,
   });
 
-  const { data: appLogs = [], isLoading: appLogsLoading } = useQuery<AppLog[]>({
-    queryKey: ['app-logs'],
+  // v4.7.19 — client-side cursor pagination. First page auto-fetches;
+  // "Load older" appends the next page via /api/logs?cursor=<lastTs>.
+  // Cursor stack lets us reset back to page 1 on filter/tab changes
+  // without re-fetching everything the user already saw.
+  const [appLogCursors, setAppLogCursors] = useState<string[]>([]);
+  const [appLogPages, setAppLogPages] = useState<AppLog[][]>([]);
+  const [appLogHasMore, setAppLogHasMore] = useState(true);
+  const [appLogsLoadingMore, setAppLogsLoadingMore] = useState(false);
+
+  const { data: appLogFirstPage, isLoading: appLogsLoading } = useQuery<{
+    rows: AppLog[]; nextCursor: string | null;
+  }>({
+    queryKey: ['app-logs', 'v2'],
     queryFn: async () => {
-      const rows = await fetchList<{
+      const res = await fetch('/api/logs?limit=100', {
+        credentials: 'include',
+        headers: (() => {
+          try {
+            const t = localStorage.getItem('ksyk_admin_token');
+            const h: Record<string, string> = {};
+            if (t) h.Authorization = `Bearer ${t}`;
+            return h;
+          } catch { return {} as Record<string, string>; }
+        })(),
+      });
+      if (!res.ok) return { rows: [], nextCursor: null };
+      const body = await res.json().catch(() => ({}));
+      const rawRows: Array<{
         id: string; level: AppLog['level']; message: string;
         source?: string; timestamp: unknown;
-      }>('/api/logs');
-      return rows.map((log) => ({
+      }> = Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
+      return {
+        rows: rawRows.map((log) => ({
+          id: log.id,
+          level: log.level,
+          message: log.message,
+          details: log.source,
+          action: log.source?.toUpperCase() || 'UNKNOWN',
+          createdAt: log.timestamp,
+          type: 'app' as const,
+        })),
+        nextCursor: (body?.nextCursor ?? null) as string | null,
+      };
+    },
+    refetchInterval: 30000,
+  });
+
+  // Reset the older-pages stack whenever the first page is fetched
+  // fresh (initial load or refetch). Older pages become stale because
+  // new events may have arrived on top.
+  useEffect(() => {
+    if (appLogFirstPage) {
+      setAppLogPages([]);
+      setAppLogCursors(appLogFirstPage.nextCursor ? [appLogFirstPage.nextCursor] : []);
+      setAppLogHasMore(!!appLogFirstPage.nextCursor);
+    }
+  }, [appLogFirstPage]);
+
+  const appLogs: AppLog[] = useMemo(() => [
+    ...(appLogFirstPage?.rows ?? []),
+    ...appLogPages.flat(),
+  ], [appLogFirstPage, appLogPages]);
+
+  const loadOlderAppLogs = async () => {
+    const cursor = appLogCursors[appLogCursors.length - 1];
+    if (!cursor || appLogsLoadingMore) return;
+    setAppLogsLoadingMore(true);
+    try {
+      const res = await fetch(`/api/logs?limit=100&cursor=${encodeURIComponent(cursor)}`, {
+        credentials: 'include',
+        headers: (() => {
+          try {
+            const t = localStorage.getItem('ksyk_admin_token');
+            const h: Record<string, string> = {};
+            if (t) h.Authorization = `Bearer ${t}`;
+            return h;
+          } catch { return {} as Record<string, string>; }
+        })(),
+      });
+      if (!res.ok) return;
+      const body = await res.json().catch(() => ({}));
+      const raw: Array<{ id: string; level: AppLog['level']; message: string; source?: string; timestamp: unknown }> =
+        Array.isArray(body?.rows) ? body.rows : [];
+      const mapped: AppLog[] = raw.map((log) => ({
         id: log.id,
         level: log.level,
         message: log.message,
@@ -113,9 +189,17 @@ export default function AppLogsManager() {
         createdAt: log.timestamp,
         type: 'app' as const,
       }));
-    },
-    refetchInterval: 30000,
-  });
+      setAppLogPages((prev) => [...prev, mapped]);
+      if (body?.nextCursor) {
+        setAppLogCursors((prev) => [...prev, body.nextCursor]);
+        setAppLogHasMore(true);
+      } else {
+        setAppLogHasMore(false);
+      }
+    } finally {
+      setAppLogsLoadingMore(false);
+    }
+  };
 
   // The analytics queries feed a lot of downstream `any`-typed
   // recharts + rendering code — cast to `any[]` / `any` at the boundary
@@ -695,6 +779,27 @@ export default function AppLogsManager() {
                 emptyHint="Application events will appear here."
                 renderRow={renderCompactRow}
               />
+              {/* v4.7.19 — Load older button. Only appears on the last
+               *  page of the current stack so users don't get a stale
+               *  cursor when they're mid-way through browsing. */}
+              {appLogHasMore && appLogs.length > 0 && (
+                <div className="flex justify-center pt-3">
+                  <button
+                    type="button"
+                    onClick={loadOlderAppLogs}
+                    disabled={appLogsLoadingMore}
+                    className={cn(
+                      "h-8 px-4 rounded-md text-[12px] font-semibold transition-colors",
+                      "border border-slate-200 dark:border-slate-800",
+                      "hover:bg-slate-50 dark:hover:bg-slate-900",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+                    )}
+                  >
+                    {appLogsLoadingMore ? "Loading…" : "Load older"}
+                  </button>
+                </div>
+              )}
             </TabsContent>
 
           </Tabs>

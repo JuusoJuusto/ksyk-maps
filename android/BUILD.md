@@ -35,25 +35,55 @@ Output: `android/app/build/outputs/apk/release/ksykmaps-release-<versionName>.ap
 
 ## Production keystore
 
-The self-signed keystore above is fine for internal testing. **For Play Store distribution:**
+The self-signed keystore above is fine for internal testing. **For Play Store distribution use the one-shot generator script:**
 
-1. Generate the production keystore on the machine that will hold it long-term:
-   ```powershell
-   keytool -genkeypair -v `
-       -keystore ksyk-production.jks -alias ksyk `
-       -keyalg RSA -keysize 4096 -validity 25000 `
-       -dname "CN=KSYK Maps, O=Kokkolan Suomalainen yhteiskoulu, C=FI"
-   ```
-2. **Back it up.** Losing the keystore means you can never publish an update to that Play listing.
-3. Point the build at it via env vars, not by copying the file into the repo:
-   ```powershell
-   $env:KSYK_KEYSTORE_FILE     = "C:\secrets\ksyk-production.jks"
-   $env:KSYK_KEYSTORE_PASSWORD = "..."
-   $env:KSYK_KEY_ALIAS         = "ksyk"
-   $env:KSYK_KEY_PASSWORD      = "..."
-   .\gradlew bundleRelease
-   ```
-4. Upload `app/build/outputs/bundle/release/app-release.aab` to Play Console.
+```powershell
+cd android
+.\make-production-keystore.ps1
+```
+
+The script (`android/make-production-keystore.ps1`) prompts you for:
+- Where to save the keystore (default: `~/ksyk-keystore/ksyk-production.jks`, **outside the repo**)
+- Keystore password (typed twice, must match, min 6 chars)
+- Key password (typed twice, must match)
+
+Then it:
+- Runs `keytool -genkeypair` with `RSA 4096` + 68-year validity
+- Prints the SHA-1 + SHA-256 fingerprints (paste these into Play Console → App integrity)
+- Prints the exact `$env:` lines to paste for the next build
+- Prints a backup checklist
+
+**Then build a signed Play Bundle:**
+
+```powershell
+$env:KSYK_KEYSTORE_FILE     = "C:\Users\<you>\ksyk-keystore\ksyk-production.jks"
+$env:KSYK_KEYSTORE_PASSWORD = "..."   # the one you chose above
+$env:KSYK_KEY_ALIAS         = "ksyk"
+$env:KSYK_KEY_PASSWORD      = "..."   # the one you chose above
+.\gradlew bundleRelease
+```
+
+Upload `app/build/outputs/bundle/release/app-release.aab` to Play Console.
+
+### Backup rules — do all three
+
+1. Save `ksyk-production.jks` as an attachment inside a password-manager entry.
+2. Copy it to an encrypted USB drive as a physical backup.
+3. Store both passwords in the same password-manager entry.
+
+**If you lose the keystore you cannot publish updates. Ever.** Google Play cannot recover it, cannot bypass it, and cannot re-sign the app under a new key.
+
+### Manual (if you don't want to run the script)
+
+```powershell
+keytool -genkeypair -v `
+    -keystore C:\Users\<you>\ksyk-keystore\ksyk-production.jks `
+    -alias ksyk `
+    -keyalg RSA -keysize 4096 -validity 25000 `
+    -dname "CN=KSYK Maps, O=Kulosaaren yhteiskoulu, L=Helsinki, C=FI"
+```
+
+Then set the four env vars above and `bundleRelease`.
 
 ## Firebase Cloud Messaging (FCM) setup
 

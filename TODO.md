@@ -16,19 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.18 · pending push)
+## ✅ Just shipped (web 4.7.19 · pending push)
 
-- **Server-side cursor pagination for logs.** `/api/logs` and `/api/admin-login-logs` now support `?range=24h|7d|30d|90d&level=info,warn,error&q=<text>&limit=1..500&cursor=<ISO>` and return `{ rows, nextCursor, hasMore }`. Fetches `limit+1` rows to detect `hasMore` in one query. Backwards-compatible: `fetchList` client unwraps `{ rows }` automatically, and `/admin-login-logs` still returns the legacy flat array when no new query params are set so scripts/tools don't break.
-- **Stale TODO cleanup** — pruned every "in-progress" / "deferred" bullet that was actually shipped rounds ago. TODO now reflects reality instead of ancient state.
+- **Load older logs button** — App-events tab now consumes v4.7.18 `nextCursor`. Stack-based pagination: first page auto-loads (100 rows), 'Load older' appends via `?cursor=<lastCreatedAt>`, disappears when `hasMore=false`. Cursor stack resets on the 30s auto-refetch.
+- **Production keystore generator** — `android/make-production-keystore.ps1` — one-shot foolproof flow. Prompts for passwords (twice), runs `keytool -genkeypair` (4096 bit, 68-year validity), prints SHA-1/SHA-256 fingerprints for Play Console, prints exact `$env:` lines for the next build, prints backup checklist. Written for someone who's never touched `keytool` before.
+- **Zero TypeScript errors** — cleaned the stale `@ts-expect-error` in `server/rateLimiter.ts` (was tripping tsc every run for 6+ rounds).
+- **Dead code purge** — deleted `EnhancedScheduleBuilder.tsx` and `EnhancedSubstituteSystem.tsx` (never imported).
 
 ## ⏳ Genuinely open work
 
-- **Client-side upgrade to consume `nextCursor`** — the pagination endpoint is live server-side but `AppLogsManager` still fetches the first 100 rows. Wiring `useInfiniteQuery` or a "Load older" button is a small follow-up.
-- **Real device mobile testing** — CSS-level pass shipped in v4.7.17; narrow-viewport interactions (sheet-on-mobile, sidebar collapse) need real device time from you.
+- **Real device mobile testing** — narrow-viewport interactions need real device time from you.
 
 ## ❌ Blocked on you
 
-- **Production keystore** — private key material required. Docs in `android/BUILD.md`.
+- **Production keystore** — need to run `android\make-production-keystore.ps1` and store the file + passwords somewhere permanent.
 
 ## ✅ Shipped (web 4.7.16 · pushed 2dffe1c)
 
