@@ -334,9 +334,19 @@ export default function SecuritySettingsPanel() {
           <RequestsInbox
             requests={draft.accessRequests}
             onApprove={async (req) => {
-              // v4.7.12 — one-click approve. PATCH the single request
-              // via the dedicated endpoint AND add the user exception
-              // in one save so admins don't need to hit "Save" after.
+              // v4.7.22 — one-click approve. The PATCH endpoint mints
+              // the one-shot grant token server-side and persists it
+              // atomically; we must NOT then PUT the full securitySettings
+              // blob afterwards with our stale client copy of
+              // accessRequests, because that would overwrite the freshly
+              // minted grantToken with `undefined` and the /grant/:token
+              // link in the approval email would 404 immediately.
+              //
+              // Correct sequence:
+              //   1. PATCH  — server flips status, mints grantToken, sends email
+              //   2. Refetch — pull the server-truthful accessRequests back in
+              //   3. Save    — only if userExceptions needs adding, and only
+              //                after merging the server's accessRequests.
               try {
                 await fetch(`/api/security-settings/access-requests/${req.id}`, {
                   method: "PATCH",
@@ -345,24 +355,31 @@ export default function SecuritySettingsPanel() {
                   body: JSON.stringify({ status: "approved" }),
                 });
               } catch { /* toast handled below */ }
-              const nextRequests = draft.accessRequests.map((r) =>
-                r.id === req.id ? { ...r, status: "approved" as const } : r,
-              );
               const ex: UserException = {
                 id: genId(), email: req.email, tier: "full",
                 note: req.reason || "Approved from request inbox",
               };
               const nextExceptions = [...draft.userExceptions, ex];
-              // Update local draft + persist the exceptions in one go.
+              // Refetch server truth (which now includes the minted
+              // grantToken on the approved request) before merging.
+              let serverRequests = draft.accessRequests.map((r) =>
+                r.id === req.id ? { ...r, status: "approved" as const } : r,
+              );
+              try {
+                const fresh = await loadSecurityFromServer();
+                if (fresh && Array.isArray(fresh.accessRequests)) {
+                  serverRequests = fresh.accessRequests;
+                }
+              } catch { /* fallback to optimistic copy */ }
+              // Mirror the fresh state into the local draft so the UI
+              // reflects reality and future saves don't clobber it.
               patch("userExceptions", nextExceptions);
-              patch("accessRequests", nextRequests);
-              // Auto-save the whole draft so exceptions stick without
-              // the admin remembering to press "Save".
+              patch("accessRequests", serverRequests);
               try {
                 await saveSecurityToServer({
                   ...draft,
                   userExceptions: nextExceptions,
-                  accessRequests: nextRequests,
+                  accessRequests: serverRequests,
                 });
               } catch { /* silent */ }
             }}

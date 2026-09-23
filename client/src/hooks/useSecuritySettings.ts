@@ -38,17 +38,21 @@ if (typeof window !== "undefined") {
  *  Skips the request entirely when the browser reports offline so we
  *  don't flood the console with ERR_NAME_NOT_RESOLVED / ERR_NETWORK_IO_
  *  SUSPENDED failures on unstable connections. */
-export async function loadSecurityFromServer(): Promise<void> {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+export async function loadSecurityFromServer(): Promise<SecuritySettings | null> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
   try {
     const r = await fetch("/api/security-settings", { credentials: "include" });
-    if (!r.ok) return;
+    if (!r.ok) return null;
     const data = await r.json();
     if (data && typeof data === "object") {
-      setSnapshot({ ...DEFAULT_SECURITY_SETTINGS, ...data });
+      const merged = { ...DEFAULT_SECURITY_SETTINGS, ...data } as SecuritySettings;
+      setSnapshot(merged);
+      return merged;
     }
+    return null;
   } catch {
     /* silent — DNS failure, connection reset, timeout, all no-op */
+    return null;
   }
 }
 

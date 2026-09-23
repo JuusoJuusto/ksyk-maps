@@ -16,33 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.21 · pending push)
+## ✅ Just shipped (web 4.7.22 · pending push)
 
-- **Keystore script parse error fixed** — pure ASCII rewrite. PS 5.1 was reading the file as Windows-1252 and choking on `→` + smart quotes. Runs cleanly now.
-- **AccessLockoutScreen** apple-design pass — dropped duplicate "Access restricted" badge, redundant tiny-caps KSYK Maps label, shrank hero heading `text-3xl sm:text-5xl → text-2xl sm:text-3xl`, logo 80px → 56px.
-- **home.tsx emoji purge** — quick-guide bullets 🧭 🔍 🗺️ 📱 → Lucide `Navigation` / `Search` / `MapPin` / `Smartphone`.
-- **download.tsx** — killed all 3 decorative colored icon circles, killed the emerald "Available" pill fill, shrunk H1.
-- **A11y**: `scope="col"` on every `<th>` in AdminAnalyticsDashboard + AppLogsManager. `GetAppPopup` close button bilingual aria-label + focus-visible. Header sticky respects `env(safe-area-inset-top)`.
-- **3 parallel audit agents** ran and produced concrete findings. Top-priority items implemented this round; more queued.
+- **Grant-token overwrite bug fixed.** Admin approving an access request minted a one-shot grant token server-side, but the panel's auto-save then PUT the whole securitySettings blob back with the client-side accessRequests (which didn't have the token) — silently nuking it. Result: user clicked the email link, got "Link no longer valid" immediately. Fix in `SecuritySettingsPanel.tsx#onApprove`: refetch server state after PATCH and merge before saving. Also had to update `loadSecurityFromServer` to return the fetched settings (was `Promise<void>`).
+- **`/api/sessions/rrweb` soft-fail** — 500 → 202 when the `rrweb_batches` table isn't migrated in prod, so the client recorder doesn't retry-storm every batch. Server logs the missing migration once so ops knows how to enable session replay.
+- **Map `destroy()` crash on Sheet close** — `TypeError: Cannot read properties of undefined (reading 'destroy')` at MapLibre teardown was firing when a Radix Sheet unmounted a map instance after the 6s recovery watchdog had already removed it. Fix: clear the watchdog in the cleanup effect + wrap `map.remove()` in try/catch.
+- **Keystore script auto-detects Android Studio's bundled JDK.** No more "keytool not found" if you have Android Studio installed. Searches `%LOCALAPPDATA%\Programs\Android Studio\jbr\bin`, `%ProgramFiles%\Android\Android Studio\jbr\bin`, older `jre\bin` layout, and `%JAVA_HOME%\bin` before erroring.
+- **Mobile / a11y / AI-slop batch** — mobile burger `p-2.5 → p-3` + focus-visible ring (44×44 tap target), drag handle `aria-hidden`, AnnouncementBanner counter `role="status"` + descriptive aria-label, `👆✌️` big emoji → Lucide `Smartphone`, settings-panel card titles stripped of `🎫 📝 ℹ️ 📋`, nav-panel `text-[10px] → text-xs` for mobile legibility.
+- **Support-page TYPE_META unification** — four competing tint colors (red/amber/blue/emerald) collapsed to single blue accent; semantic hint stays on the icon. Added `aria-pressed` + focus-visible ring.
 
-## 🚧 Queued from audits (not yet applied)
-
-**Mobile:**
-- home.tsx:294 — Ticket FAB `p-3` → `p-3.5` (44×44 tap target)
-- home.tsx:368 — search-result meta `text-[10px]` → `text-xs`
-- Header.tsx:289 — mobile hamburger `p-2.5` → `p-3`
-- home.tsx:295 — FAB `bottom-4` → `env(safe-area-inset-bottom)`-aware
-
-**A11y:**
-- Header.tsx:464,475 — clickable divs (lunch, HSL) need `tabIndex={0}` + Enter/Space handler
-- AnnouncementBanner counter needs `role="status"`
-- home.tsx:320 — decorative drag handle needs `aria-hidden="true"`
-
-**AI-slop:**
-- home.tsx:692 — `👆✌️` big emoji → Lucide icon
-- home.tsx settings section — emoji card titles (🎫 📝 ℹ️ 📋)
-- home.tsx multiple lines — excessive `backdrop-blur-xl` on non-sticky elements
-- support.tsx — competing colored TYPE_META badges
+_Note: Header lunch/HSL clickable divs from prior audit turned out to already be inside `<Link>` (wouter renders `<a>`), so keyboard-accessible via the wrapping anchor — no extra `tabIndex/onKeyDown` needed._
 
 ## ✅ Shipped (web 4.7.20 · pushed 3a0d760)
 

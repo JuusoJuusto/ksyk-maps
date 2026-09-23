@@ -10,15 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.21";
+export const APP_VERSION = "4.7.22";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.22",
+    date: "September 2026",
+    title: "Grant-token overwrite fix · rrweb soft-fail · map destroy crash · keytool auto-detect · a11y + AI-slop batch",
+    titleFi: "Kutsulinkin ylikirjoitusvirhe · rrweb turvallinen epäonnistuminen · kartan tuhoutumisvirhe · keytool automaattinen etsintä",
+    latest: true,
+    highlights: [
+      "**Grant-token overwrite bug fixed.** Admin approving an access request minted a one-shot grant token server-side, but the panel's auto-save then PUT the whole securitySettings blob back with the client-side accessRequests (which didn't have the token) — silently nuking it. Result: user clicked the email link, got 'Link no longer valid' immediately. Fix: refetch server state after PATCH and merge before saving so the freshly-minted token is preserved.",
+      "**rrweb 500 soft-fail.** `/api/sessions/rrweb` POST was returning 500 when the `rrweb_batches` table wasn't yet migrated in prod, causing the client recorder to retry-storm every batch. Now returns 202 (dropped) with a one-line server log naming the missing migration so ops knows how to enable session replay.",
+      "**Map `destroy()` crash on Sheet close.** `TypeError: Cannot read properties of undefined (reading 'destroy')` at MapLibre teardown was firing when a Radix Sheet unmounted a map instance after the 6s recovery watchdog had already removed it. Fix: clear the watchdog in the cleanup effect + wrap `map.remove()` in try/catch. Also swallows the same crash when a WebGL context-lost event pre-empts the unmount.",
+      "**Keystore script auto-detects Android Studio's JDK.** No more 'keytool not found' if you have Android Studio installed. Script now searches `%LOCALAPPDATA%\\Programs\\Android Studio\\jbr\\bin`, `%ProgramFiles%\\Android\\Android Studio\\jbr\\bin`, the older `jre\\bin` layout, and `%JAVA_HOME%\\bin` before erroring. Prints the resolved path so you know which JDK it used.",
+      "**Mobile tap targets bumped to WCAG 44×44.** Header hamburger `p-2.5 → p-3` + focus-visible ring. Home Ticket FAB (from v4.7.21) already at `p-3.5` + safe-area-inset-bottom/right so it doesn't sit under the iOS home indicator.",
+      "**A11y**: mobile drag handle marked `aria-hidden` (it's decorative — the sheet itself is the drag surface). AnnouncementBanner counter gets `role='status'` + `aria-label='Announcement N of M'` so screen readers read it as a live region with context, not as a fraction.",
+      "**AI-slop pass on home.tsx**: `👆✌️` big-emoji pinch-to-zoom hint replaced with a Lucide `Smartphone` icon. Settings-panel card titles stripped of `🎫 📝 ℹ️ 📋` emojis — the section headings alone do the job. Nav-panel labels bumped from `text-[10px]` to `text-xs` (12px) for mobile legibility.",
+      "**Support-page badge unification.** TYPE_META previously had four competing tint colors (red/amber/blue/emerald) fighting for attention when the user tabbed through options. Now a single blue accent for selection; semantic hint stays on the icon so bugs still feel red without a red-tinted card. Added `aria-pressed` + focus-visible ring for keyboard users.",
+    ],
+    highlightsFi: [
+      "**Kutsulinkin ylikirjoitusvirhe korjattu.** Admin hyväksyi pääsypyynnön, mutta paneelin automaattitallennus ylikirjoitti palvelimella juuri luodun kertakäyttötokenin. Käyttäjä sai heti 'Linkki ei ole enää voimassa'. Nyt haetaan palvelimen tila uudelleen ennen tallennusta.",
+      "**rrweb 500 pehmennetty**: kun `rrweb_batches`-taulua ei ole vielä migroitu tuotantoon, palautetaan 202 (pudotettu erä) sen sijaan että aiheutettaisiin uudelleenlähetysten myrsky.",
+      "**Kartan tuhoutumisvirhe korjattu**: watchdog-timer siivotaan cleanup-vaiheessa, `map.remove()` käärittynä try/catchiin — ei enää Sheet-modaalin sulkeutumisen aiheuttamia kaatumisia.",
+      "**Keystore-skripti etsii Android Studion JDK:n automaattisesti** — ei tarvitse enää erillistä JDK-asennusta, jos Android Studio on jo asennettu.",
+      "**Mobiilin kosketuskohteet 44×44 WCAG-mukaisiksi**, otsikon hampurilaisen fokusvälit näkyviin näppäimistön käyttäjille.",
+      "**home.tsx AI-slop-siivous**: `👆✌️`-emoji korvattu ikonilla, asetuspaneelin korttien otsikoista poistettu koristelevat emojit.",
+      "**Tukisivun badge-siivous**: neljä kilpailevaa väriä (punainen/amber/sininen/vihreä) yhdistetty yhteen siniseen valintaväriin — Apple HIG -periaate.",
+    ],
+  },
   {
     version: "4.7.21",
     date: "September 2026",
     title: "Keystore ASCII fix · access-lockout / home / download AI-slop pass · a11y sweep",
     titleFi: "Avainten-luontiskripti ASCII-korjaus · AI-slop-siivous · a11y",
-    latest: true,
     highlights: [
       "**Keystore script parse error fixed.** PS 5.1 read the file as Windows-1252 and choked on `→` + smart quotes. Rewrote the whole script in pure ASCII — no unicode arrows, no fancy quotes, no non-breaking spaces. Runs cleanly in Windows PowerShell 5.1 now.",
       "**AccessLockoutScreen** trimmed: dropped the duplicate `Access restricted` badge (the header ticker already says it), removed the redundant tiny-caps `KSYK Maps` label above the badge, shrank the hero heading `text-3xl sm:text-5xl` → `text-2xl sm:text-3xl`, logo 80×80 → 56×56. Reads as a calm status page now, not a marketing landing.",

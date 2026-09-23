@@ -291,7 +291,7 @@ export default function Header({
             <div className={homeMinimal ? "hidden" : "md:hidden"}>
               <button
                 onClick={() => setShowMobileMenu(true)}
-                className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-3 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 aria-label="Open menu"
                 aria-expanded={showMobileMenu}
                 aria-controls="mobile-drawer"

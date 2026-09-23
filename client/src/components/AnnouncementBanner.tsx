@@ -206,9 +206,11 @@ export default function AnnouncementBanner() {
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </button>
                   <div
-                    className="hidden min-[360px]:block px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-[10px] sm:text-xs font-semibold rounded"
+                    className="hidden min-[360px]:block px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded"
+                    role="status"
                     aria-live="polite"
                     aria-atomic="true"
+                    aria-label={`Announcement ${currentIndex + 1} of ${activeAnnouncements.length}`}
                   >
                     {currentIndex + 1}/{activeAnnouncements.length}
                   </div>

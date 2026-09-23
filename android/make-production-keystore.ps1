@@ -35,11 +35,44 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Prerequisites check ---------------------------------------------------
-if (-not (Get-Command keytool -ErrorAction SilentlyContinue)) {
-    Write-Host "ERROR: keytool not found on PATH." -ForegroundColor Red
-    Write-Host "Install JDK 17: winget install Microsoft.OpenJDK.17" -ForegroundColor Yellow
-    Write-Host "Or open a shell where Android Studio's JDK is on PATH." -ForegroundColor Yellow
+# v4.7.22 - Auto-locate Android Studio's bundled JDK so users don't
+# need a separate JDK install. Checks in order:
+#   1. keytool already on PATH  (best case, use as-is)
+#   2. Android Studio's jbr\bin\keytool.exe  (default install)
+#   3. Android Studio's jre\bin\keytool.exe  (older layouts)
+#   4. JAVA_HOME\bin\keytool.exe             (user-configured)
+$keytoolExe = $null
+if (Get-Command keytool -ErrorAction SilentlyContinue) {
+    $keytoolExe = "keytool"
+} else {
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Android Studio\jbr\bin\keytool.exe",
+        "$env:LOCALAPPDATA\Programs\Android Studio\jre\bin\keytool.exe",
+        "$env:ProgramFiles\Android\Android Studio\jbr\bin\keytool.exe",
+        "$env:ProgramFiles\Android\Android Studio\jre\bin\keytool.exe",
+        "${env:ProgramFiles(x86)}\Android\Android Studio\jbr\bin\keytool.exe"
+    )
+    if ($env:JAVA_HOME) { $candidates += (Join-Path $env:JAVA_HOME "bin\keytool.exe") }
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path $c)) { $keytoolExe = $c; break }
+    }
+}
+
+if (-not $keytoolExe) {
+    Write-Host "ERROR: keytool not found on PATH or in Android Studio's JDK." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Fastest fix (Windows, if Android Studio is installed):" -ForegroundColor Yellow
+    Write-Host "  Android Studio -> Settings -> Build, Execution, Deployment ->" -ForegroundColor Yellow
+    Write-Host "  Build Tools -> Gradle -> Gradle JDK -> Embedded JDK, then reopen this shell."
+    Write-Host ""
+    Write-Host "Or install OpenJDK 17 and reopen the shell:" -ForegroundColor Yellow
+    Write-Host "  winget install Microsoft.OpenJDK.17"
+    Write-Host ""
+    Write-Host "Verify:" -ForegroundColor Yellow
+    Write-Host "  Get-Command keytool"
     exit 1
+} else {
+    Write-Host "Using keytool: $keytoolExe" -ForegroundColor DarkGray
 }
 
 # --- Output location -------------------------------------------------------
@@ -91,7 +124,7 @@ Write-Host ""
 Write-Host "Generating keystore... this takes about 5 seconds"
 $dname = "CN=KSYK Maps, O=Kulosaaren yhteiskoulu, L=Helsinki, C=FI"
 
-& keytool -genkeypair -v `
+& $keytoolExe -genkeypair -v `
     -keystore $ksPath `
     -alias ksyk `
     -keyalg RSA -keysize 4096 -validity 25000 `
@@ -109,7 +142,7 @@ Write-Host ""
 
 # --- Fingerprint printout so you can register with Google Play -------------
 Write-Host "SHA-1 and SHA-256 fingerprints. Paste these into Play Console App integrity:" -ForegroundColor Cyan
-& keytool -list -v -keystore $ksPath -alias ksyk -storepass $sp1 |
+& $keytoolExe -list -v -keystore $ksPath -alias ksyk -storepass $sp1 |
     Select-String -Pattern 'SHA1:|SHA256:|Owner:|Valid'
 Write-Host ""
 

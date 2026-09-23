@@ -426,7 +426,15 @@ export default function CampusMap({
     });
 
     return () => {
-      map.remove();
+      // v4.7.22 — clear the load watchdog so it can't fire *after*
+      // React has already torn the map down (which was causing
+      // "Cannot read properties of undefined (reading 'destroy')"
+      // when Radix Presence unmounted a Sheet-hosted map). Also
+      // wrap .remove() in try/catch — MapLibre's teardown asserts
+      // on internal handles that may already be null if we hit the
+      // 6s recovery path or a WebGL context-lost event.
+      try { window.clearTimeout(watchdog); } catch { /* non-fatal */ }
+      try { map.remove(); } catch { /* already removed */ }
       mapRef.current = null;
       setReady(false);
     };

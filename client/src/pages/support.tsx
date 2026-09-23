@@ -30,11 +30,19 @@ import { useToast } from "@/hooks/use-toast";
 type TicketType = "bug" | "feature" | "support" | "question";
 type Priority = "low" | "normal" | "high" | "critical";
 
-const TYPE_META: Record<TicketType, { label: string; hint: string; icon: any; tint: string }> = {
-  bug:      { label: "Bug report",        hint: "Something broke or looks wrong.",     icon: Bug,       tint: "text-red-600 bg-red-50 ring-red-200 dark:bg-red-950/40 dark:ring-red-900/50" },
-  feature:  { label: "Feature request",   hint: "Suggest a new capability.",           icon: Lightbulb, tint: "text-amber-600 bg-amber-50 ring-amber-200 dark:bg-amber-950/40 dark:ring-amber-900/50" },
-  support:  { label: "Support request",   hint: "Need help finishing something.",      icon: LifeBuoy,  tint: "text-blue-600 bg-blue-50 ring-blue-200 dark:bg-blue-950/40 dark:ring-blue-900/50" },
-  question: { label: "General question",  hint: "You're not stuck — just curious.",    icon: HelpCircle, tint: "text-emerald-600 bg-emerald-50 ring-emerald-200 dark:bg-emerald-950/40 dark:ring-emerald-900/50" },
+// v4.7.22 — Unified selection accent. Previously each type had its
+// own colored tint (red / amber / blue / emerald) which created
+// competing "badges" when the user tabbed through options. Apple HIG
+// prefers a single selection color; semantic hint stays on the icon
+// so bugs still feel red without a red-tinted card fighting for
+// attention against a green-tinted card two slots over.
+const SELECTED_TINT = "text-blue-700 bg-blue-50 ring-blue-300 dark:bg-blue-950/40 dark:ring-blue-800/60 dark:text-blue-300";
+
+const TYPE_META: Record<TicketType, { label: string; hint: string; icon: any; iconTint: string }> = {
+  bug:      { label: "Bug report",        hint: "Something broke or looks wrong.",     icon: Bug,        iconTint: "text-red-600 dark:text-red-400" },
+  feature:  { label: "Feature request",   hint: "Suggest a new capability.",           icon: Lightbulb,  iconTint: "text-amber-600 dark:text-amber-400" },
+  support:  { label: "Support request",   hint: "Need help finishing something.",      icon: LifeBuoy,   iconTint: "text-blue-600 dark:text-blue-400" },
+  question: { label: "General question",  hint: "You're not stuck — just curious.",    icon: HelpCircle, iconTint: "text-emerald-600 dark:text-emerald-400" },
 };
 
 const PRIORITY_META: Record<Priority, { label: string; hint: string; tint: string }> = {
@@ -246,15 +254,16 @@ export default function Support() {
                           key={key}
                           type="button"
                           onClick={() => setType(key)}
-                          className={`relative rounded-xl p-3 text-left transition ring-1 ${
+                          aria-pressed={sel}
+                          className={`relative rounded-xl p-3 text-left transition ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                             sel
-                              ? `${meta.tint} font-semibold shadow-sm`
+                              ? `${SELECTED_TINT} font-semibold shadow-sm`
                               : "bg-white dark:bg-slate-900/50 ring-slate-200 dark:ring-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                           }`}
                         >
-                          <Icon className={`h-4 w-4 mb-2 ${sel ? "" : "text-slate-400"}`} />
+                          <Icon className={`h-4 w-4 mb-2 ${meta.iconTint}`} />
                           <div className="text-xs font-semibold leading-tight">{meta.label}</div>
-                          <div className="text-[10px] mt-0.5 opacity-70 leading-tight hidden sm:block">
+                          <div className="text-xs mt-0.5 opacity-70 leading-tight hidden sm:block">
                             {meta.hint}
                           </div>
                         </button>

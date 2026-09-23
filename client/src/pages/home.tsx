@@ -290,11 +290,19 @@ export default function Home() {
         onNavigate={handleNavigate}
       />
       
-      {/* Ticket System Button - Fixed positioning */}
+      {/* Ticket System Button - Fixed positioning
+       *  v4.7.22 — 44×44 minimum tap target (p-3.5 → 44×44), respects
+       *  safe-area-inset-bottom / right so it doesn't sit under an iOS
+       *  home indicator or Android gesture bar. */}
       <button
         onClick={() => setTicketOpen(true)}
-        className="fixed bottom-4 right-4 z-[30] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
+        className="fixed z-[30] bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+        style={{
+          bottom: "max(1rem, env(safe-area-inset-bottom, 1rem))",
+          right: "max(1rem, env(safe-area-inset-right, 1rem))",
+        }}
         title="Submit Support Ticket"
+        aria-label="Submit Support Ticket"
       >
         <Ticket className="h-5 w-5" />
       </button>
@@ -318,7 +326,10 @@ export default function Home() {
           border-t-2 md:border-t-0 md:border-r border-t-blue-500
         `}>
           {/* Mobile Drag Handle */}
-          <div className="md:hidden flex-shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+          <div
+            className="md:hidden flex-shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+            aria-hidden="true"
+          >
             <div className={`w-12 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-400'}`}></div>
           </div>
           
@@ -366,7 +377,7 @@ export default function Home() {
                   >
                     <div className={`font-bold text-base md:text-lg ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{room.roomNumber}</div>
                     <div className={`text-xs md:text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{room.name || room.nameEn}</div>
-                    <div className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Floor {room.floor} • {room.type.replace('_', ' ')}</div>
+                    <div className={`text-xs mt-0.5 md:mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Floor {room.floor} · {room.type.replace('_', ' ')}</div>
                   </div>
                 ))}
               </div>
@@ -622,7 +633,7 @@ export default function Home() {
                       <div className="w-7 h-7 md:w-8 md:h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">A</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs md:text-sm font-semibold text-green-700 dark:text-green-400 truncate">{navigationFrom}</p>
-                        <p className="text-[10px] md:text-xs text-green-600 dark:text-green-500">Starting point</p>
+                        <p className="text-xs text-green-600 dark:text-green-500">Starting point</p>
                       </div>
                     </div>
                     
@@ -634,13 +645,13 @@ export default function Home() {
                       <div className="w-7 h-7 md:w-8 md:h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">B</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs md:text-sm font-semibold text-red-700 dark:text-red-400 truncate">{navigationTo}</p>
-                        <p className="text-[10px] md:text-xs text-red-600 dark:text-red-500">Destination</p>
+                        <p className="text-xs text-red-600 dark:text-red-500">Destination</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400 text-center">Follow the blue path on the map</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Follow the blue path on the map</p>
                   </div>
                 </div>
               )}
@@ -655,7 +666,7 @@ export default function Home() {
                         <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-gray-400" />
                         <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full"></div>
                       </div>
-                      <span className="text-[10px] md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">Active route</span>
+                      <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">Active route</span>
                     </div>
                     <div className="flex items-center space-x-1 md:space-x-2">
                       <Button
@@ -691,7 +702,12 @@ export default function Home() {
                     <div className="pointer-events-auto animate-in fade-in zoom-in-95 duration-500">
                       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-2 rounded-2xl shadow-2xl p-6 max-w-xs`}>
                         <div className="text-center">
-                          <div className="text-5xl mb-3 animate-pulse">👆✌️</div>
+                          <div className="flex justify-center mb-3">
+                            <Smartphone
+                              className={`h-10 w-10 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
+                              aria-hidden="true"
+                            />
+                          </div>
                           <p className={`text-base font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                             Pinch to zoom
                           </p>
@@ -1509,7 +1525,7 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        {currentLang === 'fi' ? '🎫 Tuki' : '🎫 Support'}
+                        {currentLang === 'fi' ? 'Tuki' : 'Support'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1519,7 +1535,7 @@ export default function Home() {
                           onClick={() => setTicketOpen(true)}
                           className="w-full"
                         >
-                          {currentLang === 'fi' ? '📝 Lähetä tukipyyntö' : '📝 Submit Support Ticket'}
+                          {currentLang === 'fi' ? 'Lähetä tukipyyntö' : 'Submit Support Ticket'}
                         </Button>
                       </div>
                     </CardContent>
@@ -1529,7 +1545,7 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        {currentLang === 'fi' ? 'ℹ️ Tietoja' : 'ℹ️ About'}
+                        {currentLang === 'fi' ? 'Tietoja' : 'About'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1544,7 +1560,7 @@ export default function Home() {
                   <Card className={darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                     <CardHeader>
                       <CardTitle className={darkMode ? 'text-white' : 'text-gray-900'}>
-                        {currentLang === 'fi' ? '📋 Versiohistoria ja muutosloki' : '📋 Version History & Changelog'}
+                        {currentLang === 'fi' ? 'Versiohistoria ja muutosloki' : 'Version History & Changelog'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>

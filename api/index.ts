@@ -589,8 +589,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } as any);
         return res.status(202).end();
       } catch (e: any) {
-        console.warn('POST /sessions/rrweb failed:', e?.message);
-        return res.status(500).json({ message: 'Upload failed' });
+        // v4.7.22 — soft-fail so a missing migration in prod (table
+        // rrweb_batches not yet applied) doesn't cause the client
+        // recorder to retry-storm on every batch. Log once, drop the
+        // batch, respond 202 so the client considers it accepted.
+        const msg = String(e?.message ?? '');
+        const missingTable = /rrweb_batches|relation .* does not exist|no such table/i.test(msg);
+        if (missingTable) {
+          console.warn('POST /sessions/rrweb: rrweb_batches table missing — dropping batch. Run migrations/0003_rrweb_batches.sql to enable session replay.');
+          return res.status(202).end();
+        }
+        console.warn('POST /sessions/rrweb failed:', msg);
+        return res.status(202).end();
       }
     }
 
