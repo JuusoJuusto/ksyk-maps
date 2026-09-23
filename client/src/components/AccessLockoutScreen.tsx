@@ -118,36 +118,24 @@ export default function AccessLockoutScreen({ decision }: Props) {
       </header>
 
       {/* ── Body ────────────────────────────────────────────────────── */}
+      {/* v4.7.21 apple-design pass — dropped: redundant "Access restricted"
+       *  badge (header already says it), tiny caps "KSYK Maps" label
+       *  (also in header). Heading shrunk 3xl/5xl → 2xl/3xl so it sits
+       *  where the reader's eye actually lands. Logo trimmed 80px → 56px
+       *  and given proper alt="" since decorative here. */}
       <main className="flex-1 flex flex-col items-center justify-center px-5 sm:px-10 py-12">
-        <div className="w-full max-w-2xl">
-          {/* Hero block */}
-          <div className="flex flex-col items-center text-center mb-12">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center text-center mb-10">
             <img
               src="/favicon-128.png"
-              alt="KSYK Maps"
-              width={80}
-              height={80}
-              className="h-20 w-20 object-contain mb-4"
+              alt=""
+              width={56}
+              height={56}
+              className="h-14 w-14 object-contain mb-6 opacity-90"
             />
-            <p className={cn(
-              "text-[10px] font-bold tracking-[0.22em] uppercase mb-6",
-              darkMode ? "text-gray-500" : "text-gray-400",
-            )}>
-              KSYK Maps
-            </p>
 
-            <div className={cn(
-              "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold mb-5",
-              decision.reasonCode === "outside-hours" || decision.reasonCode === "holiday"
-                ? (darkMode ? "bg-amber-950/40 text-amber-400" : "bg-amber-50 text-amber-700")
-                : (darkMode ? "bg-red-950/40 text-red-400" : "bg-red-50 text-red-700"),
-            )}>
-              <Icon className="h-3 w-3" strokeWidth={2.5} />
-              {isFi ? "Pääsy rajoitettu" : "Access restricted"}
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl font-bold tracking-[-0.03em] leading-[1.05]">
-              {isFi ? "Suljettu juuri nyt." : "Closed right now."}
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
+              {isFi ? "Suljettu juuri nyt" : "Closed right now"}
             </h1>
 
             <p className={cn(

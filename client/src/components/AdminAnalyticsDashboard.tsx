@@ -438,10 +438,10 @@ function AnnouncementCtrCard({ range }: { range: Range }) {
             <table className="w-full text-xs">
               <thead className="text-[10px] uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="text-left px-2 py-1.5">Announcement</th>
-                  <th className="text-right px-2 py-1.5">Views</th>
-                  <th className="text-right px-2 py-1.5">Clicks</th>
-                  <th className="text-right px-2 py-1.5">CTR</th>
+                  <th scope="col" className="text-left px-2 py-1.5">Announcement</th>
+                  <th scope="col" className="text-right px-2 py-1.5">Views</th>
+                  <th scope="col" className="text-right px-2 py-1.5">Clicks</th>
+                  <th scope="col" className="text-right px-2 py-1.5">CTR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -672,12 +672,12 @@ function SessionsPanel({ range }: { range: Range }) {
           <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="text-left px-3 py-2">Session</th>
-                <th className="text-left px-3 py-2">Platform</th>
-                <th className="text-left px-3 py-2">Version</th>
-                <th className="text-left px-3 py-2">Started</th>
-                <th className="text-left px-3 py-2">Last seen</th>
-                <th className="text-right px-3 py-2">Duration</th>
+                <th scope="col" className="text-left px-3 py-2">Session</th>
+                <th scope="col" className="text-left px-3 py-2">Platform</th>
+                <th scope="col" className="text-left px-3 py-2">Version</th>
+                <th scope="col" className="text-left px-3 py-2">Started</th>
+                <th scope="col" className="text-left px-3 py-2">Last seen</th>
+                <th scope="col" className="text-right px-3 py-2">Duration</th>
                 <th className="w-8"></th>
               </tr>
             </thead>
@@ -1486,12 +1486,12 @@ function PerformancePanel({ range }: { range: Range }) {
           <table className="w-full text-sm min-w-[520px]">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="text-left px-3 py-2">Metric</th>
-                <th className="text-right px-3 py-2">Count</th>
-                <th className="text-right px-3 py-2">p50</th>
-                <th className="text-right px-3 py-2">p95</th>
-                <th className="text-right px-3 py-2">p99</th>
-                <th className="text-right px-3 py-2">avg</th>
+                <th scope="col" className="text-left px-3 py-2">Metric</th>
+                <th scope="col" className="text-right px-3 py-2">Count</th>
+                <th scope="col" className="text-right px-3 py-2">p50</th>
+                <th scope="col" className="text-right px-3 py-2">p95</th>
+                <th scope="col" className="text-right px-3 py-2">p99</th>
+                <th scope="col" className="text-right px-3 py-2">avg</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1586,9 +1586,9 @@ function EggsPanel() {
           <table className="w-full text-sm min-w-[420px]">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="text-left px-3 py-2">Egg</th>
-                <th className="text-left px-3 py-2">Rarity</th>
-                <th className="text-right px-3 py-2">Discoveries</th>
+                <th scope="col" className="text-left px-3 py-2">Egg</th>
+                <th scope="col" className="text-left px-3 py-2">Rarity</th>
+                <th scope="col" className="text-right px-3 py-2">Discoveries</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1643,10 +1643,10 @@ function RecentEventsPanel({ range }: { range: Range }) {
         <table className="w-full text-sm min-w-[540px]">
           <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
             <tr>
-              <th className="text-left px-3 py-2">Time</th>
-              <th className="text-left px-3 py-2">Event</th>
-              <th className="text-left px-3 py-2">Platform</th>
-              <th className="text-left px-3 py-2">Route</th>
+              <th scope="col" className="text-left px-3 py-2">Time</th>
+              <th scope="col" className="text-left px-3 py-2">Event</th>
+              <th scope="col" className="text-left px-3 py-2">Platform</th>
+              <th scope="col" className="text-left px-3 py-2">Route</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1691,10 +1691,10 @@ function AuditPanel() {
         <table className="w-full text-sm min-w-[480px]">
           <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
             <tr>
-              <th className="text-left px-3 py-2">Time</th>
-              <th className="text-left px-3 py-2">Action</th>
-              <th className="text-left px-3 py-2">Admin</th>
-              <th className="text-left px-3 py-2">IP</th>
+              <th scope="col" className="text-left px-3 py-2">Time</th>
+              <th scope="col" className="text-left px-3 py-2">Action</th>
+              <th scope="col" className="text-left px-3 py-2">Admin</th>
+              <th scope="col" className="text-left px-3 py-2">IP</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

@@ -182,7 +182,12 @@ export default function Header({
        *  looks like a chip, matching the announcement banner.
        *  overflow-hidden clips the inner search-row border-t against
        *  the rounded corners. */}
-      <div className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2">
+      {/* v4.7.21 — safe-area-inset-top on the sticky header so the
+       *  chip doesn't land under an iPhone notch or Android status bar. */}
+      <div
+        className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0.5rem))" }}
+      >
         <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-white/80 dark:border-gray-700/60 shadow-md shadow-black/[0.06] rounded-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           {/* v3.27.5 — taller header on desktop. 14→16→20 across

@@ -16,7 +16,35 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.20 · pending push)
+## ✅ Just shipped (web 4.7.21 · pending push)
+
+- **Keystore script parse error fixed** — pure ASCII rewrite. PS 5.1 was reading the file as Windows-1252 and choking on `→` + smart quotes. Runs cleanly now.
+- **AccessLockoutScreen** apple-design pass — dropped duplicate "Access restricted" badge, redundant tiny-caps KSYK Maps label, shrank hero heading `text-3xl sm:text-5xl → text-2xl sm:text-3xl`, logo 80px → 56px.
+- **home.tsx emoji purge** — quick-guide bullets 🧭 🔍 🗺️ 📱 → Lucide `Navigation` / `Search` / `MapPin` / `Smartphone`.
+- **download.tsx** — killed all 3 decorative colored icon circles, killed the emerald "Available" pill fill, shrunk H1.
+- **A11y**: `scope="col"` on every `<th>` in AdminAnalyticsDashboard + AppLogsManager. `GetAppPopup` close button bilingual aria-label + focus-visible. Header sticky respects `env(safe-area-inset-top)`.
+- **3 parallel audit agents** ran and produced concrete findings. Top-priority items implemented this round; more queued.
+
+## 🚧 Queued from audits (not yet applied)
+
+**Mobile:**
+- home.tsx:294 — Ticket FAB `p-3` → `p-3.5` (44×44 tap target)
+- home.tsx:368 — search-result meta `text-[10px]` → `text-xs`
+- Header.tsx:289 — mobile hamburger `p-2.5` → `p-3`
+- home.tsx:295 — FAB `bottom-4` → `env(safe-area-inset-bottom)`-aware
+
+**A11y:**
+- Header.tsx:464,475 — clickable divs (lunch, HSL) need `tabIndex={0}` + Enter/Space handler
+- AnnouncementBanner counter needs `role="status"`
+- home.tsx:320 — decorative drag handle needs `aria-hidden="true"`
+
+**AI-slop:**
+- home.tsx:692 — `👆✌️` big emoji → Lucide icon
+- home.tsx settings section — emoji card titles (🎫 📝 ℹ️ 📋)
+- home.tsx multiple lines — excessive `backdrop-blur-xl` on non-sticky elements
+- support.tsx — competing colored TYPE_META badges
+
+## ✅ Shipped (web 4.7.20 · pushed 3a0d760)
 
 - **Admin login redesigned.** Killed the AI-slop: full-page `bg-gradient-to-br`, 3× `animate-pulse blur-3xl` blob divs, glassmorphism card, gradient `bg-clip-text` title, gradient buttons, iridescent shadows, decorative "Admin Portal" badge. Replaced with a quiet centered form on plain `bg-gray-50 dark:bg-black`, standard bordered card, solid blue button — matches Apple's own sign-in surfaces. Same treatment for 2FA + Change-password screens.
 - **Keystore instruction fix**: `.\\make-production-keystore.ps1` fails in Bash because Bash can't execute `.ps1`. Added `powershell -ExecutionPolicy Bypass -File .\\android\\make-production-keystore.ps1` as shell-agnostic one-liner in BUILD.md.

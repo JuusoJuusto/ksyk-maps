@@ -10,15 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.20";
+export const APP_VERSION = "4.7.21";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.21",
+    date: "September 2026",
+    title: "Keystore ASCII fix · access-lockout / home / download AI-slop pass · a11y sweep",
+    titleFi: "Avainten-luontiskripti ASCII-korjaus · AI-slop-siivous · a11y",
+    latest: true,
+    highlights: [
+      "**Keystore script parse error fixed.** PS 5.1 read the file as Windows-1252 and choked on `→` + smart quotes. Rewrote the whole script in pure ASCII — no unicode arrows, no fancy quotes, no non-breaking spaces. Runs cleanly in Windows PowerShell 5.1 now.",
+      "**AccessLockoutScreen** trimmed: dropped the duplicate `Access restricted` badge (the header ticker already says it), removed the redundant tiny-caps `KSYK Maps` label above the badge, shrank the hero heading `text-3xl sm:text-5xl` → `text-2xl sm:text-3xl`, logo 80×80 → 56×56. Reads as a calm status page now, not a marketing landing.",
+      "**home.tsx emoji purge**: 🧭 🔍 🗺️ 📱 in the quick-guide bullets replaced with Lucide `Navigation` / `Search` / `MapPin` / `Smartphone` icons for consistency with the rest of the app.",
+      "**download.tsx** stripped decorative colored icon circles (`bg-blue-500/10 h-16 w-16`, `bg-emerald-500/10` on Android card, `bg-slate-500/10` on iOS card). Also cut the emerald 'Available' pill fill — the label alone does the job. H1 shrunk `text-3xl md:text-4xl` → `text-2xl md:text-3xl`. Reads like a real product page now.",
+      "**Accessibility sweep**: `scope=\"col\"` added on every `<th>` across `AdminAnalyticsDashboard` (session, perf, eggs, recent, audit tables) and `AppLogsManager`. `GetAppPopup` close button gets a bilingual aria-label + focus-visible ring. Header sticky pinning now respects `env(safe-area-inset-top)` so it doesn't clip under the iPhone notch.",
+      "**Parallel audit ran** — 3 background Explore agents produced concrete findings on mobile / a11y / AI-slop simultaneously. Top-priority items implemented this round; the rest queued for the next.",
+    ],
+    highlightsFi: [
+      "**Avainten-luontiskripti** kirjoitettu puhtaalla ASCII:llä — PowerShell 5.1 pystyy nyt parsimaan sen ilman virheitä.",
+      "**Pääsyrajoitus-sivu** siivottu: tuplat 'Access restricted'-tekstit poistettu, otsikko pienennetty.",
+      "**home.tsx emojit poistettu** pika-oppaan luetteloista, korvattu Lucide-ikoneilla.",
+      "**download.tsx** — koristeelliset värilliset ikoni-ympyrät poistettu.",
+      "**Saavutettavuus**: `scope=\"col\"` kaikkiin taulukoihin, safe-area-inset otsikkoon.",
+    ],
+  },
   {
     version: "4.7.20",
     date: "September 2026",
     title: "Admin login page — full AI-slop purge",
     titleFi: "Admin-kirjautumissivu — kokonaan AI-slop-vapaa",
-    latest: true,
     highlights: [
       "**Admin login redesigned.** The old page was textbook AI-slop: full-page `bg-gradient-to-br` background, three `animate-pulse blur-3xl` blob divs, glassmorphism card (`backdrop-blur-xl rounded-3xl shadow-2xl`), gradient `bg-clip-text` title, gradient buttons with hover-gradient shift, decorative 1.5px gradient top strip, `Admin Portal` badge with icon + uppercase + tracking, iridescent shadow rings. Replaced with a quiet centered form on a plain background — the way Apple's own System Settings and iCloud sign-in surfaces work. All three screens (Sign in · 2FA · Change password) got the treatment.",
       "**Keystore instructions fixed for Bash users.** The `.\\make-production-keystore.ps1` failure was Bash trying to run a PowerShell script. Added `powershell -ExecutionPolicy Bypass -File .\\android\\make-production-keystore.ps1` as a shell-agnostic one-liner, plus an explicit note that Bash/Git-Bash can't execute `.ps1` files.",

@@ -23,6 +23,7 @@ import {
   RotateCcw,
   X,
   Navigation,
+  Smartphone,
   ArrowRight,
   Zap,
   Ticket,
@@ -457,21 +458,22 @@ export default function Home() {
                 <Zap className={`mr-2 h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 Quick Guide
               </h4>
-              <ul className={`text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-blue-800'}`}>
-                <li className="flex items-start">
-                  <span className="mr-2">🧭</span>
+              {/* v4.7.21 — emoji bullets replaced with Lucide icons. */}
+              <ul className={`text-sm space-y-2.5 ${darkMode ? 'text-gray-300' : 'text-blue-800'}`}>
+                <li className="flex items-start gap-2.5">
+                  <Navigation className="h-4 w-4 mt-0.5 shrink-0 opacity-70" aria-hidden="true" />
                   <span><strong>Get Directions:</strong> Click button above to navigate between rooms</span>
                 </li>
-                <li className="flex items-start">
-                  <span className="mr-2">🔍</span>
+                <li className="flex items-start gap-2.5">
+                  <Search className="h-4 w-4 mt-0.5 shrink-0 opacity-70" aria-hidden="true" />
                   <span><strong>Search:</strong> Find any room by number or name</span>
                 </li>
-                <li className="flex items-start">
-                  <span className="mr-2">🗺️</span>
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 opacity-70" aria-hidden="true" />
                   <span><strong>Map Controls:</strong> Zoom with +/- buttons, drag to pan</span>
                 </li>
-                <li className="flex items-start">
-                  <span className="mr-2">📱</span>
+                <li className="flex items-start gap-2.5">
+                  <Smartphone className="h-4 w-4 mt-0.5 shrink-0 opacity-70" aria-hidden="true" />
                   <span><strong>Mobile:</strong> Tap outside sidebar to close</span>
                 </li>
               </ul>

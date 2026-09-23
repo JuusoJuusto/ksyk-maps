@@ -67,8 +67,8 @@ export default function GetAppPopup() {
             </div>
             <button
               onClick={close}
-              className="text-muted-foreground hover:text-foreground -mr-1 -mt-1 shrink-0"
-              aria-label="Sulje"
+              className="text-muted-foreground hover:text-foreground -mr-1 -mt-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded"
+              aria-label="Close / Sulje"
             >
               <X className="w-4 h-4" />
             </button>

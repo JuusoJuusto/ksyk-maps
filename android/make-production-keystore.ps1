@@ -1,6 +1,8 @@
-# make-production-keystore.ps1 — v4.7.19
+# make-production-keystore.ps1 - v4.7.21
 #
 # One-shot Play Store keystore generator + env-var line printer.
+# Pure ASCII so Windows PowerShell 5.1 parses cleanly regardless of
+# file encoding (BOM / no BOM / UTF-8 / Windows-1252).
 #
 # What this does:
 #   1. Prompts you for a keystore password (twice, must match).
@@ -10,27 +12,29 @@
 #      release Bundle for the Play Store.
 #
 # What it does NOT do:
-#   - It does NOT upload anything.
-#   - It does NOT commit the keystore to git (path is outside repo).
-#   - It does NOT store the passwords anywhere on disk.
+#   - Does NOT upload anything anywhere.
+#   - Does NOT commit the keystore to git.
+#   - Does NOT store the passwords anywhere on disk.
 #
 # CRITICAL: Losing this keystore means you can NEVER publish an update
-# to the same Play listing. Back it up somewhere you'll still find in
+# to the same Play listing. Back it up somewhere you will still find in
 # 5 years. Options: password manager, encrypted USB, second machine.
 #
 # Usage:
 #   cd android
 #   .\make-production-keystore.ps1
+#
+# Or from any shell:
+#   powershell -ExecutionPolicy Bypass -File .\android\make-production-keystore.ps1
 
 $ErrorActionPreference = "Stop"
 
 Write-Host ""
-Write-Host "KSYK Maps — Production keystore generator" -ForegroundColor Cyan
+Write-Host "KSYK Maps - Production keystore generator" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Prerequisites check ---------------------------------------------------
-$javaHome = $env:JAVA_HOME
 if (-not (Get-Command keytool -ErrorAction SilentlyContinue)) {
     Write-Host "ERROR: keytool not found on PATH." -ForegroundColor Red
     Write-Host "Install JDK 17: winget install Microsoft.OpenJDK.17" -ForegroundColor Yellow
@@ -42,7 +46,7 @@ if (-not (Get-Command keytool -ErrorAction SilentlyContinue)) {
 $defaultDir = "$env:USERPROFILE\ksyk-keystore"
 Write-Host "Where should the keystore file live?"
 Write-Host "  Default: $defaultDir\ksyk-production.jks"
-Write-Host "  (Anywhere OUTSIDE the git repo — do NOT put it under KSYK-Map\)"
+Write-Host "  Put it ANYWHERE OUTSIDE the git repo. Never under KSYK-Map."
 $dir = Read-Host "  Press Enter for default, or type an absolute path"
 if (-not $dir) { $dir = $defaultDir }
 if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
@@ -57,13 +61,13 @@ if (Test-Path $ksPath) {
 
 # --- Password entry (never printed, never logged) --------------------------
 Write-Host ""
-Write-Host "Keystore password (min 6 chars — write it down BEFORE typing):"
+Write-Host "Keystore password. Minimum 6 characters. Write it down BEFORE typing:"
 $storePw1 = Read-Host -AsSecureString
 $storePw2 = Read-Host -AsSecureString -Prompt "  Confirm keystore password"
 $sp1 = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($storePw1))
 $sp2 = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($storePw2))
 if ($sp1 -ne $sp2) {
-    Write-Host "ERROR: Keystore passwords don't match." -ForegroundColor Red
+    Write-Host "ERROR: Keystore passwords do not match." -ForegroundColor Red
     exit 1
 }
 if ($sp1.Length -lt 6) {
@@ -72,19 +76,19 @@ if ($sp1.Length -lt 6) {
 }
 
 Write-Host ""
-Write-Host "Key password (can be same as keystore; Play recommends same):"
+Write-Host "Key password. Can be the same as the keystore password. Google Play recommends same:"
 $keyPw1 = Read-Host -AsSecureString
 $keyPw2 = Read-Host -AsSecureString -Prompt "  Confirm key password"
 $kp1 = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyPw1))
 $kp2 = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyPw2))
 if ($kp1 -ne $kp2) {
-    Write-Host "ERROR: Key passwords don't match." -ForegroundColor Red
+    Write-Host "ERROR: Key passwords do not match." -ForegroundColor Red
     exit 1
 }
 
 # --- Generate --------------------------------------------------------------
 Write-Host ""
-Write-Host "Generating keystore… (this takes ~5 seconds)"
+Write-Host "Generating keystore... this takes about 5 seconds"
 $dname = "CN=KSYK Maps, O=Kulosaaren yhteiskoulu, L=Helsinki, C=FI"
 
 & keytool -genkeypair -v `
@@ -95,7 +99,7 @@ $dname = "CN=KSYK Maps, O=Kulosaaren yhteiskoulu, L=Helsinki, C=FI"
     -dname $dname
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: keytool failed (exit $LASTEXITCODE)." -ForegroundColor Red
+    Write-Host "ERROR: keytool failed with exit code $LASTEXITCODE." -ForegroundColor Red
     exit 1
 }
 
@@ -104,7 +108,7 @@ Write-Host "Keystore created: $ksPath" -ForegroundColor Green
 Write-Host ""
 
 # --- Fingerprint printout so you can register with Google Play -------------
-Write-Host "SHA-1 + SHA-256 fingerprints (Play Console → App integrity needs these):" -ForegroundColor Cyan
+Write-Host "SHA-1 and SHA-256 fingerprints. Paste these into Play Console App integrity:" -ForegroundColor Cyan
 & keytool -list -v -keystore $ksPath -alias ksyk -storepass $sp1 |
     Select-String -Pattern 'SHA1:|SHA256:|Owner:|Valid'
 Write-Host ""
@@ -115,16 +119,16 @@ Write-Host "  BACK UP THE KEYSTORE FILE NOW, THEN COPY-PASTE THESE:" -Foreground
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  `$env:KSYK_KEYSTORE_FILE     = `"$ksPath`""
-Write-Host "  `$env:KSYK_KEYSTORE_PASSWORD = `"<the keystore password you just chose>`""
+Write-Host "  `$env:KSYK_KEYSTORE_PASSWORD = `"the keystore password you just chose`""
 Write-Host "  `$env:KSYK_KEY_ALIAS         = `"ksyk`""
-Write-Host "  `$env:KSYK_KEY_PASSWORD      = `"<the key password you just chose>`""
+Write-Host "  `$env:KSYK_KEY_PASSWORD      = `"the key password you just chose`""
 Write-Host "  .\gradlew bundleRelease"
 Write-Host ""
 Write-Host "  Upload to Play:"
 Write-Host "    app\build\outputs\bundle\release\app-release.aab" -ForegroundColor Green
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "  BACKUP CHECKLIST — do all three, do NOT skip:" -ForegroundColor Yellow
+Write-Host "  BACKUP CHECKLIST - do all three, do NOT skip:" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "  [ ] Copy $ksPath to a password manager attachment"
 Write-Host "  [ ] Copy the same file to an encrypted USB drive"

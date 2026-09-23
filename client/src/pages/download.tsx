@@ -54,34 +54,32 @@ export default function DownloadPage() {
         </div>
       </header>
 
+      {/* v4.7.21 — apple-design pass: dropped the giant decorative
+       *  bg-blue-500/10 icon circle above the title, shrunk H1 from
+       *  text-3xl/4xl to text-2xl/3xl, removed the two colored icon
+       *  circles inside each platform card (name + version already
+       *  identify the row). "Available"/"Coming later" chips lose
+       *  their colored fills too — the copy carries the meaning. */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="max-w-2xl w-full">
+        <div className="max-w-xl w-full">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-4">
-              <Smartphone className="h-8 w-8" strokeWidth={2} />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
               Get the KSYK Maps app
             </h1>
-            <p className="text-base text-muted-foreground max-w-md mx-auto">
-              Faster than the browser, works offline once loaded, plus home-screen widgets for your schedule.
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Faster than the browser, works offline, plus home-screen widgets for your schedule.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Android — the working one */}
-            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <Smartphone className="h-5 w-5" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">Android</h2>
-                    <p className="text-[11px] font-mono text-muted-foreground">v{LATEST_ANDROID_VERSION}</p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Android */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-[15px] font-semibold">Android</h2>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">v{LATEST_ANDROID_VERSION}</p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
                   Available
                 </span>
               </div>
@@ -120,19 +118,14 @@ export default function DownloadPage() {
               </p>
             </div>
 
-            {/* iOS — coming later, honest state not a dead button */}
-            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-9 w-9 rounded-xl bg-slate-500/10 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-                    <Apple className="h-5 w-5" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">iOS</h2>
-                    <p className="text-[11px] font-mono text-muted-foreground">Not yet</p>
-                  </div>
+            {/* iOS — honest coming-later state */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-[15px] font-semibold">iOS</h2>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">Not yet</p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-400">
+                <span className="text-[10px] font-medium text-muted-foreground">
                   Coming later
                 </span>
               </div>

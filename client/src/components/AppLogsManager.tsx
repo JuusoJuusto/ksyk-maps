@@ -879,10 +879,10 @@ function LogTable({
           <table className="w-full text-sm">
             <thead className="bg-slate-50/70 dark:bg-slate-900/40 text-[10px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
-                <th className="text-left px-3 py-2 font-semibold">Time</th>
-                <th className="text-left px-3 py-2 font-semibold">Level</th>
-                <th className="text-left px-3 py-2 font-semibold">Message</th>
-                <th className="text-left px-3 py-2 font-semibold">Source</th>
+                <th scope="col" className="text-left px-3 py-2 font-semibold">Time</th>
+                <th scope="col" className="text-left px-3 py-2 font-semibold">Level</th>
+                <th scope="col" className="text-left px-3 py-2 font-semibold">Message</th>
+                <th scope="col" className="text-left px-3 py-2 font-semibold">Source</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
