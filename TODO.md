@@ -16,7 +16,13 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.19 · pending push)
+## ✅ Just shipped (web 4.7.20 · pending push)
+
+- **Admin login redesigned.** Killed the AI-slop: full-page `bg-gradient-to-br`, 3× `animate-pulse blur-3xl` blob divs, glassmorphism card, gradient `bg-clip-text` title, gradient buttons, iridescent shadows, decorative "Admin Portal" badge. Replaced with a quiet centered form on plain `bg-gray-50 dark:bg-black`, standard bordered card, solid blue button — matches Apple's own sign-in surfaces. Same treatment for 2FA + Change-password screens.
+- **Keystore instruction fix**: `.\\make-production-keystore.ps1` fails in Bash because Bash can't execute `.ps1`. Added `powershell -ExecutionPolicy Bypass -File .\\android\\make-production-keystore.ps1` as shell-agnostic one-liner in BUILD.md.
+- **Motion tuned**: entry animations 0.3s → 0.18s, ease → easeOut, scale removed. Every button gets an explicit `focus-visible` ring.
+
+## ✅ Shipped (web 4.7.19 · pushed a968254)
 
 - **Load older logs button** — App-events tab now consumes v4.7.18 `nextCursor`. Stack-based pagination: first page auto-loads (100 rows), 'Load older' appends via `?cursor=<lastCreatedAt>`, disappears when `hasMore=false`. Cursor stack resets on the 30s auto-refetch.
 - **Production keystore generator** — `android/make-production-keystore.ps1` — one-shot foolproof flow. Prompts for passwords (twice), runs `keytool -genkeypair` (4096 bit, 68-year validity), prints SHA-1/SHA-256 fingerprints for Play Console, prints exact `$env:` lines for the next build, prints backup checklist. Written for someone who's never touched `keytool` before.

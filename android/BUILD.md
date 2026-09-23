@@ -37,10 +37,20 @@ Output: `android/app/build/outputs/apk/release/ksykmaps-release-<versionName>.ap
 
 The self-signed keystore above is fine for internal testing. **For Play Store distribution use the one-shot generator script:**
 
+Open a **PowerShell** window (Start menu → type "PowerShell" → open) — not Bash / Git Bash / WSL — then:
+
 ```powershell
-cd android
+cd C:\Users\<you>\Downloads\KSYK-Map\android
 .\make-production-keystore.ps1
 ```
+
+Or run it from any shell in one line:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\android\make-production-keystore.ps1
+```
+
+The script requires PowerShell 5.1+ (built into Windows). Bash / Git Bash won't execute `.ps1` files — the error `.make-production-keystore.ps1: command not found` means you're in Bash.
 
 The script (`android/make-production-keystore.ps1`) prompts you for:
 - Where to save the keystore (default: `~/ksyk-keystore/ksyk-production.jks`, **outside the repo**)

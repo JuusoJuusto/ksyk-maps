@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.19";
+export const APP_VERSION = "4.7.20";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.20",
+    date: "September 2026",
+    title: "Admin login page — full AI-slop purge",
+    titleFi: "Admin-kirjautumissivu — kokonaan AI-slop-vapaa",
+    latest: true,
+    highlights: [
+      "**Admin login redesigned.** The old page was textbook AI-slop: full-page `bg-gradient-to-br` background, three `animate-pulse blur-3xl` blob divs, glassmorphism card (`backdrop-blur-xl rounded-3xl shadow-2xl`), gradient `bg-clip-text` title, gradient buttons with hover-gradient shift, decorative 1.5px gradient top strip, `Admin Portal` badge with icon + uppercase + tracking, iridescent shadow rings. Replaced with a quiet centered form on a plain background — the way Apple's own System Settings and iCloud sign-in surfaces work. All three screens (Sign in · 2FA · Change password) got the treatment.",
+      "**Keystore instructions fixed for Bash users.** The `.\\make-production-keystore.ps1` failure was Bash trying to run a PowerShell script. Added `powershell -ExecutionPolicy Bypass -File .\\android\\make-production-keystore.ps1` as a shell-agnostic one-liner, plus an explicit note that Bash/Git-Bash can't execute `.ps1` files.",
+      "**Motion tuned down**: transition durations 0.3s → 0.18s, easing changed from spring to easeOut, entry offset 16px → 8px, scale animation removed. Feels responsive instead of theatrical.",
+      "**Explicit `focus-visible` rings** on every button (submit, back arrow, show/hide password, back-to-signin) with correct `ring-offset` for the ambient bg. Empty state on the submit button (disabled + `disabled:opacity-50 disabled:cursor-not-allowed`) actually reflects the form's validity.",
+    ],
+    highlightsFi: [
+      "**Admin-kirjautumissivu uudistettu.** Vanha versio oli oppikirjaesimerkki AI-slopista: koko sivun liukuvärjätty tausta, kolme animate-pulse blur-blob-divia, lasimateriaali-kortti, liukuvärjätty otsikkoteksti ja napit. Korvattu hiljaisella keskitetyllä lomakkeella tavallisella taustalla.",
+      "**Keystore-ohjeet korjattu Bash-käyttäjille.** `.\\make-production-keystore.ps1` ei toimi Bashissa; lisätty `powershell -ExecutionPolicy Bypass -File`-versio ja selitys siitä miksi Bash ei suorita `.ps1`-tiedostoja.",
+      "**Animaatiot pehmennetty**: kesto 0.3s → 0.18s, easing spring → easeOut, ei enää scale-animaatiota.",
+      "**Selkeät `focus-visible`-renkaat** kaikissa napeissa näppäimistön käyttäjille.",
+    ],
+  },
   {
     version: "4.7.19",
     date: "September 2026",
     title: "Load older logs · keystore generator script · zero TS errors",
     titleFi: "Lataa vanhempia lokeja · avainten luontiskripti · nolla TS-virhettä",
-    latest: true,
     highlights: [
       "**Load older logs button** — App events tab now consumes the v4.7.18 `nextCursor` server-side pagination. Fetch is stack-based: first page auto-loads (100 rows), 'Load older' appends the next 100 via `?cursor=<lastCreatedAt>`, disappears when `hasMore=false`. Cursor stack resets on the auto-refetch every 30s so new events at the top don't shift the browsed pages.",
       "**Production keystore how-to — no more excuses.** New `android/make-production-keystore.ps1` script prompts for passwords, generates a 4096-bit RSA key with 68-year validity, prints the SHA-1/SHA-256 fingerprints (for Play Console), prints the exact `$env:` build lines to paste, prints a backup checklist. Zero-guess flow: run it, done.",

@@ -169,17 +169,25 @@ export default function AdminLogin() {
     }
   };
 
-  const cardClass = "bg-white/90 dark:bg-gray-900/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 dark:border-gray-700/50 overflow-hidden";
+  // v4.7.20 — apple-design pass on the login page. Killed:
+  //   - full-page gradient bg (bg-gradient-to-br from-slate-50 via-blue-50…)
+  //   - 3 animate-pulse blur-3xl blob divs
+  //   - backdrop-blur-xl glassmorphism card
+  //   - rounded-3xl + shadow-2xl chrome
+  //   - decorative "Admin Portal" badge
+  //   - gradient bg-clip-text on the title
+  //   - gradient button fill + hover
+  //   - decorative 1.5px top gradient strip
+  // Replaced with: quiet centered form, plain background, standard border,
+  // solid button. Matches Apple's own sign-in surfaces (System Settings, iCloud).
+  const cardClass = "bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden";
 
   return (
-    <div className="min-h-[100dvh] relative flex items-center justify-center px-4 py-10 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-slate-900 dark:to-blue-950 overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-300/30 dark:bg-blue-600/20 blur-3xl animate-pulse" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-300/30 dark:bg-indigo-700/20 blur-3xl animate-pulse" style={{ animationDelay: "1.5s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-cyan-200/20 dark:bg-cyan-800/10 blur-3xl" />
-      </div>
-
-      <Link href="/" className="absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200/70 dark:border-gray-700/60 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition shadow-sm">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-10 bg-gray-50 dark:bg-black">
+      <Link
+        href="/"
+        className="absolute top-4 left-4 inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-black"
+      >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to map
       </Link>
@@ -188,109 +196,196 @@ export default function AdminLogin() {
 
         {/* ── Login screen ──────────────────────────────────────────── */}
         {screen === "login" && (
-          <motion.div key="login" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16, scale: 0.98 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="relative z-10 w-full max-w-md">
-            <motion.div key={shake} animate={shake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : {}} transition={{ duration: 0.45 }} className={cardClass}>
-              <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
-              <div className="px-7 sm:px-9 pt-8 pb-6">
-                <div className="flex flex-col items-center text-center">
-                  <KSYKLogo size="xl" priority className="drop-shadow-md mb-3" />
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100/80 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider mb-2">
-                    <Shield className="h-3 w-3" />
-                    Admin Portal
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">KSYK Maps</h1>
-                  <p className="text-sm text-muted-foreground mt-1">Sign in to manage the campus</p>
+          <motion.div
+            key="login"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="w-full max-w-[380px]"
+          >
+            <motion.div
+              key={shake}
+              animate={shake ? { x: [-6, 6, -4, 4, -2, 2, 0] } : {}}
+              transition={{ duration: 0.35 }}
+              className={cardClass}
+            >
+              <div className="px-8 pt-10 pb-8">
+                <div className="flex flex-col items-center text-center mb-8">
+                  <KSYKLogo size="lg" priority className="mb-4" />
+                  <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-white">
+                    KSYK Maps
+                  </h1>
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+                    Admin sign-in
+                  </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <AnimatePresence>
                     {error && (
-                      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-                        <Alert variant="destructive" className="rounded-xl"><AlertDescription className="text-sm">{error}</AlertDescription></Alert>
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Alert variant="destructive" className="py-2.5 px-3 rounded-lg">
+                          <AlertDescription className="text-[13px] leading-snug">{error}</AlertDescription>
+                        </Alert>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-xs font-semibold text-gray-700 dark:text-gray-300">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input id="email" type="email" autoComplete="email" placeholder="you@school.fi" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loginMutation.isPending} required className="pl-10 h-11 rounded-xl" />
-                    </div>
+                    <Label htmlFor="email" className="text-[12px] font-medium text-gray-700 dark:text-gray-300">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@school.fi"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loginMutation.isPending}
+                      required
+                      className="h-10 rounded-lg text-[14px]"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-xs font-semibold text-gray-700 dark:text-gray-300">Password</Label>
+                    <Label htmlFor="password" className="text-[12px] font-medium text-gray-700 dark:text-gray-300">
+                      Password
+                    </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loginMutation.isPending} required className="pl-10 pr-10 h-11 rounded-xl" />
-                      <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" disabled={loginMutation.isPending} tabIndex={-1} aria-label={showPassword ? "Hide password" : "Show password"}>
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loginMutation.isPending}
+                        required
+                        className="h-10 pr-10 rounded-lg text-[14px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        disabled={loginMutation.isPending}
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all" disabled={loginMutation.isPending}>
-                    {loginMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in…</> : "Sign in"}
+                  <Button
+                    type="submit"
+                    disabled={loginMutation.isPending || !email || !password}
+                    className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loginMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in…</>
+                    ) : (
+                      "Sign in"
+                    )}
                   </Button>
                 </form>
-              </div>
-              <div className="px-7 sm:px-9 pb-7 pt-2">
-                <div className="text-center text-[11px] text-muted-foreground space-y-1 border-t border-gray-200/70 dark:border-gray-700/50 pt-4">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">Owner / admin access only</p>
-                  <p>Contact the system owner to request credentials.</p>
-                </div>
+
+                <p className="mt-6 text-center text-[11px] text-gray-500 dark:text-gray-400">
+                  Owner / admin access only. Contact the system owner for credentials.
+                </p>
               </div>
             </motion.div>
-            <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-4">© {new Date().getFullYear()} KSYK Maps</p>
+            <p className="text-[11px] text-center text-gray-400 dark:text-gray-600 mt-6 tabular-nums">
+              © {new Date().getFullYear()} KSYK Maps
+            </p>
           </motion.div>
         )}
 
         {/* ── 2FA screen ────────────────────────────────────────────── */}
         {screen === "2fa" && (
-          <motion.div key="2fa" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16, scale: 0.98 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="relative z-10 w-full max-w-md">
-            <motion.div key={shake} animate={shake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : {}} transition={{ duration: 0.45 }} className={cardClass}>
-              <div className="h-1.5 bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500" />
-              <div className="px-7 sm:px-9 py-8">
+          <motion.div
+            key="2fa"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="w-full max-w-[380px]"
+          >
+            <motion.div
+              key={shake}
+              animate={shake ? { x: [-6, 6, -4, 4, -2, 2, 0] } : {}}
+              transition={{ duration: 0.35 }}
+              className={cardClass}
+            >
+              <div className="px-8 py-10">
                 <div className="flex flex-col items-center text-center mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mb-3 shadow-inner">
-                    <Smartphone className="h-7 w-7 text-indigo-600 dark:text-indigo-300" />
+                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center mb-3">
+                    <Smartphone className="h-5 w-5 text-gray-600 dark:text-gray-400" strokeWidth={1.75} />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Two-factor authentication</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Enter the 6-digit code from your authenticator app or a backup code.</p>
+                  <h2 className="text-[18px] font-semibold tracking-tight text-gray-900 dark:text-white">
+                    Two-factor code
+                  </h2>
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+                    Enter the 6-digit code from your authenticator app.
+                  </p>
                 </div>
 
                 <form onSubmit={handle2FA} className="space-y-4">
                   <AnimatePresence>
                     {error && (
-                      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-                        <Alert variant="destructive" className="rounded-xl"><AlertDescription className="text-sm">{error}</AlertDescription></Alert>
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Alert variant="destructive" className="py-2.5 px-3 rounded-lg">
+                          <AlertDescription className="text-[13px] leading-snug">{error}</AlertDescription>
+                        </Alert>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="twofa" className="text-xs font-semibold text-gray-700 dark:text-gray-300">Authentication code</Label>
+                  <div>
+                    <Label htmlFor="twofa" className="sr-only">Authentication code</Label>
                     <Input
                       id="twofa"
                       type="text"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      placeholder="000 000"
+                      placeholder="000000"
                       value={twoFactorCode}
                       onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9\s]/g, "").slice(0, 7))}
                       disabled={twoFactorMutation.isPending}
                       autoFocus
-                      className="h-14 text-center text-2xl font-mono tracking-[0.4em] rounded-xl"
+                      className="h-14 text-center text-[24px] font-mono tabular-nums tracking-[0.4em] rounded-lg"
                     />
                   </div>
 
-                  <Button type="submit" className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-lg transition-all" disabled={twoFactorMutation.isPending}>
-                    {twoFactorMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying…</> : "Verify"}
+                  <Button
+                    type="submit"
+                    disabled={twoFactorMutation.isPending || twoFactorCode.replace(/\s/g, "").length < 6}
+                    className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {twoFactorMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying…</>
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
 
-                  <button type="button" onClick={() => { setScreen("login"); setError(""); setTwoFactorCode(""); }} className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors pt-1">
-                    ← Back to login
+                  <button
+                    type="button"
+                    onClick={() => { setScreen("login"); setError(""); setTwoFactorCode(""); }}
+                    className="w-full text-[12px] text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 rounded"
+                  >
+                    ← Back to sign-in
                   </button>
                 </form>
               </div>
@@ -300,47 +395,105 @@ export default function AdminLogin() {
 
         {/* ── Change password screen ────────────────────────────────── */}
         {screen === "changepw" && (
-          <motion.div key="changepw" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16, scale: 0.98 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="relative z-10 w-full max-w-md">
-            <motion.div key={shake} animate={shake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : {}} transition={{ duration: 0.45 }} className={cardClass}>
-              <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500" />
-              <div className="px-7 sm:px-9 py-8">
-                <div className="flex flex-col items-center text-center mb-5">
+          <motion.div
+            key="changepw"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="w-full max-w-[380px]"
+          >
+            <motion.div
+              key={shake}
+              animate={shake ? { x: [-6, 6, -4, 4, -2, 2, 0] } : {}}
+              transition={{ duration: 0.35 }}
+              className={cardClass}
+            >
+              <div className="px-8 py-10">
+                <div className="flex flex-col items-center text-center mb-6">
                   <KSYKLogo size="lg" className="mb-3" />
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set a new password</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Your current password is temporary. Choose a permanent one (≥ 8 chars).</p>
+                  <h2 className="text-[18px] font-semibold tracking-tight text-gray-900 dark:text-white">
+                    Set a new password
+                  </h2>
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+                    Your current password is temporary. Choose a permanent one (min 8 characters).
+                  </p>
                 </div>
 
                 <div className="space-y-4">
                   <AnimatePresence>
                     {error && (
-                      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-                        <Alert variant="destructive" className="rounded-xl"><AlertDescription className="text-sm">{error}</AlertDescription></Alert>
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Alert variant="destructive" className="py-2.5 px-3 rounded-lg">
+                          <AlertDescription className="text-[13px] leading-snug">{error}</AlertDescription>
+                        </Alert>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">New password</Label>
+                    <Label htmlFor="newpw" className="text-[12px] font-medium text-gray-700 dark:text-gray-300">
+                      New password
+                    </Label>
                     <div className="relative">
-                      <Input type={showNewPassword ? "text" : "password"} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 8 characters" className="pr-10 h-11 rounded-xl" />
-                      <button type="button" onClick={() => setShowNewPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                      <Input
+                        id="newpw"
+                        type={showNewPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        className="h-10 pr-10 rounded-lg text-[14px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((s) => !s)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        tabIndex={-1}
+                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      >
                         {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Confirm password</Label>
+                    <Label htmlFor="confirmpw" className="text-[12px] font-medium text-gray-700 dark:text-gray-300">
+                      Confirm password
+                    </Label>
                     <div className="relative">
-                      <Input type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat new password" className="pr-10 h-11 rounded-xl" />
-                      <button type="button" onClick={() => setShowConfirmPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                      <Input
+                        id="confirmpw"
+                        type={showConfirmPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repeat new password"
+                        className="h-10 pr-10 rounded-lg text-[14px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((s) => !s)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        tabIndex={-1}
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-                  <Button onClick={handlePasswordChange} className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold">
-                    Save & continue
+                  <Button
+                    onClick={handlePasswordChange}
+                    disabled={!newPassword || !confirmPassword}
+                    className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save &amp; continue
                   </Button>
                 </div>
               </div>
