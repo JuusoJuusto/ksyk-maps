@@ -220,22 +220,28 @@ export default function App() {
         {/* Splash lives INSIDE QueryClientProvider because its boot
          *  loader uses React Query to detect readiness. */}
         <SplashScreen />
-        <ThemeProvider>
-          <DarkModeProvider>
-            <TooltipProvider>
-              <HelpProvider>
-                <HelpBubble>
-                  <OfflineBanner />
-                  <AccessibilityClasses />
-                  <CookieConsent />
-                  <Toaster />
-                  <Router />
-                  <DevPanel />
-                </HelpBubble>
-              </HelpProvider>
-            </TooltipProvider>
-          </DarkModeProvider>
-        </ThemeProvider>
+        {/* v4.7.26 — #app-root wrapper so SplashScreen can toggle
+         *  `inert` on the whole app tree while the boot splash is up.
+         *  Prevents inputs behind the splash from stealing focus /
+         *  triggering browser autofill before the splash fades. */}
+        <div id="app-root" style={{ display: "contents" }}>
+          <ThemeProvider>
+            <DarkModeProvider>
+              <TooltipProvider>
+                <HelpProvider>
+                  <HelpBubble>
+                    <OfflineBanner />
+                    <AccessibilityClasses />
+                    <CookieConsent />
+                    <Toaster />
+                    <Router />
+                    <DevPanel />
+                  </HelpBubble>
+                </HelpProvider>
+              </TooltipProvider>
+            </DarkModeProvider>
+          </ThemeProvider>
+        </div>
       </QueryClientProvider>
     </ErrorBoundary>
   );

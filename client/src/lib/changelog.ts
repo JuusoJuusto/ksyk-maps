@@ -10,15 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.25";
+export const APP_VERSION = "4.7.26";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.26",
+    date: "September 2026",
+    title: "Sessions row merge (0 with replay fix) · splash focus-leak fix · inputs no longer autofill during boot",
+    titleFi: "Sessiot-välilehden yhdistäminen · aloitusruudun kohdistusvuoto korjattu",
+    latest: true,
+    highlights: [
+      "**'0 with replay' bug fixed by merging rrweb sessions into the panel.** Previously the Sessions table only listed rows from `telemetry_sessions`, then set-intersected with `rrweb_batches` to decide which rows show a Play button. When a session recorded rrweb batches but never hit `/api/session/heartbeat` (guest tabs where the analytics SDK didn't get a chance to flush before navigation, or a background page that skipped the upsert), the sessionId lived in `rrweb_batches` but NOT in `telemetry_sessions` — result: 10 batches, 0 with replay. Fix: the Sessions panel now UNIONS both sources. Any rrweb-only session gets a synthesized row (platform: 'web (replay-only)', started/ended pulled from the batch metadata) so every recording is playable, no matter how the session started.",
+      "**Splash focus-leak fixed — inputs no longer autofill during boot.** The SplashScreen overlay is `position: fixed` on top of the app tree, but the DOM behind it stayed focusable — so Firefox and iOS Safari happily invoked autofill on password fields the user couldn't see, then left the fields in a stuck state after the splash faded. Fix: wrapped the app tree in `<div id='app-root'>` and toggled the `inert` attribute (plus `aria-hidden`) on it while `phase !== 'gone'`. The whole tree is unfocusable until the boot finishes; nothing behind the splash steals focus, autofill, or tab order.",
+    ],
+    highlightsFi: [
+      "**'0 with replay' -bugi korjattu** yhdistämällä rrweb-sessiot Sessiot-taulukkoon. Aiemmin taulukko listasi vain `telemetry_sessions`-rivit ja intersect-poimi Play-napin `rrweb_batches`-listasta. Jos rivi oli vain jälkimmäisessä (session_started ei ehtinyt kirjautua), Play-nappi ei näkynyt. Nyt näytetään myös rrweb-only-rivit.",
+      "**Aloitusruudun kohdistusvuoto korjattu** — kenttien automaattitäyttö ei enää käynnisty aloitusruudun aikana. `#app-root` saa `inert`-attribuutin kunnes ruutu haihtuu.",
+    ],
+  },
   {
     version: "4.7.25",
     date: "September 2026",
     title: "Session replay auto-migration · Sessions-tab diagnostic banner · home.tsx map-control polish",
     titleFi: "Session replay automaattinen migraatio · diagnostinen banneri · kartan säätimien viimeistely",
-    latest: true,
     highlights: [
       "**Session replay finally works out-of-the-box.** The rrweb_batches table now auto-creates on the first client POST — no more manual `psql < migrations/0003_rrweb_batches.sql`. If the insert fails with 'relation does not exist', the server runs `CREATE TABLE IF NOT EXISTS` in-band, adds the two indexes, and retries the insert exactly once. Fresh deploys record from batch #1 instead of silently dropping everything until an admin remembers to run the SQL.",
       "**New `/api/sessions/rrweb/status` diagnostic endpoint** returns `{ tableExists, recordingEnabled, batchesLast24h, batchesTotal, lastBatchAt, migrationHint }`. Sessions tab now surfaces exactly what's blocking replays: table missing / recording disabled in Settings / no traffic yet. Amber banner with actionable next steps — no more staring at an empty tab wondering why nothing shows up.",

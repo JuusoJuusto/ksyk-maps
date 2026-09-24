@@ -1,17 +1,19 @@
 /**
  * KSYK Maps — boot splash.
  *
- * Minimal UI: spinner + brand + determinate progress bar. The checks
- * still run — they're just hidden. Each check flips a bit of the
- * progress bar as it resolves; the splash stays up until:
- *   - the map's first frame paints (`ksyk:map-ready` event), AND
- *   - the buildings + rooms queries have answered
- * or the safety cap fires (8s). If none of the required data
- * responded and the safety cap fires, the splash shows a retry hint
- * so the user isn't left in front of an eternal spinner.
+ * Always white background — no dark-mode switching. The very first
+ * visible frame is white and stays white until the fade-out.
  *
- * The gate is REAL: it blocks the app render until data is verified
- * loadable, so no more "map didn't load, refresh once".
+ * Progress bar is driven by two sources:
+ *   1. Real loading signals (weighted) — fires on each query settling
+ *      and on the map's first frame painting via `ksyk:map-ready`.
+ *   2. A 200ms tick that lets the time-based fill animate smoothly
+ *      between signal updates (prevents the bar from freezing at 80%
+ *      while waiting for map paint).
+ *
+ * The bar reaches 100% only when the gate truly opens; it
+ * asymptotically crawls toward 97% while waiting so it never appears
+ * stuck.
  */
 
 import { memo, useEffect, useMemo, useState } from "react";
@@ -90,10 +92,16 @@ function useBootGate(): BootState {
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, []);
 
+  // Tick every 200ms so the time-based fill animates continuously
+  // even when no query state changes (prevents the bar freezing at
+  // 80% while waiting for the map's first frame).
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 200);
+    return () => clearInterval(t);
+  }, []);
+
   return useMemo<BootState>(() => {
-    // Weighted signals — the map + the two required data queries
-    // carry the most weight. Others add small bumps for pacing so
-    // the bar feels alive.
     const signals: Array<{ done: boolean; weight: number }> = [
       { done: buildings.isFetched, weight: 25 },
       { done: rooms.isFetched,     weight: 25 },
@@ -104,19 +112,29 @@ function useBootGate(): BootState {
     ];
     const totalWeight = signals.reduce((s, x) => s + x.weight, 0);
     const doneWeight = signals.filter((s) => s.done).reduce((s, x) => s + x.weight, 0);
-    const now = performance.now();
-    const elapsed = now - startRef;
-    // Time-based floor so the bar never appears stuck.
-    const timeFloor = Math.min(0.9, elapsed / BOOT_MAX_MS);
-    const progress = Math.max(doneWeight / totalWeight, timeFloor);
+    const elapsed = performance.now() - startRef;
     const dataReady = buildings.isFetched && rooms.isFetched;
     const mapReady = mapPainted || elapsed > BOOT_MAX_MS * 0.7;
     const ready = ((dataReady && mapReady) && minElapsed) || timedOut;
+
+    let progress: number;
+    if (ready) {
+      progress = 1;
+    } else {
+      const signalProgress = doneWeight / totalWeight;
+      // Asymptotically crawl from current signal progress toward 0.97
+      // over twice the boot cap — bar keeps moving without racing to 100%.
+      const ceiling = 0.97;
+      const remaining = ceiling - signalProgress;
+      const fill = remaining * (1 - Math.exp(-elapsed / (BOOT_MAX_MS * 1.2)));
+      progress = Math.min(ceiling, signalProgress + fill);
+    }
+
     const errorCount = [buildings.error, rooms.error, layers.error, mapDefaults.error, published.error]
       .filter(Boolean).length;
     return {
       ready,
-      progress: Math.min(1, progress),
+      progress,
       showRetry: timedOut && !dataReady,
       errorCount,
     };
@@ -127,18 +145,13 @@ function useBootGate(): BootState {
     mapDefaults.isFetched, mapDefaults.error,
     published.isFetched, published.error,
     mapPainted, minElapsed, timedOut, startRef,
+    tick,
   ]);
 }
 
 export default function SplashScreen() {
   const [phase, setPhase] = useState<"in" | "out" | "gone">("in");
   const { ready, progress, showRetry, errorCount } = useBootGate();
-
-  // Detect system dark mode once on mount to avoid a white flash in dark mode.
-  // We read matchMedia synchronously so the very first paint is already correct.
-  const [isDark] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches,
-  );
 
   useEffect(() => {
     if (!ready || phase !== "in") return;
@@ -149,6 +162,28 @@ export default function SplashScreen() {
     if (phase !== "out") return;
     const t = setTimeout(() => setPhase("gone"), FADE_MS);
     return () => clearTimeout(t);
+  }, [phase]);
+
+  // v4.7.26 — inert the app tree while the splash is visible so inputs
+  // rendered behind the overlay can't steal focus / trigger autofill.
+  // Firefox and iOS Safari otherwise happily fill password fields into
+  // forms the user cannot see, then leave them stuck when the splash
+  // fades. Toggle #app-root's `inert` attribute directly — it's the
+  // cleanest way to disable focus + pointer events on the whole tree.
+  useEffect(() => {
+    const root = document.getElementById("app-root");
+    if (!root) return;
+    if (phase === "gone") {
+      root.removeAttribute("inert");
+      root.removeAttribute("aria-hidden");
+    } else {
+      root.setAttribute("inert", "");
+      root.setAttribute("aria-hidden", "true");
+    }
+    return () => {
+      root.removeAttribute("inert");
+      root.removeAttribute("aria-hidden");
+    };
   }, [phase]);
 
   if (phase === "gone") return null;
@@ -163,46 +198,34 @@ export default function SplashScreen() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: isDark ? "#0f172a" : "#ffffff",
+        background: "#ffffff",
         opacity: phase === "out" ? 0 : 1,
         transition: `opacity ${FADE_MS}ms ease-out`,
         pointerEvents: phase === "out" ? "none" : "auto",
       }}
     >
       <div className="flex flex-col items-center gap-5 px-8 w-[min(20rem,90vw)]">
-        <BootSpinner dark={isDark} />
+        <BootSpinner />
 
         {/* Brand */}
         <div className="text-center">
-          <p
-            className="text-xl font-bold tracking-tight"
-            style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
-          >
+          <p className="text-xl font-bold tracking-tight" style={{ color: "#0f172a" }}>
             KSYK Maps
           </p>
-          <p
-            className="text-xs font-medium mt-0.5"
-            style={{ color: isDark ? "#64748b" : "#94a3b8" }}
-          >
+          <p className="text-xs font-medium mt-0.5" style={{ color: "#94a3b8" }}>
             Campus navigation
           </p>
         </div>
 
         {/* Determinate progress bar */}
         <div className="w-full">
-          <div
-            className="h-1 rounded-full overflow-hidden"
-            style={{ background: isDark ? "#1e293b" : "#f1f5f9" }}
-          >
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: "#f1f5f9" }}>
             <div
               className="h-full bg-blue-600 transition-[width] duration-300"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <p
-            className="text-[10px] text-center mt-2 tabular-nums"
-            style={{ color: isDark ? "#475569" : "#94a3b8" }}
-          >
+          <p className="text-[10px] text-center mt-2 tabular-nums" style={{ color: "#94a3b8" }}>
             {Math.round(progress * 100)}%
           </p>
         </div>
@@ -220,7 +243,7 @@ export default function SplashScreen() {
               Reload to retry
             </button>
             {errorCount > 0 && (
-              <p className="text-[10px]" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
+              <p className="text-[10px]" style={{ color: "#94a3b8" }}>
                 {errorCount} endpoint{errorCount === 1 ? "" : "s"} not responding.
               </p>
             )}
@@ -286,21 +309,14 @@ export default function SplashScreen() {
 }
 
 /**
- * v4.7.15 — memo'd spinner. The `dark` prop is read once from the
- * parent and never changes, so React.memo's shallow comparison keeps
- * this subtree from ever re-rendering. The animation runs purely on
- * the compositor thread → frame-perfect 60fps regardless of how often
- * SplashScreen reconciles during query hydration.
+ * Memo'd so React reconciliation during query hydration never touches
+ * this subtree. The CSS animation runs on the compositor thread —
+ * frame-perfect 60fps independent of main-thread JS work.
  */
-interface BootSpinnerProps { dark: boolean }
-const BootSpinner = memo<BootSpinnerProps>(function BootSpinner({ dark }) {
+const BootSpinner = memo(function BootSpinner() {
   return (
     <div className="ksyk-spinner-wrap">
-      <div
-        className="ksyk-spinner-track"
-        aria-hidden="true"
-        style={{ borderColor: dark ? "#1e293b" : "#e5e7eb" }}
-      />
+      <div className="ksyk-spinner-track" aria-hidden="true" />
       <div className="ksyk-spinner-ring" aria-hidden="true" />
       <img
         src="/favicon-128.png"

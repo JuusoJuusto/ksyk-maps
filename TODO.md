@@ -16,6 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## 🚧 In progress (session 2 deep pass — not yet pushed)
+
+- **SplashScreen white background**: reverted session-1 dark-mode adaptive background — user requirement. Removed `isDark` matchMedia state. `background` hard-coded to `"#ffffff"` always. `BootSpinner` simplified back to zero props. All adaptive colors removed. First visible frame is white, no flash.
+- **SplashScreen progress bar stall fix**: the `useMemo` only recalculated when explicit deps changed — bar froze at ~80% waiting for `ksyk:map-ready` event. Fix: added 200ms `tick` state (setInterval) as a memo dep so the time-based fill animates continuously. Progress formula changed from linear `timeFloor = elapsed/8s` to exponential fill `signalProgress + remaining*(1 - e^(-elapsed/9.6s))` — bar always moves, never stalls, snaps to 100% when `ready` is true.
+- **LoadingSpinner progress fix**: `Math.min(90, p + (90-p)*0.08)` asymptotic approach froze near 90% with sub-1% increments. Replaced with `Math.max(0.15, (97-p)*0.06)` floor — always at least 0.15% per tick, cap at 97% so bar never hits 100% until real completion.
+- **Session replay audit**: verified rrweb (`maskAllInputs: true`, `maskTextClass: "ksyk-mask"`) and PostHog (`maskAllInputs: true`, `maskTextSelector: "[data-sensitive]"`) both properly mask inputs. Wilma iCalendar URL is always in a masked input field — never leaked in either replay system. PostHog deep-link in `SessionDrillDialog` is real (authenticated URL to posthog.com, filtered by `ksyk_session_id`). rrweb-player in `RrwebPlayerModal` is real (plays actual DOM snapshots).
+- **Android APK builds**: both completed successfully.
+  - Debug: `android/app/build/outputs/apk/debug/ksykmaps-debug-1.92.0-debug.apk` (67 MB)
+  - Release (signed with `ksyk-release.jks`): `android/app/build/outputs/apk/release/ksykmaps-release-1.92.0.apk` (60 MB)
+- **TypeScript check**: zero errors (`npm run check` → exit 0).
+
 ## ✅ Just shipped (web 4.7.25 · pending push)
 
 - **Session replay auto-migration.** Endpoint POST `/api/sessions/rrweb` now creates the `rrweb_batches` table on first write if it doesn't exist — no manual `psql` step required. If the initial `INSERT` fails with `relation does not exist`, the server runs `CREATE TABLE IF NOT EXISTS` + the two indexes in-band and retries once. Fresh deploys record from batch #1.

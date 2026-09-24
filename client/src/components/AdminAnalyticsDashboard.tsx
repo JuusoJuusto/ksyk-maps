@@ -652,9 +652,21 @@ function SessionsPanel({ range }: { range: Range }) {
     queryFn: () => fetchList<TelemetrySession>(`/api/admin/analytics/sessions?limit=100&range=${range}`),
     refetchInterval: 60_000,
   });
-  const replayList = useQuery<Array<{ sessionId: string }>>({
+  const replayList = useQuery<Array<{
+    sessionId: string;
+    batches: number;
+    totalEvents: number;
+    startedAt: string;
+    endedAt: string;
+  }>>({
     queryKey: ["admin-rrweb-sessions-inline", range],
-    queryFn: () => fetchList<{ sessionId: string }>(`/api/sessions/rrweb?range=${range}`),
+    queryFn: () => fetchList<{
+      sessionId: string;
+      batches: number;
+      totalEvents: number;
+      startedAt: string;
+      endedAt: string;
+    }>(`/api/sessions/rrweb?range=${range}`),
     refetchInterval: 60_000,
   });
   // v4.7.25 — Replay status diagnostic. Tells admin exactly why no
@@ -669,6 +681,35 @@ function SessionsPanel({ range }: { range: Range }) {
     () => new Set((replayList.data ?? []).map((r) => r.sessionId)),
     [replayList.data],
   );
+  // v4.7.26 — MERGE telemetry sessions with rrweb-only sessions.
+  // Historically some tabs recorded rrweb batches without hitting
+  // /session/heartbeat (guest tabs, background pages, tab-swap timing),
+  // so their sessionId never made it into telemetry_sessions. Result:
+  // 10 batches but "0 with replay" in the UI. Fix: synthesize a row
+  // from the rrweb metadata for any session id we can't find in the
+  // telemetry list. Every batch that exists gets a Play button.
+  const mergedSessions = useMemo<TelemetrySession[]>(() => {
+    const byId = new Map<string, TelemetrySession>();
+    for (const s of data) byId.set(s.sessionId, s);
+    for (const r of replayList.data ?? []) {
+      if (byId.has(r.sessionId)) continue;
+      byId.set(r.sessionId, {
+        id: `rrweb-only-${r.sessionId}`,
+        sessionId: r.sessionId,
+        platform: "web",
+        appVersion: null,
+        osVersion: null,
+        deviceType: "web (replay-only)",
+        startedAt: r.startedAt,
+        lastSeenAt: r.endedAt,
+        endedAt: r.endedAt,
+        durationMs: Math.max(0, new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()),
+      });
+    }
+    return Array.from(byId.values()).sort(
+      (a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime(),
+    );
+  }, [data, replayList.data]);
   return (
     <div className="space-y-2 pt-3">
       <ErrorRetry query={queryResult} label="sessions" />
@@ -695,12 +736,12 @@ function SessionsPanel({ range }: { range: Range }) {
         <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
           {isLoading
             ? "Loading…"
-            : `${data.length} session${data.length === 1 ? "" : "s"} · ${hasReplaySet.size} with replay`}
+            : `${mergedSessions.length} session${mergedSessions.length === 1 ? "" : "s"} · ${hasReplaySet.size} with replay`}
         </p>
         <div className="flex gap-1">
           <button
             type="button"
-            onClick={() => refetch()}
+            onClick={() => { refetch(); replayList.refetch(); replayStatus.refetch(); }}
             className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             title="Refresh"
             aria-label="Refresh sessions list"
@@ -709,8 +750,8 @@ function SessionsPanel({ range }: { range: Range }) {
           </button>
           <button
             type="button"
-            onClick={() => downloadCSV(data as any, "ksyk-sessions.csv")}
-            disabled={!data.length}
+            onClick={() => downloadCSV(mergedSessions as any, "ksyk-sessions.csv")}
+            disabled={!mergedSessions.length}
             className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             title="Download CSV"
           >
@@ -736,12 +777,12 @@ function SessionsPanel({ range }: { range: Range }) {
               {isLoading && (
                 <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
-              {!isLoading && data.length === 0 && (
+              {!isLoading && mergedSessions.length === 0 && (
                 <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground text-xs">
                   No sessions in this range. New visitors will show up here as they land.
                 </td></tr>
               )}
-              {data.map((s) => {
+              {mergedSessions.map((s) => {
                 const canReplay = hasReplaySet.has(s.sessionId);
                 return (
                   <tr
