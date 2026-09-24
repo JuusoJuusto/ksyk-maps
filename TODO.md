@@ -16,7 +16,24 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.22 · pending push)
+## ✅ Just shipped (web 4.7.23 · pending push)
+
+- **Apple-design audit — UI/UX overhaul pass 1** (admin panel + schedule card + Wilma setup):
+  - `AppLogsManager`: added `debug` and `fatal` log levels with proper color tokens; new filter pills; `normalizeLevel` handles `critical`/`crit` → `fatal` mapping.
+  - `AdminDashboard`: NAV_GROUPS restructured — Overview / Analytics / Map / Content / Users / System for logical IA.
+  - `AdminAnalyticsDashboard`: stat grid split into "Product Analytics" and "Technical Health" labeled sections; detail tabs grouped into Usage row + Health row.
+  - `WilmaScheduleCard`: fully converted from hardcoded dark slate to responsive `light/dark:` variants — card, rows, buttons, icons, footer all adapt.
+  - `WilmaConnectPanel`: same dark→responsive pass — instructions card, URL input, button states, help text.
+- TypeScript `tsc` clean · Vite build clean.
+
+## ✅ Just shipped (web 4.7.23 · pending push)
+
+- **Grant link recovery for pre-4.7.22 broken tokens.** The 4.7.22 fix stopped NEW tokens from getting overwritten, but the DB still had a pile of `approved` rows with `grantToken: null` from before. Now PATCH re-mints whenever approve hits a null-token row — admins can just click Approve again to send a fresh magic link, and the client `redeemedAt` stamp is reset so the new link is single-use again. `/grant/:token` invalid state shows a real "Request access again" CTA back to the request form.
+- **rrweb player inline in Sessions tab.** RrwebSessionsCard removed from above the tabs; the Sessions sub-tab now shows all telemetry sessions with a blue **Play** button on any row that has a recorded replay. Uses one shared `/api/sessions/rrweb?range=` fetch, intersects via Set of session IDs, opens the lazy-loaded rrweb-player modal on click. Header now shows `X sessions · Y with replay`.
+- **Sentry tunnel 403 fix**: parse envelope header, extract `{host}/{projectId}` from the DSN, forward dynamically instead of hardcoding a stale project ID. Works with any DSN rotation.
+- **SplashScreen dark-mode** — BootSpinner accepts `dark` prop; splash matches system theme instead of hardcoded white.
+
+## ✅ Just shipped (web 4.7.22 · pushed 887d7f8)
 
 - **Grant-token overwrite bug fixed.** Admin approving an access request minted a one-shot grant token server-side, but the panel's auto-save then PUT the whole securitySettings blob back with the client-side accessRequests (which didn't have the token) — silently nuking it. Result: user clicked the email link, got "Link no longer valid" immediately. Fix in `SecuritySettingsPanel.tsx#onApprove`: refetch server state after PATCH and merge before saving. Also had to update `loadSecurityFromServer` to return the fetched settings (was `Promise<void>`).
 - **`/api/sessions/rrweb` soft-fail** — 500 → 202 when the `rrweb_batches` table isn't migrated in prod, so the client recorder doesn't retry-storm every batch. Server logs the missing migration once so ops knows how to enable session replay.

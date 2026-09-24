@@ -10,15 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.22";
+export const APP_VERSION = "4.7.23";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.23",
+    date: "September 2026",
+    title: "Grant-token re-mint · rrweb player in Sessions tab · Sentry tunnel dynamic DSN · splash dark mode",
+    titleFi: "Kutsulinkin uudelleen-luonti · Session replay Sessions-välilehdessä · Sentry-tunnelin dynaaminen DSN · aloitusruudun tumma tila",
+    latest: true,
+    highlights: [
+      "**Grant link recovery.** v4.7.22 stopped NEW tokens from getting nuked, but historical broken links from before were still 404-ing (the DB had `approved` rows with `grantToken: null` from the old client-overwrite bug). Now the PATCH endpoint re-mints a fresh token whenever an approval hits a request without one — so admins just click Approve again to reissue the magic link (a new email fires, redemption timestamp resets). Also relaxed the /grant page: shows a clearer explanation + a 'Request access again' CTA back to the access-request form.",
+      "**rrweb player wired INTO the Sessions sub-tab.** Sessions tab now shows telemetry sessions AND a blue Play button on any row with a recorded replay. Standalone RrwebSessionsCard removed from above the tabs — one integrated table instead of two competing lists. Uses one shared `/api/sessions/rrweb?range=` request, then intersects with the telemetry list via a Set of session IDs. Player modal (~250KB) still lazy-loaded on Play; only the entry point moved.",
+      "**Sentry tunnel 403 fixed with dynamic DSN routing.** The tunnel was hardcoded to a stale project ID; Sentry rejects any envelope whose header `dsn` field doesn't match the ingest URL. Fix follows Sentry's official pattern: parse the envelope header, extract `{host}` + `{projectId}` from the DSN, forward to `https://{host}/api/{projectId}/envelope/`. Works with any DSN and doesn't drift when keys rotate.",
+      "**SplashScreen dark-mode support** — BootSpinner now takes a `dark` prop so the splash matches the user's system theme (was hardcoded white). Explicit `memo<BootSpinnerProps>` typing so the prop actually type-checks.",
+    ],
+    highlightsFi: [
+      "**Kutsulinkin uudelleen-lähetys**: PATCH-endpoint luo uuden tokenin jokaiselle hyväksynnälle jolta puuttuu voimassa oleva token — admin voi vain klikata Approve uudelleen ja käyttäjä saa tuoreen sähköpostilinkin.",
+      "**Session replay -painike Sessions-välilehdessä**: erillinen replay-lista poistettu, painike lisätty suoraan sessiotaulukon riville.",
+      "**Sentry-tunnel 403 korjattu**: DSN luetaan dynaamisesti envelope-headerista.",
+      "**Aloitusruutu tumman tilan tuki**: BootSpinner tunnistaa nyt järjestelmän teeman.",
+    ],
+  },
   {
     version: "4.7.22",
     date: "September 2026",
     title: "Grant-token overwrite fix · rrweb soft-fail · map destroy crash · keytool auto-detect · a11y + AI-slop batch",
     titleFi: "Kutsulinkin ylikirjoitusvirhe · rrweb turvallinen epäonnistuminen · kartan tuhoutumisvirhe · keytool automaattinen etsintä",
-    latest: true,
     highlights: [
       "**Grant-token overwrite bug fixed.** Admin approving an access request minted a one-shot grant token server-side, but the panel's auto-save then PUT the whole securitySettings blob back with the client-side accessRequests (which didn't have the token) — silently nuking it. Result: user clicked the email link, got 'Link no longer valid' immediately. Fix: refetch server state after PATCH and merge before saving so the freshly-minted token is preserved.",
       "**rrweb 500 soft-fail.** `/api/sessions/rrweb` POST was returning 500 when the `rrweb_batches` table wasn't yet migrated in prod, causing the client recorder to retry-storm every batch. Now returns 202 (dropped) with a one-line server log naming the missing migration so ops knows how to enable session replay.",

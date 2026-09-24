@@ -121,7 +121,7 @@ export function RrwebSessionsCard({ range }: { range: "24h" | "7d" | "30d" | "90
   );
 }
 
-function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
+export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<{ $destroy?: () => void } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");

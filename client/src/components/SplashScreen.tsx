@@ -134,6 +134,12 @@ export default function SplashScreen() {
   const [phase, setPhase] = useState<"in" | "out" | "gone">("in");
   const { ready, progress, showRetry, errorCount } = useBootGate();
 
+  // Detect system dark mode once on mount to avoid a white flash in dark mode.
+  // We read matchMedia synchronously so the very first paint is already correct.
+  const [isDark] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+
   useEffect(() => {
     if (!ready || phase !== "in") return;
     setPhase("out");
@@ -157,49 +163,64 @@ export default function SplashScreen() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#ffffff",
+        background: isDark ? "#0f172a" : "#ffffff",
         opacity: phase === "out" ? 0 : 1,
         transition: `opacity ${FADE_MS}ms ease-out`,
         pointerEvents: phase === "out" ? "none" : "auto",
       }}
     >
       <div className="flex flex-col items-center gap-5 px-8 w-[min(20rem,90vw)]">
-        <BootSpinner />
+        <BootSpinner dark={isDark} />
 
         {/* Brand */}
         <div className="text-center">
-          <p className="text-xl font-bold tracking-tight text-slate-900">KSYK Maps</p>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Campus navigation</p>
+          <p
+            className="text-xl font-bold tracking-tight"
+            style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+          >
+            KSYK Maps
+          </p>
+          <p
+            className="text-xs font-medium mt-0.5"
+            style={{ color: isDark ? "#64748b" : "#94a3b8" }}
+          >
+            Campus navigation
+          </p>
         </div>
 
-        {/* Determinate progress bar. Grows with each satisfied signal
-         *  plus a small time floor so it never appears stuck. */}
+        {/* Determinate progress bar */}
         <div className="w-full">
-          <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className="h-1 rounded-full overflow-hidden"
+            style={{ background: isDark ? "#1e293b" : "#f1f5f9" }}
+          >
             <div
               className="h-full bg-blue-600 transition-[width] duration-300"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-slate-400 text-center mt-2 tabular-nums">
+          <p
+            className="text-[10px] text-center mt-2 tabular-nums"
+            style={{ color: isDark ? "#475569" : "#94a3b8" }}
+          >
             {Math.round(progress * 100)}%
           </p>
         </div>
 
         {showRetry && (
           <div className="text-center space-y-2">
-            <p className="text-[11px] text-red-600 font-medium">
+            <p className="text-[11px] text-red-500 font-medium">
               Loading is taking longer than expected.
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-600/30 hover:decoration-blue-600"
+              className="text-[11px] font-semibold text-blue-500 hover:text-blue-400 underline decoration-blue-500/30 hover:decoration-blue-500"
             >
               Reload to retry
             </button>
             {errorCount > 0 && (
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px]" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
                 {errorCount} endpoint{errorCount === 1 ? "" : "s"} not responding.
               </p>
             )}
@@ -265,16 +286,21 @@ export default function SplashScreen() {
 }
 
 /**
- * v4.7.15 — memo'd spinner. Takes no props so React.memo never
- * re-renders it. The animation is pure CSS on a GPU-composited
- * element; even if SplashScreen re-renders every 30ms during query
- * hydration, this subtree never reconciles → the ring keeps
- * spinning at frame-perfect 60fps.
+ * v4.7.15 — memo'd spinner. The `dark` prop is read once from the
+ * parent and never changes, so React.memo's shallow comparison keeps
+ * this subtree from ever re-rendering. The animation runs purely on
+ * the compositor thread → frame-perfect 60fps regardless of how often
+ * SplashScreen reconciles during query hydration.
  */
-const BootSpinner = memo(function BootSpinner() {
+interface BootSpinnerProps { dark: boolean }
+const BootSpinner = memo<BootSpinnerProps>(function BootSpinner({ dark }) {
   return (
     <div className="ksyk-spinner-wrap">
-      <div className="ksyk-spinner-track" aria-hidden="true" />
+      <div
+        className="ksyk-spinner-track"
+        aria-hidden="true"
+        style={{ borderColor: dark ? "#1e293b" : "#e5e7eb" }}
+      />
       <div className="ksyk-spinner-ring" aria-hidden="true" />
       <img
         src="/favicon-128.png"

@@ -131,9 +131,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiPath = path.replace(/^\/api/, '').split('?')[0];
 
     // Sentry envelope tunnel — proxies POST /api/sentry-tunnel to Sentry's ingest.
-    // Root cause of 403: Vercel only auto-parses req.body for application/json and
-    // application/x-www-form-urlencoded. Sentry sends application/x-sentry-envelope
-    // so req.body is always undefined — we must stream-read the raw bytes ourselves.
+    //
+    // v4.7.23 — 403 root cause: the endpoint was hardcoded to a project
+    // ID that no longer matches the DSN in production. Sentry rejects
+    // envelopes whose header `dsn` field doesn't match the target
+    // project. The fix follows Sentry's official tunnel pattern:
+    //   1. Read the raw envelope body (Vercel doesn't parse
+    //      application/x-sentry-envelope).
+    //   2. Parse the first line — it's a JSON header containing `dsn`.
+    //   3. Extract host + projectId from that DSN.
+    //   4. Forward to `https://{host}/api/{projectId}/envelope/`.
+    // This makes the tunnel work no matter which DSN the SDK is
+    // configured with (dev, staging, prod, rotated keys, etc.).
     if (apiPath === '/sentry-tunnel') {
       if (req.method !== 'POST') return res.status(405).end();
       try {
@@ -145,35 +154,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           req.on('end', () => resolve(Buffer.concat(chunks)));
           req.on('error', reject);
         });
-        // If stream was already consumed (unlikely for non-JSON), fall back.
-        const bodyToSend: Buffer | string =
+        const bodyToSend: Buffer =
           rawBytes.length > 0
             ? rawBytes
             : Buffer.isBuffer(_presanitizedBody)
               ? _presanitizedBody
               : typeof _presanitizedBody === 'string'
-                ? _presanitizedBody
+                ? Buffer.from(_presanitizedBody)
                 : Buffer.from('');
-        if ((bodyToSend as Buffer).length === 0 && (bodyToSend as string).length === 0) {
-          return res.status(400).end();
-        }
-        // Sentry envelopes carry auth in the first header line of the
-        // body, but browser SDKs also set X-Sentry-Auth on the request.
-        // Forward it explicitly — Sentry rejects with 403 when auth is
-        // missing on newer ingest endpoints.
-        const sentryAuth = req.headers['x-sentry-auth'] as string | undefined;
-        const sentryRes = await fetch(
-          'https://o4512001020133376.ingest.de.sentry.io/api/4512012645302352/envelope/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': req.headers['content-type'] || 'application/x-sentry-envelope',
-              'User-Agent': req.headers['user-agent'] || 'ksyk-maps-tunnel',
-              ...(sentryAuth ? { 'X-Sentry-Auth': sentryAuth } : {}),
-            },
-            body: bodyToSend,
+        if (bodyToSend.length === 0) return res.status(400).end();
+
+        // Parse the first line — envelope header JSON.
+        const firstNewline = bodyToSend.indexOf(0x0a); // '\n'
+        if (firstNewline < 0) return res.status(400).end();
+        let envelopeDsn: string | null = null;
+        try {
+          const headerJson = JSON.parse(bodyToSend.slice(0, firstNewline).toString('utf8'));
+          envelopeDsn = typeof headerJson?.dsn === 'string' ? headerJson.dsn : null;
+        } catch { /* malformed header — soft-fail */ }
+        if (!envelopeDsn) return res.status(400).end();
+
+        // DSN shape: https://<publicKey>@<host>/<projectId>
+        let host = '';
+        let projectId = '';
+        try {
+          const u = new URL(envelopeDsn);
+          host = u.host;
+          projectId = u.pathname.replace(/^\/+/, '').split('/')[0];
+        } catch { /* bad DSN — soft-fail */ }
+        if (!host || !projectId) return res.status(400).end();
+
+        const upstream = `https://${host}/api/${projectId}/envelope/`;
+        const sentryRes = await fetch(upstream, {
+          method: 'POST',
+          headers: {
+            'Content-Type': req.headers['content-type'] || 'application/x-sentry-envelope',
+            'User-Agent': req.headers['user-agent'] || 'ksyk-maps-tunnel',
           },
-        );
+          body: bodyToSend,
+        });
         res.status(sentryRes.status);
         return res.end();
       } catch {
@@ -319,14 +338,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const idx = requests.findIndex((r: any) => r.id === id);
           if (idx < 0) return res.status(404).json({ message: 'Not found' });
           const prevStatus = requests[idx].status;
+          let mintedFreshToken = false;
           if (nextStatus === 'deleted') {
             requests.splice(idx, 1);
           } else {
-            // v4.7.14 — mint a one-shot grant token on transition to
-            // approved. Stored on the request so the email link can
-            // point to /grant/:token and the token can only be spent
-            // once (marked `granted = true` on redeem).
-            const mintToken = nextStatus === 'approved' && prevStatus !== 'approved'
+            // v4.7.14 — mint a one-shot grant token when the request
+            // is approved. v4.7.23 — also re-mint if the token got
+            // nuked by the pre-4.7.22 client-overwrite bug (which
+            // left tons of "approved but no token" rows in the DB).
+            // Rule: any approve without an existing token gets one,
+            // so admins can just click Approve again to reissue.
+            const hasToken = !!requests[idx].grantToken;
+            mintedFreshToken = nextStatus === 'approved' && !hasToken;
+            const mintToken = mintedFreshToken
               ? `t${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
               : (requests[idx].grantToken ?? null);
             requests[idx] = {
@@ -334,11 +358,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               status: nextStatus,
               decidedAt: new Date().toISOString(),
               grantToken: mintToken,
+              // Reset redemption stamp on fresh mint so the new link
+              // works even if the old one was already redeemed.
+              redeemedAt: mintedFreshToken ? null : requests[idx].redeemedAt ?? null,
             };
           }
           await kvSet('securitySettings', { ...current, accessRequests: requests });
-          // Auto-email on transition to approved.
-          if (nextStatus === 'approved' && prevStatus !== 'approved') {
+          // Auto-email whenever a fresh token was minted (first-time
+          // approval OR re-approval of a stuck request).
+          if (nextStatus === 'approved' && mintedFreshToken) {
             try {
               const email = requests[idx]?.email;
               const token = requests[idx]?.grantToken;

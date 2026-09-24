@@ -111,14 +111,25 @@ export default function GrantPage() {
             </div>
             <h1 className="mt-5 text-xl font-semibold tracking-tight">Link no longer valid</h1>
             <p className="mt-2 text-sm text-gray-500">
-              The request may not have been approved yet, or the link has already been used.
+              This access link has expired, been used already, or was invalidated by an admin refresh. Request access again — an admin will re-issue a fresh link.
             </p>
-            <Link
-              href="/"
-              className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              Return to KSYK Maps
-            </Link>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <Link
+                href="/"
+                className={cn(
+                  "inline-flex items-center justify-center h-9 px-4 rounded-lg text-[13px] font-semibold transition-all",
+                  "bg-gray-900 dark:bg-white text-white dark:text-gray-900",
+                  "hover:bg-gray-700 dark:hover:bg-gray-100",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2",
+                  "active:scale-[0.98]",
+                )}
+              >
+                Request access again
+              </Link>
+              <p className="text-[11px] text-gray-400 max-w-xs">
+                You'll land on the access-request form. Admins get a notification and re-issue a fresh link.
+              </p>
+            </div>
           </div>
         )}
 

@@ -22,13 +22,13 @@ import { fetchList, fetchObject } from "@/lib/fetchList";
 import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
   Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
-  Eye, Filter, Gauge, MousePointer2, RefreshCw, Search, Shield,
+  Eye, Filter, Gauge, MousePointer2, Pause, Play, RefreshCw, Search, Shield,
   Sparkles, TrendingUp, Users, MapPin, Navigation,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
 } from "recharts";
-import { RrwebSessionsCard } from "@/components/RrwebReplay";
+import { RrwebSessionsCard, RrwebPlayerModal as RrwebPlayerModalInline } from "@/components/RrwebReplay";
 import { cn } from "@/lib/utils";
 import ErrorRetry from "@/components/ErrorRetry";
 
@@ -634,25 +634,41 @@ interface TelemetrySession {
 }
 function SessionsPanel({ range }: { range: Range }) {
   const [drillSid, setDrillSid] = useState<string | null>(null);
+  // v4.7.23 — Replay-inline: fetch which sessions have rrweb recordings
+  // so the row Play button and the "Session replays" card share one
+  // request instead of two competing tables.
+  const [replayId, setReplayId] = useState<string | null>(null);
   const queryResult = useQuery<TelemetrySession[]>({
     queryKey: ["admin-analytics-sessions", range],
     queryFn: () => fetchList<TelemetrySession>(`/api/admin/analytics/sessions?limit=100&range=${range}`),
     refetchInterval: 60_000,
   });
+  const replayList = useQuery<Array<{ sessionId: string }>>({
+    queryKey: ["admin-rrweb-sessions-inline", range],
+    queryFn: () => fetchList<{ sessionId: string }>(`/api/sessions/rrweb?range=${range}`),
+    refetchInterval: 60_000,
+  });
   const { data = [], isLoading, refetch } = queryResult;
+  const hasReplaySet = useMemo(
+    () => new Set((replayList.data ?? []).map((r) => r.sessionId)),
+    [replayList.data],
+  );
   return (
     <div className="space-y-2 pt-3">
       <ErrorRetry query={queryResult} label="sessions" />
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
-          {isLoading ? "Loading…" : `${data.length} session${data.length === 1 ? "" : "s"}`}
+          {isLoading
+            ? "Loading…"
+            : `${data.length} session${data.length === 1 ? "" : "s"} · ${hasReplaySet.size} with replay`}
         </p>
         <div className="flex gap-1">
           <button
             type="button"
             onClick={() => refetch()}
-            className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             title="Refresh"
+            aria-label="Refresh sessions list"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
@@ -660,7 +676,7 @@ function SessionsPanel({ range }: { range: Range }) {
             type="button"
             onClick={() => downloadCSV(data as any, "ksyk-sessions.csv")}
             disabled={!data.length}
-            className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
+            className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             title="Download CSV"
           >
             <Download className="h-3 w-3" /> CSV
@@ -669,7 +685,7 @@ function SessionsPanel({ range }: { range: Range }) {
       </div>
       <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-950">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
                 <th scope="col" className="text-left px-3 py-2">Session</th>
@@ -678,7 +694,7 @@ function SessionsPanel({ range }: { range: Range }) {
                 <th scope="col" className="text-left px-3 py-2">Started</th>
                 <th scope="col" className="text-left px-3 py-2">Last seen</th>
                 <th scope="col" className="text-right px-3 py-2">Duration</th>
-                <th className="w-8"></th>
+                <th scope="col" className="text-right px-3 py-2 w-24">Replay</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -687,35 +703,52 @@ function SessionsPanel({ range }: { range: Range }) {
               )}
               {!isLoading && data.length === 0 && (
                 <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground text-xs">
-                  No sessions in the last 24 hours. New visitors will show up here as they land.
+                  No sessions in this range. New visitors will show up here as they land.
                 </td></tr>
               )}
-              {data.map((s) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition"
-                  onClick={() => setDrillSid(s.sessionId)}
-                >
-                  <td className="px-3 py-2 font-mono text-[11px] text-blue-600 dark:text-blue-400">
-                    {s.sessionId.slice(0, 24)}
-                  </td>
-                  <td className="px-3 py-2"><Badge variant="outline">{s.platform}</Badge></td>
-                  <td className="px-3 py-2 text-xs">{s.appVersion || "—"}</td>
-                  <td className="px-3 py-2 text-xs">{new Date(s.startedAt).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-xs">{new Date(s.lastSeenAt).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-xs text-right">
-                    {s.durationMs ? `${Math.round(s.durationMs / 1000)}s` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
-                  </td>
-                </tr>
-              ))}
+              {data.map((s) => {
+                const canReplay = hasReplaySet.has(s.sessionId);
+                return (
+                  <tr
+                    key={s.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer transition"
+                    onClick={() => setDrillSid(s.sessionId)}
+                  >
+                    <td className="px-3 py-2 font-mono text-[11px] text-blue-600 dark:text-blue-400">
+                      {s.sessionId.slice(0, 24)}
+                    </td>
+                    <td className="px-3 py-2"><Badge variant="outline">{s.platform}</Badge></td>
+                    <td className="px-3 py-2 text-xs">{s.appVersion || "—"}</td>
+                    <td className="px-3 py-2 text-xs">{new Date(s.startedAt).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-xs">{new Date(s.lastSeenAt).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-xs text-right">
+                      {s.durationMs ? `${Math.round(s.durationMs / 1000)}s` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {canReplay ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setReplayId(s.sessionId); }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                          title="Play recorded session (rrweb)"
+                        >
+                          <Play className="h-3 w-3" /> Play
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 dark:text-slate-600">no recording</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
       <SessionDrillDialog sessionId={drillSid} onClose={() => setDrillSid(null)} />
+      {replayId && (
+        <RrwebPlayerModalInline sessionId={replayId} onClose={() => setReplayId(null)} />
+      )}
     </div>
   );
 }
@@ -962,7 +995,7 @@ function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: strin
           onClick={() => setPlaying((p) => !p)}
           className="w-10 h-10 rounded-full bg-primary text-primary-foreground hover:opacity-90 flex items-center justify-center font-bold shadow-sm"
           title={playing ? "Pause (Space)" : "Play (Space)"}
-        >{playing ? "❚❚" : "▶"}</button>
+        >{playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>
         <button
           onClick={() => setIdx((i) => Math.min(events.length - 1, i + 1))}
           disabled={idx >= events.length - 1}
@@ -1780,23 +1813,43 @@ export default function AdminAnalyticsDashboard() {
        *  react-query's refetch. */}
       <ErrorRetry query={overviewQ} label="analytics overview" />
 
-      {/* Stat grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} tone="blue" />
-        <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} sparkline={pvSpark} tone="blue" />
-        <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} tone="violet" />
-        <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} tone="emerald" />
-        <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} tone="blue" />
-        <StatCard icon={AlertTriangle} label="Errors" value={overview?.errors ?? "…"} sparkline={errSpark} tone="red" />
-        <StatCard icon={Sparkles} label="Easter eggs" value={overview?.easterEggs ?? "…"} tone="amber" />
-        <StatCard
-          icon={TrendingUp}
-          label="Web · Android"
-          value={overview
-            ? `${overview.bySource?.web ?? 0} · ${overview.bySource?.android ?? 0}`
-            : "…"}
-          tone="emerald"
-        />
+      {/* ── Product Analytics ─────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2.5">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            Product Analytics
+          </h3>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} tone="blue" />
+          <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} sparkline={pvSpark} tone="blue" />
+          <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} tone="violet" />
+          <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} tone="emerald" />
+          <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} tone="blue" />
+          <StatCard
+            icon={TrendingUp}
+            label="Web · Android"
+            value={overview
+              ? `${overview.bySource?.web ?? 0} · ${overview.bySource?.android ?? 0}`
+              : "…"}
+            tone="emerald"
+          />
+        </div>
+      </div>
+
+      {/* ── Technical Health ──────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2.5">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            Technical Health
+          </h3>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <StatCard icon={AlertTriangle} label="Errors" value={overview?.errors ?? "…"} sparkline={errSpark} tone="red" />
+          <StatCard icon={Sparkles} label="Easter eggs" value={overview?.easterEggs ?? "…"} tone="amber" />
+        </div>
       </div>
 
       {/* Timeseries chart */}
@@ -1813,29 +1866,60 @@ export default function AdminAnalyticsDashboard() {
         <AnnouncementCtrCard range={range} />
       </div>
 
-      {/* v4.7.12 — session replay list */}
-      <RrwebSessionsCard range={range} />
+      {/* v4.7.23 — session replays moved INTO the Sessions sub-tab
+       *  below. Previously this stood alone above the tabs; folding
+       *  it in gives admins a single "which sessions can I replay"
+       *  answer instead of two competing tables. */}
 
-      {/* Detail tabs — v4.7.13 apple-design pass */}
+      {/* Detail tabs */}
       <div className="pt-2">
-        <div className="flex items-baseline justify-between mb-2">
-          <h3 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-white">
-            Details
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            Drill-down
           </h3>
-          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
-            Drill into a category
-          </p>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
         </div>
         <Tabs defaultValue="features">
-          <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full h-9">
-            <TabsTrigger value="features" className="text-[11px] font-semibold gap-1.5"><Gauge className="h-3.5 w-3.5" />Features</TabsTrigger>
-            <TabsTrigger value="insights" className="text-[11px] font-semibold gap-1.5"><Search className="h-3.5 w-3.5" />Insights</TabsTrigger>
-            <TabsTrigger value="sessions" className="text-[11px] font-semibold gap-1.5"><Users className="h-3.5 w-3.5" />Sessions</TabsTrigger>
-            <TabsTrigger value="errors"   className="text-[11px] font-semibold gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Errors</TabsTrigger>
-            <TabsTrigger value="perf"     className="text-[11px] font-semibold gap-1.5"><Clock className="h-3.5 w-3.5" />Perf</TabsTrigger>
-            <TabsTrigger value="eggs"     className="text-[11px] font-semibold gap-1.5"><Sparkles className="h-3.5 w-3.5" />Eggs</TabsTrigger>
-            <TabsTrigger value="recent"   className="text-[11px] font-semibold gap-1.5"><Filter className="h-3.5 w-3.5" />Recent</TabsTrigger>
-          </TabsList>
+          {/* Two visual groups: product usage tabs, then health tabs. */}
+          <div className="space-y-1 mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
+                Usage
+              </span>
+              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
+            </div>
+            <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg">
+              <TabsTrigger value="features" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Gauge className="h-3 w-3" />Features
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Search className="h-3 w-3" />Insights
+              </TabsTrigger>
+              <TabsTrigger value="sessions" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Users className="h-3 w-3" />Sessions
+              </TabsTrigger>
+              <TabsTrigger value="recent" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Filter className="h-3 w-3" />Recent
+              </TabsTrigger>
+              <TabsTrigger value="eggs" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Sparkles className="h-3 w-3" />Eggs
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
+                Health
+              </span>
+              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
+            </div>
+            <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg">
+              <TabsTrigger value="errors" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md data-[state=active]:text-red-600 dark:data-[state=active]:text-red-400">
+                <AlertTriangle className="h-3 w-3" />Errors
+              </TabsTrigger>
+              <TabsTrigger value="perf" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+                <Clock className="h-3 w-3" />Performance
+              </TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
           <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
           <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
