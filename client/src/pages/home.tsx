@@ -412,7 +412,7 @@ export default function Home() {
                 <Minus className="h-5 w-5" />
               </Button>
               
-              <div className={`flex items-center justify-center w-16 h-16 md:w-20 md:h-20 font-black text-3xl md:text-3xl rounded-xl shadow-lg ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}`}>
+              <div className={`flex items-center justify-center w-14 h-14 md:w-16 md:h-16 font-bold text-2xl md:text-3xl rounded-xl shadow-sm ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}`}>
                 {selectedFloor}
               </div>
               
@@ -738,7 +738,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-md hover:shadow-lg rounded-full border ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-600' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-95 transition-all`}
                     onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
                     title="Zoom In"
                   >
@@ -747,7 +747,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-md hover:shadow-lg rounded-full border ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-600' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-95 transition-all`}
                     onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
                     title="Zoom Out"
                   >
@@ -756,7 +756,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-xl rounded-full border-2 ${darkMode ? 'bg-gray-800/95 hover:bg-gray-700 border-gray-600' : 'bg-white/95 hover:bg-blue-50 border-gray-300'} active:scale-90 transition-all backdrop-blur-md`}
+                    className={`w-11 h-11 md:w-12 md:h-12 p-0 shadow-md hover:shadow-lg rounded-full border ${darkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-600' : 'bg-white hover:bg-blue-50 border-gray-300'} active:scale-95 transition-all`}
                     onClick={() => {
                       setZoom(1);
                       setPanX(0);

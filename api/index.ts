@@ -612,23 +612,108 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (events.length > 500) return res.status(413).json({ message: 'Batch too large' });
         const { db: pgDb } = await import('../server/db.js');
         const { rrwebBatches } = await import('../shared/schema.js');
-        await pgDb.insert(rrwebBatches).values({
-          sessionId, seq, startedAt, endedAt, eventCount, events: events as unknown,
-        } as any);
-        return res.status(202).end();
-      } catch (e: any) {
-        // v4.7.22 — soft-fail so a missing migration in prod (table
-        // rrweb_batches not yet applied) doesn't cause the client
-        // recorder to retry-storm on every batch. Log once, drop the
-        // batch, respond 202 so the client considers it accepted.
-        const msg = String(e?.message ?? '');
-        const missingTable = /rrweb_batches|relation .* does not exist|no such table/i.test(msg);
-        if (missingTable) {
-          console.warn('POST /sessions/rrweb: rrweb_batches table missing — dropping batch. Run migrations/0003_rrweb_batches.sql to enable session replay.');
+        try {
+          await pgDb.insert(rrwebBatches).values({
+            sessionId, seq, startedAt, endedAt, eventCount, events: events as unknown,
+          } as any);
+          return res.status(202).end();
+        } catch (insertErr: any) {
+          // v4.7.25 — first-write auto-migration. If the insert fails
+          // because `rrweb_batches` doesn't exist yet (fresh deploy /
+          // admin hasn't run the SQL migration), run CREATE TABLE IF
+          // NOT EXISTS in-band and retry the insert exactly once.
+          // Rationale: session replay is worth zero if it silently
+          // drops every batch waiting on a manual DDL step.
+          const msg = String(insertErr?.message ?? '');
+          const missingTable = /rrweb_batches|relation .* does not exist|no such table/i.test(msg);
+          if (missingTable) {
+            try {
+              const { sql: dsql } = await import('drizzle-orm');
+              await pgDb.execute(dsql`
+                CREATE TABLE IF NOT EXISTS "rrweb_batches" (
+                  "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+                  "session_id" varchar NOT NULL,
+                  "seq" integer NOT NULL,
+                  "started_at" timestamp NOT NULL,
+                  "ended_at" timestamp NOT NULL,
+                  "event_count" integer NOT NULL,
+                  "events" jsonb NOT NULL,
+                  "created_at" timestamp DEFAULT now()
+                )
+              `);
+              await pgDb.execute(dsql`CREATE INDEX IF NOT EXISTS "idx_rrweb_session" ON "rrweb_batches" ("session_id")`);
+              await pgDb.execute(dsql`CREATE INDEX IF NOT EXISTS "idx_rrweb_created_at" ON "rrweb_batches" ("created_at")`);
+              console.log('POST /sessions/rrweb: auto-created rrweb_batches table on first write.');
+              await pgDb.insert(rrwebBatches).values({
+                sessionId, seq, startedAt, endedAt, eventCount, events: events as unknown,
+              } as any);
+              return res.status(202).end();
+            } catch (ddlErr: any) {
+              console.warn('POST /sessions/rrweb: auto-create failed:', ddlErr?.message);
+              return res.status(202).end();
+            }
+          }
+          console.warn('POST /sessions/rrweb failed:', msg);
           return res.status(202).end();
         }
-        console.warn('POST /sessions/rrweb failed:', msg);
+      } catch (e: any) {
+        console.warn('POST /sessions/rrweb outer failed:', e?.message);
         return res.status(202).end();
+      }
+    }
+
+    // v4.7.25 — replay diagnostic. Tells the admin exactly which
+    // link is broken (table missing / recording disabled / just
+    // no traffic yet) instead of a silent empty Sessions tab.
+    if (apiPath === '/sessions/rrweb/status' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { sql: dsql } = await import('drizzle-orm');
+        // Table existence check via pg_class (works regardless of schema).
+        let tableExists = false;
+        try {
+          const r = await pgDb.execute(dsql`
+            SELECT 1 FROM pg_class WHERE relname = 'rrweb_batches' LIMIT 1
+          `);
+          tableExists = ((r as any)?.rows?.length ?? (r as any)?.length ?? 0) > 0;
+        } catch { tableExists = false; }
+        let batchesLast24h = 0;
+        let batchesTotal = 0;
+        let lastBatchAt: string | null = null;
+        if (tableExists) {
+          try {
+            const r24 = await pgDb.execute(dsql`
+              SELECT COUNT(*)::int AS n FROM rrweb_batches WHERE created_at >= NOW() - INTERVAL '24 hours'
+            `);
+            batchesLast24h = Number(((r24 as any)?.rows?.[0]?.n ?? (r24 as any)?.[0]?.n ?? 0));
+            const rTotal = await pgDb.execute(dsql`
+              SELECT COUNT(*)::int AS n, MAX(created_at) AS last FROM rrweb_batches
+            `);
+            const row = (rTotal as any)?.rows?.[0] ?? (rTotal as any)?.[0];
+            batchesTotal = Number(row?.n ?? 0);
+            lastBatchAt = row?.last ?? null;
+          } catch { /* soft-fail */ }
+        }
+        // Read the enableSessionReplay flag from admin settings.
+        let recordingEnabled = true;
+        try {
+          const { kvGet } = await import('../server/kvStorage.js');
+          const settings = (await kvGet('appSettings')) as any;
+          recordingEnabled = settings?.enableSessionReplay !== false;
+        } catch { /* default true */ }
+        return res.status(200).json({
+          tableExists,
+          recordingEnabled,
+          batchesLast24h,
+          batchesTotal,
+          lastBatchAt,
+          migrationHint: tableExists
+            ? null
+            : 'Run migrations/0003_rrweb_batches.sql in Supabase SQL Editor, or just wait — the table auto-creates on the first client recorder POST.',
+        });
+      } catch (e: any) {
+        return res.status(500).json({ message: e?.message ?? 'status check failed' });
       }
     }
 

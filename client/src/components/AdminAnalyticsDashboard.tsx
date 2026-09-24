@@ -23,7 +23,7 @@ import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
   Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
   Eye, Filter, Gauge, MousePointer2, Pause, Play, RefreshCw, Search, Shield,
-  Sparkles, TrendingUp, Users, MapPin, Navigation,
+  Sparkles, TrendingUp, Users, MapPin, Navigation, Video,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
@@ -632,6 +632,15 @@ interface TelemetrySession {
   appVersion: string | null; osVersion: string | null; deviceType: string | null;
   startedAt: string; lastSeenAt: string; endedAt: string | null; durationMs: number | null;
 }
+interface RrwebStatus {
+  tableExists: boolean;
+  recordingEnabled: boolean;
+  batchesLast24h: number;
+  batchesTotal: number;
+  lastBatchAt: string | null;
+  migrationHint: string | null;
+}
+
 function SessionsPanel({ range }: { range: Range }) {
   const [drillSid, setDrillSid] = useState<string | null>(null);
   // v4.7.23 — Replay-inline: fetch which sessions have rrweb recordings
@@ -648,6 +657,13 @@ function SessionsPanel({ range }: { range: Range }) {
     queryFn: () => fetchList<{ sessionId: string }>(`/api/sessions/rrweb?range=${range}`),
     refetchInterval: 60_000,
   });
+  // v4.7.25 — Replay status diagnostic. Tells admin exactly why no
+  // videos appear (table missing / recording disabled / no traffic).
+  const replayStatus = useQuery<RrwebStatus | null>({
+    queryKey: ["admin-rrweb-status"],
+    queryFn: () => fetchObject<RrwebStatus>(`/api/sessions/rrweb/status`),
+    refetchInterval: 120_000,
+  });
   const { data = [], isLoading, refetch } = queryResult;
   const hasReplaySet = useMemo(
     () => new Set((replayList.data ?? []).map((r) => r.sessionId)),
@@ -656,6 +672,25 @@ function SessionsPanel({ range }: { range: Range }) {
   return (
     <div className="space-y-2 pt-3">
       <ErrorRetry query={queryResult} label="sessions" />
+      {replayStatus.data && (replayStatus.data.tableExists === false || replayStatus.data.recordingEnabled === false || hasReplaySet.size === 0) && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+          <p className="font-semibold flex items-center gap-1.5">
+            <Video className="h-3.5 w-3.5" />
+            {replayStatus.data.tableExists === false
+              ? "Session replay table missing"
+              : replayStatus.data.recordingEnabled === false
+                ? "Session recording disabled"
+                : "No replays recorded yet"}
+          </p>
+          <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
+            {replayStatus.data.tableExists === false
+              ? (replayStatus.data.migrationHint ?? "Run migrations/0003_rrweb_batches.sql in the Supabase SQL Editor, or wait for the first client upload — the table auto-creates on first write.")
+              : replayStatus.data.recordingEnabled === false
+                ? "Enable it in Settings → Features → 'Session replay recording'. Once on, the next public-route visitor will start populating this table."
+                : `Table is ready and recording is on. ${replayStatus.data.batchesTotal.toLocaleString()} batches total; ${replayStatus.data.batchesLast24h} in the last 24h. Wait for the next student visit — replays land here automatically.`}
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
           {isLoading

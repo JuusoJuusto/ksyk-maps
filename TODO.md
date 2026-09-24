@@ -16,7 +16,13 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
-## ✅ Just shipped (web 4.7.24 · android patch · pending push)
+## ✅ Just shipped (web 4.7.25 · pending push)
+
+- **Session replay auto-migration.** Endpoint POST `/api/sessions/rrweb` now creates the `rrweb_batches` table on first write if it doesn't exist — no manual `psql` step required. If the initial `INSERT` fails with `relation does not exist`, the server runs `CREATE TABLE IF NOT EXISTS` + the two indexes in-band and retries once. Fresh deploys record from batch #1.
+- **`/api/sessions/rrweb/status` diagnostic endpoint** returns `{ tableExists, recordingEnabled, batchesLast24h, batchesTotal, lastBatchAt, migrationHint }`. Sessions tab shows an amber banner explaining exactly why no videos appear — table missing / recording toggled off / no traffic yet — with the migration hint inline.
+- **home.tsx map controls polish**: floor indicator `w-16 h-16 md:w-20 md:h-20 font-black text-3xl shadow-lg` → `w-14 h-14 md:w-16 md:h-16 font-bold shadow-sm`. Zoom/reset FABs: dropped `shadow-xl + backdrop-blur-md + border-2 + bg-white/95` glass-panel maximalism → `shadow-md + border + bg-white`. `active:scale-90 → 95` (90 looked broken).
+
+## ✅ Shipped (web 4.7.24 · pushed 4ad372b)
 
 - **Full UX/UI quality pass — web + Android (apple-design audit pass 2)**
   - **LoadingSpinner freeze fix (root cause)**: `SpinningRing` extracted into `React.memo` component (`SpinRing`). The 320ms `setInterval` no longer causes React to reconcile the spinner arc div → CSS animation stays on the GPU compositor thread uninterrupted. Removed `Math.random()` jitter from progress formula. Transition corrected to `transition-[width] duration-500`.

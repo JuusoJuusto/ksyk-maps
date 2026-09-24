@@ -10,15 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.24";
+export const APP_VERSION = "4.7.25";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.25",
+    date: "September 2026",
+    title: "Session replay auto-migration · Sessions-tab diagnostic banner · home.tsx map-control polish",
+    titleFi: "Session replay automaattinen migraatio · diagnostinen banneri · kartan säätimien viimeistely",
+    latest: true,
+    highlights: [
+      "**Session replay finally works out-of-the-box.** The rrweb_batches table now auto-creates on the first client POST — no more manual `psql < migrations/0003_rrweb_batches.sql`. If the insert fails with 'relation does not exist', the server runs `CREATE TABLE IF NOT EXISTS` in-band, adds the two indexes, and retries the insert exactly once. Fresh deploys record from batch #1 instead of silently dropping everything until an admin remembers to run the SQL.",
+      "**New `/api/sessions/rrweb/status` diagnostic endpoint** returns `{ tableExists, recordingEnabled, batchesLast24h, batchesTotal, lastBatchAt, migrationHint }`. Sessions tab now surfaces exactly what's blocking replays: table missing / recording disabled in Settings / no traffic yet. Amber banner with actionable next steps — no more staring at an empty tab wondering why nothing shows up.",
+      "**home.tsx map controls slop pass.** Floor indicator: `w-16 h-16 md:w-20 md:h-20 font-black text-3xl shadow-lg` → `w-14 h-14 md:w-16 md:h-16 font-bold shadow-sm` (44px baseline still hits WCAG). Zoom/reset buttons: dropped `shadow-xl + backdrop-blur-md + border-2 + bg-white/95` maximalism → `shadow-md hover:shadow-lg + border + bg-white` for a calmer, less-glassy overlay. `active:scale-90` → `active:scale-95` (90 was so much it looked broken).",
+    ],
+    highlightsFi: [
+      "**Session replay toimii nyt ilman käsityötä**: `rrweb_batches`-taulu luodaan automaattisesti ensimmäisen tallennuksen yhteydessä.",
+      "**Uusi diagnostinen banneri Sessions-välilehdessä**: näyttää täsmälleen mikä estää videoita näkymästä (taulu puuttuu / tallennus pois päältä / ei vielä liikennettä).",
+      "**home.tsx kartan säätimien AI-slop-siivous**: pehmennettyjä varjoja, ei enää lasimaista `backdrop-blur`-efektiä, kerroksen numerokortti pienempi ja rauhallisempi.",
+    ],
+  },
   {
     version: "4.7.24",
     date: "September 2026",
     title: "AI-slop pass 2 · loading-spinner freeze root fix · Android Material You · Wilma responsive · dir/lunch cleanup",
     titleFi: "AI-slop-siivous 2 · latauspyörän jäätymisen korjaus · Android Material You · Wilma responsiivinen",
-    latest: true,
     highlights: [
       "**LoadingSpinner freeze — root cause fix.** SpinningRing extracted into a memo'd `SpinRing` component so the 320ms `setInterval` no longer causes React to reconcile the animated arc. The CSS animation stays on the GPU compositor uninterrupted → frame-perfect 60fps even during query hydration. Also removed `Math.random()` jitter (unpredictable width jumps) and corrected the transition to `transition-[width] duration-500`.",
       "**Android Material You dynamic-color adoption.** Removed hardcoded `Color(0xFF2563EB)` from `LoadingScreen`, `LoginScreen`, `MapScreen`. Everything now reads from `MaterialTheme.colorScheme.primary` / `onPrimary` / `outlineVariant`. Android 12+ dynamic-color themes now propagate all the way to the splash and login banner instead of stopping at navy.",
