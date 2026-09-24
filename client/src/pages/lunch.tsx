@@ -163,11 +163,14 @@ export default function Lunch() {
       <AnnouncementBanner />
       <Header />
 
-      {/* Sticky header */}
+      {/* Sticky header — v4.7.24: dropped backdrop-blur-xl to plain
+       *  backdrop-blur-md. The site already sits on flat bg colors,
+       *  so xl-blur was doing nothing but tanking scroll perf on low-
+       *  end laptops. */}
       <div
         className={cn(
-          "sticky top-0 z-20 backdrop-blur-xl border-b",
-          darkMode ? "bg-[#151310]/92 border-white/6" : "bg-[#FEFBF3]/92 border-black/8",
+          "sticky top-0 z-20 backdrop-blur-md border-b",
+          darkMode ? "bg-[#151310]/92 border-white/10" : "bg-[#FEFBF3]/92 border-black/10",
         )}
       >
         <div className="max-w-2xl mx-auto flex items-center gap-2 px-3 sm:px-5 py-2.5">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KSYK_LOADER_LOGO, KSYK_LOADER_LOGO_ALT } from "@/lib/branding";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,43 @@ const LOAD_STAGES_FI = [
   "Melkein valmis…",
 ];
 
+/**
+ * Memoized ring — takes ringSize as a string so React.memo's shallow
+ * comparison prevents any re-render when the parent's interval fires.
+ * The CSS animation runs purely on the compositor thread; as long as
+ * this subtree never re-renders the browser can never interrupt it.
+ */
+const SpinRing = memo(function SpinRing({
+  ringSize,
+  logoSize,
+}: {
+  ringSize: string;
+  logoSize: string;
+}) {
+  return (
+    <div className="relative flex items-center justify-center">
+      <div
+        className={cn("absolute rounded-full border border-blue-200/60 dark:border-blue-900/60", ringSize)}
+        aria-hidden
+      />
+      <div
+        className={cn(
+          "absolute rounded-full border-2 border-transparent border-t-blue-500 border-r-blue-400/40 animate-[spin_1.4s_linear_infinite]",
+          ringSize,
+        )}
+        aria-hidden
+      />
+      <img
+        src={KSYK_LOADER_LOGO}
+        alt={KSYK_LOADER_LOGO_ALT}
+        decoding="sync"
+        fetchPriority="high"
+        className={cn("object-contain", logoSize)}
+      />
+    </div>
+  );
+});
+
 export default function LoadingSpinner({
   message,
   size = "md",
@@ -35,7 +72,7 @@ export default function LoadingSpinner({
   useEffect(() => {
     const progressId = setInterval(() => {
       // Asymptotic approach: accelerates early, slows near 90%, never resets.
-      setProgress((p) => p + (90 - p) * 0.08 + Math.random() * 0.5);
+      setProgress((p) => Math.min(90, p + (90 - p) * 0.08));
     }, 320);
     const stageId = setInterval(() => {
       setStageIndex((i) => (i + 1) % loadStages.length);
@@ -54,29 +91,8 @@ export default function LoadingSpinner({
 
   const content = (
     <div className="flex flex-col items-center gap-7 w-full max-w-[15rem] px-4">
-      <div className="relative flex items-center justify-center">
-        {/* Outer slow ring */}
-        <div
-          className={cn("absolute rounded-full border border-blue-200/60 dark:border-blue-900/60", ringSize)}
-          aria-hidden
-        />
-        {/* Spinning arc */}
-        <div
-          className={cn(
-            "absolute rounded-full border-2 border-transparent border-t-blue-500 border-r-blue-400/40 animate-[spin_1.4s_linear_infinite]",
-            ringSize
-          )}
-          aria-hidden
-        />
-        {/* Static logo */}
-        <img
-          src={KSYK_LOADER_LOGO}
-          alt={KSYK_LOADER_LOGO_ALT}
-          decoding="sync"
-          fetchPriority="high"
-          className={cn("object-contain", logoSize)}
-        />
-      </div>
+      {/* SpinRing is memo'd — never re-renders due to progress/stage intervals */}
+      <SpinRing ringSize={ringSize} logoSize={logoSize} />
 
       <div className="w-full text-center space-y-2.5">
         <p className="text-[0.8rem] text-gray-500 dark:text-gray-400 font-medium tracking-wide min-h-[1.2rem] transition-all duration-500">
@@ -84,7 +100,7 @@ export default function LoadingSpinner({
         </p>
         <div className="w-full h-0.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
           <div
-            className="h-full rounded-full bg-blue-500 transition-all duration-400 ease-out"
+            className="h-full rounded-full bg-blue-500 transition-[width] duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>

@@ -63,28 +63,31 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
 
   return (
     <div
-      className="fixed right-4 top-16 z-50 w-80 rounded-2xl shadow-2xl border border-slate-700
-                 bg-slate-900/95 backdrop-blur-sm flex flex-col overflow-hidden"
+      className="fixed right-4 top-16 z-50 w-80 rounded-2xl shadow-2xl
+                 border border-slate-200/80 dark:border-slate-700
+                 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm
+                 text-slate-900 dark:text-slate-100
+                 flex flex-col overflow-hidden"
       style={{ maxHeight: "calc(100vh - 80px)" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span className="font-semibold text-sm">My Schedule</span>
-          {syncing && <span className="text-xs text-slate-400 animate-pulse">Syncing…</span>}
+          {syncing && <span className="text-xs text-slate-500 dark:text-slate-400 animate-pulse">Syncing…</span>}
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => refresh(true)}
             disabled={syncing}
             title="Refresh calendar"
-            className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-40 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
           >
-            <svg className={`w-3.5 h-3.5 text-slate-400 ${syncing ? "animate-spin" : ""}`}
+            <svg className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${syncing ? "animate-spin" : ""}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -92,8 +95,8 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
           </button>
           {onClose && (
             <button onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
-              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+              <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -108,7 +111,9 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
             key={t}
             onClick={() => setTab(t)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors capitalize
-              ${tab === t ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"}`}
+              ${tab === t
+                ? "bg-blue-600 text-white"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"}`}
           >
             {t === "settings" ? "Setup" : t}
           </button>
@@ -136,7 +141,7 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                 {/* NOW card */}
                 <LessonCard
                   label="NOW"
-                  labelColor="text-emerald-400"
+                  labelColor="text-emerald-600 dark:text-emerald-400"
                   event={current}
                   emptyText="No lesson right now"
                   onNavigate={onNavigateToRoom}
@@ -145,7 +150,7 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                 {/* NEXT card */}
                 <LessonCard
                   label="NEXT"
-                  labelColor="text-blue-400"
+                  labelColor="text-blue-600 dark:text-blue-400"
                   event={next}
                   emptyText="No more lessons today"
                   onNavigate={onNavigateToRoom}
@@ -208,8 +213,8 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
 
       {/* Footer */}
       {lastSync && tab !== "settings" && (
-        <div className="px-4 py-2 border-t border-slate-800 shrink-0">
-          <p className="text-xs text-slate-600">
+        <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-800 shrink-0">
+          <p className="text-xs text-slate-500 dark:text-slate-600">
             Last synced: {lastSync.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
@@ -232,14 +237,14 @@ function LessonCard({
   onNavigate?: (roomId: string) => void;
 }) {
   return (
-    <div className="rounded-xl bg-slate-800 border border-slate-700 p-3">
+    <div className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
       <p className={`text-xs font-bold tracking-widest ${labelColor} mb-1`}>{label}</p>
       {event ? (
         <div className="flex flex-col gap-1">
           <p className="font-semibold text-sm leading-tight">{event.summary}</p>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
             {event.matchedRoomNumber && (
-              <span className="text-xs text-slate-400 flex items-center gap-1">
+              <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
@@ -247,14 +252,14 @@ function LessonCard({
                 Room {event.matchedRoomNumber}
               </span>
             )}
-            <span className="text-xs text-slate-400">{event.startHhmm}–{event.endHhmm}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{event.startHhmm}–{event.endHhmm}</span>
             {event.teacher && <span className="text-xs text-slate-500">{event.teacher}</span>}
           </div>
           {event.matchedRoomId && onNavigate && (
             <button
               onClick={() => onNavigate(event.matchedRoomId!)}
-              className="mt-1 self-start flex items-center gap-1 text-xs text-blue-400
-                         hover:text-blue-300 font-medium transition-colors"
+              className="mt-1 self-start flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400
+                         hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -281,7 +286,7 @@ function TimetableRow({
   onNavigate?: (roomId: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-2.5 py-1.5 group">
+    <div className="flex items-center gap-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60 px-2.5 py-1.5">
       <span className="text-xs text-slate-500 w-10 shrink-0 font-mono">{event.startHhmm}</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{event.summary}</p>
@@ -293,7 +298,7 @@ function TimetableRow({
         <button
           onClick={() => onNavigate(event.matchedRoomId!)}
           title={`Navigate to ${event.matchedRoomNumber}`}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded text-blue-400 hover:text-blue-300 transition-all"
+          className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 active:scale-95 transition-all shrink-0"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -308,7 +313,7 @@ function TimetableRow({
 function NoCalendarPrompt({ onSetup }: { onSetup: () => void }) {
   return (
     <div className="py-6 text-center flex flex-col items-center gap-3">
-      <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
+      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
         <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

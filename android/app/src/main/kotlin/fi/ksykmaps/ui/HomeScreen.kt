@@ -25,6 +25,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import fi.ksykmaps.R
 import fi.ksykmaps.data.Api
 import kotlinx.coroutines.Dispatchers
@@ -73,14 +76,22 @@ fun HomeScreen(
     val ctx = LocalContext.current
     LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
     val scope = rememberCoroutineScope()
-    // v1.89.0 — persisted section order + visibility. Reloaded whenever
-    // the screen enters composition so returning from HomeSectionsScreen
-    // (via Settings) picks up user edits without a whole activity restart.
     var homeLayout by remember { mutableStateOf(HomeSectionPrefs.load(ctx)) }
-    DisposableEffect(Unit) {
-        // Re-read on every focus in case the user changed it in Settings.
-        homeLayout = HomeSectionPrefs.load(ctx)
-        onDispose { }
+    // Re-read section layout AND refresh the greeting time whenever the
+    // screen resumes (e.g. user returns from Settings or the app comes
+    // back from the background). DisposableEffect(Unit) only fires once;
+    // LifecycleEventObserver fires on every ON_RESUME.
+    var greetingTime by remember { mutableStateOf(java.time.LocalDateTime.now()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                homeLayout = HomeSectionPrefs.load(ctx)
+                greetingTime = java.time.LocalDateTime.now()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     var rooms by remember { mutableStateOf(0) }
     var buildings by remember { mutableStateOf(0) }
@@ -192,7 +203,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Greeting header — Google Maps style: soft, big, personal
-                item { GreetingHeader(apiOk = apiOk, lang = lang, onReload = { refreshing = true; reload() }) }
+                item { GreetingHeader(now = greetingTime, apiOk = apiOk, lang = lang, onReload = { refreshing = true; reload() }) }
 
                 if (loading) {
                     item {
@@ -382,9 +393,13 @@ fun HomeScreen(
 // ── Composables ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun GreetingHeader(apiOk: Boolean, lang: String, onReload: () -> Unit) {
+private fun GreetingHeader(
+    now: LocalDateTime,
+    apiOk: Boolean,
+    lang: String,
+    onReload: () -> Unit,
+) {
     val ctx = LocalContext.current
-    val now = remember { LocalDateTime.now() }
     val locale = remember(lang) { if (lang == "fi") Locale("fi") else Locale.ENGLISH }
     val userName = remember { getUserName(ctx) }
     val greeting = remember(lang, now.hour) {

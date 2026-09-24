@@ -1194,12 +1194,12 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   ];
 
   const NAV_GROUPS: { label: string; values: string[] }[] = [
-    { label: "Overview",   values: ["overview", "insights"] },
-    { label: "Content",    values: ["announcements", "tickets", "staff"] },
-    { label: "Data",       values: ["campus-map", "__builder"] },
-    { label: "People",     values: ["users"] },
-    { label: "Safety",     values: ["security", "notifications"] },
-    ...(isOwner ? [{ label: "Owner", values: ["beacons", "2fa", "settings"] }] : []),
+    { label: "Overview",  values: ["overview"] },
+    { label: "Analytics", values: ["insights"] },
+    { label: "Map",       values: ["campus-map", "__builder"] },
+    { label: "Content",   values: ["announcements", "notifications", "tickets", "staff"] },
+    { label: "Users",     values: ["users", "security"] },
+    ...(isOwner ? [{ label: "System", values: ["beacons", "2fa", "settings"] }] : []),
   ];
   const navByValue: Record<string, typeof NAV_ITEMS[number]> = Object.fromEntries(
     NAV_ITEMS.map((i) => [i.value, i]),
@@ -1872,7 +1872,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                 {newUser.passwordOption === "email" && (
                                   <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-3">
                                     <p className="text-sm text-blue-800 dark:text-blue-300">
-                                      📧 An email will be sent to <strong>{newUser.email || "the user"}</strong> with instructions to set their password.
+                                      An email will be sent to <strong>{newUser.email || "the user"}</strong> with instructions to set their password.
                                     </p>
                                   </div>
                                 )}

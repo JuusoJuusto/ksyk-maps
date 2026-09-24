@@ -26,7 +26,7 @@ interface LoginLog {
 }
 
 // Config keys the log UI knows how to style.
-type AppLogLevel = 'info' | 'warning' | 'error' | 'success';
+type AppLogLevel = 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'success';
 
 interface AppLog {
   id: string;
@@ -62,15 +62,16 @@ type LogEntry = LoginLog | AppLog;
 // never produce an undefined lookup and blank the whole panel.
 const normalizeLevel = (level: string): AppLogLevel => {
   switch (level) {
-    case 'info':
-    case 'success':
-    case 'warning':
-    case 'error':
-      return level;
-    case 'warn':
-      return 'warning';
-    default:
-      return 'info';
+    case 'debug':   return 'debug';
+    case 'info':    return 'info';
+    case 'success': return 'success';
+    case 'warning': return 'warning';
+    case 'error':   return 'error';
+    case 'fatal':   return 'fatal';
+    case 'warn':    return 'warning';
+    case 'critical':
+    case 'crit':    return 'fatal';
+    default:        return 'info';
   }
 };
 
@@ -221,7 +222,7 @@ export default function AppLogsManager() {
   // three cheap controls: level (info/warn/error), date range (24h/7d/30d/
   // all), and a free-text search. All filters compose. Defaults to 24h so
   // the panel opens focused on the most recent activity.
-  const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'warning' | 'error'>('all');
+  const [levelFilter, setLevelFilter] = useState<'all' | 'debug' | 'info' | 'warning' | 'error' | 'fatal'>('all');
   const [rangeFilter, setRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -247,9 +248,11 @@ export default function AppLogsManager() {
     if (levelFilter !== 'all') {
       if (log.type !== 'app') return false;
       const lvl = normalizeLevel((log as AppLog).level);
-      if (levelFilter === 'info' && !(lvl === 'info' || lvl === 'success')) return false;
+      if (levelFilter === 'debug'   && lvl !== 'debug') return false;
+      if (levelFilter === 'info'    && !(lvl === 'info' || lvl === 'success')) return false;
       if (levelFilter === 'warning' && lvl !== 'warning') return false;
-      if (levelFilter === 'error' && lvl !== 'error') return false;
+      if (levelFilter === 'error'   && lvl !== 'error') return false;
+      if (levelFilter === 'fatal'   && lvl !== 'fatal') return false;
     }
     // Search — cheap contains match on message + email + userName
     if (searchQuery.trim()) {
@@ -361,10 +364,12 @@ export default function AppLogsManager() {
       ? ((log as LoginLog).loginStatus === "success" ? "success" : "error")
       : normalizeLevel((log as AppLog).level);
     const levelColor: Record<string, string> = {
+      debug:   "text-slate-400 dark:text-slate-500",
       info:    "text-blue-600 dark:text-blue-400",
       success: "text-emerald-600 dark:text-emerald-400",
       warning: "text-amber-600 dark:text-amber-400",
       error:   "text-red-600 dark:text-red-400",
+      fatal:   "text-red-900 dark:text-red-300 font-bold",
     };
     const message = isLogin
       ? `${(log as LoginLog).userName || (log as LoginLog).email} · ${(log as LoginLog).loginStatus}`
@@ -462,10 +467,12 @@ export default function AppLogsManager() {
 
   const renderAppLog = (log: AppLog) => {
     const levelConfig = {
-      info: { icon: Info, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800' },
-      success: { icon: CheckCircle, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-800' },
-      warning: { icon: AlertTriangle, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-700' },
-      error: { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800' },
+      debug:   { icon: Info,          color: 'text-slate-500 dark:text-slate-400',    bg: 'bg-slate-50 dark:bg-slate-900/30',      border: 'border-slate-200 dark:border-slate-700' },
+      info:    { icon: Info,          color: 'text-blue-600 dark:text-blue-400',      bg: 'bg-blue-50 dark:bg-blue-950/30',        border: 'border-blue-200 dark:border-blue-800' },
+      success: { icon: CheckCircle,   color: 'text-green-600 dark:text-green-400',    bg: 'bg-green-50 dark:bg-green-950/30',      border: 'border-green-200 dark:border-green-800' },
+      warning: { icon: AlertTriangle, color: 'text-yellow-600 dark:text-yellow-400',  bg: 'bg-yellow-50 dark:bg-yellow-950/30',    border: 'border-yellow-200 dark:border-yellow-700' },
+      error:   { icon: XCircle,       color: 'text-red-600 dark:text-red-400',        bg: 'bg-red-50 dark:bg-red-950/30',          border: 'border-red-200 dark:border-red-800' },
+      fatal:   { icon: XCircle,       color: 'text-red-900 dark:text-red-300',        bg: 'bg-red-100 dark:bg-red-950/50',         border: 'border-red-400 dark:border-red-700' },
     };
 
     const config = levelConfig[normalizeLevel(log.level)];
@@ -585,20 +592,33 @@ export default function AppLogsManager() {
               </span>
             </div>
             {/* Level pills */}
-            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
-              {(['all', 'info', 'warning', 'error'] as const).map((lvl) => (
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1 flex-wrap">
+              {([
+                { value: 'all',     label: 'All' },
+                { value: 'debug',   label: 'Debug' },
+                { value: 'info',    label: 'Info' },
+                { value: 'warning', label: 'Warn' },
+                { value: 'error',   label: 'Error' },
+                { value: 'fatal',   label: 'Fatal' },
+              ] as const).map(({ value: lvl, label }) => (
                 <button
                   key={lvl}
                   type="button"
                   onClick={() => setLevelFilter(lvl)}
                   className={cn(
-                    'text-xs px-2.5 py-1 rounded-md active:scale-[0.98] transition-all capitalize',
+                    'text-xs px-2.5 py-1 rounded-md active:scale-[0.98] transition-all',
                     levelFilter === lvl
-                      ? 'bg-white dark:bg-gray-700 shadow-sm font-semibold'
+                      ? cn(
+                          'bg-white dark:bg-gray-700 shadow-sm font-semibold',
+                          lvl === 'fatal'   && 'text-red-800 dark:text-red-300',
+                          lvl === 'error'   && 'text-red-600 dark:text-red-400',
+                          lvl === 'warning' && 'text-amber-600 dark:text-amber-400',
+                          lvl === 'debug'   && 'text-slate-500',
+                        )
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  {lvl}
+                  {label}
                 </button>
               ))}
             </div>
@@ -630,13 +650,13 @@ export default function AppLogsManager() {
                 className="pl-8 h-8 text-xs"
               />
             </div>
-            {(levelFilter !== 'all' || rangeFilter !== '24h' || searchQuery) && (
+            {(levelFilter !== 'all' || rangeFilter !== '24h' || searchQuery.trim()) && (
               <button
                 type="button"
                 onClick={() => { setLevelFilter('all'); setRangeFilter('24h'); setSearchQuery(''); }}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
               >
-                Reset
+                Reset filters
               </button>
             )}
           </div>

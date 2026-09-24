@@ -113,18 +113,18 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scroll),
     ) {
-        // ── Blue banner ─────────────────────────────────────────
+        // ── Brand banner — uses MaterialTheme so it adapts to Material You ─
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .background(Color(0xFF2563EB)),
+                .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "KSYK",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 46.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
@@ -132,7 +132,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 Spacer(Modifier.height(2.dp))
                 Text(
                     "MAPS",
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 8.sp,
@@ -238,12 +238,6 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 enabled = !loading && email.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2563EB),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color(0xFFCBD5E1),
-                    disabledContentColor = Color.White,
-                ),
             ) {
                 if (loading) {
                     CircularProgressIndicator(

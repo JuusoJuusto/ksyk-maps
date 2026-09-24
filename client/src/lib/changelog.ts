@@ -10,15 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.23";
+export const APP_VERSION = "4.7.24";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.24",
+    date: "September 2026",
+    title: "AI-slop pass 2 · loading-spinner freeze root fix · Android Material You · Wilma responsive · dir/lunch cleanup",
+    titleFi: "AI-slop-siivous 2 · latauspyörän jäätymisen korjaus · Android Material You · Wilma responsiivinen",
+    latest: true,
+    highlights: [
+      "**LoadingSpinner freeze — root cause fix.** SpinningRing extracted into a memo'd `SpinRing` component so the 320ms `setInterval` no longer causes React to reconcile the animated arc. The CSS animation stays on the GPU compositor uninterrupted → frame-perfect 60fps even during query hydration. Also removed `Math.random()` jitter (unpredictable width jumps) and corrected the transition to `transition-[width] duration-500`.",
+      "**Android Material You dynamic-color adoption.** Removed hardcoded `Color(0xFF2563EB)` from `LoadingScreen`, `LoginScreen`, `MapScreen`. Everything now reads from `MaterialTheme.colorScheme.primary` / `onPrimary` / `outlineVariant`. Android 12+ dynamic-color themes now propagate all the way to the splash and login banner instead of stopping at navy.",
+      "**Android HomeScreen refresh bug fix.** `DisposableEffect(Unit)` was firing exactly once because `Unit` key never changes. Replaced with `LifecycleEventObserver` on `ON_RESUME` — home now re-reads layout prefs and refreshes the greeting time on every foregrounding, so stale greetings after long background sessions are gone.",
+      "**WilmaScheduleCard + WilmaConnectPanel light-mode support.** Both were hardcoded dark-slate; converted every element (card, rows, buttons, icons, footer, URL input, help text) to responsive `light/dark:` variants. Also killed the invisible-on-touch `opacity-0 group-hover:opacity-100` on the navigate-to-room button (previously invisible on all mobile devices).",
+      "**SplashScreen dark mode** — hardcoded `#ffffff` background replaced with `matchMedia('(prefers-color-scheme: dark)')`-driven `isDark ? '#0f172a' : '#ffffff'`. BootSpinner receives `dark` prop so the track ring matches. Explicit `memo<BootSpinnerProps>` typing so it type-checks.",
+      "**AI-slop audit pass 2 — background agent produced 20 concrete violations, top 6 applied this round:**",
+      "  · `directory.tsx`: `📖 Campus Directory` emoji title dropped; hero downsized `text-4xl` → `text-2xl md:text-3xl`. Building cards redesigned from centered `shadow-lg + hover:scale-105 + w-20 h-20 shadow-lg color-block` maximalism to a compact horizontal layout: `h-12 w-12` colored square + title/subtitle stack, `shadow-sm` + `hover:shadow-md`.",
+      "  · `admin-forgot-password.tsx`: full-page `bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900` gradient → flat `bg-gray-950` / `bg-gray-50`. Same treatment as the admin-login redesign from 4.7.20.",
+      "  · `lunch.tsx`: sticky-header `backdrop-blur-xl` → `backdrop-blur-md`. The xl-blur was tanking scroll perf on low-end laptops for zero visual benefit on flat bg colors.",
+      "  · `easter-egg.tsx`: 'SECRET UNLOCKED!' all-caps → 'Secret unlocked' proper case, `text-2xl font-black` → `text-xl font-bold`. Removed 🥚 emoji from 'Your collection' heading. Back button `shadow-2xl` → `shadow-lg` + focus-visible ring. Kept the celebration vibe intact — it IS an easter egg.",
+      "**Sentry tunnel 403 fixed with dynamic DSN routing** (originally slated for 4.7.23): parse envelope header, extract `{host}` + `{projectId}` from the DSN, forward to `https://{host}/api/{projectId}/envelope/`. No more hardcoded stale project IDs.",
+      "**rrweb player wired inline in Sessions sub-tab**: telemetry sessions table now shows a blue Play button on rows with a recorded replay. Standalone card above the tabs removed — one integrated view. Uses one shared `/api/sessions/rrweb?range=` fetch intersected with the telemetry list via Set of session IDs.",
+      "**Grant link recovery**: PATCH re-mints when approve hits a null-token row so pre-4.7.22 broken links can be reissued by clicking Approve again. `redeemedAt` is reset so the new link is single-use again. `/grant/:token` invalid state shows a real 'Request access again' CTA.",
+    ],
+    highlightsFi: [
+      "**Latauspyörän jäätymisen juurikorjaus**: `SpinningRing` erotettu `React.memo`-komponentiksi — CSS-animaatio pysyy GPU-kompositorilla vaikka progress-tila päivittyy 320 ms välein.",
+      "**Android Material You**: latausruutu, kirjautumissivu ja karttaruutu käyttävät nyt `MaterialTheme.colorScheme.primary`-väriä hardkoodatun sinisen sijaan.",
+      "**Android HomeScreen -korjaus**: greeting päivittyy nyt aina kun sovellus tulee etualalle (aiemmin jumitti taustalle jäämisen jälkeen).",
+      "**Wilma-kortit responsiivisiksi**: aiemmin vain tummassa tilassa toimivat elementit toimivat nyt myös vaaleassa.",
+      "**AI-slop audit 2**: `directory.tsx` emoji-otsikko + korttien scale/shadow-liioittelu poistettu, `admin-forgot-password.tsx` liukuvärjätty tausta poistettu, `lunch.tsx` `backdrop-blur-xl` → `blur-md`, `easter-egg.tsx` ALL-CAPS-otsikot pehmennetty.",
+      "**Sentry-tunnel 403** ja **kutsulinkin uudelleen-lähetys** — julkaistiin nyt yhdessä 4.7.24-julkaisussa.",
+    ],
+  },
   {
     version: "4.7.23",
     date: "September 2026",
     title: "Grant-token re-mint · rrweb player in Sessions tab · Sentry tunnel dynamic DSN · splash dark mode",
     titleFi: "Kutsulinkin uudelleen-luonti · Session replay Sessions-välilehdessä · Sentry-tunnelin dynaaminen DSN · aloitusruudun tumma tila",
-    latest: true,
     highlights: [
       "**Grant link recovery.** v4.7.22 stopped NEW tokens from getting nuked, but historical broken links from before were still 404-ing (the DB had `approved` rows with `grantToken: null` from the old client-overwrite bug). Now the PATCH endpoint re-mints a fresh token whenever an approval hits a request without one — so admins just click Approve again to reissue the magic link (a new email fires, redemption timestamp resets). Also relaxed the /grant page: shows a clearer explanation + a 'Request access again' CTA back to the access-request form.",
       "**rrweb player wired INTO the Sessions sub-tab.** Sessions tab now shows telemetry sessions AND a blue Play button on any row with a recorded replay. Standalone RrwebSessionsCard removed from above the tabs — one integrated table instead of two competing lists. Uses one shared `/api/sessions/rrweb?range=` request, then intersects with the telemetry list via a Set of session IDs. Player modal (~250KB) still lazy-loaded on Play; only the entry point moved.",

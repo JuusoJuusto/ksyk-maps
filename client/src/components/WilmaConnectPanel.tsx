@@ -85,7 +85,7 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
         </div>
         <div>
           <h3 className="font-semibold text-base leading-tight">Connect Wilma Schedule</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Import your timetable directly from Wilma — no password needed
           </p>
         </div>
@@ -94,13 +94,13 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
       {/* Already connected status */}
       {connected && !error && success && (
         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-emerald-400">
+          <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             Calendar connected
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {success.stats.total} events imported · {success.stats.matched} rooms matched
             {success.stats.unmatched > 0 && ` · ${success.stats.unmatched} rooms not found`}
           </p>
@@ -108,7 +108,7 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
             <button
               onClick={handleRefresh}
               disabled={syncing}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 transition-colors"
+              className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 disabled:opacity-50 transition-colors"
             >
               {syncing ? "Refreshing…" : "Refresh now"}
             </button>
@@ -124,29 +124,29 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
 
       {/* Instructions toggle */}
       {showInstructions && (
-        <div className="rounded-xl bg-slate-800 border border-slate-700 p-4 text-sm flex flex-col gap-3">
-          <p className="font-semibold text-slate-200">How to find your iCalendar URL in Wilma</p>
+        <div className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 text-sm flex flex-col gap-3">
+          <p className="font-semibold text-slate-800 dark:text-slate-200">How to find your iCalendar URL in Wilma</p>
 
-          <div className="text-slate-300 flex flex-col gap-1.5">
-            <p className="font-medium text-slate-400 text-xs uppercase tracking-wide">English</p>
-            <ol className="list-decimal list-inside space-y-1 text-xs text-slate-300">
-              <li>Log in to Wilma (<span className="font-mono text-blue-400">ksyk.inschool.fi</span>)</li>
+          <div className="flex flex-col gap-1.5">
+            <p className="font-medium text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">English</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs text-slate-600 dark:text-slate-300">
+              <li>Log in to Wilma (<span className="font-mono text-blue-600 dark:text-blue-400">ksyk.inschool.fi</span>)</li>
               <li>Click your name or profile icon (top-right corner)</li>
               <li>Go to <span className="font-semibold">Timetable</span></li>
               <li>Look for a calendar icon or <span className="font-semibold">Subscribe to calendar / iCal</span> link</li>
-              <li>Copy the URL that starts with <span className="font-mono text-blue-400">https://</span></li>
+              <li>Copy the URL that starts with <span className="font-mono text-blue-600 dark:text-blue-400">https://</span></li>
               <li>Paste it below</li>
             </ol>
           </div>
 
-          <div className="text-slate-300 flex flex-col gap-1.5 pt-1 border-t border-slate-700">
-            <p className="font-medium text-slate-400 text-xs uppercase tracking-wide">Suomi</p>
-            <ol className="list-decimal list-inside space-y-1 text-xs text-slate-300">
-              <li>Kirjaudu Wilmaan (<span className="font-mono text-blue-400">ksyk.inschool.fi</span>)</li>
+          <div className="flex flex-col gap-1.5 pt-1 border-t border-slate-200 dark:border-slate-700">
+            <p className="font-medium text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">Suomi</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs text-slate-600 dark:text-slate-300">
+              <li>Kirjaudu Wilmaan (<span className="font-mono text-blue-600 dark:text-blue-400">ksyk.inschool.fi</span>)</li>
               <li>Klikkaa nimeäsi tai profiili-kuvaketta (oikeassa yläkulmassa)</li>
               <li>Siirry <span className="font-semibold">Lukujärjestys</span>-osioon</li>
               <li>Etsi kalenterikuvake tai <span className="font-semibold">Tilaa kalenteri / iCal</span> -linkki</li>
-              <li>Kopioi URL, joka alkaa <span className="font-mono text-blue-400">https://</span></li>
+              <li>Kopioi URL, joka alkaa <span className="font-mono text-blue-600 dark:text-blue-400">https://</span></li>
               <li>Liitä se alle</li>
             </ol>
           </div>
@@ -160,7 +160,7 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
 
       {/* URL input */}
       <div className="flex flex-col gap-2">
-        <label className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           Wilma iCalendar URL
         </label>
         <input
@@ -169,16 +169,17 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
           onChange={e => { setUrl(e.target.value); setError(null); }}
           onKeyDown={e => e.key === "Enter" && handleConnect()}
           placeholder="https://ksyk.inschool.fi/...?ical=..."
-          className="w-full rounded-xl bg-slate-800 border border-slate-600 px-3 py-2.5 text-sm
-                     placeholder:text-slate-500 focus:outline-none focus:border-blue-500
-                     font-mono text-blue-300 disabled:opacity-50"
+          className="w-full rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600
+                     px-3 py-2.5 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500
+                     focus:outline-none focus:border-blue-500 font-mono
+                     text-slate-800 dark:text-blue-300 disabled:opacity-50"
           disabled={syncing}
           autoComplete="off"
           spellCheck={false}
         />
         {!showInstructions && (
           <button
-            className="text-left text-xs text-blue-400 hover:text-blue-300 underline"
+            className="text-left text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             onClick={() => setShowInstructions(true)}
           >
             Where do I find this URL?
@@ -188,10 +189,10 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-300 flex flex-col gap-2">
+        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-700 dark:text-red-300 flex flex-col gap-2">
           <div className="font-medium">{error}</div>
-          <div className="text-xs text-slate-400 flex flex-col gap-1">
-            <p className="font-semibold text-slate-300">Troubleshooting:</p>
+          <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1">
+            <p className="font-semibold text-slate-700 dark:text-slate-300">Troubleshooting:</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>Make sure the URL starts with <span className="font-mono">https://</span></li>
               <li>The URL may have expired — generate a new one in Wilma</li>
@@ -216,7 +217,7 @@ export default function WilmaConnectPanel({ onConnected, onDisconnected }: Props
       )}
 
       {/* Privacy note */}
-      <p className="text-xs text-slate-500 text-center">
+      <p className="text-xs text-slate-500 dark:text-slate-500 text-center">
         Your calendar URL is stored only in this browser. It is never shared or logged.
       </p>
     </div>

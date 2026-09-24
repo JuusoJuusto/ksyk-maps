@@ -139,17 +139,17 @@ export default function Directory() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            📖 Campus Directory
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white mb-1.5">
+            Campus Directory
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Find rooms, staff, and facilities across the KSYK campus
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Find rooms, staff, and facilities across the KSYK campus.
           </p>
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-8 shadow-lg">
+        <Card className="mb-6 shadow-sm">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
@@ -369,19 +369,23 @@ export default function Directory() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {buildings.map((building: Building) => (
-                  <Card key={building.id} className="hover:shadow-xl transition-all cursor-pointer transform hover:scale-105">
-                    <CardContent className="p-8 text-center">
-                      <div
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"
-                        style={{ backgroundColor: building.colorCode }}
-                      >
-                        <span className="text-white font-bold text-3xl">{building.name}</span>
+                  <Card key={building.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-3">
+                        <div
+                          className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: building.colorCode }}
+                        >
+                          <span className="text-white font-bold text-lg">{building.name}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">{building.nameEn}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{building.nameFi}</p>
+                        </div>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{building.nameEn}</h3>
-                      <p className="text-gray-600 mb-4">{building.nameFi}</p>
-                      <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>{building.floors} floors</span>
-                        <span>•</span>
+                        <span aria-hidden="true">·</span>
                         <span>{rooms.filter((r: Room) => r.buildingId === building.id).length} rooms</span>
                       </div>
                     </CardContent>

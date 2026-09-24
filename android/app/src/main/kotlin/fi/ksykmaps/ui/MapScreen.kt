@@ -503,6 +503,36 @@ fun MapScreen() {
                 lang = lang,
                 onCancel = { searchQuery = ""; searchFocused = false },
             )
+            // Subtle live-data refresh indicator — shown briefly while
+            // the background API fetch runs on first load / manual retry.
+            // Fades in/out so it never startles the user.
+            AnimatedVisibility(
+                visible = dataFetching && !searchFocused,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
+            ) {
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        if (lang == "fi") "Päivitetään…" else "Updating…",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
             if (searchFocused && searchQuery.isNotBlank()) {
                 SearchResults(
                     query = searchQuery,

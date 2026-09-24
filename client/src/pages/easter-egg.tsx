@@ -72,8 +72,8 @@ export default function EasterEgg() {
                 <Unlock className="w-8 h-8 md:w-12 md:h-12 text-yellow-400" />
               </motion.div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg md:text-2xl font-black text-white mb-1">SECRET UNLOCKED!</h3>
-                <p className="text-sm md:text-lg text-yellow-300 break-words">British English in Settings, innit! 🇬🇧</p>
+                <h3 className="text-lg md:text-xl font-bold text-white mb-1">Secret unlocked</h3>
+                <p className="text-sm md:text-base text-yellow-300 break-words">British English is now in Settings.</p>
               </div>
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function EasterEgg() {
           className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-3xl p-6 mb-8 border-4 border-white/20"
         >
           <h3 className="text-xl font-bold text-white mb-4 text-center">
-            🥚 Your Collection ({easterEggsFound}/{totalEggs})
+            Your collection ({easterEggsFound}/{totalEggs})
           </h3>
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
             {EASTER_EGGS.map((egg) => {
@@ -396,7 +396,7 @@ export default function EasterEgg() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setLocation("/")}
-          className="bg-purple-600 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-2xl hover:shadow-pink-500/50 transition-all"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-3.5 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-purple-900"
         >
           Back to Home
         </motion.button>

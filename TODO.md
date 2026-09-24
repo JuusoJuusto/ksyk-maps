@@ -16,6 +16,18 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.24 · android patch · pending push)
+
+- **Full UX/UI quality pass — web + Android (apple-design audit pass 2)**
+  - **LoadingSpinner freeze fix (root cause)**: `SpinningRing` extracted into `React.memo` component (`SpinRing`). The 320ms `setInterval` no longer causes React to reconcile the spinner arc div → CSS animation stays on the GPU compositor thread uninterrupted. Removed `Math.random()` jitter from progress formula. Transition corrected to `transition-[width] duration-500`.
+  - **SplashScreen dark mode**: hardcoded `background: "#ffffff"` replaced with `isDark ? "#0f172a" : "#ffffff"` computed synchronously from `matchMedia`. All text/track colours adapt. `BootSpinner` receives `dark` prop so track ring matches the dark background.
+  - **WilmaScheduleCard navigate button**: removed `opacity-0 group-hover:opacity-100` — navigate-to-room button was invisible on all touch devices. Now always-visible with `p-1.5 rounded-lg hover:bg + active:scale-95`.
+  - **Android LoadingScreen**: removed `private val SplashBlue = Color(0xFF2563EB)` hardcode; replaced with `MaterialTheme.colorScheme.primary` + `outlineVariant` for the track. Adapts to Material You dynamic colors on Android 12+.
+  - **Android LoginScreen**: banner and sign-in button now use `MaterialTheme.colorScheme.primary` / `onPrimary`. Hardcoded `Color(0xFF2563EB)` removed from both.
+  - **Android MapScreen**: added `AnimatedVisibility` live-data refresh chip (CircularProgressIndicator + "Päivitetään…") while `dataFetching` is true. Fades in/out.
+  - **Android HomeScreen**: `DisposableEffect(Unit)` was only firing once (bug — Unit key prevents repeats). Replaced with `LifecycleEventObserver` on `ON_RESUME` that re-reads both `homeLayout` and refreshes `greetingTime`. Fixes stale greetings after background sessions and picks up settings changes without a restart.
+- TypeScript `tsc` clean · Vite build clean.
+
 ## ✅ Just shipped (web 4.7.23 · pending push)
 
 - **Apple-design audit — UI/UX overhaul pass 1** (admin panel + schedule card + Wilma setup):

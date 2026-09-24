@@ -25,8 +25,6 @@ import androidx.compose.ui.unit.sp
 import fi.ksykmaps.R
 import kotlinx.coroutines.delay
 
-private val SplashBlue = Color(0xFF2563EB)
-
 @Composable
 fun LoadingScreen(onFinished: () -> Unit) {
     var progress by remember { mutableStateOf(0f) }
@@ -53,6 +51,10 @@ fun LoadingScreen(onFinished: () -> Unit) {
         label = "spin",
     )
 
+    // Use MaterialTheme so the splash adapts to Material You dynamic colours.
+    val brandColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
+
     LaunchedEffect(Unit) {
         val stages = listOf(0.20f, 0.45f, 0.65f, 0.82f, 0.95f, 1.0f)
         val pauses  = listOf(150L, 200L, 250L, 200L, 200L, 100L)
@@ -75,26 +77,24 @@ fun LoadingScreen(onFinished: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            // Spinning ring + logo — matches the website SplashScreen SVG ring style
+            // Spinning ring + logo
             Box(
                 Modifier.size(80.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Canvas(Modifier.fillMaxSize()) {
-                    val sw   = 3.dp.toPx()
+                    val sw    = 3.dp.toPx()
                     val inset = sw / 2f
                     val arcSize = Size(size.width - sw, size.height - sw)
                     val topLeft  = Offset(inset, inset)
-                    // Grey background track
                     drawArc(
-                        color = Color(0xFFE5E7EB),
+                        color = trackColor,
                         startAngle = 0f, sweepAngle = 360f, useCenter = false,
                         topLeft = topLeft, size = arcSize,
                         style = Stroke(sw, cap = StrokeCap.Round),
                     )
-                    // Blue spinning arc (~230° dasharray, same proportion as website)
                     drawArc(
-                        color = SplashBlue,
+                        color = brandColor,
                         startAngle = ringRotation - 90f,
                         sweepAngle = 230f,
                         useCenter = false,
@@ -140,8 +140,8 @@ fun LoadingScreen(onFinished: () -> Unit) {
                         .fillMaxWidth()
                         .height(3.dp)
                         .clip(RoundedCornerShape(2.dp)),
-                    color = SplashBlue,
-                    trackColor = Color(0xFFE5E7EB),
+                    color = brandColor,
+                    trackColor = trackColor,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(

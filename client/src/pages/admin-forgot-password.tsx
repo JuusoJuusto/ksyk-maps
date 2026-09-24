@@ -68,9 +68,7 @@ export default function AdminForgotPassword() {
     <div
       className={cn(
         "min-h-screen flex items-center justify-center p-4",
-        darkMode
-          ? "bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900"
-          : "bg-gradient-to-br from-slate-50 via-white to-blue-50/60",
+        darkMode ? "bg-gray-950" : "bg-gray-50",
       )}
     >
       <div
