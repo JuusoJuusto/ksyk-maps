@@ -11,10 +11,11 @@ import crypto from 'node:crypto';
 
 function _adminSecret(): string {
   const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) {
-    throw new Error("SESSION_SECRET env var is missing or too short — set it in the Vercel dashboard");
-  }
-  return s;
+  if (s && s.length >= 32) return s;
+  // Fallback keeps the server running when the env var isn't set yet.
+  // Set SESSION_SECRET in the Vercel dashboard to override this.
+  console.warn("SESSION_SECRET env var missing or too short — using built-in fallback. Set SESSION_SECRET in Vercel.");
+  return "ksyk-maps-admin-built-in-fallback-key-v1";
 }
 
 function generateAdminToken(userId: string, role: string): string {
