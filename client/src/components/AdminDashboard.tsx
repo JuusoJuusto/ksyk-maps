@@ -602,12 +602,6 @@ function InsightsPanel() {
   const activePill = pills.find(p => p.key === inner);
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold">Analytics &amp; Logs</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {activePill?.hint ?? "Usage metrics, error logs, dashboards, and user feedback in one place."}
-        </p>
-      </div>
       <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
         {pills.map((p) => (
           <button

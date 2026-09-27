@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, CheckCircle, Send, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Send, X, Zap } from 'lucide-react';
 import posthog from '@/lib/posthog';
 
 interface TicketSystemProps {
@@ -138,7 +138,7 @@ export default function TicketSystemNew({ isOpen, onClose }: TicketSystemProps) 
               {/* Quick Templates */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold">⚡ Quick Templates</Label>
+                  <Label className="text-sm font-semibold flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-blue-500" /> Quick Templates</Label>
                   <Button
                     type="button"
                     variant="ghost"

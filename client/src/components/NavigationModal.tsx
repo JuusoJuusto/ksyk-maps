@@ -432,7 +432,7 @@ export default function NavigationModal({ isOpen, onClose, onNavigate }: Navigat
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  🎯 Destination
+                  Destination
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />

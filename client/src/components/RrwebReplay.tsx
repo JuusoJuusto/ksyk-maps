@@ -163,6 +163,10 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
             height: Math.min(720, window.innerHeight - 160),
             skipInactive: true,
             showController: true,
+            // UNSAFE_replayCanvas:false avoids canvas-replay sandboxing
+            // warnings; liveMode:false ensures the replay runs at recorded speed.
+            UNSAFE_replayCanvas: false,
+            liveMode: false,
           },
         }) as unknown as { $destroy?: () => void };
 

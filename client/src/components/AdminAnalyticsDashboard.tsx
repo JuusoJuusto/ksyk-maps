@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fetchList, fetchObject } from "@/lib/fetchList";
 import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
@@ -852,6 +852,7 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
           <DialogTitle className="font-mono text-sm text-blue-600 dark:text-blue-400 break-all">
             {sessionId}
           </DialogTitle>
+          <DialogDescription className="sr-only">Session event timeline</DialogDescription>
           {data?.session && (
             <div className="text-xs text-muted-foreground flex flex-wrap gap-3 mt-1 items-center">
               <span>Platform: <strong>{data.session.platform}</strong></span>
@@ -862,9 +863,9 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
                 href={posthogReplayUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 text-[11px] font-semibold hover:bg-orange-200 dark:hover:bg-orange-950/70"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 text-[11px] font-semibold hover:bg-orange-200 dark:hover:bg-orange-950/70"
               >
-                ▶ Watch replay in PostHog
+                <Play className="h-3 w-3" /> Watch replay in PostHog
               </a>
             </div>
           )}
