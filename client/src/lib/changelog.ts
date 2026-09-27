@@ -10,17 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.31";
+export const APP_VERSION = "4.7.32";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.97.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.32",
+    date: "September 2026",
+    title: "Dark mode map fix · smooth map theme transitions · room card entrance animation",
+    titleFi: "Tumman tilan karttakorjaus · sulavat karttateematransitiot · huonekortin sisääntuloanimaatio",
+    latest: true,
+    highlights: [
+      "Dark mode now applies instantly when toggled — the map no longer flickers or reloads tiles; brightness/saturation filters are applied in place via MapLibre paint properties.",
+      "Switching between light and dark mode cross-fades the map filter smoothly instead of snapping.",
+      "The map canvas background now transitions with a 400 ms ease when the theme changes, eliminating the brief white flash on slower devices.",
+      "Room/building info cards now slide up from the bottom on mobile and fade up on desktop when they open.",
+      "MapLibre attribution and scale controls now render in dark colours in dark mode instead of staying white.",
+    ],
+    highlightsFi: [
+      "Tumma tila aktivoituu välittömästi vaihdettaessa — kartta ei enää välähdä eikä lataa uudelleen; kirkkaus- ja värikylläisyyssuodattimet päivittyvät MapLibren paint-ominaisuuksilla.",
+      "Vaalea/tumma-vaihto cross-fadettaa karttasuodattimet sulavasti.",
+      "Karttataustan taustanväri siirtyy 400 ms ease-animaatiolla teemaa vaihdettaessa.",
+      "Huone- ja rakennustietokortit liu'uttavat ylös mobiililla ja häipyvät esiin pöytäkoneella avautuessaan.",
+      "MapLibre-attribuutio ja mittakaavajana näkyvät nyt tummina tummassa tilassa.",
+    ],
+  },
+  {
     version: "4.7.31",
     date: "September 2026",
     title: "Android screen transitions · animated loading states · lesson progress bar polish",
     titleFi: "Android-näyttösiirtymät · animoidut lataustilanäkymät · tuntipalkki polished",
-    latest: true,
+    latest: false,
     highlights: [
       "Tab switching now slides directionally — tapping a tab to the right slides content in from the right (and vice versa) with a subtle parallax fade.",
       "Opening a sub-screen (Room Finder, Announcements, Changelog, etc.) slides in from the right like a native push transition; the back gesture slides it out.",

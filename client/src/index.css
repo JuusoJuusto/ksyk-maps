@@ -1585,6 +1585,26 @@ body {
   cursor: grabbing !important;
 }
 
+/* ── MapLibre GL dark mode controls ─────────────────────────────── */
+.dark .maplibregl-ctrl-attrib {
+  background: rgba(15, 23, 42, 0.78) !important;
+  color: #9ca3af !important;
+}
+.dark .maplibregl-ctrl-attrib a { color: #60a5fa !important; }
+.dark .maplibregl-ctrl-attrib-button { filter: invert(1); }
+.dark .maplibregl-ctrl-scale {
+  border-color: #e2e8f0 !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── FeatureInfoSheet — desktop variant uses fadeInUp ────────────── */
+@media (min-width: 640px) {
+  .map-room-sheet {
+    animation: fadeInUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
 /* Defensive — make sure Leaflet's own panes never show a visible background
  * or border. Tiles render in the tile pane; everything else should be
  * transparent. */

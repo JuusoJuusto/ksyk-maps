@@ -16,6 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.32 · dark mode map + animations)
+
+- **Map dark mode toggle fixed** — replaced the remove+re-add tile source approach with `setPaintProperty` calls. The filter (brightness/saturation/contrast) now applies instantly via MapLibre paint interpolation; no tile re-fetch, no flicker.
+- **Smooth background transition** — map container fades `background-color` over 400 ms when theme changes; eliminates the brief white flash on slower devices.
+- **FeatureInfoSheet entrance animation** — room/building info cards now slide up from the bottom on mobile (slideUp 240 ms) and fade up on desktop (fadeInUp 240 ms) via the `.map-room-sheet` CSS class.
+- **MapLibre dark mode controls** — attribution panel and scale bar now render dark in dark mode; previously stayed white and clashed with the dark map.
+- **Web version bumped** — `4.7.31` → `4.7.32` with changelog entry.
+
 ## ✅ Just shipped (Android 1.97.0 + web 4.7.31)
 
 - **AnimatedContent screen transitions** — tab switching in `AppShell` (MainActivity.kt) now uses `AnimatedContent` with directional slide + fade. Tapping a tab further right slides content in from the right (1/4 parallax on outgoing screen). Tapping back slides left. Opening any sub-screen (Room Finder, Announcements, Wilma Connect, Changelog, etc.) slides in from the right like a native push; Back pops it back to the left. `slideInHorizontally + fadeIn togetherWith slideOutHorizontally + fadeOut` — compositor-layer, no layout pass.

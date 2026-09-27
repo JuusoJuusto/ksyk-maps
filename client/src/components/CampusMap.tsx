@@ -193,9 +193,10 @@ function osmRasterStyle(mode: "light" | "dark"): maplibregl.StyleSpecification {
           // Darken OSM standard tiles in dark mode since we no longer use
           // a separate dark tile provider (CARTO Dark Matter).
           ...(mode === "dark" && {
-            "raster-brightness-max": 0.22,
-            "raster-saturation": -0.4,
-            "raster-contrast": 0.2,
+            "raster-brightness-max": 0.28,
+            "raster-brightness-min": 0.0,
+            "raster-saturation": -0.85,
+            "raster-contrast": 0.5,
           }),
         },
       },
@@ -443,49 +444,27 @@ export default function CampusMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Dark mode: swap the tile source in place. Full setStyle() would
-  //    also work but it re-installs every KSYK GeoJSON layer, so we
-  //    just update the source's tile URLs + attribution and let
-  //    MapLibre re-fetch. This preserves camera state + user overlays.
+  // ── Dark mode: update paint filters in place via setPaintProperty.
+  //    Both light and dark use the same OSM tile URLs, so there is no
+  //    need to remove+re-add the source. setPaintProperty is instant,
+  //    requires no tile re-fetch, and MapLibre interpolates the change
+  //    smoothly — the filter visually cross-fades over raster-fade-duration.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    const mode = darkMode ? "dark" : "light";
-    const src = map.getStyle().sources["osm-raster"];
-    if (!src) return;
-    // MapLibre doesn't expose a mutable "setTiles" on raster sources —
-    // the safest reliable path is remove + re-add the source and
-    // re-add the layer. Both are cheap on raster.
-    const layerBefore = map.getLayer("osm-raster-layer");
-    if (layerBefore) map.removeLayer("osm-raster-layer");
-    if (map.getSource("osm-raster")) map.removeSource("osm-raster");
-    map.addSource("osm-raster", {
-      type: "raster",
-      tiles: [...TILE_URLS[mode]],
-      tileSize: 256,
-      attribution: TILE_ATTRIBUTIONS[mode],
-      maxzoom: 19,
-    });
-    // Insert BELOW the first non-basemap layer so KSYK overlays stay on top.
-    const layers = map.getStyle().layers ?? [];
-    const firstOverlay = layers.find((l) => l.id !== "osm-raster-layer")?.id;
-    map.addLayer(
-      {
-        id: "osm-raster-layer", type: "raster", source: "osm-raster",
-        minzoom: 0, maxzoom: 22,
-        paint: {
-          // Match the initial-style paint so a dark-mode toggle doesn't
-          // lose the high-zoom raster fade.
-          "raster-opacity": ["interpolate", ["linear"], ["zoom"], 15, 1.0, 18, 1.0, 19, 0.75, 20, 0.6, 22, 0.45],
-          "raster-fade-duration": 200,
-        },
-      },
-      firstOverlay,
-    );
-    // Re-apply the directional light so extrusion shading matches the
-    // theme. Warm sun for light mode, cool moon for dark mode. Same
-    // world-space anchor as the initial style spec so cast shadows
-    // continue to behave correctly after a theme toggle.
+    const layerId = "osm-raster-layer";
+    if (!map.getLayer(layerId)) return;
+    if (darkMode) {
+      map.setPaintProperty(layerId, "raster-brightness-max", 0.28);
+      map.setPaintProperty(layerId, "raster-brightness-min", 0.0);
+      map.setPaintProperty(layerId, "raster-saturation", -0.85);
+      map.setPaintProperty(layerId, "raster-contrast", 0.5);
+    } else {
+      map.setPaintProperty(layerId, "raster-brightness-max", 1.0);
+      map.setPaintProperty(layerId, "raster-brightness-min", 0.0);
+      map.setPaintProperty(layerId, "raster-saturation", 0.0);
+      map.setPaintProperty(layerId, "raster-contrast", 0.0);
+    }
     try {
       map.setLight({
         anchor: "map",
@@ -613,7 +592,7 @@ export default function CampusMap({
       // v3.26.2 — CSS fallback backdrop. If MapLibre fails to init or
       // the raster tiles don't load, the container shows a neutral
       // paper-beige (or dark slate) so users never see stark white.
-      style={{ backgroundColor: darkMode ? "#0f172a" : "#eeeae0" }}
+      style={{ backgroundColor: darkMode ? "#0f172a" : "#eeeae0", transition: "background-color 400ms ease" }}
       className={cn(
         "w-full h-full relative",
         // Kill MapLibre's default focus outline — we manage focus states

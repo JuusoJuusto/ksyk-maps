@@ -102,7 +102,7 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
       role="dialog"
       aria-label={`${feature.kind} info`}
       className={cn(
-        "fixed z-40 flex flex-col overflow-hidden",
+        "fixed z-40 flex flex-col overflow-hidden map-room-sheet",
         "bg-white dark:bg-gray-900",
         // Mobile: bottom sheet
         "left-0 right-0 bottom-0 rounded-t-2xl shadow-[0_-2px_24px_rgba(0,0,0,0.12)]",
