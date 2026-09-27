@@ -12,7 +12,7 @@ export type ChangelogEntry = {
 
 export const APP_VERSION = "4.7.31";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.57.0";
+export const ANDROID_APP_VERSION = "1.97.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
