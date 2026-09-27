@@ -16,6 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.29 · commit 5673f62)
+
+- **SplashScreen dark mode flash fixed** — `SplashScreen` now reads `window.matchMedia('(prefers-color-scheme: dark)')` synchronously at init. Dark-mode users see `#030712` background (matching the `#preboot` spinner) instead of a white flash. Spinner track also adapts via a `@media` CSS block. `isDark` computed in `useState` initializer so it runs once and never flickers.
+- **Support page redesigned** — removed `<Header />` and `<AnnouncementBanner />` from both the form and success views. Replaced with a minimal `<header>` containing a back-to-map link, matching the FAQ/download standalone page style. `Link + ArrowLeft` imported from wouter/lucide respectively.
+- **New `/privacy` page** — honest bilingual (Finnish + English) privacy policy. Covers: PostHog analytics, support ticket data, HttpOnly admin session cookie, localStorage preferences. Lazy-loaded, route added to App.tsx. Language toggle matches FAQ pattern.
+- **FAQ: removed internal TODO question** — "Missä TODO tai kehityssuunnitelma on?" entry removed from QUESTIONS array. Was exposing development internals to end-users.
+- **CampusChangelog: Firebase release-notes panel removed** — the `useQuery`-driven amber panel that fetched `/api/announcements` and labeled them "Release notes (Firebase)" showed implementation details in the user-facing settings. Removed. `useQuery` import also dropped.
+- **Privacy Policy links added** — FAQ, download, and support pages now have "Privacy Policy" links in their footer sections pointing to `/privacy`.
+- **README badges updated** — `4.6.7 → 4.7.29` (web) and `1.82.0 → 1.93.0` (Android).
+- TypeScript `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.28 · pending push)
 
 **Production-readiness audit pass 3 — design consistency + stale data fixes**
