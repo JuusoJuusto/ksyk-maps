@@ -16,6 +16,21 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.28 · pending push)
+
+**Production-readiness audit pass 3 — design consistency + stale data fixes**
+
+- **`forgot-password.tsx` rewrite** — removed old `bg-gradient-to-br from-[#003d82]` design, dot-grid pattern background, "Nordbyte Studio" copyright, and gradient buttons. Replaced with clean flat `bg-gray-50 dark:bg-gray-950` page, bordered card matching the `admin-forgot-password` design language, solid `bg-blue-600` button, proper dark mode via `useDarkMode`.
+- **`reset-password.tsx` rewrite** — same treatment. Removed gradient design. Clean card, password toggle buttons (`Eye/EyeOff`), `autoComplete="new-password"` on both fields, Finnish copy preserved.
+- **Android version stale in About tab** — `CampusSettingsPanel` About tab showed `v1.55.0` for Android version. Introduced `ANDROID_APP_VERSION` constant in `changelog.ts` and used it in both `CampusSettingsPanel` and `download.tsx` so there's one source of truth.
+- **FAQ page rewrite** — replaced bare `<header>` with proper floating chip `Header` + `AnnouncementBanner`. Dark mode via `useDarkMode`. Language toggle now shows full words ("In English" / "Suomeksi") instead of opaque codes.
+- **not-found.tsx** — added missing `AnnouncementBanner` component.
+- **Header admin mode buttons** — replaced emoji buttons (`🍽️`) and colored card-style variants with the same clean icon-button pattern used in normal mode.
+- **CookieConsent rewrite** — removed gradient buttons, uncontrolled DOM checkbox (React anti-pattern), no dark mode. Replaced with controlled `useState(analyticsEnabled)` toggle, solid `bg-blue-600`, dark mode variants throughout.
+- **HSL page title** — `"Ksyk HSL Näyttö"` → `"HSL — KSYK Maps"` (consistent capitalization + format).
+- **LoadingSpinner stage text** — `"Preparing wings…" / "Valmistellaan siipiä…"` → `"Fetching rooms…" / "Haetaan huoneita…"` (sensible messages).
+- TypeScript `tsc` clean · Vite build clean.
+
 ## 🚧 In progress (session 2 deep pass — not yet pushed)
 
 - **SplashScreen white background**: reverted session-1 dark-mode adaptive background — user requirement. Removed `isDark` matchMedia state. `background` hard-coded to `"#ffffff"` always. `BootSpinner` simplified back to zero props. All adaptive colors removed. First visible frame is white, no flash.

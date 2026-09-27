@@ -2,10 +2,12 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, LifeBuoy } from "lucide-react";
 import Header from "@/components/Header";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export default function NotFound() {
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
+      <AnnouncementBanner />
       <Header />
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-lg">

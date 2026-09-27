@@ -30,7 +30,7 @@ import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
-import { APP_VERSION } from "@/lib/changelog";
+import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -408,7 +408,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                         icon: Smartphone,
                         iconBg: "bg-green-500",
                         label: isFi ? "Android-versio" : "Android version",
-                        value: "v1.55.0",
+                        value: `v${ANDROID_APP_VERSION}`,
                       },
                       {
                         icon: School,

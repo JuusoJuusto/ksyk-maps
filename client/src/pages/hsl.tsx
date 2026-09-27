@@ -17,7 +17,7 @@ export default function HSL() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    document.title = "Ksyk HSL Näyttö";
+    document.title = "HSL — KSYK Maps";
     trackFeature("hsl_page_viewed");
 
     // Full-screen kiosk mode — remember the previous body styles so we

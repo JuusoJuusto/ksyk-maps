@@ -1,12 +1,14 @@
 /**
- * FAQ page (/faq) — plain content page with expand/collapse questions.
- * Referenced from Footer + Support flow. Keeps the copy in one place so
- * admins don't answer the same 5 questions on Discord every week.
+ * FAQ page (/faq) — expand/collapse questions.
+ * Referenced from Footer + Support flow.
  */
 import { useState } from "react";
 import { Link } from "wouter";
-import { ChevronDown, HelpCircle, ArrowLeft } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Header from "@/components/Header";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 interface Q { q: string; a: string; qEn?: string; aEn?: string; }
 
@@ -19,9 +21,9 @@ const QUESTIONS: Q[] = [
   },
   {
     q: "En saa push-ilmoituksia. Miksi?",
-    a: "1) Varmista että asensit uusimman APK:n (v1.82.0+). 2) Anna sovellukselle ilmoituslupa: Asetukset → Sovellukset → KSYK Maps → Ilmoitukset. 3) Avaa sovellus vähintään kerran netin kanssa — laite rekisteröityy vasta silloin.",
+    a: "1) Varmista että asensit uusimman APK:n. 2) Anna sovellukselle ilmoituslupa: Asetukset → Sovellukset → KSYK Maps → Ilmoitukset. 3) Avaa sovellus vähintään kerran netin kanssa — laite rekisteröityy vasta silloin.",
     qEn: "I don't get push notifications. Why?",
-    aEn: "1) Make sure you installed the latest APK (v1.82.0+). 2) Grant notification permission: Settings → Apps → KSYK Maps → Notifications. 3) Open the app at least once while online — the device only registers after that.",
+    aEn: "1) Make sure you installed the latest APK. 2) Grant notification permission: Settings → Apps → KSYK Maps → Notifications. 3) Open the app at least once while online — the device only registers after that.",
   },
   {
     q: "Miten lisään widgetin kotinäytölle?",
@@ -43,9 +45,9 @@ const QUESTIONS: Q[] = [
   },
   {
     q: "Kuinka pyydän uutta huonetta tai virheenkorjausta?",
-    a: "Sovelluksen sisällä: Asetukset → 'Anna palautetta' tai 'Ilmoita viasta'. Molemmat menevät suoraan hallintapaneeliin, joten kehittäjä saa ne heti.",
+    a: "Sovelluksen sisällä: Asetukset → 'Anna palautetta' tai 'Ilmoita viasta'. Molemmat menevät suoraan hallintapaneeliin.",
     qEn: "How do I request a new room or report a bug?",
-    aEn: "Inside the app: Settings → 'Give feedback' or 'Report a bug'. Both go straight to the admin panel — the developer sees them immediately.",
+    aEn: "Inside the app: Settings → 'Give feedback' or 'Report a bug'. Both go straight to the admin panel.",
   },
   {
     q: "Voinko käyttää sovellusta ilman kirjautumista?",
@@ -61,63 +63,95 @@ const QUESTIONS: Q[] = [
   },
   {
     q: "Missä TODO tai kehityssuunnitelma on?",
-    a: "Repossa on TODO.md-tiedosto (github.com/JuusoJuusto/ksyk-maps/blob/main/TODO.md) jossa on kaikki mitä on tehty, meneillään ja jonossa.",
+    a: "Repossa on TODO.md-tiedosto jossa on kaikki mitä on tehty, meneillään ja jonossa.",
     qEn: "Where is the TODO or roadmap?",
-    aEn: "The repo has a TODO.md file (github.com/JuusoJuusto/ksyk-maps/blob/main/TODO.md) listing everything shipped, in progress, and queued.",
+    aEn: "The repo has a TODO.md file listing everything shipped, in progress, and queued.",
   },
 ];
 
 export default function FAQ() {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+  const { darkMode } = useDarkMode();
   const [lang, setLang] = useState<"fi" | "en">(() => {
-    try { return (localStorage.getItem("i18nextLng") || "fi").startsWith("en") ? "en" : "fi"; } catch { return "fi"; }
+    try { return (localStorage.getItem("ksyk_language") || "fi").startsWith("en") ? "en" : "fi"; } catch { return "fi"; }
   });
   const isFi = lang === "fi";
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="max-w-3xl mx-auto px-5 py-4 flex items-center gap-3">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <HelpCircle className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold flex-1">{isFi ? "Usein kysytyt kysymykset" : "Frequently Asked Questions"}</h1>
+    <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
+      <AnnouncementBanner />
+      <Header />
+
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-6">
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">
+              {isFi ? "Usein kysytyt kysymykset" : "Frequently Asked Questions"}
+            </h1>
+            <p className={cn("text-sm mt-0.5", darkMode ? "text-gray-400" : "text-gray-500")}>
+              {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} questions`}
+            </p>
+          </div>
           <button
             onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
-            className="text-xs font-semibold px-2.5 py-1 rounded-md bg-muted hover:bg-muted/70"
+            className={cn(
+              "text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+              darkMode
+                ? "bg-gray-800 hover:bg-gray-700 text-gray-300"
+                : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-200",
+            )}
           >
-            {isFi ? "EN" : "FI"}
+            {isFi ? "In English" : "Suomeksi"}
           </button>
         </div>
-      </header>
-      <main className="max-w-3xl mx-auto px-5 py-6 space-y-2">
-        {QUESTIONS.map((q, i) => {
-          const open = openIdx === i;
-          const question = isFi ? q.q : (q.qEn ?? q.q);
-          const answer   = isFi ? q.a : (q.aEn ?? q.a);
-          return (
-            <div key={i} className={cn(
-              "rounded-lg border border-border overflow-hidden transition-colors",
-              open ? "bg-card" : "bg-card hover:bg-muted/40",
-            )}>
-              <button
-                onClick={() => setOpenIdx(open ? null : i)}
-                className="w-full flex items-center justify-between gap-3 text-left px-4 py-3.5"
+
+        {/* Questions */}
+        <div className="space-y-2">
+          {QUESTIONS.map((q, i) => {
+            const open = openIdx === i;
+            const question = isFi ? q.q : (q.qEn ?? q.q);
+            const answer   = isFi ? q.a : (q.aEn ?? q.a);
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "rounded-2xl border overflow-hidden transition-colors",
+                  darkMode
+                    ? open ? "bg-gray-900 border-gray-700" : "bg-gray-900/60 border-gray-800 hover:bg-gray-900"
+                    : open ? "bg-white border-gray-200" : "bg-white/60 border-gray-100 hover:bg-white",
+                )}
               >
-                <span className="font-semibold text-sm">{question}</span>
-                <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
-              </button>
-              {open && (
-                <div className="px-4 pb-4 pt-1 text-sm text-muted-foreground leading-relaxed border-t border-border">
-                  {answer}
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div className="text-center py-8 text-xs text-muted-foreground">
+                <button
+                  onClick={() => setOpenIdx(open ? null : i)}
+                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4"
+                  aria-expanded={open}
+                >
+                  <span className={cn("font-semibold text-[15px]", darkMode ? "text-gray-100" : "text-gray-900")}>
+                    {question}
+                  </span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 shrink-0 transition-transform",
+                    open && "rotate-180",
+                    darkMode ? "text-gray-500" : "text-gray-400",
+                  )} />
+                </button>
+                {open && (
+                  <div className={cn(
+                    "px-5 pb-5 pt-1 text-[14px] leading-relaxed border-t",
+                    darkMode ? "text-gray-300 border-gray-800" : "text-gray-600 border-gray-100",
+                  )}>
+                    {answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className={cn("text-center py-8 text-xs", darkMode ? "text-gray-500" : "text-gray-400")}>
           {isFi ? "Kysyttävää joka ei löytynyt? " : "Question not answered? "}
-          <Link href="/support" className="text-primary underline">
+          <Link href="/support" className="text-blue-500 hover:text-blue-400 underline">
             {isFi ? "Anna palautetta" : "Send feedback"}
           </Link>
         </div>

@@ -280,9 +280,25 @@ export default function Header({
 
               {isInAdminPanel && (
                 <>
-                  <Link href="/lunch"><Button variant="outline" size="sm" className="bg-orange-50 border-orange-600 text-orange-700 hover:bg-orange-100">🍽️</Button></Link>
-                  <Link href="/hsl"><Button variant="outline" size="sm" className="bg-green-50 border-green-600 text-green-700 hover:bg-green-100">HSL</Button></Link>
-                  <Button variant="outline" onClick={handleLogout} className="bg-red-50 border-red-600 text-red-700 hover:bg-red-100">Logout</Button>
+                  <Link href="/lunch">
+                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+                      <UtensilsCrossed className="h-4 w-4" strokeWidth={2} />
+                      <span className="hidden xl:inline">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
+                    </button>
+                  </Link>
+                  <Link href="/hsl">
+                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+                      <Bus className="h-4 w-4" strokeWidth={2} />
+                      <span className="hidden xl:inline">HSL</span>
+                    </button>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+                  >
+                    <LogOut className="h-4 w-4" strokeWidth={2} />
+                    <span className="hidden xl:inline">{currentLang === 'fi' ? 'Kirjaudu ulos' : 'Logout'}</span>
+                  </button>
                 </>
               )}
             </div>

@@ -11,13 +11,13 @@ interface LoadingSpinnerProps {
 
 const LOAD_STAGES_EN = [
   "Loading campus map…",
-  "Preparing wings…",
+  "Fetching rooms…",
   "Almost ready…",
 ];
 
 const LOAD_STAGES_FI = [
   "Ladataan kampuskarttaa…",
-  "Valmistellaan siipiä…",
+  "Haetaan huoneita…",
   "Melkein valmis…",
 ];
 

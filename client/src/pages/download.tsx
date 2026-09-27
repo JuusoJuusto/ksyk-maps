@@ -12,16 +12,12 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
 import { Smartphone, Apple, Download, ArrowLeft, ShieldCheck, ExternalLink } from "lucide-react";
-import { APP_VERSION } from "@/lib/changelog";
+import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { trackFeatureUse } from "@/lib/analytics";
 
-// v1.90.0 is our current Android release; keep this in sync with
-// android/app/build.gradle.kts versionName. The APK is served from
-// public/releases/ so no CDN or GitHub Release lookup needed.
-const LATEST_ANDROID_VERSION = "1.91.0";
-const APK_HREF = `/releases/ksykmaps-release-${LATEST_ANDROID_VERSION}.apk`;
+const APK_HREF = `/releases/ksykmaps-release-${ANDROID_APP_VERSION}.apk`;
 
 export default function DownloadPage() {
   const { darkMode } = useDarkMode();
@@ -31,7 +27,7 @@ export default function DownloadPage() {
   }, []);
 
   const onDownloadAndroid = () => {
-    try { trackFeatureUse("download_apk_click", { version: LATEST_ANDROID_VERSION }); } catch { /* noop */ }
+    try { trackFeatureUse("download_apk_click", { version: ANDROID_APP_VERSION }); } catch { /* noop */ }
     // Let the browser handle the .apk href — the anchor's `download`
     // attr triggers a save-as flow on desktop; on mobile Android the
     // Chrome flow prompts to install.
@@ -77,7 +73,7 @@ export default function DownloadPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-[15px] font-semibold">Android</h2>
-                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">v{LATEST_ANDROID_VERSION}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">v{ANDROID_APP_VERSION}</p>
                 </div>
                 <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
                   Available
@@ -100,7 +96,7 @@ export default function DownloadPage() {
               <a
                 href={APK_HREF}
                 onClick={onDownloadAndroid}
-                download={`ksykmaps-${LATEST_ANDROID_VERSION}.apk`}
+                download={`ksykmaps-${ANDROID_APP_VERSION}.apk`}
                 className={cn(
                   "inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl font-semibold text-sm transition-all",
                   "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20",
