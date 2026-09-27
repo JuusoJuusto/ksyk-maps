@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="NOW IN CLASS"
-            android:textSize="9sp"
+            android:textSize="14sp"
             android:letterSpacing="0.12"
             android:textColor="#AAFFFFFF"
             android:fontFamily="sans-serif-medium" />
@@ -30,7 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text=""
-            android:textSize="9sp"
+            android:textSize="14sp"
             android:textColor="#88FFFFFF"
             android:fontFamily="sans-serif-medium" />
     </LinearLayout>
@@ -42,7 +42,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="—"
-        android:textSize="17sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
         android:maxLines="1"
@@ -56,7 +56,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text=""
-        android:textSize="11sp"
+        android:textSize="14sp"
         android:textColor="#AAFFFFFF"
         android:maxLines="1"
         android:ellipsize="end" />
@@ -85,7 +85,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
         android:text=""
-        android:textSize="9sp"
+        android:textSize="14sp"
         android:textColor="#88FFFFFF"
         android:gravity="end" />
 </LinearLayout>

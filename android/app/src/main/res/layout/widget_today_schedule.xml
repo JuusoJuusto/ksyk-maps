@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="TODAY'S SCHEDULE"
-            android:textSize="9sp"
+            android:textSize="14sp"
             android:letterSpacing="0.12"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
@@ -47,7 +47,7 @@
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp"
             android:text=""
-            android:textSize="9sp"
+            android:textSize="14sp"
             android:textColor="#CCFFFFFF"
             android:fontFamily="sans-serif-medium"
             android:minWidth="48dp"
@@ -74,17 +74,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time1"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -93,7 +93,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -104,7 +104,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -115,17 +115,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time2"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -134,7 +134,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -145,7 +145,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -156,17 +156,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time3"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -175,7 +175,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -186,7 +186,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -197,17 +197,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time4"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -216,7 +216,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -227,7 +227,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -238,17 +238,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time5"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -257,7 +257,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -268,7 +268,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -279,17 +279,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/time6"
-            android:layout_width="52dp"
+            android:layout_width="58dp"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
+            android:textSize="14sp"
             android:textColor="#99FFFFFF"
             android:fontFamily="sans-serif-medium" />
 
@@ -298,7 +298,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
@@ -309,7 +309,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textSize="10sp"
+            android:textSize="13sp"
             android:textColor="#66FFFFFF" />
     </LinearLayout>
 
@@ -320,7 +320,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:text="No lessons today"
-        android:textSize="13sp"
+        android:textSize="16sp"
         android:textColor="#55FFFFFF"
         android:gravity="center"
         android:visibility="gone" />

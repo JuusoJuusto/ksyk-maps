@@ -158,7 +158,7 @@ private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
                 ) {
                     Button(
                         onClick = onSave,
-                        modifier = Modifier.weight(1f).height(52.dp),
+                        modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(14.dp),
                     ) {
                         Icon(Icons.Outlined.CheckCircle, null, modifier = Modifier.size(20.dp))
@@ -174,43 +174,77 @@ private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Header illustration
+            // Header with live mini-preview
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.CenterStart,
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)),
             ) {
-                Row(
-                    Modifier.padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Outlined.Widgets,
-                        null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            if (isFi) "Räätälöi widget" else "Customize your widget",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            if (isFi) "Näet asetukset painamalla widgettiä pitkään"
-                            else "You can change these later by long-pressing the widget",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Outlined.Widgets,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                if (isFi) "Räätälöi widget" else "Customize your widget",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                if (isFi) "Muutokset astuvat voimaan heti"
+                                else "Changes apply immediately",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    // Mini widget preview — reacts to hidePast toggle
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF18284F),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    if (isFi) "TÄNÄÄN" else "TODAY",
+                                    fontSize = 9.sp,
+                                    color = Color(0x88FFFFFF),
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text("MA · 15", fontSize = 9.sp, color = Color(0x55FFFFFF))
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            PreviewRow("08:15", if (isFi) "Matematiikka" else "Mathematics", "A1.4", dimmed = hidePast)
+                            Spacer(Modifier.height(4.dp))
+                            PreviewRow("10:00", if (isFi) "Fysiikka" else "Physics", "B2.1")
+                            Spacer(Modifier.height(4.dp))
+                            PreviewRow("13:00", if (isFi) "Historia" else "History", "A0.3")
+                        }
                     }
                 }
             }
 
+            SectionLabel(if (isFi) "NÄYTTÖ" else "DISPLAY")
             ConfigRow(
                 title = if (isFi) "Piilota menneet tunnit" else "Hide past classes",
                 subtitle = if (isFi) "Oletus: näytä menneet himmennettyinä ✓"
@@ -233,6 +267,7 @@ private fun ConfigScreen(widgetId: Int, onSave: () -> Unit) {
                 onChange = { showChip = it; save("show_chip", it) },
             )
 
+            SectionLabel(if (isFi) "NAVIGOINTI" else "NAVIGATION")
             // v1.88.0 — default day picker. Segmented row (Yesterday / Today
             // / Tomorrow / +2d / +3d) so users can pin the widget to a day
             // that suits their workflow (e.g. always show tomorrow in the
@@ -311,6 +346,28 @@ private fun DefaultDayRow(isFi: Boolean, value: Int, onChange: (Int) -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun PreviewRow(time: String, subject: String, room: String, dimmed: Boolean = false) {
+    val alpha = if (dimmed) 0.3f else 1f
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(time, fontSize = 10.sp, color = Color(0x88FFFFFF).copy(alpha = alpha), modifier = Modifier.width(40.dp))
+        Text(subject, fontSize = 12.sp, color = Color.White.copy(alpha = alpha), fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Text(room, fontSize = 10.sp, color = Color(0x55FFFFFF).copy(alpha = alpha))
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        letterSpacing = 0.08.sp,
+        modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+    )
 }
 
 @Composable

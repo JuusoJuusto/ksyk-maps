@@ -92,12 +92,13 @@ function useBootGate(): BootState {
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, []);
 
-  // Tick every 200ms so the time-based fill animates continuously
+  // Tick every 400ms so the time-based fill animates continuously
   // even when no query state changes (prevents the bar freezing at
-  // 80% while waiting for the map's first frame).
+  // 80% while waiting for the map's first frame). 400ms halves
+  // main-thread pressure vs 200ms while still keeping the bar moving.
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setTick((n) => n + 1), 200);
+    const t = setInterval(() => setTick((n) => n + 1), 400);
     return () => clearInterval(t);
   }, []);
 
@@ -256,10 +257,10 @@ export default function SplashScreen() {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
         }
-        /* v4.7.15 — spinner is a plain div using conic-gradient +
-         *  mask, drawn on the GPU. Wrapped in a memo'd React
-         *  component so query state changes never re-render this
-         *  subtree; the animation just keeps ticking. */
+        /* v4.7.27 — spinner uses pure CSS border (border-top-color /
+         * border-right-color) so only transform:rotate() is animated —
+         * compositor-only, never blocks on main-thread paint during
+         * heavy startup. Wrapped in memo so reconciliation skips it. */
         .ksyk-spinner-wrap {
           position: relative;
           width: 80px;
@@ -273,21 +274,11 @@ export default function SplashScreen() {
           position: absolute;
           inset: 0;
           border-radius: 50%;
-          background: conic-gradient(from 0deg,
-            #2563eb 0deg,
-            #2563eb 90deg,
-            transparent 90deg,
-            transparent 360deg);
-          -webkit-mask: radial-gradient(circle at center,
-            transparent calc(50% - 3px),
-            #000 calc(50% - 3px),
-            #000 calc(50% + 0px),
-            transparent calc(50% + 0px));
-                  mask: radial-gradient(circle at center,
-            transparent calc(50% - 3px),
-            #000 calc(50% - 3px),
-            #000 calc(50% + 0px),
-            transparent calc(50% + 0px));
+          border: 3px solid transparent;
+          border-top-color: #2563eb;
+          border-right-color: rgba(37, 99, 235, 0.45);
+          background: transparent;
+          box-sizing: border-box;
           animation: ksyk-ring-spin 0.95s linear infinite;
           will-change: transform;
           transform: translateZ(0);
