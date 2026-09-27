@@ -1,13 +1,7 @@
-/**
- * FAQ page (/faq) — expand/collapse questions.
- * Referenced from Footer + Support flow.
- */
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Header from "@/components/Header";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 
 interface Q { q: string; a: string; qEn?: string; aEn?: string; }
@@ -55,12 +49,6 @@ const QUESTIONS: Q[] = [
     qEn: "Can I use the app without logging in?",
     aEn: "Yes. Map, room search, lunch, and HSL times all work without an account. You only need Wilma credentials if you want your own timetable auto-imported.",
   },
-  {
-    q: "Miksi 'sovellus voi olla haitallinen' -varoitus asennettaessa?",
-    a: "Android varoittaa aina APK-tiedostoista jotka eivät tule Play Storesta — se ei tarkoita että sovellus olisi haitallinen. Voit ohittaa varoituksen kohdasta 'Asenna kuitenkin'. Play Store -julkaisu on työn alla.",
-    qEn: "Why does Android say 'app may be harmful' during install?",
-    aEn: "Android always warns about APKs not from the Play Store — it doesn't mean the app is malicious. Tap 'Install anyway'. Play Store release is in progress.",
-  },
 ];
 
 export default function FAQ() {
@@ -72,27 +60,21 @@ export default function FAQ() {
   const isFi = lang === "fi";
 
   useEffect(() => {
-    const prev = document.title;
     document.title = isFi ? "UKK — KSYK Maps" : "FAQ — KSYK Maps";
-    return () => { document.title = prev; };
+    return () => { document.title = "KSYK Maps"; };
   }, [isFi]);
 
   return (
     <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
-      <AnnouncementBanner />
-      <Header />
-
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-6">
-        {/* Page header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">
-              {isFi ? "Usein kysytyt kysymykset" : "Frequently Asked Questions"}
-            </h1>
-            <p className={cn("text-sm mt-0.5", darkMode ? "text-gray-400" : "text-gray-500")}>
-              {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} questions`}
-            </p>
-          </div>
+      <header className="border-b border-border/50 shrink-0">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {isFi ? "Takaisin kartalle" : "Back to map"}
+          </Link>
           <button
             onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
             className={cn(
@@ -105,8 +87,18 @@ export default function FAQ() {
             {isFi ? "In English" : "Suomeksi"}
           </button>
         </div>
+      </header>
 
-        {/* Questions */}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8 page-enter">
+        <div className="mb-7">
+          <h1 className="text-xl font-bold tracking-tight">
+            {isFi ? "Usein kysytyt kysymykset" : "Frequently Asked Questions"}
+          </h1>
+          <p className={cn("text-sm mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+            {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} questions`}
+          </p>
+        </div>
+
         <div className="space-y-2">
           {QUESTIONS.map((q, i) => {
             const open = openIdx === i;
@@ -116,34 +108,48 @@ export default function FAQ() {
               <div
                 key={i}
                 className={cn(
-                  "rounded-2xl border overflow-hidden transition-colors",
+                  "rounded-2xl border overflow-hidden transition-colors duration-150",
                   darkMode
-                    ? open ? "bg-gray-900 border-gray-700" : "bg-gray-900/60 border-gray-800 hover:bg-gray-900"
-                    : open ? "bg-white border-gray-200" : "bg-white/60 border-gray-100 hover:bg-white",
+                    ? open
+                      ? "bg-gray-900 border-gray-700"
+                      : "bg-gray-900/50 border-gray-800 hover:border-gray-700"
+                    : open
+                      ? "bg-white border-gray-200 shadow-sm"
+                      : "bg-white/70 border-gray-100 hover:bg-white hover:border-gray-200",
                 )}
               >
                 <button
                   onClick={() => setOpenIdx(open ? null : i)}
-                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4"
+                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4 min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset rounded-2xl"
                   aria-expanded={open}
                 >
-                  <span className={cn("font-semibold text-[15px]", darkMode ? "text-gray-100" : "text-gray-900")}>
+                  <span className={cn("font-medium text-[15px] leading-snug", darkMode ? "text-gray-100" : "text-gray-900")}>
                     {question}
                   </span>
-                  <ChevronDown className={cn(
-                    "h-4 w-4 shrink-0 transition-transform",
-                    open && "rotate-180",
-                    darkMode ? "text-gray-500" : "text-gray-400",
-                  )} />
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform duration-200",
+                      open && "rotate-180",
+                      darkMode ? "text-gray-500" : "text-gray-400",
+                    )}
+                  />
                 </button>
-                {open && (
-                  <div className={cn(
-                    "px-5 pb-5 pt-1 text-[14px] leading-relaxed border-t",
-                    darkMode ? "text-gray-300 border-gray-800" : "text-gray-600 border-gray-100",
-                  )}>
-                    {answer}
+                {/* CSS grid trick: animates height without JS measurement */}
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-200 ease-out",
+                    open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <div className={cn(
+                      "px-5 pb-5 pt-2 text-[14px] leading-relaxed border-t",
+                      darkMode ? "text-gray-300 border-gray-800" : "text-gray-600 border-gray-100",
+                    )}>
+                      {answer}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -152,12 +158,12 @@ export default function FAQ() {
         <div className={cn("text-center py-8 text-xs space-y-2", darkMode ? "text-gray-500" : "text-gray-400")}>
           <div>
             {isFi ? "Kysyttävää joka ei löytynyt? " : "Question not answered? "}
-            <Link href="/support" className="text-blue-500 hover:text-blue-400 underline">
+            <Link href="/support" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
               {isFi ? "Anna palautetta" : "Send feedback"}
             </Link>
           </div>
           <div>
-            <Link href="/privacy" className="text-blue-500 hover:text-blue-400 underline">
+            <Link href="/privacy" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
               {isFi ? "Tietosuojaseloste" : "Privacy Policy"}
             </Link>
           </div>

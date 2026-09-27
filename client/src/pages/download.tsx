@@ -58,7 +58,7 @@ export default function DownloadPage() {
        *  circles inside each platform card (name + version already
        *  identify the row). "Available"/"Coming later" chips lose
        *  their colored fills too — the copy carries the meaning. */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 py-12 page-enter">
         <div className="max-w-xl w-full">
           <div className="text-center mb-10">
             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">

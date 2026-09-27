@@ -163,7 +163,7 @@ export default function Support() {
             </Link>
           </div>
         </header>
-        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6 page-enter">
           <div className="w-full max-w-lg">
             <Card className="border border-emerald-200/60 dark:border-emerald-900/40 shadow-xl">
               <CardContent className="pt-8 pb-8 text-center">

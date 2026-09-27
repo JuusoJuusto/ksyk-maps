@@ -10,17 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.29";
+export const APP_VERSION = "4.7.30";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.57.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.30",
+    date: "September 2026",
+    title: "FAQ standalone redesign · animated accordion · APK warning removed · motion system",
+    titleFi: "UKK-sivu itsenäiseksi · animoitu laajennettava lista · APK-varoituskysymys poistettu · liikejärjestelmä",
+    latest: true,
+    highlights: [
+      "FAQ page converted to standalone (no app header or announcement banner) — matches the support, privacy, and download page pattern.",
+      "FAQ accordion now animates smoothly using the CSS grid-template-rows trick — no JS height measurement, GPU-friendly.",
+      "Removed the 'Why does Android say app may be harmful' FAQ entry — no longer needed since the APK is now well-known.",
+      "All standalone info pages (FAQ, support, privacy, download) now use a consistent fadeInUp entrance animation on page load.",
+      "New .page-enter CSS class in index.css, respects prefers-reduced-motion: page entrance animation is suppressed for users who prefer reduced motion.",
+    ],
+    highlightsFi: [
+      "UKK-sivu muutettu itsenäiseksi — ei enää sovelluspalkkia tai ilmoitusbanneria.",
+      "UKK:n laajentuvat vastaukset animoituvat CSS grid-trick:llä — sulavasti ilman JavaScript-korkeusmittausta.",
+      "APK-varoituskysymys poistettu — ei enää tarpeen.",
+      "Kaikki itsenäiset tietosivut saavat nyt yhteisen fadeInUp-siirtymäanimaation sivun latautuessa.",
+    ],
+  },
+  {
     version: "4.7.29",
     date: "September 2026",
     title: "Dark mode splash fix · support page redesign · privacy policy · FAQ cleanup",
     titleFi: "Tumman tilan käynnistysvälähdys korjattu · tukisivu uudistettu · tietosuojaseloste",
-    latest: true,
     highlights: [
       "Dark→white flash on boot fixed: SplashScreen now reads prefers-color-scheme at init and uses #030712 in dark mode to match the preboot spinner — no more visible colour change.",
       "Support page redesigned: removed app header and announcement banner, replaced with a minimal back-button header matching the FAQ and download page style.",

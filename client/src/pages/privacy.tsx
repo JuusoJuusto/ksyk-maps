@@ -94,7 +94,7 @@ export default function Privacy() {
 
   return (
     <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
-      <header className={cn("border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+      <header className="border-b border-border/50 shrink-0">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -114,7 +114,7 @@ export default function Privacy() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8 page-enter">
         <div className="mb-8">
           <h1 className="text-xl font-bold tracking-tight">
             {isFi ? "Tietosuojaseloste" : "Privacy Policy"}
