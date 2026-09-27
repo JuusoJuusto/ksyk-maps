@@ -25,10 +25,6 @@ import {
   Globe,
   School,
   Code2,
-  Plus,
-  Trash2,
-  MapPin,
-  Pencil,
 } from "lucide-react";
 import CampusChangelog from "@/components/CampusChangelog";
 import KSYKLogo from "@/components/KSYKLogo";
@@ -36,7 +32,6 @@ import MapSettingsPanel from "@/components/MapSettingsPanel";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
-import { useMaps, type CampusMap } from "@/hooks/useMaps";
 
 type SettingsTab =
   | "appearance"
@@ -303,12 +298,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               </div>
             )}
 
-            {tab === "map" && (
-              <div className="space-y-4">
-                <MapSettingsPanel />
-                <MapsManagerPanel isFi={isFi} />
-              </div>
-            )}
+            {tab === "map" && <MapSettingsPanel />}
 
             {tab === "accessibility" && (
               <Card className={cn(
@@ -557,183 +547,4 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   );
 }
 
-// ── Multi-map manager — appears in the "Map" settings tab ─────────────────
 
-interface MapFormState {
-  name: string;
-  description: string;
-  color: string;
-  centerLat: string;
-  centerLng: string;
-  defaultZoom: string;
-  bearing: string;
-  pitch: string;
-}
-
-const EMPTY_FORM: MapFormState = {
-  name: "", description: "", color: "#3b82f6",
-  centerLat: "", centerLng: "", defaultZoom: "17",
-  bearing: "0", pitch: "0",
-};
-
-function MapsManagerPanel({ isFi }: { isFi: boolean }) {
-  const { darkMode } = useDarkMode();
-  const { maps, loading, createMap, updateMap, deleteMap } = useMaps();
-  const [editing, setEditing] = useState<CampusMap | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<MapFormState>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const field = (k: keyof MapFormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const openCreate = () => { setForm(EMPTY_FORM); setEditing(null); setCreating(true); setError(null); };
-  const openEdit = (m: CampusMap) => {
-    setForm({
-      name: m.name, description: m.description ?? "", color: m.color ?? "#3b82f6",
-      centerLat: String(m.centerLat), centerLng: String(m.centerLng),
-      defaultZoom: String(m.defaultZoom), bearing: String(m.bearing ?? 0), pitch: String(m.pitch ?? 0),
-    });
-    setEditing(m);
-    setCreating(false);
-    setError(null);
-  };
-  const closeForm = () => { setCreating(false); setEditing(null); setError(null); };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) { setError(isFi ? "Nimi vaaditaan." : "Name is required."); return; }
-    const lat = parseFloat(form.centerLat);
-    const lng = parseFloat(form.centerLng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError(isFi ? "Koordinaatit eivät kelpaa." : "Invalid coordinates.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        color: form.color,
-        centerLat: lat,
-        centerLng: lng,
-        defaultZoom: parseFloat(form.defaultZoom) || 17,
-        bearing: parseFloat(form.bearing) || 0,
-        pitch: parseFloat(form.pitch) || 0,
-      };
-      if (editing) await updateMap(editing.id, payload);
-      else await createMap(payload);
-      closeForm();
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(isFi ? "Poistetaanko kartta?" : "Delete this map?")) return;
-    try { await deleteMap(id); } catch { /* ignore */ }
-  };
-
-  const inputCls = cn(
-    "w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors",
-    darkMode ? "bg-gray-900 border-gray-700 text-gray-100 placeholder:text-gray-600" : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400",
-  );
-
-  return (
-    <Card className={cn("border-0 shadow-lg rounded-2xl overflow-hidden", darkMode ? "bg-gray-800/80" : "bg-white/95")}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", darkMode ? "bg-blue-950/60 text-blue-300" : "bg-blue-50 text-blue-600")}>
-              <MapPin className="h-4 w-4" />
-            </span>
-            <div>
-              <CardTitle className="text-base">{isFi ? "Karttanäkymät" : "Saved Maps"}</CardTitle>
-              <CardDescription className="text-xs">{isFi ? "Lisää useita karttanäkymiä — käyttäjät voivat vaihtaa niiden välillä." : "Add multiple map views — users can switch between them."}</CardDescription>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={openCreate}
-            className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors", darkMode ? "bg-blue-900/40 text-blue-300 hover:bg-blue-900/60" : "bg-blue-50 text-blue-700 hover:bg-blue-100")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {isFi ? "Lisää" : "Add"}
-          </button>
-        </div>
-      </CardHeader>
-
-      {(creating || editing) && (
-        <CardContent className={cn("border-t px-4 py-4 space-y-3", darkMode ? "border-gray-700/60" : "border-gray-100")}>
-          <p className={cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-gray-500" : "text-gray-400")}>
-            {editing ? (isFi ? "Muokkaa karttaa" : "Edit map") : (isFi ? "Uusi kartta" : "New map")}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="col-span-2">
-              <input className={inputCls} placeholder={isFi ? "Nimi *" : "Name *"} value={form.name} onChange={field("name")} />
-            </div>
-            <div className="col-span-2">
-              <input className={inputCls} placeholder={isFi ? "Kuvaus (vapaaehtoinen)" : "Description (optional)"} value={form.description} onChange={field("description")} />
-            </div>
-            <input className={inputCls} placeholder="Center lat *" value={form.centerLat} onChange={field("centerLat")} type="number" step="any" />
-            <input className={inputCls} placeholder="Center lng *" value={form.centerLng} onChange={field("centerLng")} type="number" step="any" />
-            <input className={inputCls} placeholder="Zoom" value={form.defaultZoom} onChange={field("defaultZoom")} type="number" min="0" max="24" step="0.1" />
-            <div className="flex items-center gap-2">
-              <input className={inputCls} type="color" value={form.color} onChange={field("color")} style={{ width: 40, height: 38, padding: 2, flex: "none" }} />
-              <span className={cn("text-xs", darkMode ? "text-gray-400" : "text-gray-500")}>Color</span>
-            </div>
-            <input className={inputCls} placeholder={isFi ? "Suunta (°)" : "Bearing (°)"} value={form.bearing} onChange={field("bearing")} type="number" />
-            <input className={inputCls} placeholder={isFi ? "Kaltevuus (°)" : "Pitch (°)"} value={form.pitch} onChange={field("pitch")} type="number" />
-          </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={handleSave} disabled={saving} className="flex-1 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-60">
-              {saving ? "…" : (isFi ? "Tallenna" : "Save")}
-            </button>
-            <button type="button" onClick={closeForm} className={cn("flex-1 h-9 rounded-xl text-sm font-semibold transition-colors border", darkMode ? "border-gray-700 text-gray-300 hover:bg-gray-700" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-              {isFi ? "Peruuta" : "Cancel"}
-            </button>
-          </div>
-        </CardContent>
-      )}
-
-      <CardContent className="p-0">
-        {loading && (
-          <div className={cn("px-4 py-4 text-sm", darkMode ? "text-gray-500" : "text-gray-400")}>
-            {isFi ? "Ladataan…" : "Loading…"}
-          </div>
-        )}
-        {!loading && maps.length === 0 && !creating && (
-          <div className={cn("px-4 py-6 text-sm text-center", darkMode ? "text-gray-500" : "text-gray-400")}>
-            {isFi ? "Ei tallennettuja karttoja. Lisää ensimmäinen yllä." : "No saved maps. Add the first one above."}
-          </div>
-        )}
-        {maps.map((m, i) => (
-          <div
-            key={m.id}
-            className={cn("flex items-center gap-3 px-4 py-3 transition-colors", i > 0 && (darkMode ? "border-t border-gray-700/60" : "border-t border-gray-100"))}
-          >
-            <span className="shrink-0 w-3 h-3 rounded-full" style={{ background: m.color ?? "#3b82f6" }} />
-            <div className="flex-1 min-w-0">
-              <p className={cn("text-sm font-semibold truncate", darkMode ? "text-gray-100" : "text-gray-900")}>{m.name}</p>
-              {m.description && (
-                <p className={cn("text-xs truncate mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>{m.description}</p>
-              )}
-              <p className={cn("text-[10px] font-mono mt-0.5", darkMode ? "text-gray-600" : "text-gray-300")}>
-                {m.centerLat.toFixed(5)}, {m.centerLng.toFixed(5)} · z{m.defaultZoom}
-              </p>
-            </div>
-            <button type="button" onClick={() => openEdit(m)} className={cn("shrink-0 p-1.5 rounded-lg transition-colors", darkMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100")}>
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button type="button" onClick={() => handleDelete(m.id)} className={cn("shrink-0 p-1.5 rounded-lg transition-colors", darkMode ? "text-gray-500 hover:text-red-400 hover:bg-red-950/30" : "text-gray-400 hover:text-red-500 hover:bg-red-50")}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}

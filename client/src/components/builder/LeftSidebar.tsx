@@ -23,14 +23,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildRoomSearchIndex } from "@ksyk/shared";
 import type { Building, Room, Hallway, Door, Stair, Elevator, MapLayer, MapVersion } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag, LayoutGrid, Navigation, Trash2 } from "lucide-react";
+import { Building2, DoorOpen, Route as RouteIcon, Layers, History, Search, EyeOff, Eye, Lock, Unlock, Settings2, StretchHorizontal, StepForward, MoveVertical, DoorClosed, LogIn, Info, Phone, ParkingCircle, Bike, Accessibility, Coffee, Utensils, Droplet, HeartPulse, Zap, Printer, Flag, LayoutGrid, Navigation, Trash2, MapPin, Plus, Pencil, Check, X } from "lucide-react";
+import { useMaps, setActiveMapId, getActiveMapId, type CampusMap as SavedMap } from "@/hooks/useMaps";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { fetchList } from "@/lib/fetchList";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 import { useNavGraph } from "@/lib/navGraph";
 
-export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "poi-list" | "history" | "settings";
+export type LeftSidebarTab = "buildings" | "rooms" | "pois" | "poi-list" | "history" | "settings" | "maps";
 
 export interface LeftSidebarSelection {
   // v3.28.1 — point-POI kinds added so the property panel can edit
@@ -49,9 +50,14 @@ export interface LeftSidebarProps {
   onSelect: (sel: LeftSidebarSelection) => void;
   /** Callback when the user clicks a version — parent restores it. */
   onRestoreVersion?: (versionId: string) => void;
+  /** Callback when user activates a saved campus map. */
+  onMapSelect?: (map: SavedMap) => void;
+  /** Returns the builder map's current camera — used by MapsPanel "Capture view". */
+  onCaptureView?: () => { lat: number; lng: number; zoom: number; bearing: number; pitch: number };
 }
 
 const TABS: Array<{ id: LeftSidebarTab; label: string; Icon: typeof Building2 }> = [
+  { id: "maps",      label: "Maps",      Icon: MapPin },
   { id: "buildings", label: "Buildings", Icon: Building2 },
   { id: "rooms",     label: "Rooms",     Icon: DoorOpen },
   // Structure: drawn structural elements — corridors, hallway lines, walls.
@@ -69,7 +75,7 @@ const SIDEBAR_MAX_WIDTH = 720;
 const SIDEBAR_DEFAULT_WIDTH = 420;
 
 export default function LeftSidebar({
-  activeTab, onTabChange, selection, onSelect, onRestoreVersion,
+  activeTab, onTabChange, selection, onSelect, onRestoreVersion, onMapSelect, onCaptureView,
 }: LeftSidebarProps) {
   const { darkMode } = useDarkMode();
   const [query, setQuery] = useState("");
@@ -127,7 +133,7 @@ export default function LeftSidebar({
       )}
     >
       {/* Tabs */}
-      <div className={cn("grid grid-cols-6 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
+      <div className={cn("grid grid-cols-7 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
         {TABS.map((t) => {
           const Icon = t.Icon;
           const active = activeTab === t.id;
@@ -152,9 +158,8 @@ export default function LeftSidebar({
         })}
       </div>
 
-      {/* Search — hidden on the settings tab since there's nothing to
-       *  filter there. */}
-      {activeTab !== "settings" && (
+      {/* Search — hidden on settings and maps tabs. */}
+      {activeTab !== "settings" && activeTab !== "maps" && (
         <div className={cn("px-3 py-2 border-b", darkMode ? "border-gray-800" : "border-gray-200")}>
           <label className="relative block">
             <Search className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5", darkMode ? "text-gray-500" : "text-gray-400")} />
@@ -177,6 +182,7 @@ export default function LeftSidebar({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
+        {activeTab === "maps"      && <MapsPanel onMapSelect={onMapSelect} onCaptureView={onCaptureView} />}
         {activeTab === "buildings" && <BuildingList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "rooms"     && <RoomList query={query} selection={selection} onSelect={onSelect} />}
         {activeTab === "pois"      && <StructureList query={query} selection={selection} onSelect={onSelect} />}
@@ -953,6 +959,284 @@ function poiKindDisplayName(kind: string): string {
     case "bathroom": return "Bathroom";
     default: return kind.charAt(0).toUpperCase() + kind.slice(1);
   }
+}
+
+// ── Maps panel ────────────────────────────────────────────────────
+
+type MapFormState = { name: string; description: string; color: string; centerLat: string; centerLng: string; defaultZoom: string; bearing: string; pitch: string };
+
+function MapsPanel({ onMapSelect, onCaptureView }: { onMapSelect?: (map: SavedMap) => void; onCaptureView?: () => { lat: number; lng: number; zoom: number; bearing: number; pitch: number } }) {
+  const { darkMode } = useDarkMode();
+  const { maps, loading, createMap, updateMap, deleteMap, reload } = useMaps();
+  const [activeId, setActiveId] = useState<string | null>(() => getActiveMapId());
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const blankForm = (): MapFormState => ({ name: "", description: "", color: "#3b82f6", centerLat: "", centerLng: "", defaultZoom: "17", bearing: "0", pitch: "0" });
+  const [form, setForm] = useState<MapFormState>(blankForm);
+
+  const handleActivate = (map: SavedMap) => {
+    setActiveMapId(map.id);
+    setActiveId(map.id);
+    onMapSelect?.(map);
+  };
+
+  const formToPayload = (f: MapFormState) => ({
+    name: f.name.trim(),
+    description: f.description,
+    color: f.color,
+    centerLat: parseFloat(f.centerLat) || 0,
+    centerLng: parseFloat(f.centerLng) || 0,
+    defaultZoom: parseFloat(f.defaultZoom) || 17,
+    bearing: parseFloat(f.bearing) || 0,
+    pitch: parseFloat(f.pitch) || 0,
+  });
+
+  const handleCreate = async () => {
+    if (!form.name.trim()) return;
+    await createMap(formToPayload(form));
+    setForm(blankForm());
+    setCreating(false);
+    reload();
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!form.name.trim()) return;
+    await updateMap(id, formToPayload(form));
+    setEditingId(null);
+    reload();
+  };
+
+  const handleCaptureView = () => {
+    const cam = onCaptureView?.();
+    if (!cam) return;
+    setForm((f) => ({
+      ...f,
+      centerLat: cam.lat.toFixed(6),
+      centerLng: cam.lng.toFixed(6),
+      defaultZoom: cam.zoom.toFixed(1),
+      bearing: cam.bearing.toFixed(1),
+      pitch: cam.pitch.toFixed(1),
+    }));
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this map?")) return;
+    await deleteMap(id);
+    if (activeId === id) { setActiveMapId(""); setActiveId(null); }
+    reload();
+  };
+
+  const startEdit = (map: SavedMap) => {
+    setForm({
+      name: map.name,
+      description: map.description ?? "",
+      color: map.color ?? "#3b82f6",
+      centerLat: String(map.centerLat ?? ""),
+      centerLng: String(map.centerLng ?? ""),
+      defaultZoom: String(map.defaultZoom ?? "17"),
+      bearing: String(map.bearing ?? "0"),
+      pitch: String(map.pitch ?? "0"),
+    });
+    setEditingId(map.id);
+    setCreating(false);
+  };
+
+  const startCreate = () => {
+    setForm(blankForm());
+    setEditingId(null);
+    setCreating(true);
+  };
+
+  if (loading) return <Loading />;
+
+  return (
+    <div className="p-3 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className={cn("text-[11px] font-semibold uppercase tracking-wider", darkMode ? "text-gray-400" : "text-gray-500")}>
+          Campus maps
+        </p>
+        <button
+          type="button"
+          onClick={startCreate}
+          className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
+        >
+          <Plus className="h-3 w-3" /> New map
+        </button>
+      </div>
+
+      {/* Create form */}
+      {creating && (
+        <MapForm
+          form={form}
+          onChange={setForm}
+          onSave={handleCreate}
+          onCancel={() => setCreating(false)}
+          onCaptureView={onCaptureView ? handleCaptureView : undefined}
+          saveLabel="Create"
+        />
+      )}
+
+      {/* Map list */}
+      {maps.length === 0 && !creating && (
+        <EmptyState message="No maps yet." hint="Create a map to define a named campus view with its own buildings and rooms." />
+      )}
+
+      <ul className="space-y-1.5">
+        {maps.map((map) => {
+          const isActive = map.id === activeId;
+          const isEditing = editingId === map.id;
+          return (
+            <li key={map.id} className={cn(
+              "rounded-xl border p-2.5 transition-colors",
+              isActive
+                ? "border-blue-500/40 bg-blue-500/5"
+                : darkMode ? "border-gray-700 bg-gray-800/50" : "border-gray-200 bg-gray-50",
+            )}>
+              {isEditing ? (
+                <MapForm
+                  form={form}
+                  onChange={setForm}
+                  onSave={() => handleSaveEdit(map.id)}
+                  onCancel={() => setEditingId(null)}
+                  onCaptureView={onCaptureView ? handleCaptureView : undefined}
+                  saveLabel="Save"
+                />
+              ) : (
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 h-3 w-3 rounded-full shrink-0" style={{ background: map.color ?? "#3b82f6" }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate leading-tight">{map.name}</p>
+                    {map.description && (
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{map.description}</p>
+                    )}
+                    <div className="flex gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleActivate(map)}
+                        className={cn(
+                          "h-6 px-2.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1",
+                          isActive
+                            ? "bg-blue-600 text-white"
+                            : darkMode ? "bg-gray-700 hover:bg-blue-600 hover:text-white text-gray-200" : "bg-white border border-gray-200 hover:bg-blue-50 hover:text-blue-700 text-gray-700",
+                        )}
+                      >
+                        {isActive && <Check className="h-3 w-3" />}
+                        {isActive ? "Active" : "Set active"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(map)}
+                        className={cn("h-6 w-6 rounded-md flex items-center justify-center transition-colors", darkMode ? "hover:bg-gray-700 text-gray-400 hover:text-gray-100" : "hover:bg-gray-200 text-gray-500")}
+                        title="Edit"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(map.id)}
+                        className="h-6 w-6 rounded-md flex items-center justify-center transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function MapForm({
+  form, onChange, onSave, onCancel, onCaptureView, saveLabel,
+}: {
+  form: MapFormState;
+  onChange: (f: MapFormState) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onCaptureView?: () => void;
+  saveLabel: string;
+}) {
+  const { darkMode } = useDarkMode();
+  const inputCls = cn(
+    "w-full h-8 px-2.5 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+    darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-200",
+  );
+  const halfInputCls = cn(
+    "flex-1 h-8 px-2 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500/40 tabular-nums",
+    darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-200",
+  );
+  return (
+    <div className={cn("rounded-xl border p-2.5 space-y-2", darkMode ? "border-gray-700 bg-gray-800/60" : "border-blue-200 bg-blue-50/50")}>
+      <input
+        type="text"
+        placeholder="Map name"
+        value={form.name}
+        onChange={(e) => onChange({ ...form, name: e.target.value })}
+        className={inputCls}
+        autoFocus
+      />
+      <input
+        type="text"
+        placeholder="Short description (optional)"
+        value={form.description}
+        onChange={(e) => onChange({ ...form, description: e.target.value })}
+        className={inputCls}
+      />
+      <div className="flex items-center gap-2">
+        <label className="text-[11px] text-muted-foreground shrink-0">Color</label>
+        <input type="color" value={form.color} onChange={(e) => onChange({ ...form, color: e.target.value })} className="h-7 w-10 rounded cursor-pointer border-0 bg-transparent" />
+      </div>
+
+      {/* Position — filled via "Capture view" or manually */}
+      <div className={cn("rounded-lg p-2 space-y-1.5 border", darkMode ? "border-gray-700 bg-gray-900/40" : "border-gray-200 bg-white/60")}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Camera position</span>
+          {onCaptureView && (
+            <button
+              type="button"
+              onClick={onCaptureView}
+              className="h-5 px-2 rounded text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/60"
+            >
+              Use current view
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          <input type="text" inputMode="decimal" placeholder="Lat" value={form.centerLat} onChange={(e) => onChange({ ...form, centerLat: e.target.value })} className={halfInputCls} />
+          <input type="text" inputMode="decimal" placeholder="Lng" value={form.centerLng} onChange={(e) => onChange({ ...form, centerLng: e.target.value })} className={halfInputCls} />
+        </div>
+        <div className="flex gap-1.5">
+          <input type="text" inputMode="decimal" placeholder="Zoom (e.g. 17)" value={form.defaultZoom} onChange={(e) => onChange({ ...form, defaultZoom: e.target.value })} className={halfInputCls} />
+          <input type="text" inputMode="decimal" placeholder="Bearing °" value={form.bearing} onChange={(e) => onChange({ ...form, bearing: e.target.value })} className={halfInputCls} />
+        </div>
+      </div>
+
+      <div className="flex gap-1.5 pt-0.5">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!form.name.trim()}
+          className="h-7 px-3 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1"
+        >
+          <Check className="h-3 w-3" /> {saveLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className={cn("h-7 px-3 rounded-lg text-xs font-semibold flex items-center gap-1", darkMode ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}
+        >
+          <X className="h-3 w-3" /> Cancel
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Color chip tint per kind — mirrors the CampusOverlay POI color palette

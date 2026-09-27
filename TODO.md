@@ -16,6 +16,12 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.34 — builder Maps tab)
+
+- **Builder Maps tab** — new first tab in the LeftSidebar ("Maps", MapPin icon). Admins can create/edit/delete named campus maps with name, description, color, and camera position (lat, lng, zoom, bearing). "Use current view" button captures the builder's live camera. "Set active" marks the map for the public switcher. Clicking a map in the builder flies the camera to it instantly.
+- **MapsManagerPanel removed from user Settings** — was in CampusSettingsPanel → Map tab; moved entirely to the Builder where it belongs.
+- **Web version bumped** — `4.7.33` → `4.7.34` with changelog entry.
+
 ## ✅ Just shipped (web 4.7.33 · Android 1.98.0 — multi-map + schedule fix)
 
 - **Multi-map capability** — admins can add/edit/delete named map views with name, center, zoom, bearing, pitch, color. Users see a map-switcher button (Layers icon) in the bottom-left of the map that flies to any saved map. `/api/maps` CRUD endpoints added (admin-write, public-read). `useMaps` hook + `MapSwitcherButton` component.

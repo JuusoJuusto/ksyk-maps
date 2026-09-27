@@ -3477,6 +3477,17 @@ function BuilderWorkspace() {
             }
           }}
           onRestoreVersion={(id) => { void apiRequest("POST", `/api/map-package/versions/${id}/restore`); }}
+          onCaptureView={() => {
+            const h = handleRef.current;
+            if (!h) return { lat: 0, lng: 0, zoom: 17, bearing: 0, pitch: 0 };
+            const c = h.map.getCenter();
+            return { lat: c.lat, lng: c.lng, zoom: h.map.getZoom(), bearing: h.map.getBearing(), pitch: h.map.getPitch() };
+          }}
+          onMapSelect={(map) => {
+            const h = handleRef.current;
+            if (!h) return;
+            h.map.flyTo({ center: [map.centerLng, map.centerLat], zoom: map.defaultZoom, bearing: map.bearing ?? 0, pitch: map.pitch ?? 0, duration: 700 });
+          }}
         />
 
         {/* Canvas + floating overlays. `builder-canvas-{tool}` class

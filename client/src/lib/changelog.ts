@@ -10,17 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.33";
+export const APP_VERSION = "4.7.34";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.34",
+    date: "September 2026",
+    title: "Builder: Maps tab — create and switch campus maps from the admin panel",
+    titleFi: "Rakentaja: Kartat-välilehti — luo ja vaihda kampuskarttoja admin-paneelista",
+    latest: true,
+    highlights: [
+      "Admin builder now has a dedicated Maps tab (first tab in the sidebar). Create named campus maps with a name, description, color, and camera position. Fly to any map with one click or set it as active for the map switcher.",
+      "\"Use current view\" button in the create/edit form captures the builder's current pan, zoom, bearing, and pitch — no need to type coordinates manually.",
+      "\"Set active\" marks which map the public switcher button will highlight. Flying to a saved map in the builder animates the camera smoothly.",
+    ],
+    highlightsFi: [
+      "Admin-rakentajassa on nyt oma Kartat-välilehti (sivupalkin ensimmäinen välilehti). Luo nimettyjä kampuskarttoja nimellä, kuvauksella, värillä ja kameran sijainnilla.",
+      "\"Käytä nykyistä näkymää\" -painike hakee rakentajan nykyisen sijainnin, zoomin, suunnan ja kaltevuuden automaattisesti.",
+      "\"Aseta aktiiviseksi\" merkitsee, mikä kartta näkyy julkisessa kartanvaihtopainikkeessa.",
+    ],
+  },
+  {
     version: "4.7.33",
     date: "September 2026",
     title: "Multi-map · class info centering · widget scroll · schedule auto-refresh · animation polish",
     titleFi: "Monta karttaa · huonekortti keskitetty · widget-vieritys · aikataulu päivittyy automaattisesti · animaatiot",
-    latest: true,
+    latest: false,
     highlights: [
       "Admins can now save multiple named map views (Karttanäkymät section in Settings → Map). Users get a switcher button in the bottom-left of the map to fly between them instantly.",
       "Class/room info cards on desktop are now properly centered — a transform conflict between the entrance animation and the centering CSS has been fixed.",
