@@ -188,18 +188,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!host || !projectId) return res.status(400).end();
 
         const upstream = `https://${host}/api/${projectId}/envelope/`;
-        const sentryRes = await fetch(upstream, {
+        // Fire-and-forget — always return 202 so the browser SDK never
+        // logs a console error even when Sentry rejects (e.g. rate-limit
+        // or a rotated DSN).  The envelope is delivered on a best-effort
+        // basis; a lost event is better than red console noise.
+        fetch(upstream, {
           method: 'POST',
           headers: {
             'Content-Type': req.headers['content-type'] || 'application/x-sentry-envelope',
             'User-Agent': req.headers['user-agent'] || 'ksyk-maps-tunnel',
           },
           body: bodyToSend,
-        });
-        res.status(sentryRes.status);
-        return res.end();
+        }).catch(() => { /* swallow — upstream unavailable */ });
+        return res.status(202).end();
       } catch {
-        return res.status(500).end();
+        return res.status(202).end();
       }
     }
 
@@ -807,6 +810,71 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (e: any) {
           console.warn('GET /sessions/rrweb/:id failed:', e?.message);
           return res.status(500).json({ message: 'Fetch failed' });
+        }
+      }
+    }
+
+    // ── PostHog Session Replay proxy ─────────────────────────────────────
+    // All endpoints require admin auth. Credentials (POSTHOG_PERSONAL_API_KEY +
+    // POSTHOG_PROJECT_ID) are server-side only — never sent to the browser.
+
+    // GET /api/admin/posthog/recordings[?limit=50&offset=0&date_from=-7d&date_to=...]
+    if ((apiPath === '/admin/posthog/recordings' || apiPath.startsWith('/admin/posthog/recordings?')) && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      const phKey = process.env.POSTHOG_PERSONAL_API_KEY;
+      const phProject = process.env.POSTHOG_PROJECT_ID;
+      if (!phKey || !phProject) {
+        return res.status(503).json({
+          message: 'PostHog not configured. Set POSTHOG_PERSONAL_API_KEY and POSTHOG_PROJECT_ID in Vercel → Project Settings → Environment Variables.',
+          configured: false,
+        });
+      }
+      try {
+        const q = req.query as Record<string, string>;
+        const params = new URLSearchParams();
+        if (q.limit)     params.set('limit', String(Math.min(Number(q.limit) || 50, 100)));
+        if (q.offset)    params.set('offset', q.offset);
+        if (q.date_from) params.set('date_from', q.date_from);
+        if (q.date_to)   params.set('date_to', q.date_to);
+        const phRes = await fetch(
+          `https://us.posthog.com/api/projects/${phProject}/session_recordings/?${params}`,
+          { headers: { 'Authorization': `Bearer ${phKey}`, 'Content-Type': 'application/json' } },
+        );
+        if (!phRes.ok) {
+          const body = await phRes.text().catch(() => '');
+          return res.status(phRes.status).json({ message: `PostHog API returned ${phRes.status}`, detail: body.slice(0, 200) });
+        }
+        return res.status(200).json(await phRes.json());
+      } catch (e: any) {
+        return res.status(500).json({ message: e?.message ?? 'PostHog request failed' });
+      }
+    }
+
+    // GET /api/admin/posthog/recordings/:sessionId/snapshots
+    // Returns rrweb snapshot events for the given session so the admin panel
+    // can play them with the existing rrweb-player.
+    {
+      const phSnapMatch = apiPath.match(/^\/admin\/posthog\/recordings\/([^/]+)\/snapshots$/);
+      if (phSnapMatch && req.method === 'GET') {
+        if (!requireAdminAuth(req, res)) return;
+        const sessionId = phSnapMatch[1];
+        const phKey = process.env.POSTHOG_PERSONAL_API_KEY;
+        const phProject = process.env.POSTHOG_PROJECT_ID;
+        if (!phKey || !phProject) {
+          return res.status(503).json({ message: 'PostHog not configured', configured: false });
+        }
+        try {
+          const phRes = await fetch(
+            `https://us.posthog.com/api/projects/${phProject}/session_recordings/${encodeURIComponent(sessionId)}/snapshots/`,
+            { headers: { 'Authorization': `Bearer ${phKey}`, 'Content-Type': 'application/json' } },
+          );
+          if (!phRes.ok) {
+            const body = await phRes.text().catch(() => '');
+            return res.status(phRes.status).json({ message: `PostHog API returned ${phRes.status}`, detail: body.slice(0, 200) });
+          }
+          return res.status(200).json(await phRes.json());
+        } catch (e: any) {
+          return res.status(500).json({ message: e?.message ?? 'PostHog snapshot request failed' });
         }
       }
     }

@@ -121,19 +121,30 @@ export function RrwebSessionsCard({ range }: { range: "24h" | "7d" | "30d" | "90
   );
 }
 
-export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
+export function RrwebPlayerModal({
+  sessionId,
+  onClose,
+  _preloadedEvents,
+}: {
+  sessionId: string;
+  onClose: () => void;
+  /** Skip the API fetch and play these events directly (e.g. from PostHog snapshots). */
+  _preloadedEvents?: unknown[];
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<{ $destroy?: () => void } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery<FetchedSession | null>({
+  const { data, isLoading: queryLoading } = useQuery<FetchedSession | null>({
     queryKey: ["admin-rrweb-session", sessionId],
     queryFn: () => fetchObject<FetchedSession>(`/api/sessions/rrweb/${sessionId}`),
+    enabled: !_preloadedEvents,
   });
 
-  const events = useMemo(() => data?.events ?? [], [data]);
-  const isEmpty = !isLoading && data !== undefined && events.length === 0;
+  const isLoading = _preloadedEvents ? false : queryLoading;
+  const events = useMemo(() => _preloadedEvents ?? data?.events ?? [], [_preloadedEvents, data]);
+  const isEmpty = !isLoading && events.length === 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

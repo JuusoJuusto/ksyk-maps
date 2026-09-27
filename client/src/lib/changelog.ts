@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.30";
+export const APP_VERSION = "4.7.31";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.57.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.31",
+    date: "September 2026",
+    title: "Android screen transitions · animated loading states · lesson progress bar polish",
+    titleFi: "Android-näyttösiirtymät · animoidut lataustilanäkymät · tuntipalkki polished",
+    latest: true,
+    highlights: [
+      "Tab switching now slides directionally — tapping a tab to the right slides content in from the right (and vice versa) with a subtle parallax fade.",
+      "Opening a sub-screen (Room Finder, Announcements, Changelog, etc.) slides in from the right like a native push transition; the back gesture slides it out.",
+      "Home screen loading indicator and offline banner now fade + expand into view instead of snapping in abruptly.",
+      "Lesson progress bar in the Now/Next card animates smoothly to the current position on load (800ms ease-out) instead of jumping straight to the value.",
+      "Quick-action shortcut tiles on the home screen now scale down to 92% on press and spring back — matching iOS and Material You spring physics.",
+    ],
+    highlightsFi: [
+      "Välilehtien vaihto liu'uttaa sisältöä suuntaisesti — oikealle napauttaminen tuo uuden näkymän oikealta.",
+      "Alanäkymien avaus (huoneenhaku, tiedotteet, muutoshistoria jne.) liu'uttaa oikealta sisään kuten natiivi siirtymä.",
+      "Kotinäytön latausilmaisin ja offline-banneri häipyvät ja laajenevat esiin sulavasti.",
+      "Tuntipalkki animoituu nykyiseen kohtaan latauksen yhteydessä sen sijaan että hyppää suoraan arvoon.",
+      "Pika-toimintonapit skaalautuvat painettaessa 92 %:iin ja palautuvat — vastaa iOS- ja Material You -fysiikkaa.",
+    ],
+  },
+  {
     version: "4.7.30",
     date: "September 2026",
     title: "FAQ standalone redesign · animated accordion · APK warning removed · motion system",
     titleFi: "UKK-sivu itsenäiseksi · animoitu laajennettava lista · APK-varoituskysymys poistettu · liikejärjestelmä",
-    latest: true,
     highlights: [
       "FAQ page converted to standalone (no app header or announcement banner) — matches the support, privacy, and download page pattern.",
       "FAQ accordion now animates smoothly using the CSS grid-template-rows trick — no JS height measurement, GPU-friendly.",

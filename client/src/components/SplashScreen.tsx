@@ -284,8 +284,6 @@ export default function SplashScreen() {
           box-sizing: border-box;
           animation: ksyk-ring-spin 0.95s linear infinite;
           will-change: transform;
-          transform: translateZ(0);
-          backface-visibility: hidden;
         }
         .ksyk-spinner-track {
           position: absolute;
@@ -298,7 +296,11 @@ export default function SplashScreen() {
           .ksyk-spinner-track { border-color: #1e293b; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .ksyk-spinner-ring { animation: none; }
+          .ksyk-spinner-ring { animation: ksyk-ring-pulse 1.4s ease-in-out infinite; }
+          @keyframes ksyk-ring-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+          }
         }
       `}</style>
     </div>

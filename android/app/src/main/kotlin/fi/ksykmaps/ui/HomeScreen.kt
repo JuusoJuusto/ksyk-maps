@@ -1,9 +1,20 @@
 package fi.ksykmaps.ui
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -207,8 +219,12 @@ fun HomeScreen(
                 // Greeting header — Google Maps style: soft, big, personal
                 item { GreetingHeader(now = greetingTime, apiOk = apiOk, lang = lang, onReload = { refreshing = true; reload() }) }
 
-                if (loading) {
-                    item {
+                item {
+                    AnimatedVisibility(
+                        visible = loading,
+                        enter = fadeIn(tween(250)) + expandVertically(tween(250)),
+                        exit  = fadeOut(tween(200)) + shrinkVertically(tween(200)),
+                    ) {
                         LinearProgressIndicator(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -217,8 +233,12 @@ fun HomeScreen(
                 }
 
                 // Offline banner — shown when API failed
-                if (!apiOk && !loading) {
-                    item {
+                item {
+                    AnimatedVisibility(
+                        visible = !apiOk && !loading,
+                        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                        exit  = fadeOut(tween(250)) + shrinkVertically(tween(250)),
+                    ) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -538,10 +558,21 @@ private fun ShortcutTile(
     accent: Color,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "tileScale",
+    )
     Column(
         modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+            ) { onClick() }
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -740,7 +771,7 @@ private fun LessonStatusCard(
                     }
                 }
                 // Progress bar
-                val progress = remember(current.startHhmm, current.endHhmm) {
+                val rawProgress = remember(current.startHhmm, current.endHhmm) {
                     try {
                         val s = LocalTime.parse(current.startHhmm, fmt)
                         val e = LocalTime.parse(current.endHhmm, fmt)
@@ -749,8 +780,13 @@ private fun LessonStatusCard(
                         (elapsed / total).coerceIn(0f, 1f)
                     } catch (_: Exception) { 0f }
                 }
+                val animatedProgress by animateFloatAsState(
+                    targetValue = rawProgress,
+                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                    label = "lessonProgress",
+                )
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = { animatedProgress },
                     modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     color = subColor,
                     trackColor = subColor.copy(alpha = 0.12f),

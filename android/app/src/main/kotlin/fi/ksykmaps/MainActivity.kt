@@ -65,6 +65,14 @@ import fi.ksykmaps.ui.loadJaksot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import fi.ksykmaps.ui.theme.KsykTheme
 
@@ -309,38 +317,65 @@ private fun AppShell() {
             }
 
             if (!showingMap) {
-                // Opaque background layer above the (possibly mounted) map
-                // so the hidden map surface never bleeds through even if the
-                // hardware layer alpha is delayed a frame on some devices.
-                Box(
-                    Modifier
+                val screenKey = subScreen ?: selectedTab
+                AnimatedContent(
+                    targetState = screenKey,
+                    transitionSpec = {
+                        val subScreens = setOf(
+                            "rooms","news","wilmaConnect","beaconCapture",
+                            "logs","feedback","bugreport","changelog","homeSections",
+                        )
+                        val fromSub = initialState in subScreens
+                        val toSub   = targetState  in subScreens
+                        when {
+                            !fromSub && toSub ->
+                                (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } +
+                                 fadeIn(tween(220))) togetherWith
+                                (slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 4 } +
+                                 fadeOut(tween(160)))
+                            fromSub && !toSub ->
+                                (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 4 } +
+                                 fadeIn(tween(220))) togetherWith
+                                (slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } +
+                                 fadeOut(tween(160)))
+                            else -> {
+                                val order = listOf("home","map","timetable","lunch","settings","admin")
+                                val from  = order.indexOf(initialState).coerceAtLeast(0)
+                                val to    = order.indexOf(targetState).coerceAtLeast(0)
+                                val dir   = if (to >= from) 1 else -1
+                                (slideInHorizontally(tween(260)) { dir * it / 4 } +
+                                 fadeIn(tween(200))) togetherWith
+                                (slideOutHorizontally(tween(260)) { -dir * it / 4 } +
+                                 fadeOut(tween(200)))
+                            }
+                        }
+                    },
+                    modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    when {
-                        subScreen == "rooms" -> RoomFinderScreen(onOpenOnMap = { roomId ->
+                        .background(MaterialTheme.colorScheme.background),
+                ) { screen ->
+                    when (screen) {
+                        "rooms" -> RoomFinderScreen(onOpenOnMap = { roomId ->
                             MapNavIntent.pendingRoomId = roomId
                             subScreen = null
                             selectedTab = "map"
                             mapMounted = true
                         })
-                        subScreen == "news" -> AnnouncementsScreen()
-                        subScreen == "wilmaConnect" -> WilmaConnectScreen(
+                        "news"          -> AnnouncementsScreen()
+                        "wilmaConnect"  -> WilmaConnectScreen(
                             onBack     = { subScreen = null },
                             onImported = {
-                                // v1.90.0 — queue the 3-screen walkthrough
-                                // so it fires next time the shell renders.
                                 schedulePostSetupWalkthrough(ctx)
                                 subScreen = null
                             },
                         )
-                        subScreen == "beaconCapture" -> BeaconScreen()
-                        subScreen == "logs" -> LogsScreen(onBack = { subScreen = null })
-                        subScreen == "feedback" -> FeedbackScreen(onBack = { subScreen = null })
-                        subScreen == "bugreport" -> BugReportScreen(onBack = { subScreen = null })
-                        subScreen == "changelog" -> ChangelogScreen(onBack = { subScreen = null })
-                        subScreen == "homeSections" -> HomeSectionsScreen(onBack = { subScreen = null })
-                        selectedTab == "home" -> HomeScreen(
+                        "beaconCapture" -> BeaconScreen()
+                        "logs"          -> LogsScreen(onBack = { subScreen = null })
+                        "feedback"      -> FeedbackScreen(onBack = { subScreen = null })
+                        "bugreport"     -> BugReportScreen(onBack = { subScreen = null })
+                        "changelog"     -> ChangelogScreen(onBack = { subScreen = null })
+                        "homeSections"  -> HomeSectionsScreen(onBack = { subScreen = null })
+                        "home" -> HomeScreen(
                             onOpenRooms         = { subScreen = "rooms" },
                             onOpenBeacons       = {},
                             onOpenAnnouncements = { subScreen = "news" },
@@ -349,7 +384,7 @@ private fun AppShell() {
                             onOpenBuildings     = { selectedTab = "map"; subScreen = null; mapMounted = true },
                             onOpenLunch         = { selectedTab = "lunch"; subScreen = null },
                         )
-                        selectedTab == "timetable" -> TimetableScreen(
+                        "timetable" -> TimetableScreen(
                             onNavigateToRoom   = { roomId ->
                                 MapNavIntent.pendingRoomId = roomId
                                 selectedTab = "map"
@@ -358,20 +393,20 @@ private fun AppShell() {
                             },
                             onOpenWilmaConnect = { subScreen = "wilmaConnect" },
                         )
-                        selectedTab == "lunch" -> LunchScreen()
-                        selectedTab == "admin" && isAdmin -> AdminPanelScreen(
-                            onSignOut = { Session.clear(ctx); selectedTab = "home" },
+                        "lunch"    -> LunchScreen()
+                        "admin"    -> if (isAdmin) AdminPanelScreen(
+                            onSignOut           = { Session.clear(ctx); selectedTab = "home" },
                             onOpenBeaconCapture = { subScreen = "beaconCapture" },
                         )
-                        selectedTab == "settings" -> SettingsScreen(
-                            onSignOut       = { Session.clear(ctx) },
-                            onSignIn        = { showLogin = true },
-                            onOpenLogs      = { subScreen = "logs" },
-                            onOpenAdmin     = { selectedTab = "admin"; subScreen = null },
-                            onResetAll      = { onboardingDone = false },
-                            onOpenFeedback  = { subScreen = "feedback" },
-                            onOpenBugReport = { subScreen = "bugreport" },
-                            onOpenChangelog = { subScreen = "changelog" },
+                        "settings" -> SettingsScreen(
+                            onSignOut          = { Session.clear(ctx) },
+                            onSignIn           = { showLogin = true },
+                            onOpenLogs         = { subScreen = "logs" },
+                            onOpenAdmin        = { selectedTab = "admin"; subScreen = null },
+                            onResetAll         = { onboardingDone = false },
+                            onOpenFeedback     = { subScreen = "feedback" },
+                            onOpenBugReport    = { subScreen = "bugreport" },
+                            onOpenChangelog    = { subScreen = "changelog" },
                             onOpenHomeSections = { subScreen = "homeSections" },
                         )
                     }

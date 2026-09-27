@@ -29,6 +29,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
 } from "recharts";
 import { RrwebSessionsCard, RrwebPlayerModal as RrwebPlayerModalInline } from "@/components/RrwebReplay";
+import { PostHogReplaysPanel } from "@/components/PostHogReplaysPanel";
 import { cn } from "@/lib/utils";
 import ErrorRetry from "@/components/ErrorRetry";
 
@@ -2016,12 +2017,16 @@ export default function AdminAnalyticsDashboard() {
             <TabsTrigger value="eggs" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
               <Sparkles className="h-3 w-3" />Eggs
             </TabsTrigger>
+            <TabsTrigger value="posthog" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Video className="h-3 w-3" />PostHog
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
           <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
           <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
           <TabsContent value="eggs"><EggsPanel /></TabsContent>
           <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
+          <TabsContent value="posthog" className="pt-3"><PostHogReplaysPanel range={range} /></TabsContent>
         </Tabs>
 
         {/* Health tabs */}

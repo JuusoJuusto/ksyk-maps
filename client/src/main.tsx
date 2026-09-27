@@ -6,6 +6,26 @@ import "./lib/posthog";
 import { initSentry } from "./lib/sentry";
 import { startRrwebRecording } from "./lib/rrwebRecorder";
 
+// Stale-chunk recovery: when a deploy changes chunk hashes the browser may
+// still hold old HTML referencing the previous filenames. Vercel's SPA
+// catch-all serves index.html for missing asset paths, causing a MIME type
+// error ("Expected JS but got text/html"). One hard reload after such a
+// failure gets fresh HTML with the correct hashes.
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (ev) => {
+    const msg = String((ev.reason as any)?.message ?? ev.reason ?? "");
+    if (msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Importing a module script failed")) {
+      // Only reload once per session to avoid infinite loops on real errors.
+      const key = "ksyk_chunk_reload";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+      }
+    }
+  });
+}
+
 // Initialise Sentry as early as possible in the app lifecycle so it can
 // capture any error thrown during React mount + subsequent renders.
 initSentry();
