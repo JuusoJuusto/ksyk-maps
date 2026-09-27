@@ -16,6 +16,19 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (Android 1.97.0 + web 4.7.31)
+
+- **AnimatedContent screen transitions** — tab switching in `AppShell` (MainActivity.kt) now uses `AnimatedContent` with directional slide + fade. Tapping a tab further right slides content in from the right (1/4 parallax on outgoing screen). Tapping back slides left. Opening any sub-screen (Room Finder, Announcements, Wilma Connect, Changelog, etc.) slides in from the right like a native push; Back pops it back to the left. `slideInHorizontally + fadeIn togetherWith slideOutHorizontally + fadeOut` — compositor-layer, no layout pass.
+- **AnimatedVisibility loading & offline banners** — loading progress indicator and the offline/no-connection banner in `HomeScreen.kt` now fade + expand into view (`fadeIn + expandVertically`) instead of snapping in/out of the list.
+- **Animated lesson progress bar** — the "Now" card progress bar in `LessonStatusCard` uses `animateFloatAsState(tween(800, FastOutSlowInEasing))` to ease from 0 → current position on load instead of jumping to the value immediately.
+- **ShortcutTile press-scale** — the four quick-action tiles (Map, Timetable, Lunch, News) scale down to 92% on press and spring back (`animateFloatAsState(tween(120))`) — matches iOS and Material You spring physics.
+- **Android version bumped** — `1.96.0` (versionCode 98) → `1.97.0` (versionCode 99).
+- **Web version bumped** — `4.7.30` → `4.7.31` with changelog entry.
+
+## ✅ Just shipped (web 4.7.30 · FAQ + motion)
+
+- FAQ page standalone redesign, animated accordion (CSS grid trick), APK warning FAQ removed, motion system (`.page-enter` fadeInUp + `prefers-reduced-motion` support).
+
 ## ✅ Just shipped (web 4.7.29 · commit 5673f62)
 
 - **SplashScreen dark mode flash fixed** — `SplashScreen` now reads `window.matchMedia('(prefers-color-scheme: dark)')` synchronously at init. Dark-mode users see `#030712` background (matching the `#preboot` spinner) instead of a white flash. Spinner track also adapts via a `@media` CSS block. `isDark` computed in `useState` initializer so it runs once and never flickers.
