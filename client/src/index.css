@@ -51,9 +51,18 @@
     transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  /* Map bottom-sheet room info card */
+  /* Map bottom-sheet room info card — spring overshoot feel */
   .map-room-sheet {
-    animation: slideUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: slideUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Cards and dialogs that pop into view */
+  .pop-in {
+    animation: popIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
   }
 
   /* Standalone info pages — subtle content entrance */
@@ -1321,11 +1330,16 @@ body {
     background: #9ca3af;
   }
 
-  /* Smooth transitions */
+  /* Smooth transitions — spring easing (faster out, gentle settle) */
   * {
     transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition-duration: 120ms;
+  }
+
+  /* Interactive elements feel snappier */
+  button, [role="button"], a, [role="tab"] {
+    transition-duration: 100ms;
   }
 
 

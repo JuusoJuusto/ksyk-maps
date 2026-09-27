@@ -31,6 +31,7 @@ import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
 import fi.ksykmaps.ui.AdminPanelScreen
 import fi.ksykmaps.ui.AnnouncementPollWorker
+import fi.ksykmaps.ui.WilmaRefreshWorker
 import fi.ksykmaps.ui.AnnouncementsScreen
 import fi.ksykmaps.ui.BeaconScreen
 import fi.ksykmaps.ui.HomeScreen
@@ -91,6 +92,9 @@ class MainActivity : ComponentActivity() {
         // Start periodic announcement polling — replaces FCM. Idempotent
         // via KEEP policy, so calling this on every cold start is fine.
         try { AnnouncementPollWorker.enqueue(this) } catch (_: Throwable) {}
+        // Periodic Wilma schedule refresh — keeps the timetable current when
+        // teacher/room assignments change in Wilma between manual syncs.
+        try { WilmaRefreshWorker.enqueue(this) } catch (_: Throwable) {}
         // Preload MapLibre native init off the main thread so the first
         // Map tab open doesn't stall on getInstance(). Safe to call more
         // than once; MapLibre no-ops after the first init.

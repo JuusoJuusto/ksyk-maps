@@ -10,17 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.32";
+export const APP_VERSION = "4.7.33";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.97.0";
+export const ANDROID_APP_VERSION = "1.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.33",
+    date: "September 2026",
+    title: "Multi-map · class info centering · widget scroll · schedule auto-refresh · animation polish",
+    titleFi: "Monta karttaa · huonekortti keskitetty · widget-vieritys · aikataulu päivittyy automaattisesti · animaatiot",
+    latest: true,
+    highlights: [
+      "Admins can now save multiple named map views (Karttanäkymät section in Settings → Map). Users get a switcher button in the bottom-left of the map to fly between them instantly.",
+      "Class/room info cards on desktop are now properly centered — a transform conflict between the entrance animation and the centering CSS has been fixed.",
+      "Widget settings screen on Android scrolls correctly — the list was previously clipped at the bottom edge.",
+      "Wilma schedule now auto-refreshes in the background: every 3 hours via WorkManager, and on every timetable screen open when the last sync was on a previous day. Old stale entries no longer linger.",
+      "Entrance animations feel springier — bottom sheet uses a subtle overshoot curve (cubic-bezier(0.34, 1.56, 0.64, 1)), and interactive elements respond 20ms faster.",
+    ],
+    highlightsFi: [
+      "Admins voivat tallentaa useita nimettyjä karttanäkymiä (Asetukset → Kartta → Karttanäkymät). Käyttäjille ilmestyy vaihtonappi kartan vasempaan alakulmaan.",
+      "Huone-/rakennus-infokortit ovat nyt oikein keskitettyinä — animaatio ja CSS-transform eivät enää törmää.",
+      "Widget-asetusnäyttö vierittää nyt kunnolla Androidilla — lista katkesi aiemmin ruudun alareunaan.",
+      "Wilma-aikataulu päivittyy automaattisesti taustalla: joka 3. tunti ja joka kerta kun avaat lukujärjestyksen uudella päivällä. Vanhentuneet tunnit katoavat.",
+      "Sisääntulloanimaatiot tuntuvat jousimailtemmilta. Interaktiiviset elementit reagoivat 20 ms nopeammin.",
+    ],
+  },
   {
     version: "4.7.32",
     date: "September 2026",
     title: "Dark mode map fix · smooth map theme transitions · room card entrance animation",
     titleFi: "Tumman tilan karttakorjaus · sulavat karttateematransitiot · huonekortin sisääntuloanimaatio",
-    latest: true,
+    latest: false,
     highlights: [
       "Dark mode now applies instantly when toggled — the map no longer flickers or reloads tiles; brightness/saturation filters are applied in place via MapLibre paint properties.",
       "Switching between light and dark mode cross-fades the map filter smoothly instead of snapping.",

@@ -16,6 +16,15 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.33 · Android 1.98.0 — multi-map + schedule fix)
+
+- **Multi-map capability** — admins can add/edit/delete named map views with name, center, zoom, bearing, pitch, color. Users see a map-switcher button (Layers icon) in the bottom-left of the map that flies to any saved map. `/api/maps` CRUD endpoints added (admin-write, public-read). `useMaps` hook + `MapSwitcherButton` component.
+- **Class info popup centering fixed** — `sm:left-1/2 sm:-translate-x-1/2` conflicted with the slide-up animation's transform; replaced with `sm:left-0 sm:right-0 sm:mx-auto` so the card is always centered regardless of animation state.
+- **Widget asetukset scroll fixed** — `TodayScheduleWidgetConfigActivity` `Column` was missing `verticalScroll(rememberScrollState())`; content now scrolls on small screens.
+- **Wilma schedule auto-refresh** — new `WilmaRefreshWorker` (WorkManager, every 3 h) re-fetches the Wilma iCal URL in the background. `TimetableScreen` also refreshes on open whenever the last sync was on a previous calendar day. Old stale Wilma entries are replaced automatically; manual entries are preserved.
+- **Animation polish** — bottom sheet now uses spring overshoot curve (cubic-bezier(0.34, 1.56, 0.64, 1)); global transition easing tightened from 150 ms Ease to 120 ms spring; interactive elements (buttons, tabs) respond in 100 ms.
+- **Web version bumped** — `4.7.32` → `4.7.33`. **Android version bumped** — `1.97.0` (versionCode 99) → `1.98.0` (versionCode 100).
+
 ## ✅ Just shipped (web 4.7.32 · dark mode map + animations)
 
 - **Map dark mode toggle fixed** — replaced the remove+re-add tile source approach with `setPaintProperty` calls. The filter (brightness/saturation/contrast) now applies instantly via MapLibre paint interpolation; no tile re-fetch, no flicker.

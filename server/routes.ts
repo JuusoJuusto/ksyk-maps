@@ -2504,6 +2504,94 @@ https://ksykmaps.fi
     }
   });
 
+  // ── Multi-map configurations ────────────────────────────────────────────
+  // Public read (map switcher needs it without login); write is admin-only.
+
+  app.get('/api/maps', async (_req, res) => {
+    try {
+      res.json((await kvGet('campusMaps')) ?? []);
+    } catch (error) {
+      console.error("Error fetching maps:", error);
+      res.status(500).json({ message: "Failed to fetch maps" });
+    }
+  });
+
+  app.post('/api/maps', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { name, centerLat, centerLng, defaultZoom, bearing, pitch, description, color } = req.body;
+      if (!name || typeof centerLat !== 'number' || typeof centerLng !== 'number') {
+        return res.status(400).json({ message: "name, centerLat, centerLng are required" });
+      }
+      const maps = ((await kvGet('campusMaps')) ?? []) as any[];
+      const newMap = {
+        id: crypto.randomUUID(),
+        name: String(name).slice(0, 80),
+        description: description ? String(description).slice(0, 200) : '',
+        color: color || '#3b82f6',
+        centerLat: Number(centerLat),
+        centerLng: Number(centerLng),
+        defaultZoom: Number(defaultZoom) || 17,
+        bearing: Number(bearing) || 0,
+        pitch: Number(pitch) || 0,
+        createdAt: new Date().toISOString(),
+      };
+      await kvSet('campusMaps', [...maps, newMap]);
+      res.status(201).json(newMap);
+    } catch (error) {
+      console.error("Error creating map:", error);
+      res.status(500).json({ message: "Failed to create map" });
+    }
+  });
+
+  app.put('/api/maps/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const maps = ((await kvGet('campusMaps')) ?? []) as any[];
+      const idx = maps.findIndex((m: any) => m.id === req.params.id);
+      if (idx < 0) return res.status(404).json({ message: "Map not found" });
+      const { name, centerLat, centerLng, defaultZoom, bearing, pitch, description, color } = req.body;
+      maps[idx] = {
+        ...maps[idx],
+        ...(name !== undefined && { name: String(name).slice(0, 80) }),
+        ...(description !== undefined && { description: String(description).slice(0, 200) }),
+        ...(color !== undefined && { color }),
+        ...(centerLat !== undefined && { centerLat: Number(centerLat) }),
+        ...(centerLng !== undefined && { centerLng: Number(centerLng) }),
+        ...(defaultZoom !== undefined && { defaultZoom: Number(defaultZoom) }),
+        ...(bearing !== undefined && { bearing: Number(bearing) }),
+        ...(pitch !== undefined && { pitch: Number(pitch) }),
+        updatedAt: new Date().toISOString(),
+      };
+      await kvSet('campusMaps', maps);
+      res.json(maps[idx]);
+    } catch (error) {
+      console.error("Error updating map:", error);
+      res.status(500).json({ message: "Failed to update map" });
+    }
+  });
+
+  app.delete('/api/maps/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const maps = ((await kvGet('campusMaps')) ?? []) as any[];
+      await kvSet('campusMaps', maps.filter((m: any) => m.id !== req.params.id));
+      res.sendStatus(204);
+    } catch (error) {
+      console.error("Error deleting map:", error);
+      res.status(500).json({ message: "Failed to delete map" });
+    }
+  });
+
   // ── Security & access control ──────────────────────────────────────────
   app.get('/api/security-settings', isAuthenticated, async (req: any, res) => {
     try {

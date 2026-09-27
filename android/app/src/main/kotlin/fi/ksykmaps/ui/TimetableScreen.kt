@@ -121,6 +121,26 @@ fun TimetableScreen(
             rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
         }
         loading = false
+
+        // Auto-refresh Wilma on every screen open when the last sync was on a
+        // previous calendar date (new school day = stale data). This ensures
+        // teacher/room changes in Wilma propagate without the user pressing
+        // "Sync now" manually. Runs in the background so it doesn't block the UI.
+        val wilmaUrl = getStoredWilmaUrl(ctx)
+        if (wilmaUrl != null) {
+            val lastSync = WilmaRefreshWorker.getLastSyncDate(ctx)
+            val today = java.time.LocalDate.now().toString()
+            if (lastSync != today) {
+                try {
+                    withContext(Dispatchers.IO) { WilmaRefreshWorker.syncNow(ctx, wilmaUrl) }
+                    ctx.getSharedPreferences("ksyk_wilma", android.content.Context.MODE_PRIVATE)
+                        .edit().putString(WilmaRefreshWorker.KEY_LAST_SYNC_DATE, today).apply()
+                    // Reload entries after successful sync so the UI shows fresh data
+                    entries = loadEntries(ctx)
+                    wilmaCount.value = entries.count { it.id.startsWith("wilma_") }
+                } catch (_: Exception) { /* network unavailable — show cached data */ }
+            }
+        }
     }
 
     // Keep nowMins live — progress bars and countdowns update every 30s

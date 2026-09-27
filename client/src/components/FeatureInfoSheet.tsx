@@ -107,7 +107,8 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         // Mobile: bottom sheet
         "left-0 right-0 bottom-0 rounded-t-2xl shadow-[0_-2px_24px_rgba(0,0,0,0.12)]",
         // Desktop: compact centered card bottom-4
-        "sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:bottom-4 sm:rounded-2xl sm:shadow-[0_8px_32px_rgba(0,0,0,0.18)] sm:w-[min(88vw,21rem)]",
+        // left-0 right-0 mx-auto avoids transform conflicts with the animation
+        "sm:left-0 sm:right-0 sm:mx-auto sm:bottom-4 sm:rounded-2xl sm:shadow-[0_8px_32px_rgba(0,0,0,0.18)] sm:w-[min(88vw,21rem)]",
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",

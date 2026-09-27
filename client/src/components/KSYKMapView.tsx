@@ -38,6 +38,8 @@ import { useCampusData } from "@/hooks/useCampusData";
 import posthog from "@/lib/posthog";
 import PanoramaViewer, { usePanoramaViewer } from "@/components/PanoramaViewer";
 import CampusEventsLayer from "@/components/CampusEventsLayer";
+import MapSwitcherButton from "@/components/MapSwitcherButton";
+import { useMaps, type CampusMap as SavedMap } from "@/hooks/useMaps";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -73,6 +75,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // is why fresh visits sometimes showed a blank campus map until the
   // user interacted with something.
   const [mapInstance, setMapInstance] = useState<CampusMapHandle["map"] | null>(null);
+  const { maps } = useMaps();
+  const handleMapSwitch = useCallback((map: SavedMap) => {
+    if (!mapInstance) return;
+    mapInstance.flyTo({
+      center: [map.centerLng, map.centerLat],
+      zoom: map.defaultZoom,
+      bearing: map.bearing ?? 0,
+      pitch: map.pitch ?? 0,
+      duration: 1200,
+      essential: true,
+    });
+  }, [mapInstance]);
   // Persisted view state — user's 3D toggle + current floor survive
   // a full page reload. Fresh visitors get 3D off + floor 1.
   const [is3D, setIs3D] = usePersistedState<boolean>(
@@ -671,6 +685,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         query={searchQuery}
         onSelect={onPickResult}
       />
+
+      {/* Multi-map switcher — bottom-left, only when multiple maps exist. */}
+      {maps.length > 0 && !showGpsLocation && (
+        <div
+          className="absolute left-3 z-30"
+          style={{ bottom: "max(1.5rem, calc(1rem + env(safe-area-inset-bottom)))" }}
+        >
+          <MapSwitcherButton maps={maps} onSelect={handleMapSwitch} />
+        </div>
+      )}
 
       {/* GPS status chip — admin campus-map tab only. Bottom-left. */}
       {showGpsLocation && (
