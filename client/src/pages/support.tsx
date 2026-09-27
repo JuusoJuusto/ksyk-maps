@@ -90,6 +90,8 @@ export default function Support() {
       }
     } catch { /* ignore malformed URL */ }
     analytics.featureUsed("support", "opened");
+    document.title = "Support — KSYK Maps";
+    return () => { document.title = "KSYK Maps"; };
   }, []);
 
   const emailValid = useMemo(() => {

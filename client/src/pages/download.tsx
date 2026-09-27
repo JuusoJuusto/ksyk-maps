@@ -24,6 +24,8 @@ export default function DownloadPage() {
 
   useEffect(() => {
     try { trackFeatureUse("download_page_view"); } catch { /* noop */ }
+    document.title = "Download — KSYK Maps";
+    return () => { document.title = "KSYK Maps"; };
   }, []);
 
   const onDownloadAndroid = () => {

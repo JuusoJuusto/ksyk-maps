@@ -2,7 +2,7 @@
  * FAQ page (/faq) — expand/collapse questions.
  * Referenced from Footer + Support flow.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -76,6 +76,12 @@ export default function FAQ() {
     try { return (localStorage.getItem("ksyk_language") || "fi").startsWith("en") ? "en" : "fi"; } catch { return "fi"; }
   });
   const isFi = lang === "fi";
+
+  useEffect(() => {
+    const prev = document.title;
+    document.title = isFi ? "UKK — KSYK Maps" : "FAQ — KSYK Maps";
+    return () => { document.title = prev; };
+  }, [isFi]);
 
   return (
     <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
