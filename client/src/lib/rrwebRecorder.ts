@@ -8,9 +8,8 @@
  *
  * Skipped when:
  *   - admin token present (they see admin UI which is uninteresting to record)
- *   - user has ksyk_no_replay=1 in localStorage (opt-out)
+ *   - user has ksyk_no_replay=1 in localStorage (explicit opt-out)
  *   - the route is /admin or /builder (recorder = students-only replay)
- *   - reduced-motion or DNT is set (privacy hygiene)
  *
  * Sensitive text is masked via rrweb's built-in maskAllInputs +
  * maskTextClass="ksyk-mask" so any field marked with that class
@@ -35,9 +34,6 @@ function shouldSkip(): { skip: true; reason: string } | null {
   } catch { /* storage denied, treat as opt-out */ return { skip: true, reason: "no-storage" }; }
   const p = window.location.pathname || "/";
   if (p.startsWith("/admin") || p.startsWith("/builder")) return { skip: true, reason: "admin-route" };
-  if (navigator.doNotTrack === "1" || (navigator as unknown as { msDoNotTrack?: string }).msDoNotTrack === "1") {
-    return { skip: true, reason: "dnt" };
-  }
   return null;
 }
 

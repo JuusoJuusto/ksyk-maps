@@ -28,6 +28,25 @@
  */
 import posthog from "posthog-js/dist/module.full.no-external";
 
+// Suppress noisy vendor console output that cannot be disabled via SDK config:
+//   - PostHog's bundled rrweb "[replayer] Node with id 'N' not found" — benign
+//     React DOM reconciliation race; harmless but spams the console.
+//   - i18next Locize advertisement logged by rrweb-player's i18next instance.
+if (typeof console !== "undefined") {
+  const _warn = console.warn.bind(console);
+  console.warn = (...a: unknown[]) => {
+    const s = String(a[0] ?? "");
+    if (s.includes("[replayer] Node with id") || s.includes("[replayer]")) return;
+    _warn(...a);
+  };
+  const _log = console.log.bind(console);
+  console.log = (...a: unknown[]) => {
+    const s = String(a[0] ?? "");
+    if (s.includes("locize") || (s.includes("i18next") && s.includes("locize"))) return;
+    _log(...a);
+  };
+}
+
 const DEFAULT_KEY = "phc_z4eXUY3op3B93RcMzhvCPbUN8c8cACFB92XW3VuBVbCq";
 const PROXY_HOST = "https://t.ksykmaps.fi";
 const UI_HOST = "https://us.posthog.com";

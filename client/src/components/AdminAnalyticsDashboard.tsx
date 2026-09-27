@@ -671,8 +671,16 @@ function SessionsPanel({ range }: { range: Range }) {
     queryFn: () => fetchObject<RrwebStatus>(`/api/sessions/rrweb/status`),
     refetchInterval: 60_000,
   });
+  // Use the range-aware rrweb list (same key as RrwebSessionsCard — React Query
+  // deduplicates the fetch) so sessions outside the 7-day status window still
+  // get their Play button and aren't falsely labelled "no recording".
+  const rrwebListQuery = useQuery<RrwebSessionSummary[]>({
+    queryKey: ["admin-rrweb-sessions", range],
+    queryFn: async () => (await fetchList<RrwebSessionSummary>(`/api/sessions/rrweb?range=${range}`)) ?? [],
+    refetchInterval: 60_000,
+  });
   const { data = [], isLoading, refetch } = queryResult;
-  const recentReplaySessions = replayStatus.data?.recentSessions ?? [];
+  const recentReplaySessions = rrwebListQuery.data ?? [];
   const hasReplaySet = useMemo(
     () => new Set(recentReplaySessions.map((r) => r.sessionId)),
     [recentReplaySessions],

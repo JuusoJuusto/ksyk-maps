@@ -155,37 +155,37 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
         if (cancelled || !containerRef.current) return;
         containerRef.current.innerHTML = "";
 
-        // rrweb-player creates an internal iframe with sandbox="allow-same-origin"
-        // which blocks script execution and produces "Blocked script execution in
-        // 'about:blank'" console errors. Watch for the iframe and immediately add
-        // allow-scripts so the recorded page's inline styles/scripts can run.
-        const patchSandbox = () => {
-          const iframe = containerRef.current?.querySelector("iframe");
-          if (!iframe) return;
-          const cur = iframe.getAttribute("sandbox") ?? "";
-          if (!cur.includes("allow-scripts")) {
-            iframe.setAttribute("sandbox", (cur + " allow-scripts").trim());
+        // rrweb-player's constructor synchronously creates an iframe, sets
+        // sandbox="allow-same-origin", then writes the replay HTML — all
+        // before any async observer can fire. Patch Element.prototype.setAttribute
+        // synchronously before construction so the iframe is born with
+        // allow-scripts already present, preventing the "Blocked script
+        // execution in 'about:blank'" console error entirely.
+        const origSetAttr = Element.prototype.setAttribute;
+        Element.prototype.setAttribute = function(name: string, value: string) {
+          if (this instanceof HTMLIFrameElement && name === "sandbox" && !value.includes("allow-scripts")) {
+            value = (value + " allow-scripts").trim();
           }
+          return origSetAttr.call(this, name, value);
         };
-        const sandboxMo = new MutationObserver(patchSandbox);
-        sandboxMo.observe(containerRef.current, { childList: true, subtree: true, attributes: true, attributeFilter: ["sandbox"] });
 
-        playerRef.current = new RrwebPlayer({
-          target: containerRef.current,
-          props: {
-            events: events as unknown as never[], // rrweb-player types stricter than API returns
-            autoPlay: true,
-            width: Math.min(1280, window.innerWidth - 80),
-            height: Math.min(720, window.innerHeight - 160),
-            skipInactive: true,
-            showController: true,
-            UNSAFE_replayCanvas: false,
-            liveMode: false,
-          },
-        }) as unknown as { $destroy?: () => void };
-        // Patch immediately in case the iframe was already in the DOM by the
-        // time MutationObserver fires its first callback.
-        patchSandbox();
+        try {
+          playerRef.current = new RrwebPlayer({
+            target: containerRef.current,
+            props: {
+              events: events as unknown as never[], // rrweb-player types stricter than API returns
+              autoPlay: true,
+              width: Math.min(1280, window.innerWidth - 80),
+              height: Math.min(720, window.innerHeight - 160),
+              skipInactive: true,
+              showController: true,
+              UNSAFE_replayCanvas: false,
+              liveMode: false,
+            },
+          }) as unknown as { $destroy?: () => void };
+        } finally {
+          Element.prototype.setAttribute = origSetAttr;
+        }
 
         // Resize the player when the modal/window is resized.
         const ro = new ResizeObserver(() => {
@@ -196,7 +196,7 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
         });
         if (containerRef.current) ro.observe(containerRef.current);
         const origDestroy = playerRef.current.$destroy?.bind(playerRef.current);
-        playerRef.current.$destroy = () => { ro.disconnect(); sandboxMo.disconnect(); origDestroy?.(); };
+        playerRef.current.$destroy = () => { ro.disconnect(); origDestroy?.(); };
 
         setStatus("ready");
       } catch (e: any) {
