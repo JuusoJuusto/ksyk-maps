@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, FileText, Sparkles } from "lucide-react";
@@ -12,28 +11,8 @@ type CampusChangelogProps = {
   compact?: boolean;
 };
 
-/** Optional Firebase release notes merged with static changelog */
 export default function CampusChangelog({ isFi, compact = false }: CampusChangelogProps) {
   const { darkMode } = useDarkMode();
-
-  const { data: releaseNotes = [] } = useQuery({
-    queryKey: ["changelog-announcements"],
-    queryFn: async () => {
-      try {
-        const r = await fetch("/api/announcements?limit=10");
-        if (!r.ok) return [];
-        const items = await r.json();
-        return (Array.isArray(items) ? items : [])
-          .filter((a: { title?: string }) =>
-            /release|update|version|päivitys/i.test(a.title || "")
-          )
-          .slice(0, 3);
-      } catch {
-        return [];
-      }
-    },
-    staleTime: 120000,
-  });
 
   const renderEntry = (entry: ChangelogEntry) => (
     <div
@@ -74,25 +53,6 @@ export default function CampusChangelog({ isFi, compact = false }: CampusChangel
           v{APP_VERSION}
         </Badge>
       </div>
-
-      {!compact && releaseNotes.length > 0 && (
-        <div
-          className={cn(
-            "rounded-xl border p-3 text-xs space-y-2",
-            darkMode ? "border-amber-800/50 bg-amber-950/20" : "border-amber-200 bg-amber-50"
-          )}
-        >
-          <p className="font-semibold text-amber-800 dark:text-amber-300">
-            {isFi ? "Julkaisutiedotteet (Firebase)" : "Release notes (Firebase)"}
-          </p>
-          {releaseNotes.map((note: { id: string; title: string; content?: string }) => (
-            <p key={note.id} className={darkMode ? "text-gray-300" : "text-gray-700"}>
-              <strong>{note.title}</strong>
-              {note.content ? ` — ${note.content.slice(0, 120)}…` : null}
-            </p>
-          ))}
-        </div>
-      )}
 
       <div className={cn("space-y-3", compact ? "max-h-64 overflow-y-auto pr-1" : "")}>
         {KSYK_CHANGELOG.map(renderEntry)}

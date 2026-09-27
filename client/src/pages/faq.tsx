@@ -61,12 +61,6 @@ const QUESTIONS: Q[] = [
     qEn: "Why does Android say 'app may be harmful' during install?",
     aEn: "Android always warns about APKs not from the Play Store — it doesn't mean the app is malicious. Tap 'Install anyway'. Play Store release is in progress.",
   },
-  {
-    q: "Missä TODO tai kehityssuunnitelma on?",
-    a: "Repossa on TODO.md-tiedosto jossa on kaikki mitä on tehty, meneillään ja jonossa.",
-    qEn: "Where is the TODO or roadmap?",
-    aEn: "The repo has a TODO.md file listing everything shipped, in progress, and queued.",
-  },
 ];
 
 export default function FAQ() {
@@ -155,11 +149,18 @@ export default function FAQ() {
           })}
         </div>
 
-        <div className={cn("text-center py-8 text-xs", darkMode ? "text-gray-500" : "text-gray-400")}>
-          {isFi ? "Kysyttävää joka ei löytynyt? " : "Question not answered? "}
-          <Link href="/support" className="text-blue-500 hover:text-blue-400 underline">
-            {isFi ? "Anna palautetta" : "Send feedback"}
-          </Link>
+        <div className={cn("text-center py-8 text-xs space-y-2", darkMode ? "text-gray-500" : "text-gray-400")}>
+          <div>
+            {isFi ? "Kysyttävää joka ei löytynyt? " : "Question not answered? "}
+            <Link href="/support" className="text-blue-500 hover:text-blue-400 underline">
+              {isFi ? "Anna palautetta" : "Send feedback"}
+            </Link>
+          </div>
+          <div>
+            <Link href="/privacy" className="text-blue-500 hover:text-blue-400 underline">
+              {isFi ? "Tietosuojaseloste" : "Privacy Policy"}
+            </Link>
+          </div>
         </div>
       </main>
     </div>

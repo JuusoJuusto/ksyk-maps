@@ -48,6 +48,7 @@ const Support             = lazy(() => import("@/pages/support"));
 const FAQ                  = lazy(() => import("@/pages/faq"));
 const DownloadPage         = lazy(() => import("@/pages/download"));
 const GrantPage            = lazy(() => import("@/pages/grant"));
+const Privacy              = lazy(() => import("@/pages/privacy"));
 import "./lib/i18n";
 
 function OfflineBanner() {
@@ -167,6 +168,7 @@ function Router() {
       <Route path="/download" component={DownloadPage} />
       <Route path="/app" component={DownloadPage} />
       <Route path="/grant/:token" component={GrantPage} />
+      <Route path="/privacy" component={Privacy} />
       {/* Alias so error boundaries + old bookmarks find the same page. */}
       <Route path="/report" component={Support} />
 

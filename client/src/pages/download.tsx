@@ -146,13 +146,19 @@ export default function DownloadPage() {
           </div>
 
           {/* Web fallback */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex flex-col items-center gap-2 text-center">
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
             >
               Or open the web app in your browser
               <ExternalLink className="h-3 w-3" />
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors underline underline-offset-2"
+            >
+              Privacy Policy
             </Link>
           </div>
         </div>

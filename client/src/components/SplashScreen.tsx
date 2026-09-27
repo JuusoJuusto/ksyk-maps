@@ -153,6 +153,9 @@ function useBootGate(): BootState {
 export default function SplashScreen() {
   const [phase, setPhase] = useState<"in" | "out" | "gone">("in");
   const { ready, progress, showRetry, errorCount } = useBootGate();
+  const isDark = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
+  )[0];
 
   useEffect(() => {
     if (!ready || phase !== "in") return;
@@ -199,7 +202,7 @@ export default function SplashScreen() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#ffffff",
+        background: isDark ? "#030712" : "#ffffff",
         opacity: phase === "out" ? 0 : 1,
         transition: `opacity ${FADE_MS}ms ease-out`,
         pointerEvents: phase === "out" ? "none" : "auto",
@@ -210,23 +213,23 @@ export default function SplashScreen() {
 
         {/* Brand */}
         <div className="text-center">
-          <p className="text-xl font-bold tracking-tight" style={{ color: "#0f172a" }}>
+          <p className="text-xl font-bold tracking-tight" style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}>
             KSYK Maps
           </p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: "#94a3b8" }}>
+          <p className="text-xs font-medium mt-0.5" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
             Campus navigation
           </p>
         </div>
 
         {/* Determinate progress bar */}
         <div className="w-full">
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: "#f1f5f9" }}>
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: isDark ? "#1e293b" : "#f1f5f9" }}>
             <div
               className="h-full bg-blue-600 transition-[width] duration-300"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-center mt-2 tabular-nums" style={{ color: "#94a3b8" }}>
+          <p className="text-[10px] text-center mt-2 tabular-nums" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
             {Math.round(progress * 100)}%
           </p>
         </div>
@@ -290,6 +293,9 @@ export default function SplashScreen() {
           border-radius: 50%;
           border: 3px solid #e5e7eb;
           box-sizing: border-box;
+        }
+        @media (prefers-color-scheme: dark) {
+          .ksyk-spinner-track { border-color: #1e293b; }
         }
         @media (prefers-reduced-motion: reduce) {
           .ksyk-spinner-ring { animation: none; }

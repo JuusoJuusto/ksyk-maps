@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.28";
+export const APP_VERSION = "4.7.29";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.57.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.29",
+    date: "September 2026",
+    title: "Dark mode splash fix · support page redesign · privacy policy · FAQ cleanup",
+    titleFi: "Tumman tilan käynnistysvälähdys korjattu · tukisivu uudistettu · tietosuojaseloste",
+    latest: true,
+    highlights: [
+      "Dark→white flash on boot fixed: SplashScreen now reads prefers-color-scheme at init and uses #030712 in dark mode to match the preboot spinner — no more visible colour change.",
+      "Support page redesigned: removed app header and announcement banner, replaced with a minimal back-button header matching the FAQ and download page style.",
+      "New Privacy Policy at /privacy (Finnish + English): covers analytics, cookies, support tickets, and local storage — tied to the real data practices in the codebase.",
+      "FAQ: removed the internal 'Where is the TODO?' question that exposed development artefacts to users.",
+      "Settings changelog: removed the Firebase release-notes panel that showed internal implementation details.",
+    ],
+    highlightsFi: [
+      "Tumma→valkoinen välähdys käynnistyksessä korjattu: SplashScreen lukee nyt prefers-color-scheme -median ja käyttää #030712-taustaväriä tummassa tilassa.",
+      "Tukisivu uudistettu — sovelluspalkkia ja ilmoitusbanneria ei enää, tilalla minimalistinen takaisin-painike kuten UKK- ja Lataa-sivuilla.",
+      "Uusi tietosuojaseloste /privacy-osoitteessa suomeksi ja englanniksi.",
+      "UKK: poistettu sisäinen 'Missä TODO?' -kysymys.",
+      "Asetukset: poistettu Firebase-julkaisutiedote-paneeli muutoslokista.",
+    ],
+  },
+  {
     version: "4.7.26",
     date: "September 2026",
     title: "Sessions row merge (0 with replay fix) · splash focus-leak fix · inputs no longer autofill during boot",
     titleFi: "Sessiot-välilehden yhdistäminen · aloitusruudun kohdistusvuoto korjattu",
-    latest: true,
     highlights: [
       "**'0 with replay' bug fixed by merging rrweb sessions into the panel.** Previously the Sessions table only listed rows from `telemetry_sessions`, then set-intersected with `rrweb_batches` to decide which rows show a Play button. When a session recorded rrweb batches but never hit `/api/session/heartbeat` (guest tabs where the analytics SDK didn't get a chance to flush before navigation, or a background page that skipped the upsert), the sessionId lived in `rrweb_batches` but NOT in `telemetry_sessions` — result: 10 batches, 0 with replay. Fix: the Sessions panel now UNIONS both sources. Any rrweb-only session gets a synthesized row (platform: 'web (replay-only)', started/ended pulled from the batch metadata) so every recording is playable, no matter how the session started.",
       "**Splash focus-leak fixed — inputs no longer autofill during boot.** The SplashScreen overlay is `position: fixed` on top of the app tree, but the DOM behind it stayed focusable — so Firefox and iOS Safari happily invoked autofill on password fields the user couldn't see, then left the fields in a stuck state after the splash faded. Fix: wrapped the app tree in `<div id='app-root'>` and toggled the `inert` attribute (plus `aria-hidden`) on it while `phase !== 'gone'`. The whole tree is unfocusable until the boot finishes; nothing behind the splash steals focus, autofill, or tab order.",

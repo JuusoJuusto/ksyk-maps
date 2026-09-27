@@ -5,8 +5,8 @@
 
   **Campus navigation for Kulosaaren Yhteiskoulu**
 
-  [![Version](https://img.shields.io/badge/version-4.6.7-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
-  [![Android](https://img.shields.io/badge/Android-1.82.0-green.svg)](android/BUILD.md)
+  [![Version](https://img.shields.io/badge/version-4.7.29-blue.svg)](https://github.com/JuusoJuusto/ksyk-maps)
+  [![Android](https://img.shields.io/badge/Android-1.93.0-green.svg)](android/BUILD.md)
   [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)

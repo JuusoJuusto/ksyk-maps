@@ -11,18 +11,16 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  AlertCircle, Bug, CheckCircle, HelpCircle, Home, Lightbulb,
+  AlertCircle, ArrowLeft, Bug, CheckCircle, HelpCircle, Home, Lightbulb,
   Loader2, LifeBuoy, Send, Ticket, Copy, ArrowRight,
 } from "lucide-react";
-import Header from "@/components/Header";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { analytics } from "@/lib/analytics-sdk";
 import posthog from "@/lib/posthog";
 import { useToast } from "@/hooks/use-toast";
@@ -157,8 +155,14 @@ export default function Support() {
   if (submitted) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
-        <AnnouncementBanner />
-        <Header />
+        <header className="border-b border-border/50 shrink-0">
+          <div className="max-w-2xl mx-auto px-4 py-3">
+            <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Back to map
+            </Link>
+          </div>
+        </header>
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-lg">
             <Card className="border border-emerald-200/60 dark:border-emerald-900/40 shadow-xl">
@@ -222,8 +226,14 @@ export default function Support() {
   // ── Form ───────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
-      <AnnouncementBanner />
-      <Header />
+      <header className="border-b border-border/50 shrink-0">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Back to map
+          </Link>
+        </div>
+      </header>
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-2xl">
           <Card className="border border-slate-200/70 dark:border-slate-800 shadow-xl">
@@ -414,7 +424,8 @@ export default function Support() {
                 </div>
 
                 <p className="text-[11px] text-center text-slate-400 pt-2">
-                  Tickets are read by KSYK Maps admins. No third-party tools are contacted.
+                  Tickets are read by KSYK Maps admins. No third-party tools are contacted.{" "}
+                  <Link href="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>
                 </p>
               </form>
             </CardContent>
