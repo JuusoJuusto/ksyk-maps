@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Shield, CheckCircle, XCircle, Clock, User, Mail, Monitor, Activity, AlertTriangle, Info, Users, Search, Navigation, MapPin, Eye, Zap, Globe, Smartphone, Filter } from 'lucide-react';
-import { useDarkMode } from '@/contexts/DarkModeContext';
+import { Clock, User, Monitor, Search, Navigation, MapPin, Eye, Zap, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchList } from '@/lib/fetchList';
 
@@ -44,15 +43,6 @@ interface AppLog {
   type: 'app';
 }
 
-interface LiveActivity {
-  id: string;
-  type: 'page_view' | 'search' | 'room_view' | 'building_view' | 'navigation' | 'feature_use';
-  description: string;
-  user: string;
-  location?: string;
-  timestamp: Date;
-  details?: any;
-}
 
 type LogEntry = LoginLog | AppLog;
 
@@ -76,7 +66,6 @@ const normalizeLevel = (level: string): AppLogLevel => {
 };
 
 export default function AppLogsManager() {
-  const { darkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('all');
   // v4.7.17 — row-click opens a right-side sheet with full details
   // instead of inline expansion (which made every row a huge card).
@@ -85,6 +74,11 @@ export default function AppLogsManager() {
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(0);
   useEffect(() => { setPage(0); }, [activeTab]);
+
+  // ── Log filters — declared early so they can be included in query keys.
+  const [levelFilter, setLevelFilter] = useState<'all' | 'debug' | 'info' | 'warning' | 'error' | 'fatal'>('all');
+  const [rangeFilter, setRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Every list query goes through fetchList so a 404 / auth redirect
   // can't leak a non-array into the `.map` chains that used to crash
@@ -107,12 +101,25 @@ export default function AppLogsManager() {
   const [appLogHasMore, setAppLogHasMore] = useState(true);
   const [appLogsLoadingMore, setAppLogsLoadingMore] = useState(false);
 
+  // Reset cursor stack whenever filters change so stale older pages
+  // don't mix with a freshly filtered first page.
+  useEffect(() => {
+    setAppLogPages([]);
+    setAppLogCursors([]);
+    setAppLogHasMore(true);
+  }, [levelFilter, rangeFilter]);
+
   const { data: appLogFirstPage, isLoading: appLogsLoading } = useQuery<{
     rows: AppLog[]; nextCursor: string | null;
   }>({
-    queryKey: ['app-logs', 'v2'],
+    queryKey: ['app-logs', 'v2', levelFilter, rangeFilter],
     queryFn: async () => {
-      const res = await fetch('/api/logs?limit=100', {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (levelFilter !== 'all') params.set('level', levelFilter);
+      if (rangeFilter !== 'all') params.set('range', rangeFilter);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`/api/logs${qs}`, {
         credentials: 'include',
         headers: (() => {
           try {
@@ -217,15 +224,6 @@ export default function AppLogsManager() {
   // which owns the aggregate views; keeping the fetches here just wasted
   // /api round-trips.
 
-  // ── Log filters ────────────────────────────────────────────────────
-  // The unfiltered stream can be firehose-loud on a busy day, so we surface
-  // three cheap controls: level (info/warn/error), date range (24h/7d/30d/
-  // all), and a free-text search. All filters compose. Defaults to 24h so
-  // the panel opens focused on the most recent activity.
-  const [levelFilter, setLevelFilter] = useState<'all' | 'debug' | 'info' | 'warning' | 'error' | 'fatal'>('all');
-  const [rangeFilter, setRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
-  const [searchQuery, setSearchQuery] = useState('');
-
   const rawAllLogs: LogEntry[] = useMemo(() => (
     [...loginLogs, ...appLogs].sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
@@ -298,59 +296,6 @@ export default function AppLogsManager() {
     });
   };
 
-  const loginSuccessCount = loginLogs.filter((log: any) => log.loginStatus === 'success').length;
-  const loginFailedCount = loginLogs.filter((log: any) => log.loginStatus === 'failed').length;
-  const appInfoCount = appLogs.filter((log) => {
-    const lvl = normalizeLevel(log.level);
-    return lvl === 'info' || lvl === 'success';
-  }).length;
-  const appWarningCount = appLogs.filter((log) => {
-    const lvl = normalizeLevel(log.level);
-    return lvl === 'warning' || lvl === 'error';
-  }).length;
-
-  const isLoading = loginLogsLoading || appLogsLoading || eventsLoading;
-
-  // Prepare chart data from real analytics
-  const activityByHour = Array.from({ length: 24 }, (_, hour) => {
-    const hourEvents = analyticsEvents.filter((event: any) => {
-      const eventDate = new Date(event.timestamp);
-      return eventDate.getHours() === hour;
-    });
-    return {
-      hour: `${hour}:00`,
-      events: hourEvents.length
-    };
-  });
-
-  const eventsByType = analyticsEvents.reduce((acc: any, event: any) => {
-    const type = event.type || 'other';
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {});
-
-  const eventTypeData = Object.entries(eventsByType).map(([name, value]) => ({
-    // Defensive coercion — KV blob rows from older client builds sometimes
-    // lack `type`, which crashed the entire admin page ("Cannot read
-    // properties of undefined (reading 'replace')"). Now we always end up
-    // with a string.
-    name: String(name ?? 'other').replace(/_/g, ' ').toUpperCase(),
-    value
-  }));
-
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
-  if (isLoading) {
-    return (
-      <Card className={cn(darkMode && "bg-gray-900 border-gray-700")}>
-        <CardContent className="p-12 text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading logs...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   /**
    * v4.7.17 — compact row renderer. Every log (login or app) collapses
    * to a single scannable line: time · level chip · message · source.
@@ -394,124 +339,6 @@ export default function AppLogsManager() {
         <td className="px-3 py-2 text-sm max-w-[520px] truncate">{message}</td>
         <td className="px-3 py-2 text-[11px] text-slate-500 font-mono">{source}</td>
       </tr>
-    );
-  };
-
-  const renderLoginLog = (log: LoginLog) => (
-    <div
-      key={log.id}
-      className={cn(
-        'border rounded-lg p-4 transition-all hover:shadow-md',
-        log.loginStatus === 'success'
-          ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30'
-          : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30'
-      )}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center space-x-3">
-          {log.loginStatus === 'success' ? (
-            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-          ) : (
-            <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
-          )}
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {log.userName || 'Unknown User'}
-              </span>
-              <Badge variant={log.loginStatus === 'success' ? 'default' : 'destructive'}>
-                {log.loginStatus}
-              </Badge>
-              <Badge variant="outline">LOGIN</Badge>
-            </div>
-            <div className="flex items-center space-x-2 mt-1">
-              <Mail className="h-3 w-3 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">{log.email}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-          <Clock className="h-4 w-4" />
-          <span>{formatDate(log.createdAt)}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-        {log.ipAddress && (
-          <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-            <Monitor className="h-4 w-4" />
-            <span>IP: {log.ipAddress}</span>
-          </div>
-        )}
-        {log.sessionId && (
-          <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-            <User className="h-4 w-4" />
-            <span className="truncate">Session: {log.sessionId.substring(0, 16)}...</span>
-          </div>
-        )}
-      </div>
-
-      {log.failureReason && (
-        <div className="mt-3 p-2 bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-300">
-          <strong>Failure Reason:</strong> {log.failureReason}
-        </div>
-      )}
-
-      {log.userAgent && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 truncate">
-          {log.userAgent}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderAppLog = (log: AppLog) => {
-    const levelConfig = {
-      debug:   { icon: Info,          color: 'text-slate-500 dark:text-slate-400',    bg: 'bg-slate-50 dark:bg-slate-900/30',      border: 'border-slate-200 dark:border-slate-700' },
-      info:    { icon: Info,          color: 'text-blue-600 dark:text-blue-400',      bg: 'bg-blue-50 dark:bg-blue-950/30',        border: 'border-blue-200 dark:border-blue-800' },
-      success: { icon: CheckCircle,   color: 'text-green-600 dark:text-green-400',    bg: 'bg-green-50 dark:bg-green-950/30',      border: 'border-green-200 dark:border-green-800' },
-      warning: { icon: AlertTriangle, color: 'text-yellow-600 dark:text-yellow-400',  bg: 'bg-yellow-50 dark:bg-yellow-950/30',    border: 'border-yellow-200 dark:border-yellow-700' },
-      error:   { icon: XCircle,       color: 'text-red-600 dark:text-red-400',        bg: 'bg-red-50 dark:bg-red-950/30',          border: 'border-red-200 dark:border-red-800' },
-      fatal:   { icon: XCircle,       color: 'text-red-900 dark:text-red-300',        bg: 'bg-red-100 dark:bg-red-950/50',         border: 'border-red-400 dark:border-red-700' },
-    };
-
-    const config = levelConfig[normalizeLevel(log.level)];
-    const Icon = config.icon;
-
-    return (
-      <div
-        key={log.id}
-        className={`border rounded-lg p-4 transition-all hover:shadow-md ${config.border} ${config.bg}`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <Icon className={`h-6 w-6 ${config.color}`} />
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-gray-900 dark:text-white">{log.message}</span>
-                <Badge variant="outline">{log.level.toUpperCase()}</Badge>
-                {log.action && <Badge variant="secondary">{log.action}</Badge>}
-              </div>
-              {log.userName && (
-                <div className="flex items-center space-x-2 mt-1">
-                  <User className="h-3 w-3 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{log.userName}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-            <Clock className="h-4 w-4" />
-            <span>{formatDate(log.createdAt)}</span>
-          </div>
-        </div>
-
-        {log.details && (
-          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 pl-9">
-            {log.details}
-          </div>
-        )}
-      </div>
     );
   };
 
@@ -701,7 +528,12 @@ export default function AppLogsManager() {
               
               <ScrollArea className="h-[600px]">
                 <div className="space-y-3">
-                  {analyticsEvents.length === 0 ? (
+                  {eventsLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                      <p className="mt-3 text-xs text-muted-foreground">Loading live events…</p>
+                    </div>
+                  ) : analyticsEvents.length === 0 ? (
                     <div className="text-center py-12">
                       <Eye className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Live Activity</h3>
@@ -764,32 +596,52 @@ export default function AppLogsManager() {
             </TabsContent>
 
             <TabsContent value="all" className="mt-4">
-              <LogTable
-                rows={allLogs}
-                page={page}
-                pageSize={PAGE_SIZE}
-                onPageChange={setPage}
-                emptyTitle="No logs yet"
-                emptyHint={searchQuery || levelFilter !== 'all' || rangeFilter !== '24h'
-                  ? 'No logs match the current filters.'
-                  : 'System activity will appear here.'}
-                renderRow={renderCompactRow}
-              />
+              {(loginLogsLoading || appLogsLoading) ? (
+                <div className="py-10 text-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                  <p className="mt-3 text-xs text-muted-foreground">Loading logs…</p>
+                </div>
+              ) : (
+                <LogTable
+                  rows={allLogs}
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPage}
+                  emptyTitle="No logs yet"
+                  emptyHint={searchQuery || levelFilter !== 'all' || rangeFilter !== '24h'
+                    ? 'No logs match the current filters.'
+                    : 'System activity will appear here.'}
+                  renderRow={renderCompactRow}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="logins" className="mt-4">
-              <LogTable
-                rows={loginLogs as LogEntry[]}
-                page={page}
-                pageSize={PAGE_SIZE}
-                onPageChange={setPage}
-                emptyTitle="No login activity"
-                emptyHint="Login attempts will appear here."
-                renderRow={renderCompactRow}
-              />
+              {loginLogsLoading ? (
+                <div className="py-10 text-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                  <p className="mt-3 text-xs text-muted-foreground">Loading logins…</p>
+                </div>
+              ) : (
+                <LogTable
+                  rows={loginLogs as LogEntry[]}
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPage}
+                  emptyTitle="No login activity"
+                  emptyHint="Login attempts will appear here."
+                  renderRow={renderCompactRow}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="app" className="mt-4">
+              {appLogsLoading ? (
+                <div className="py-10 text-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                  <p className="mt-3 text-xs text-muted-foreground">Loading app events…</p>
+                </div>
+              ) : (
               <LogTable
                 rows={appLogs as LogEntry[]}
                 page={page}
@@ -799,6 +651,7 @@ export default function AppLogsManager() {
                 emptyHint="Application events will appear here."
                 renderRow={renderCompactRow}
               />
+              )}
               {/* v4.7.19 — Load older button. Only appears on the last
                *  page of the current stack so users don't get a stale
                *  cursor when they're mid-way through browsing. */}

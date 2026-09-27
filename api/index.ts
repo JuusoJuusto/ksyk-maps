@@ -11,8 +11,10 @@ import crypto from 'node:crypto';
 
 function _adminSecret(): string {
   const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) console.warn('âš ï¸ SESSION_SECRET missing or too short â€” admin tokens are insecure');
-  return s || 'ksyk-insecure-fallback-set-session-secret-in-vercel';
+  if (!s || s.length < 32) {
+    throw new Error("SESSION_SECRET env var is missing or too short — set it in the Vercel dashboard");
+  }
+  return s;
 }
 
 function generateAdminToken(userId: string, role: string): string {
@@ -665,6 +667,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // v4.7.25 — replay diagnostic. Tells the admin exactly which
     // link is broken (table missing / recording disabled / just
     // no traffic yet) instead of a silent empty Sessions tab.
+    // v4.7.27 — exposes raw session IDs + a sample event so admins
+    // can visually confirm what's in the table when the merged
+    // panel view isn't showing what they expect.
     if (apiPath === '/sessions/rrweb/status' && req.method === 'GET') {
       if (!requireAdminAuth(req, res)) return;
       try {
@@ -681,6 +686,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let batchesLast24h = 0;
         let batchesTotal = 0;
         let lastBatchAt: string | null = null;
+        let recentSessions: Array<{ sessionId: string; batches: number; totalEvents: number; startedAt: string; endedAt: string }> = [];
+        let sampleFirstEventType: number | null = null;
         if (tableExists) {
           try {
             const r24 = await pgDb.execute(dsql`
@@ -693,7 +700,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const row = (rTotal as any)?.rows?.[0] ?? (rTotal as any)?.[0];
             batchesTotal = Number(row?.n ?? 0);
             lastBatchAt = row?.last ?? null;
-          } catch { /* soft-fail */ }
+            // Distinct session IDs — full list so the diagnostic UI
+            // can show the admin the actual session_id strings.
+            const rSess = await pgDb.execute(dsql`
+              SELECT session_id AS "sessionId",
+                     COUNT(*)::int AS batches,
+                     SUM(event_count)::int AS "totalEvents",
+                     MIN(started_at) AS "startedAt",
+                     MAX(ended_at)   AS "endedAt"
+                FROM rrweb_batches
+               WHERE created_at >= NOW() - INTERVAL '7 days'
+               GROUP BY session_id
+               ORDER BY MAX(ended_at) DESC
+               LIMIT 20
+            `);
+            recentSessions = ((rSess as any)?.rows ?? (rSess as any) ?? []) as any[];
+            // Sample the first event of the newest batch — just its
+            // rrweb type (0=DomContentLoaded, 2=FullSnapshot, 3=IncrementalSnapshot, etc.)
+            // so admin can tell if events are structurally valid.
+            const rSample = await pgDb.execute(dsql`
+              SELECT events FROM rrweb_batches
+               ORDER BY created_at DESC LIMIT 1
+            `);
+            const sampleRow = ((rSample as any)?.rows?.[0] ?? (rSample as any)?.[0]) as any;
+            const evs = sampleRow?.events;
+            if (Array.isArray(evs) && evs.length > 0 && typeof evs[0]?.type === 'number') {
+              sampleFirstEventType = evs[0].type;
+            }
+          } catch (e: any) {
+            console.warn('rrweb/status: query failed:', e?.message);
+          }
         }
         // Read the enableSessionReplay flag from admin settings.
         let recordingEnabled = true;
@@ -708,6 +744,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           batchesLast24h,
           batchesTotal,
           lastBatchAt,
+          recentSessions,
+          sampleFirstEventType,
           migrationHint: tableExists
             ? null
             : 'Run migrations/0003_rrweb_batches.sql in Supabase SQL Editor, or just wait — the table auto-creates on the first client recorder POST.',
@@ -2718,6 +2756,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         
         return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
       } catch (error: any) {
+        console.error('forgot-password error:', error?.message);
+        return res.status(500).json({ message: 'Failed to process request' });
       }
     }
 
@@ -2916,8 +2956,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         
         if (req.method === 'GET') {
           const user = await storage.getUser(id);
-          if (!user) {
-          }
+          if (!user) return res.status(404).json({ message: 'User not found' });
           return res.status(200).json(user);
         }
         

@@ -106,7 +106,6 @@ if (shouldInit()) {
       disable_session_recording: false,
       session_recording: {
         recordCanvas: true,
-        canvasFps: 4,
         canvasQuality: "0.6",
         maskAllInputs: true,
         maskTextSelector: "[data-sensitive]",
@@ -156,26 +155,34 @@ if (shouldInit()) {
 // PostHog's capture_exceptions:true only covers its own SDK path; we
 // also explicitly send to captureException so errors appear in PostHog
 // Error Tracking with a session replay link.
-if (typeof window !== "undefined" && initialised) {
+//
+// NOTE: registered unconditionally so errors are captured even if
+// posthog.init() failed and `initialised` stayed false. The handlers
+// themselves guard on `initialised` before forwarding to PostHog.
+if (typeof window !== "undefined") {
   const prevOnError = window.onerror;
   window.onerror = (msg, src, line, col, err) => {
-    try {
-      const e = err instanceof Error ? err : new Error(String(msg));
-      posthog.captureException?.(e, {
-        extra: { source: src, line, col },
-      });
-    } catch { /* never crash on telemetry */ }
+    if (initialised) {
+      try {
+        const e = err instanceof Error ? err : new Error(String(msg));
+        posthog.captureException?.(e, {
+          extra: { source: src, line, col },
+        });
+      } catch { /* never crash on telemetry */ }
+    }
     if (typeof prevOnError === "function") prevOnError(msg, src, line, col, err);
     return false;
   };
 
   const prevUnhandled = window.onunhandledrejection;
   window.onunhandledrejection = (ev) => {
-    try {
-      const reason = ev.reason;
-      const e = reason instanceof Error ? reason : new Error(String(reason));
-      posthog.captureException?.(e, { extra: { type: "unhandledrejection" } });
-    } catch { /* never crash on telemetry */ }
+    if (initialised) {
+      try {
+        const reason = ev.reason;
+        const e = reason instanceof Error ? reason : new Error(String(reason));
+        posthog.captureException?.(e, { extra: { type: "unhandledrejection" } });
+      } catch { /* never crash on telemetry */ }
+    }
     if (typeof prevUnhandled === "function") prevUnhandled.call(window, ev);
   };
 }

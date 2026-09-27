@@ -135,6 +135,8 @@ const URL_TO_TAB: Record<string, TabSlug> = {
   analytics: "insights",
   feedback: "insights",
   "analytics-logs": "insights",
+  sessions: "insights",
+  replays: "insights",
 };
 // Reverse: canonical slug → preferred short URL segment (when on /admin/* base)
 const TAB_TO_SHORT: Partial<Record<TabSlug, string>> = {
@@ -1179,8 +1181,6 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   // instead of being a flat 12-item wall.
   const NAV_ITEMS = [
     { value: "overview",       label: "Overview",         Icon: LayoutDashboard },
-    { value: "security",       label: "Security",         Icon: Shield },
-    { value: "users",          label: "Users",            Icon: Users },
     { value: "campus-map",     label: "Campus Map",       Icon: MapPin },
     { value: "__builder",      label: "Builder",          Icon: Box, href: "/builder" as const },
     { value: "tickets",        label: "Tickets",          Icon: Ticket },
@@ -1188,18 +1188,19 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
     { value: "staff",          label: "Staff",            Icon: IdCard },
     { value: "announcements",  label: "Announcements",    Icon: Megaphone },
     { value: "notifications",  label: "Notifications",    Icon: Bell },
-    ...(isOwner ? [{ value: "beacons",  label: "Wi-Fi",    Icon: Radio }]    : []),
-    ...(isOwner ? [{ value: "2fa",      label: "2FA",      Icon: Shield }]   : []),
-    ...(isOwner ? [{ value: "settings", label: "Settings", Icon: Settings }] : []),
+    ...(isOwner ? [{ value: "security", label: "Security",  Icon: Shield }]   : []),
+    ...(isOwner ? [{ value: "users",    label: "Users",     Icon: Users }]    : []),
+    ...(isOwner ? [{ value: "beacons",  label: "Wi-Fi Beacons", Icon: Radio }] : []),
+    ...(isOwner ? [{ value: "2fa",      label: "2FA",       Icon: Shield }]   : []),
+    ...(isOwner ? [{ value: "settings", label: "Settings",  Icon: Settings }] : []),
   ];
 
   const NAV_GROUPS: { label: string; values: string[] }[] = [
     { label: "Overview",  values: ["overview"] },
-    { label: "Analytics", values: ["insights"] },
+    { label: "Content",   values: ["announcements", "notifications", "staff", "tickets"] },
     { label: "Map",       values: ["campus-map", "__builder"] },
-    { label: "Content",   values: ["announcements", "notifications", "tickets", "staff"] },
-    { label: "Users",     values: ["users", "security"] },
-    ...(isOwner ? [{ label: "System", values: ["beacons", "2fa", "settings"] }] : []),
+    { label: "Insights",  values: ["insights"] },
+    ...(isOwner ? [{ label: "System", values: ["security", "users", "beacons", "2fa", "settings"] }] : []),
   ];
   const navByValue: Record<string, typeof NAV_ITEMS[number]> = Object.fromEntries(
     NAV_ITEMS.map((i) => [i.value, i]),
@@ -1410,8 +1411,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             users: { title: "Users", description: "Manage admin accounts and per-user access rules.", Icon: Users },
             "campus-map": { title: "Campus Map", description: "Live preview of what users see.", Icon: MapPin },
             tickets: { title: "Tickets", description: "Support requests and bug reports.", Icon: Ticket },
-            logs: { title: "Application Logs", description: "Server-side activity and errors.", Icon: ScrollText },
-            analytics: { title: "Analytics", description: "Cloudflare + Vercel + Firestore visitor metrics in one place.", Icon: TrendingUp },
+            insights: { title: "Analytics & Logs", description: "Usage analytics, session data, application logs, and error tracking.", Icon: TrendingUp },
             staff: { title: "Staff", description: "Public-facing staff directory entries.", Icon: IdCard },
             announcements: { title: "Announcements", description: "Banner messages shown to all users.", Icon: Megaphone },
             notifications: { title: "Notifications", description: "Send push notifications to all app users.", Icon: Bell },
@@ -1586,7 +1586,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
               { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "__builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400" },
               { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-400" },
               { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400" },
-              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "logs", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800 dark:text-slate-400" },
+              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "insights", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800 dark:text-slate-400" },
             ].map(({ label, desc, icon: Icon, tab, accent }) => (
               <button key={label} type="button"
                 onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}

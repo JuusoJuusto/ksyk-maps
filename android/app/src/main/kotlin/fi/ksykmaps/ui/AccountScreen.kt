@@ -15,10 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.Api
 
 /**
@@ -28,6 +29,9 @@ import fi.ksykmaps.data.Api
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(onSignOut: () -> Unit) {
+    val ctx = LocalContext.current
+    LanguageState.init(ctx); val lang = LanguageState.current ?: "fi"
+    val isFi = lang == "fi"
     val email = Api.sessionEmail ?: "—"
 
     Column(
@@ -40,7 +44,10 @@ fun AccountScreen(onSignOut: () -> Unit) {
                 .height(180.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF1E3A8A), Color(0xFF2563EB)),
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primaryContainer,
+                        )
                     )
                 ),
             contentAlignment = Alignment.Center,
@@ -53,20 +60,20 @@ fun AccountScreen(onSignOut: () -> Unit) {
                     Modifier
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         email.firstOrNull()?.uppercase() ?: "?",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                Text(email, color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(email, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Signed in",
-                    color = Color.White.copy(alpha = 0.75f),
+                    if (isFi) "Kirjautunut sisään" else "Signed in",
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
                     fontSize = 12.sp,
                 )
             }
@@ -78,18 +85,18 @@ fun AccountScreen(onSignOut: () -> Unit) {
         ) {
             InfoCard(
                 icon = { Icon(Icons.Outlined.Sync, null, tint = MaterialTheme.colorScheme.primary) },
-                title = "What syncs",
+                title = if (isFi) "Mitä synkronoidaan" else "What syncs",
                 body = "Everything you capture here — rooms, beacons, GPS fixes — lands in the same Firestore your desktop admin and the website read from. Sign in on multiple devices and you'll see the same data on all of them.",
             )
             InfoCard(
                 icon = { Icon(Icons.Outlined.Email, null, tint = MaterialTheme.colorScheme.primary) },
-                title = "Connected to",
+                title = if (isFi) "Yhdistetty" else "Connected to",
                 body = Api.base,
             )
             InfoCard(
                 icon = { Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary) },
-                title = "Version",
-                body = "KSYK Maps Android · 1.0.0\n© 2026 Nordbyte Studio",
+                title = if (isFi) "Versio" else "Version",
+                body = "KSYK Maps Android · ${BuildConfig.VERSION_NAME}\n© 2026 Nordbyte Studio",
             )
 
             Spacer(Modifier.weight(1f))
@@ -104,7 +111,7 @@ fun AccountScreen(onSignOut: () -> Unit) {
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Logout, null)
                 Spacer(Modifier.width(10.dp))
-                Text("Sign out", fontWeight = FontWeight.SemiBold)
+                Text(if (isFi) "Kirjaudu ulos" else "Sign out", fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -220,15 +220,15 @@ function TimeseriesChart({ range }: { range: Range }) {
 // admins, not students. Fetches /api/analytics/room-popularity and
 // shows a top-10 horizontal-bar list plus the total volume.
 interface PopularRoom { roomId: string; count: number; lat: number; lng: number }
-function useRoomPopularity() {
+function useRoomPopularity(range: Range) {
   return useQuery<PopularRoom[]>({
-    queryKey: ["admin-analytics-room-popularity"],
-    queryFn: async () => (await fetchList<PopularRoom>("/api/analytics/room-popularity")) ?? [],
+    queryKey: ["admin-analytics-room-popularity", range],
+    queryFn: async () => (await fetchList<PopularRoom>(`/api/analytics/room-popularity?range=${range}`)) ?? [],
     refetchInterval: 300_000,
   });
 }
-function RoomPopularityCard() {
-  const { data, isLoading } = useRoomPopularity();
+function RoomPopularityCard({ range }: { range: Range }) {
+  const { data, isLoading } = useRoomPopularity(range);
   // Also fetch rooms so we can show human-readable numbers instead of UUIDs.
   const { data: rooms } = useQuery<Array<{ id: string; roomNumber?: string; name?: string }>>({
     queryKey: ["/api/rooms-min"],
@@ -473,16 +473,16 @@ interface RetentionResponse {
   cohortSize: number;
   days: Array<{ day: number; retained: number; retainedPct: number }>;
 }
-function useRetention() {
+function useRetention(range: Range) {
   return useQuery<RetentionResponse | null>({
-    queryKey: ["admin-analytics-retention"],
-    queryFn: () => fetchObject<RetentionResponse>("/api/analytics/retention"),
+    queryKey: ["admin-analytics-retention", range],
+    queryFn: () => fetchObject<RetentionResponse>(`/api/analytics/retention?range=${range}`),
     refetchInterval: 300_000,
   });
 }
 
-function RetentionChart() {
-  const { data, isLoading } = useRetention();
+function RetentionChart({ range }: { range: Range }) {
+  const { data, isLoading } = useRetention(range);
   const rows = data?.days ?? [];
   const cohortSize = data?.cohortSize ?? 0;
   const d1 = rows.find(r => r.day === 1)?.retainedPct ?? 0;
@@ -632,6 +632,14 @@ interface TelemetrySession {
   appVersion: string | null; osVersion: string | null; deviceType: string | null;
   startedAt: string; lastSeenAt: string; endedAt: string | null; durationMs: number | null;
 }
+interface RrwebSessionSummary {
+  sessionId: string;
+  batches: number;
+  totalEvents: number;
+  startedAt: string;
+  endedAt: string;
+}
+
 interface RrwebStatus {
   tableExists: boolean;
   recordingEnabled: boolean;
@@ -639,6 +647,8 @@ interface RrwebStatus {
   batchesTotal: number;
   lastBatchAt: string | null;
   migrationHint: string | null;
+  recentSessions?: RrwebSessionSummary[];
+  sampleFirstEventType?: number | null;
 }
 
 function SessionsPanel({ range }: { range: Range }) {
@@ -652,46 +662,31 @@ function SessionsPanel({ range }: { range: Range }) {
     queryFn: () => fetchList<TelemetrySession>(`/api/admin/analytics/sessions?limit=100&range=${range}`),
     refetchInterval: 60_000,
   });
-  const replayList = useQuery<Array<{
-    sessionId: string;
-    batches: number;
-    totalEvents: number;
-    startedAt: string;
-    endedAt: string;
-  }>>({
-    queryKey: ["admin-rrweb-sessions-inline", range],
-    queryFn: () => fetchList<{
-      sessionId: string;
-      batches: number;
-      totalEvents: number;
-      startedAt: string;
-      endedAt: string;
-    }>(`/api/sessions/rrweb?range=${range}`),
-    refetchInterval: 60_000,
-  });
-  // v4.7.25 — Replay status diagnostic. Tells admin exactly why no
-  // videos appear (table missing / recording disabled / no traffic).
+  // v4.7.27 — single source of truth: the /status endpoint now returns
+  // `recentSessions` too, so we drop the separate list query and derive
+  // both the diagnostic and the panel from ONE fetch. Removes the
+  // "status says 10 batches but list returns 0" class of bug entirely.
   const replayStatus = useQuery<RrwebStatus | null>({
     queryKey: ["admin-rrweb-status"],
     queryFn: () => fetchObject<RrwebStatus>(`/api/sessions/rrweb/status`),
-    refetchInterval: 120_000,
+    refetchInterval: 60_000,
   });
   const { data = [], isLoading, refetch } = queryResult;
+  const recentReplaySessions = replayStatus.data?.recentSessions ?? [];
   const hasReplaySet = useMemo(
-    () => new Set((replayList.data ?? []).map((r) => r.sessionId)),
-    [replayList.data],
+    () => new Set(recentReplaySessions.map((r) => r.sessionId)),
+    [recentReplaySessions],
   );
-  // v4.7.26 — MERGE telemetry sessions with rrweb-only sessions.
-  // Historically some tabs recorded rrweb batches without hitting
-  // /session/heartbeat (guest tabs, background pages, tab-swap timing),
-  // so their sessionId never made it into telemetry_sessions. Result:
-  // 10 batches but "0 with replay" in the UI. Fix: synthesize a row
-  // from the rrweb metadata for any session id we can't find in the
-  // telemetry list. Every batch that exists gets a Play button.
+  // v4.7.26/27 — MERGE telemetry sessions with rrweb-only sessions.
+  // Some tabs record rrweb batches without hitting /session/heartbeat
+  // (guest tabs, background pages, tab-swap timing), so their sessionId
+  // never lands in telemetry_sessions. Result was "10 batches but 0 with
+  // replay". Fix: synthesize a row from the rrweb metadata for any
+  // session id missing from telemetry — every batch is playable.
   const mergedSessions = useMemo<TelemetrySession[]>(() => {
     const byId = new Map<string, TelemetrySession>();
     for (const s of data) byId.set(s.sessionId, s);
-    for (const r of replayList.data ?? []) {
+    for (const r of recentReplaySessions) {
       if (byId.has(r.sessionId)) continue;
       byId.set(r.sessionId, {
         id: `rrweb-only-${r.sessionId}`,
@@ -709,7 +704,7 @@ function SessionsPanel({ range }: { range: Range }) {
     return Array.from(byId.values()).sort(
       (a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime(),
     );
-  }, [data, replayList.data]);
+  }, [data, recentReplaySessions]);
   return (
     <div className="space-y-2 pt-3">
       <ErrorRetry query={queryResult} label="sessions" />
@@ -741,7 +736,7 @@ function SessionsPanel({ range }: { range: Range }) {
         <div className="flex gap-1">
           <button
             type="button"
-            onClick={() => { refetch(); replayList.refetch(); replayStatus.refetch(); }}
+            onClick={() => { refetch(); replayStatus.refetch(); }}
             className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             title="Refresh"
             aria-label="Refresh sessions list"
@@ -1835,6 +1830,8 @@ function AuditPanel() {
 // ── Top-level ───────────────────────────────────────────────────────
 export default function AdminAnalyticsDashboard() {
   const [range, setRange] = useState<Range>("24h");
+  const [usageTab, setUsageTab] = useState("features");
+  const [healthTab, setHealthTab] = useState("errors");
   const overviewQ = useOverview(range);
   const { data: overview, dataUpdatedAt } = overviewQ;
   const { data: timeseries } = useTimeseries(range);
@@ -1848,6 +1845,35 @@ export default function AdminAnalyticsDashboard() {
     return [...map.entries()].sort().map(([, n]) => n);
   }, [timeseries]);
   const errSpark = useMemo(() => (timeseries?.errors ?? []).map((r) => Number(r.n)), [timeseries]);
+
+  // Sparklines for the remaining 4 stat cards, derived from the features timeseries.
+  // features rows have { ts, feature, n } — aggregate by bucket timestamp.
+  const featureUsesSpark = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of timeseries?.features ?? []) {
+      map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
+    }
+    return [...map.entries()].sort().map(([, n]) => n);
+  }, [timeseries]);
+  const searchesSpark = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of timeseries?.features ?? []) {
+      if (r.feature && r.feature.toLowerCase().includes("search")) {
+        map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
+      }
+    }
+    return [...map.entries()].sort().map(([, n]) => n);
+  }, [timeseries]);
+  const navigationsSpark = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of timeseries?.features ?? []) {
+      const f = r.feature?.toLowerCase() ?? "";
+      if (f.includes("navigat") || f.includes("route")) {
+        map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
+      }
+    }
+    return [...map.entries()].sort().map(([, n]) => n);
+  }, [timeseries]);
 
   return (
     <div className="space-y-4">
@@ -1900,9 +1926,9 @@ export default function AdminAnalyticsDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} tone="blue" />
           <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} sparkline={pvSpark} tone="blue" />
-          <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} tone="violet" />
-          <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} tone="emerald" />
-          <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} tone="blue" />
+          <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} sparkline={searchesSpark} tone="violet" />
+          <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} sparkline={featureUsesSpark} tone="emerald" />
+          <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} sparkline={navigationsSpark} tone="blue" />
           <StatCard
             icon={TrendingUp}
             label="Web · Android"
@@ -1933,8 +1959,8 @@ export default function AdminAnalyticsDashboard() {
 
       {/* v4.7.10 — retention + popular rooms side-by-side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <RetentionChart />
-        <RoomPopularityCard />
+        <RetentionChart range={range} />
+        <RoomPopularityCard range={range} />
       </div>
       {/* v4.7.11 — routes + announcement CTR side-by-side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1955,54 +1981,60 @@ export default function AdminAnalyticsDashboard() {
           </h3>
           <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
         </div>
-        <Tabs defaultValue="features">
-          {/* Two visual groups: product usage tabs, then health tabs. */}
-          <div className="space-y-1 mb-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
-                Usage
-              </span>
-              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
-            </div>
-            <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg">
-              <TabsTrigger value="features" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Gauge className="h-3 w-3" />Features
-              </TabsTrigger>
-              <TabsTrigger value="insights" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Search className="h-3 w-3" />Insights
-              </TabsTrigger>
-              <TabsTrigger value="sessions" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Users className="h-3 w-3" />Sessions
-              </TabsTrigger>
-              <TabsTrigger value="recent" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Filter className="h-3 w-3" />Recent
-              </TabsTrigger>
-              <TabsTrigger value="eggs" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Sparkles className="h-3 w-3" />Eggs
-              </TabsTrigger>
-            </TabsList>
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
-                Health
-              </span>
-              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
-            </div>
-            <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg">
-              <TabsTrigger value="errors" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md data-[state=active]:text-red-600 dark:data-[state=active]:text-red-400">
-                <AlertTriangle className="h-3 w-3" />Errors
-              </TabsTrigger>
-              <TabsTrigger value="perf" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-                <Clock className="h-3 w-3" />Performance
-              </TabsTrigger>
-            </TabsList>
+        {/* Usage tabs */}
+        <div className="space-y-1 mb-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
+              Usage
+            </span>
+            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
           </div>
+        </div>
+        <Tabs value={usageTab} onValueChange={setUsageTab}>
+          <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg mb-1">
+            <TabsTrigger value="features" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Gauge className="h-3 w-3" />Features
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Search className="h-3 w-3" />Insights
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Users className="h-3 w-3" />Sessions
+            </TabsTrigger>
+            <TabsTrigger value="recent" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Filter className="h-3 w-3" />Recent
+            </TabsTrigger>
+            <TabsTrigger value="eggs" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Sparkles className="h-3 w-3" />Eggs
+            </TabsTrigger>
+          </TabsList>
           <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
           <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
           <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
-          <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
-          <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
           <TabsContent value="eggs"><EggsPanel /></TabsContent>
           <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
+        </Tabs>
+
+        {/* Health tabs */}
+        <div className="space-y-1 mt-3 mb-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
+              Health
+            </span>
+            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
+          </div>
+        </div>
+        <Tabs value={healthTab} onValueChange={setHealthTab}>
+          <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg mb-1">
+            <TabsTrigger value="errors" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md data-[state=active]:text-red-600 dark:data-[state=active]:text-red-400">
+              <AlertTriangle className="h-3 w-3" />Errors
+            </TabsTrigger>
+            <TabsTrigger value="perf" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
+              <Clock className="h-3 w-3" />Performance
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
+          <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
         </Tabs>
       </div>
 

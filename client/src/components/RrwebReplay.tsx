@@ -127,12 +127,13 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
-  const { data } = useQuery<FetchedSession | null>({
+  const { data, isLoading } = useQuery<FetchedSession | null>({
     queryKey: ["admin-rrweb-session", sessionId],
     queryFn: () => fetchObject<FetchedSession>(`/api/sessions/rrweb/${sessionId}`),
   });
 
   const events = useMemo(() => data?.events ?? [], [data]);
+  const isEmpty = !isLoading && data !== undefined && events.length === 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -164,6 +165,18 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
             showController: true,
           },
         }) as unknown as { $destroy?: () => void };
+
+        // Resize the player when the modal/window is resized.
+        const ro = new ResizeObserver(() => {
+          if (!containerRef.current) return;
+          const w = Math.min(1280, window.innerWidth - 80);
+          const h = Math.min(720, window.innerHeight - 160);
+          (playerRef.current as any)?.$set?.({ width: w, height: h });
+        });
+        if (containerRef.current) ro.observe(containerRef.current);
+        const origDestroy = playerRef.current.$destroy?.bind(playerRef.current);
+        playerRef.current.$destroy = () => { ro.disconnect(); origDestroy?.(); };
+
         setStatus("ready");
       } catch (e: any) {
         if (!cancelled) {
@@ -194,10 +207,15 @@ export function RrwebPlayerModal({ sessionId, onClose }: { sessionId: string; on
 
       <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
         <div ref={containerRef} className="min-w-[640px] min-h-[400px]" />
-        {status === "loading" && (
+        {status === "loading" && !isEmpty && (
           <div className="p-8 flex items-center justify-center gap-2 text-slate-600">
             <Loader2 className="h-5 w-5 animate-spin" />
             <span className="text-sm">Loading player…</span>
+          </div>
+        )}
+        {isEmpty && (
+          <div className="p-8 text-center text-slate-500 text-sm">
+            No recording data for this session.
           </div>
         )}
         {status === "error" && (

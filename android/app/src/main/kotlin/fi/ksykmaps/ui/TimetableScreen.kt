@@ -20,6 +20,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
@@ -404,13 +407,14 @@ fun TimetableScreen(
             existing = editEntry,
             lang = lang,
             onSave = { e ->
-                val updated = if (editEntry != null) {
-                    entries.map { if (it.id == editEntry!!.id) e else it }
+                val editing = editEntry  // capture before lambda
+                val updated = if (editing != null) {
+                    entries.map { if (it.id == editing.id) e else it }
                 } else {
                     entries + e
                 }
                 entries = updated
-                runCatching { PostHog.capture("timetable_entry_saved", properties = mapOf("entry_action" to if (editEntry != null) "updated" else "created", "has_room" to e.roomId.isNotBlank(), "has_period" to (e.jaksoId != "all"))) }
+                runCatching { PostHog.capture("timetable_entry_saved", properties = mapOf("entry_action" to if (editing != null) "updated" else "created", "has_room" to e.roomId.isNotBlank(), "has_period" to (e.jaksoId != "all"))) }
                 scope.launch { saveEntries(ctx, updated) }
                 showAdd = false; editEntry = null
             },
@@ -1044,6 +1048,10 @@ private fun AddEditDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next,
+                        ),
                     )
                     OutlinedTextField(
                         value = end,
@@ -1053,6 +1061,10 @@ private fun AddEditDialog(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next,
+                        ),
                     )
                 }
                 OutlinedTextField(

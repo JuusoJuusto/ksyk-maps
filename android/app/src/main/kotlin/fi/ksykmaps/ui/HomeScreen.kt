@@ -109,71 +109,73 @@ fun HomeScreen(
     fun reload() {
         loading = true
         scope.launch {
+            var loadOk = true
             try {
                 val rs = withContext(Dispatchers.IO) { Api.get("/rooms") }
-                val bs = withContext(Dispatchers.IO) { Api.get("/buildings") }
-                val ans = withContext(Dispatchers.IO) { Api.get("/announcements?limit=20") }
                 rooms = rs.jsonArray.size
+            } catch (_: Exception) { loadOk = false }
+            try {
+                val bs = withContext(Dispatchers.IO) { Api.get("/buildings") }
                 buildings = bs.jsonArray.size
+            } catch (_: Exception) { loadOk = false }
+            try {
+                val ans = withContext(Dispatchers.IO) { Api.get("/announcements?limit=20") }
                 announcementCount = ans.jsonArray.size
                 recentAnnouncements = ans.jsonArray.mapNotNull { it as? JsonObject }.take(3)
-                apiOk = true
-            } catch (_: Exception) {
-                apiOk = false
-            } finally {
-                try {
-                    val prefs = ctx.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
-                    val json = prefs.getString("entries_json", "[]") ?: "[]"
-                    val arr = JSONArray(json)
-                    val fmt = DateTimeFormatter.ofPattern("HH:mm")
-                    val now = LocalTime.now()
-                    val today = LocalDate.now()
-                    val todayDow = today.dayOfWeek.value
-                    // Tomorrow in DayOfWeek values (1=Mon … 7=Sun, wraps Mon after Sun)
-                    val tomorrowDow = (todayDow % 7) + 1
-                    // Determine the currently active jakso. Only entries
-                    // whose jaksoId matches (or "all") should appear on
-                    // the dashboard — otherwise we'd stack lessons from
-                    // every period on today, which is what the user was
-                    // seeing when jakso-2 lessons showed up in jakso 1.
-                    val jaksot = try { loadJaksot(ctx) } catch (_: Exception) { emptyList() }
-                    val activeJakso = try { activeJaksoId(jaksot) } catch (_: Exception) { null }
-                    fun parseEntries(targetDow: Int) = (0 until arr.length()).mapNotNull { i ->
-                        val o = arr.getJSONObject(i)
-                        if (o.optInt("dayOfWeek") != targetDow) return@mapNotNull null
-                        val entryJakso = o.optString("jaksoId", "all").ifBlank { "all" }
-                        val jaksoOk = when {
-                            entryJakso == "all" -> true
-                            activeJakso == null -> true
-                            else -> entryJakso == activeJakso
-                        }
-                        if (!jaksoOk) return@mapNotNull null
-                        HomeTimetableLesson(
-                            o.optString("subject"),
-                            o.optString("startHhmm"),
-                            o.optString("endHhmm"),
-                            o.optString("roomNumber"),
-                            o.optString("roomId"),
-                            o.optString("teacher"),
-                        )
-                    }.sortedBy { it.startHhmm }
-                    val allToday = parseEntries(todayDow)
-                    hasWilmaSetup = arr.length() > 0
-                    todaySchedule = allToday
-                    tomorrowSchedule = parseEntries(tomorrowDow)
-                    currentLesson = allToday.firstOrNull { e ->
-                        val s = runCatching { LocalTime.parse(e.startHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
-                        val en = runCatching { LocalTime.parse(e.endHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
-                        !now.isBefore(s) && now.isBefore(en)
+            } catch (_: Exception) { /* announcements are non-critical */ }
+            apiOk = loadOk
+            try {
+                val prefs = ctx.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
+                val json = prefs.getString("entries_json", "[]") ?: "[]"
+                val arr = JSONArray(json)
+                val fmt = DateTimeFormatter.ofPattern("HH:mm")
+                val now = LocalTime.now()
+                val today = LocalDate.now()
+                val todayDow = today.dayOfWeek.value
+                // Tomorrow in DayOfWeek values (1=Mon … 7=Sun, wraps Mon after Sun)
+                val tomorrowDow = (todayDow % 7) + 1
+                // Determine the currently active jakso. Only entries
+                // whose jaksoId matches (or "all") should appear on
+                // the dashboard — otherwise we'd stack lessons from
+                // every period on today, which is what the user was
+                // seeing when jakso-2 lessons showed up in jakso 1.
+                val jaksot = try { loadJaksot(ctx) } catch (_: Exception) { emptyList() }
+                val activeJakso = try { activeJaksoId(jaksot) } catch (_: Exception) { null }
+                fun parseEntries(targetDow: Int) = (0 until arr.length()).mapNotNull { i ->
+                    val o = arr.getJSONObject(i)
+                    if (o.optInt("dayOfWeek") != targetDow) return@mapNotNull null
+                    val entryJakso = o.optString("jaksoId", "all").ifBlank { "all" }
+                    val jaksoOk = when {
+                        entryJakso == "all" -> true
+                        activeJakso == null -> true
+                        else -> entryJakso == activeJakso
                     }
-                    nextLesson = allToday.firstOrNull { e ->
-                        val s = runCatching { LocalTime.parse(e.startHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
-                        now.isBefore(s)
-                    }
-                } catch (_: Exception) {}
-                loading = false
-                refreshing = false
-            }
+                    if (!jaksoOk) return@mapNotNull null
+                    HomeTimetableLesson(
+                        o.optString("subject"),
+                        o.optString("startHhmm"),
+                        o.optString("endHhmm"),
+                        o.optString("roomNumber"),
+                        o.optString("roomId"),
+                        o.optString("teacher"),
+                    )
+                }.sortedBy { it.startHhmm }
+                val allToday = parseEntries(todayDow)
+                hasWilmaSetup = arr.length() > 0
+                todaySchedule = allToday
+                tomorrowSchedule = parseEntries(tomorrowDow)
+                currentLesson = allToday.firstOrNull { e ->
+                    val s = runCatching { LocalTime.parse(e.startHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
+                    val en = runCatching { LocalTime.parse(e.endHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
+                    !now.isBefore(s) && now.isBefore(en)
+                }
+                nextLesson = allToday.firstOrNull { e ->
+                    val s = runCatching { LocalTime.parse(e.startHhmm, fmt) }.getOrNull() ?: return@firstOrNull false
+                    now.isBefore(s)
+                }
+            } catch (_: Exception) {}
+            loading = false
+            refreshing = false
         }
     }
 

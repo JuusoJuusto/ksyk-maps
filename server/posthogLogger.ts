@@ -24,6 +24,12 @@ const DEFAULT_HOST = 'https://us.i.posthog.com'
 const apiKey = process.env.POSTHOG_API_KEY || DEFAULT_KEY
 const host = process.env.POSTHOG_HOST || DEFAULT_HOST
 
+/** True when we should skip sending logs to PostHog (dev without explicit key). */
+const isDevWithoutKey =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.VERCEL_ENV !== 'production' &&
+  !process.env.POSTHOG_API_KEY
+
 const exporter = new OTLPLogExporter({
   url: `${host}/otlp/v1/logs`,
   headers: {
@@ -61,6 +67,7 @@ export function emitLog(
   body: string,
   opts: { severity?: LogSeverity; attributes?: Record<string, unknown> } = {},
 ): void {
+  if (isDevWithoutKey) return; // Don't send real events in dev without explicit key
   try {
     posthogLogger.emit({
       body: body.slice(0, 2000),
@@ -72,6 +79,7 @@ export function emitLog(
 }
 
 export async function flushLogs(): Promise<void> {
+  if (isDevWithoutKey) return; // Don't send real events in dev without explicit key
   try {
     await loggerProvider.forceFlush()
   } catch { /* ignore */ }

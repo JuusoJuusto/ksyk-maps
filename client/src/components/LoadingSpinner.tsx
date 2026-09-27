@@ -71,8 +71,12 @@ export default function LoadingSpinner({
 
   useEffect(() => {
     const progressId = setInterval(() => {
-      // Asymptotic approach: accelerates early, slows near 90%, never resets.
-      setProgress((p) => Math.min(90, p + (90 - p) * 0.08));
+      // Slow but never-stalling advance: proportional to remaining room,
+      // floored at 0.15% so the bar always visibly moves up to 97%.
+      setProgress((p) => {
+        if (p >= 97) return p;
+        return Math.min(97, p + Math.max(0.15, (97 - p) * 0.06));
+      });
     }, 320);
     const stageId = setInterval(() => {
       setStageIndex((i) => (i + 1) % loadStages.length);

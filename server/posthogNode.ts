@@ -20,7 +20,16 @@ const host = process.env.POSTHOG_HOST || DEFAULT_HOST;
 
 let client: PostHog | null = null;
 
-function getClient(): PostHog {
+function getClient(): PostHog | null {
+  // Don't send real events in non-production environments unless
+  // POSTHOG_API_KEY is explicitly configured.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.VERCEL_ENV !== 'production' &&
+    !process.env.POSTHOG_API_KEY
+  ) {
+    return null;
+  }
   if (client) return client;
   client = new PostHog(apiKey, {
     host,
@@ -38,7 +47,7 @@ export function capture(
   properties: Record<string, unknown> = {},
 ): void {
   try {
-    getClient().capture({
+    getClient()?.capture({
       distinctId,
       event,
       properties: {
@@ -50,5 +59,8 @@ export function capture(
 }
 
 export async function flush(): Promise<void> {
-  try { await getClient().flush(); } catch { /* ignore */ }
+  try {
+    const c = getClient();
+    if (c) await c.flush();
+  } catch { /* ignore */ }
 }
