@@ -72,40 +72,41 @@ export default function FAQ() {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      <header className="border-b border-border/50 shrink-0 animate-fade-in">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* ── Document header — hairline bottom, compact, Wilma-style ── */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
-            {isFi ? "Takaisin kartalle" : "Back to map"}
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            {isFi ? "Kartta" : "Map"}
           </Link>
           <button
             onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
-            className={cn(
-              "text-[13px] font-semibold h-9 px-3 rounded-lg transition-colors",
-              darkMode
-                ? "bg-gray-800 hover:bg-gray-700 text-gray-300"
-                : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-200",
-            )}
+            className="text-[12px] font-bold tracking-wide h-8 px-2.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors"
           >
-            {isFi ? "In English" : "Suomeksi"}
+            {isFi ? "EN" : "FI"}
           </button>
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8">
-        <div className="mb-6 animate-fade-in-up">
-          <h1 className="text-[26px] sm:text-[28px] font-semibold tracking-tight leading-[1.15]">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-6 sm:py-8">
+        {/* ── Document title block ─────────────────────────────────── */}
+        <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+            {isFi ? "Ohje" : "Help"}
+          </p>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
             {isFi ? "Usein kysytyt kysymykset" : "Frequently asked questions"}
           </h1>
-          <p className={cn("text-[15px] mt-1.5", darkMode ? "text-gray-400" : "text-gray-500")}>
-            {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} questions`}
+          <p className="text-[13px] mt-1 text-gray-500 dark:text-gray-400">
+            {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} entries`}
           </p>
         </div>
 
-        <div className="space-y-2">
+        {/* ── Hairline-divider accordion list ───────────────────────── */}
+        <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950">
           {QUESTIONS.map((q, i) => {
             const open = openIdx === i;
             const question = isFi ? q.q : (q.qEn ?? q.q);
@@ -114,34 +115,29 @@ export default function FAQ() {
               <div
                 key={i}
                 className={cn(
-                  "animate-fade-in-up rounded-2xl border overflow-hidden transition-colors duration-150",
-                  darkMode
-                    ? open
-                      ? "bg-gray-900 border-gray-700"
-                      : "bg-gray-900/50 border-gray-800 hover:border-gray-700"
-                    : open
-                      ? "bg-white border-gray-200 shadow-sm"
-                      : "bg-white/70 border-gray-100 hover:bg-white hover:border-gray-200",
+                  "border-b border-[#d5dae0] dark:border-[#2a3040] last:border-b-0 transition-colors",
+                  open && "bg-[#f5f6f8] dark:bg-[#12161f]",
                 )}
-                style={{ animationDelay: `${60 + i * 40}ms` }}
               >
                 <button
                   onClick={() => setOpenIdx(open ? null : i)}
-                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4 min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset rounded-2xl active:scale-[0.995] transition-transform"
+                  className="w-full flex items-center gap-3 text-left px-4 py-3.5 min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003d82]/30 focus-visible:ring-inset transition-colors"
                   aria-expanded={open}
                 >
-                  <span className={cn("font-medium text-[15px] leading-snug", darkMode ? "text-gray-100" : "text-gray-900")}>
+                  <span className="text-[11px] font-bold tabular-nums text-gray-400 dark:text-gray-600 shrink-0 w-6">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="flex-1 font-semibold text-[14px] leading-snug text-gray-900 dark:text-gray-100">
                     {question}
                   </span>
                   <ChevronDown
                     className={cn(
-                      "h-4 w-4 shrink-0 transition-transform duration-200",
-                      open && "rotate-180",
-                      darkMode ? "text-gray-500" : "text-gray-400",
+                      "h-4 w-4 shrink-0 transition-transform duration-200 text-gray-500",
+                      open && "rotate-180 text-[#003d82] dark:text-[#4a90d9]",
                     )}
+                    strokeWidth={2.25}
                   />
                 </button>
-                {/* CSS grid trick: animates height without JS measurement */}
                 <div
                   className={cn(
                     "grid transition-[grid-template-rows] duration-200 ease-out",
@@ -149,10 +145,7 @@ export default function FAQ() {
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className={cn(
-                      "px-5 pb-5 pt-2 text-[14px] leading-relaxed border-t",
-                      darkMode ? "text-gray-300 border-gray-800" : "text-gray-600 border-gray-100",
-                    )}>
+                    <div className="px-4 pb-4 pt-1 pl-[52px] text-[14px] leading-[1.6] text-gray-700 dark:text-gray-300 whitespace-pre-line">
                       {answer}
                     </div>
                   </div>
@@ -162,24 +155,17 @@ export default function FAQ() {
           })}
         </div>
 
-        <div
-          className={cn(
-            "animate-fade-in text-center py-8 text-[13px] space-y-2",
-            darkMode ? "text-gray-500" : "text-gray-400",
-          )}
-          style={{ animationDelay: "400ms" }}
-        >
-          <div>
-            {isFi ? "Ei löytynyt vastausta? " : "Didn't find your answer? "}
-            <Link href="/support" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
-              {isFi ? "Ota yhteyttä" : "Contact us"}
-            </Link>
-          </div>
-          <div>
-            <Link href="/privacy" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
-              {isFi ? "Tietosuojaseloste" : "Privacy policy"}
-            </Link>
-          </div>
+        <div className="mt-8 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400">
+          <span>
+            {isFi ? "Ei löytynyt vastausta?" : "Didn't find your answer?"}
+          </span>
+          <Link href="/support" className="text-[#003d82] dark:text-[#4a90d9] hover:underline underline-offset-2 font-semibold">
+            {isFi ? "Ota yhteyttä" : "Contact support"}
+          </Link>
+          <span className="text-gray-300 dark:text-gray-700">·</span>
+          <Link href="/privacy" className="text-[#003d82] dark:text-[#4a90d9] hover:underline underline-offset-2 font-semibold">
+            {isFi ? "Tietosuoja" : "Privacy"}
+          </Link>
         </div>
       </main>
     </div>

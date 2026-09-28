@@ -10,17 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.42";
+export const APP_VERSION = "4.7.43";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.43",
+    date: "September 2026",
+    title: "Component-level rewrites — Header, AnnouncementBanner, FAQ, Privacy, Support",
+    titleFi: "Komponenttitason uudistus — ylätunniste, ilmoituspalkki, UKK, tietosuoja, tuki",
+    latest: true,
+    highlights: [
+      "**Header rewritten from scratch (~450 LOC → new institutional shell).** No more floating chip with backdrop-blur — a proper Wilma-style top bar sits on a hairline bottom border. Desktop shows inline navigation links (Lunch / Transport) with a Wilma-navy active pill background; a Wilma-navy `KSYK Maps` wordmark and an uppercase `Campus navigation` subtitle. The mobile hamburger opens a full-height side drawer, not a floating card — hairline section separators, `PRIMARY_ROUTES` and `SECONDARY_ROUTES` typed constants, active-route detection with a 3px navy left-edge marker on the active row.",
+      "**Hamburger drawer restructured** with proper section labels (`NAVIGATE`, `INFORMATION`, `APPEARANCE`, `LANGUAGE`, `ADMIN` where relevant). Every nav row uses a Lucide icon (MapPin, UtensilsCrossed, Bus, HelpCircle, LifeBuoy, Download, Shield, Settings) — no colored icon squares, no emojis, no gradient accents. New `SegRow` component for theme/language: a single bordered rectangular strip with navy-filled active state — matches the map's floor selector visually.",
+      "**AnnouncementBanner rewritten as a Wilma-style solid strip.** Was a 2xl-rounded floating card with a shadow and a decorative colored-pill icon; now a full-width edge-to-edge 32 px navy strip (or amber / red for high / urgent). Framer-motion crossfade preserved. Title + inline body on one line; carousel controls dropped from 28 px pills to 24 px rounded-[4px] ghosts on a `hover:bg-white/15` treatment. Priority icon shrunk from `h-5` to `h-3.5`.",
+      "**FAQ page restructured as a document.** Was rounded-2xl cards with per-question shadow, hover-lift, and staggered fade-in. Now: uppercase `HELP` masthead + big navy H1 + question count; a single bordered container containing hairline-divided rows, each with a two-digit tabular numeral (01, 02, …) on the left and the question text, expanding to a `whitespace-pre-line` answer with a proper 1.6 line-height. Footer converted to inline meta-row with proper Wilma-navy `Contact support` + `Privacy` links.",
+      "**Privacy page restructured as a proper document.** Was rounded-card sections stacked in `space-y-6`. Now: uppercase `DOCUMENT` masthead, big navy H1, a bordered Table-of-Contents nav (`SISÄLTÖ`) with jump links, sections with `§01`, `§02` legal-numeral labels + h2 titles + 6px indented body prose at 1.65 line-height. Reads like an actual privacy notice, not a landing page.",
+      "**Support page** — killed the icon-pill card header (`bg-blue-50` circle with a Ticket icon). Uses the same document masthead as FAQ / Privacy (uppercase `SUPPORT` + big H1 + subtitle). Form flows directly in the page grid — no CardContent wrapper wrapping the whole form. Success view kept its confirmation card by design (discrete moment).",
+      "**Design consistency** — the same document shell (h-12 hairline header + uppercase masthead + navy H1 + 13px subtitle + `border-b` divider) is now used across FAQ, Privacy, and Support. Marketing pages feel like the same product.",
+      "**Files touched** — `client/src/components/Header.tsx` (full rewrite), `client/src/components/AnnouncementBanner.tsx`, `client/src/pages/faq.tsx`, `client/src/pages/privacy.tsx`, `client/src/pages/support.tsx`, `client/src/lib/changelog.ts`.",
+      "Revert paths unchanged: `main.tsx` `setAttribute` line / delete the CSS layer / `git reset --hard rollback-before-wilma-mazemap-redesign`. But because these are component rewrites, only path 3 fully restores.",
+      "Web version bumped `4.7.42` → `4.7.43`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Ylätunniste kirjoitettu uusiksi. Ei enää leijuvaa lasikorttia — Wilma-tyylinen kiinteä palkki hiuksenohuella alarajalla. Työpöytäversio: sivun sisäiset navigaatiolinkit (Ruokalista / HSL) Wilma-navy aktiivipillerillä. Mobiili: koko sivukorkuinen navigaatiolaatikko oikealta, ei leijuvaa korttia, aktiivinen rivi 3px navy-reunavärillä.",
+      "Ilmoituspalkki uusittu — leveä 32px navy-palkki. Ei enää pyöreää korttia varjolla.",
+      "UKK-sivu jäsennelty asiakirjaksi: yksi rajattu lista, hiusrajat, kaksinumeroiset järjestysnumerot, kunnollinen sisennys ja rivikorkeus.",
+      "Tietosuoja-sivu asianmukaisena asiakirjana: sisällysluettelo, `§01` `§02` -numerointi, luettavat pykälät.",
+      "Tuki-sivu: iso sinipiirroksellinen korttihuippu poistettu. Sama dokumenttipohja kuin UKK / Tietosuoja.",
+      "Palauta: `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+    ],
+  },
+  {
     version: "4.7.42",
     date: "September 2026",
     title: "Design system finish — 404 signature dropped, marketing prose typography, universal badges/prose/hero rules",
     titleFi: "Suunnittelujärjestelmä viimeistelty — 404 siisti, markkinointisivujen typografia, yhtenäiset lomakkeet",
-    latest: true,
+    latest: false,
     highlights: [
       "404 page: dropped the trailing \"KSYK Maps\" signature + MapPin — the big navy 404 now stands alone with just the two CTAs.",
       "Widened the `wilma-mazemap.css` layer with product-wide finishing rules: badge radius 4px + tighter tracking, `main` body prose 15px / 1.65 line-height, `main` anchor links tinted Wilma-navy with 2px underline offset, `<hr>` reduced to a hairline top-only rule, marketing hero `h1` capped at 700 weight with tighter tracking so no page has a 60px marketing shout heading.",

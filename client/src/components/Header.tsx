@@ -1,12 +1,30 @@
+/**
+ * KSYK Maps — application shell header.
+ *
+ * v4.7.43 full component redesign. Not a chip, not a card, not floating.
+ * A proper school-app top bar with a hairline bottom border, a compact
+ * search field, and a hamburger drawer that reads like a navigation
+ * panel rather than a bag of pill buttons.
+ *
+ * DESIGN INTENT
+ *  - One coherent surface across mobile + desktop
+ *  - Navy `#003d82` as the sole accent, no iOS blue
+ *  - Uppercase 10 px section labels in the drawer (Wilma-style meta rows)
+ *  - Active route highlighted with a navy left-edge marker + navy label
+ *  - No emojis, no glass, no ornamentation
+ */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Menu, X, Settings, Search, LogOut, UtensilsCrossed, Bus, Monitor, Sparkles, ChevronRight, LifeBuoy } from "lucide-react";
+import {
+  Sun, Moon, Menu, X, Settings, Search, LogOut,
+  UtensilsCrossed, Bus, Monitor, Sparkles, LifeBuoy,
+  HelpCircle, MapPin, Info, Download, Shield,
+} from "lucide-react";
 import KSYKLogo from "@/components/KSYKLogo";
 import { cn } from "@/lib/utils";
 import { trackFeature } from "@/lib/analytics";
@@ -21,6 +39,29 @@ type HeaderProps = {
   onOpenSettings?: () => void;
 };
 
+/** Single primary navigation route. `href` is the wouter path.  `icon`
+ *  is a Lucide component.  We keep the list small and Wilma-flat — no
+ *  emoji, no colored pills, no colored icon squares. */
+type NavRoute = {
+  href: string;
+  labelEn: string;
+  labelFi: string;
+  icon: typeof MapPin;
+};
+
+const PRIMARY_ROUTES: NavRoute[] = [
+  { href: "/",         labelEn: "Map",       labelFi: "Kartta",     icon: MapPin },
+  { href: "/lunch",    labelEn: "Lunch",     labelFi: "Ruokalista", icon: UtensilsCrossed },
+  { href: "/hsl",      labelEn: "Transport", labelFi: "HSL",        icon: Bus },
+];
+
+const SECONDARY_ROUTES: NavRoute[] = [
+  { href: "/faq",      labelEn: "FAQ",       labelFi: "UKK",             icon: HelpCircle },
+  { href: "/support",  labelEn: "Support",   labelFi: "Tuki",            icon: LifeBuoy },
+  { href: "/download", labelEn: "Get app",   labelFi: "Lataa sovellus",  icon: Download },
+  { href: "/privacy",  labelEn: "Privacy",   labelFi: "Tietosuoja",      icon: Shield },
+];
+
 export default function Header({
   largeLogo = false,
   homeMinimal = false,
@@ -31,31 +72,25 @@ export default function Header({
 }: HeaderProps) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState(i18n.language);
-  const { darkMode, toggleDarkMode } = useDarkMode();
   const { theme, setTheme, neonUnlocked } = useTheme();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { darkMode } = useDarkMode();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ksyk_language');
+    const saved = localStorage.getItem("ksyk_language");
     if (saved && saved !== i18n.language) {
       i18n.changeLanguage(saved);
       setCurrentLang(saved);
     }
-  }, []);
+  }, [i18n]);
 
-  // Close drawer on route change
-  useEffect(() => {
-    setShowMobileMenu(false);
-  }, [location]);
+  useEffect(() => { setDrawerOpen(false); }, [location]);
 
-  // Esc + body scroll lock while drawer is open
   useEffect(() => {
-    if (!showMobileMenu) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowMobileMenu(false);
-    };
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawerOpen(false); };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -63,16 +98,12 @@ export default function Header({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [showMobileMenu]);
+  }, [drawerOpen]);
 
-  // MazeMap-style ⌘K / Ctrl+K quick-focus for the search input. Only
-  // active when a search field is actually mounted for this page.
+  // ⌘K / Ctrl+K quick-focus search
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Local draft keeps the input responsive while the 200ms debounce
-  // prevents firing an API search on every keystroke.
   const [draftSearch, setDraftSearch] = useState(searchQuery ?? "");
-  // Sync when parent clears the search (e.g. after a result is picked).
   useEffect(() => { setDraftSearch(searchQuery ?? ""); }, [searchQuery]);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -80,18 +111,16 @@ export default function Header({
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
       onSearchChange?.(value);
-      // v4.7.12 — fire search telemetry so the admin dashboard's
-      // "Searches" tile stops showing 0. Only for non-empty queries
-      // longer than 1 char so we don't count backspaced keystrokes.
       const q = value.trim();
       if (q.length >= 2) {
         void import("@/lib/analytics").then(m => {
-          try { m.trackFeatureUse('search_performed', { queryLength: q.length }); }
+          try { m.trackFeatureUse("search_performed", { queryLength: q.length }); }
           catch { /* non-fatal */ }
         });
       }
     }, 200);
   }, [onSearchChange]);
+
   useEffect(() => {
     if (!onSearchChange) return;
     const onKey = (e: KeyboardEvent) => {
@@ -106,33 +135,31 @@ export default function Header({
     return () => window.removeEventListener("keydown", onKey);
   }, [onSearchChange]);
 
-  const isActive = (path: string) => location === path;
-  const isAdmin = isAuthenticated && (user as any)?.role === 'admin';
-  const isInAdminPanel = location === '/admin' || location.startsWith('/admin/');
+  const isAdmin = isAuthenticated && (user as { role?: string })?.role === "admin";
+  const isInAdminPanel = location === "/admin" || location.startsWith("/admin/");
+  const fi = currentLang === "fi";
 
   const handleLanguageChange = (lang: string) => {
-    localStorage.setItem('ksyk_language', lang);
-    trackFeature('language_change', { lang });
-    i18n.changeLanguage(lang).then(() => {
-      window.location.reload();
-    });
+    localStorage.setItem("ksyk_language", lang);
+    trackFeature("language_change", { lang });
+    i18n.changeLanguage(lang).then(() => { window.location.reload(); });
   };
 
-  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'neon' | 'system') => {
+  const handleThemeChange = async (newTheme: "light" | "dark" | "neon" | "system") => {
     setTheme(newTheme);
-    trackFeature('theme_change', { theme: newTheme });
+    trackFeature("theme_change", { theme: newTheme });
     try {
-      await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: newTheme })
+      await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: newTheme }),
       });
     } catch { /* non-critical */ }
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch { /* non-critical */ } finally {
       posthog.reset();
       localStorage.clear();
@@ -141,212 +168,147 @@ export default function Header({
     }
   };
 
-  // ── Segmented control button (theme + language) ──────────────────────
-  // A pill inside a shared background with a subtle sliding indicator.
-  // Used for the theme + language selectors — cleaner than a grid of cards.
-  const SegBtn = ({
-    active,
-    onClick,
-    children,
-    ariaLabel,
-  }: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    ariaLabel?: string;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      aria-label={ariaLabel}
-      className={cn(
-        "relative flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.97]",
-        active
-          ? darkMode
-            ? "bg-white text-gray-900 shadow-sm"
-            : "bg-white text-gray-900 shadow-sm ring-1 ring-black/5"
-          : darkMode
-            ? "text-gray-400 hover:text-gray-200"
-            : "text-gray-500 hover:text-gray-800",
-      )}
-    >
-      {children}
-    </button>
-  );
+  const routeIsActive = (href: string) => {
+    if (href === "/") return location === "/";
+    return location === href || location.startsWith(href + "/");
+  };
 
   return (
     <>
-      {/* Header — floating rounded card on every screen size.
-       *  Side padding wraps a rounded-2xl inner element so the header
-       *  looks like a chip, matching the announcement banner.
-       *  overflow-hidden clips the inner search-row border-t against
-       *  the rounded corners. */}
-      {/* v4.7.21 — safe-area-inset-top on the sticky header so the
-       *  chip doesn't land under an iPhone notch or Android status bar. */}
+      {/* ── Top bar ─────────────────────────────────────────────────────
+       *   Institutional Wilma-style top bar: no floating chip, no glass.
+       *   Hairline bottom border, 48px height on mobile, 56px on desktop. */}
       <div
-        className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2 animate-fade-in"
-        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0.5rem))" }}
+        className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040]"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.04)] rounded-2xl overflow-hidden">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          {/* v3.27.5 — taller header on desktop. 14→16→20 across
-           *  mobile/sm/lg so the nav reads as a proper top bar on
-           *  desktop, not a squished chip. */}
-          <div className="flex items-center gap-2 h-12 sm:h-14">
-            {/* Logo */}
-            <Link href="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group" data-testid="link-home">
-              <KSYKLogo
-                size={largeLogo ? "lg" : "md"}
-                priority={largeLogo}
-                className="group-hover:scale-[1.02] transition-transform duration-200"
-              />
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-blue-600 tracking-tight">KSYK Maps</h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold">Campus navigation</p>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="flex items-center gap-3 h-12 sm:h-14">
+            {/* Wordmark — Wilma navy title + practical uppercase tagline */}
+            <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group" data-testid="link-home">
+              <KSYKLogo size={largeLogo ? "lg" : "md"} priority={largeLogo} />
+              <div className="flex flex-col leading-none">
+                <span className="text-[15px] sm:text-[16px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
+                  KSYK Maps
+                </span>
+                <span className="hidden sm:block mt-0.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+                  Campus navigation
+                </span>
               </div>
             </Link>
 
-            {/* Desktop centre label */}
-            {isInAdminPanel && (
-              <nav className="hidden md:flex">
-                <span className="px-3 py-2 text-sm font-semibold text-blue-600">
-                  Admin Management Portal
-                </span>
+            {/* Desktop primary nav — inline text links, no colored pills */}
+            {!homeMinimal && !isInAdminPanel && (
+              <nav className="hidden md:flex items-center gap-1 ml-4">
+                {PRIMARY_ROUTES.filter((r) => r.href !== "/").map((r) => {
+                  const active = routeIsActive(r.href);
+                  return (
+                    <Link
+                      key={r.href}
+                      href={r.href}
+                      className={cn(
+                        "h-9 px-3 rounded-[6px] text-sm font-semibold inline-flex items-center gap-1.5 transition-colors",
+                        active
+                          ? "text-[#003d82] dark:text-[#4a90d9] bg-[#e6ecf3] dark:bg-[#4a90d9]/10"
+                          : "text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900",
+                      )}
+                    >
+                      <r.icon className="h-4 w-4" strokeWidth={2} />
+                      <span>{fi ? r.labelFi : r.labelEn}</span>
+                    </Link>
+                  );
+                })}
               </nav>
             )}
 
-            {/* Spacer — pins desktop controls to the right edge */}
             <div className="flex-1" />
 
-            {/* Desktop controls */}
-            <div className={homeMinimal ? "hidden" : "hidden md:flex flex-shrink-0 items-center space-x-1.5"}>
-              {/* Theme toggle */}
-              <button
-                onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
-                className={cn(
-                  "p-2 rounded-lg transition-all",
-                  theme === 'dark'
-                    ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                )}
-                aria-label={theme === 'dark'
-                  ? (currentLang === 'fi' ? 'Vaihda vaaleaan tilaan' : 'Switch to light mode')
-                  : (currentLang === 'fi' ? 'Vaihda tummaan tilaan' : 'Switch to dark mode')}
-                title={`Theme: ${theme} — click to toggle`}
-              >
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-
-              {/* Language toggle */}
-              <div className="flex bg-muted rounded-md p-1">
-                {['en', 'fi'].map((lang) => (
+            {/* Desktop right side — theme + language + settings */}
+            {!homeMinimal && (
+              <div className="hidden md:flex items-center gap-1">
+                {onOpenSettings && !isInAdminPanel && (
                   <button
-                    key={lang}
-                    className={cn(
-                      "px-3 py-1 text-sm font-medium rounded-sm",
-                      currentLang === lang ? 'bg-blue-600 text-white' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                    onClick={() => handleLanguageChange(lang)}
-                    data-testid={`button-lang-${lang}`}
+                    onClick={onOpenSettings}
+                    data-testid="button-settings"
+                    className="h-9 px-3 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 inline-flex items-center gap-1.5 transition-colors"
                   >
-                    {lang.toUpperCase()}
+                    <Settings className="h-4 w-4" strokeWidth={2} />
+                    <span className="hidden xl:inline">{fi ? "Asetukset" : "Settings"}</span>
                   </button>
-                ))}
-              </div>
-
-              {!isInAdminPanel && (
-                <>
-                  <Link href="/lunch" data-testid="button-lunch">
-                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
-                      <UtensilsCrossed className="h-4 w-4" strokeWidth={2} />
-                      <span className="hidden xl:inline">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
+                )}
+                <button
+                  onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
+                  className="h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  aria-label={theme === "dark"
+                    ? (fi ? "Vaihda vaaleaan tilaan" : "Switch to light mode")
+                    : (fi ? "Vaihda tummaan tilaan" : "Switch to dark mode")}
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
+                <div className="ml-1 flex items-center border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] overflow-hidden">
+                  {["fi", "en"].map((lang) => (
+                    <button
+                      key={lang}
+                      className={cn(
+                        "px-2.5 h-8 text-xs font-bold tabular-nums transition-colors",
+                        currentLang === lang
+                          ? "bg-[#003d82] text-white"
+                          : "bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
+                      )}
+                      onClick={() => handleLanguageChange(lang)}
+                      data-testid={`button-lang-${lang}`}
+                    >
+                      {lang.toUpperCase()}
                     </button>
-                  </Link>
-                  <Link href="/hsl" data-testid="button-hsl">
-                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
-                      <Bus className="h-4 w-4" strokeWidth={2} />
-                      <span className="hidden xl:inline">HSL</span>
-                    </button>
-                  </Link>
-                  {onOpenSettings && (
-                    <button onClick={onOpenSettings} data-testid="button-settings" className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
-                      <Settings className="h-4 w-4" strokeWidth={2} />
-                      <span className="hidden xl:inline">{currentLang === "fi" ? "Asetukset" : "Settings"}</span>
-                    </button>
-                  )}
-                </>
-              )}
-
-              {isInAdminPanel && (
-                <>
-                  <Link href="/lunch">
-                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
-                      <UtensilsCrossed className="h-4 w-4" strokeWidth={2} />
-                      <span className="hidden xl:inline">{currentLang === 'fi' ? 'Ruokalista' : 'Lunch'}</span>
-                    </button>
-                  </Link>
-                  <Link href="/hsl">
-                    <button className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
-                      <Bus className="h-4 w-4" strokeWidth={2} />
-                      <span className="hidden xl:inline">HSL</span>
-                    </button>
-                  </Link>
+                  ))}
+                </div>
+                {isInAdminPanel && (
                   <button
                     onClick={handleLogout}
-                    className="h-8 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+                    className="ml-1 h-9 px-3 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center gap-1.5 transition-colors"
                   >
                     <LogOut className="h-4 w-4" strokeWidth={2} />
-                    <span className="hidden xl:inline">{currentLang === 'fi' ? 'Kirjaudu ulos' : 'Logout'}</span>
+                    <span className="hidden xl:inline">{fi ? "Kirjaudu ulos" : "Log out"}</span>
                   </button>
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Mobile hamburger */}
-            <div className={homeMinimal ? "hidden" : "md:hidden"}>
+            {!homeMinimal && (
               <button
-                onClick={() => setShowMobileMenu(true)}
-                className="h-11 w-11 flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                aria-label="Open menu"
-                aria-expanded={showMobileMenu}
+                onClick={() => setDrawerOpen(true)}
+                className="md:hidden h-10 w-10 flex items-center justify-center rounded-[6px] text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-all"
+                aria-label={fi ? "Avaa valikko" : "Open menu"}
+                aria-expanded={drawerOpen}
                 aria-controls="mobile-drawer"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5" strokeWidth={2.25} />
               </button>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Search row — MazeMap-style prominent bar with focus glow,
-         *  keyboard hint pill, and a slightly bigger footprint so it
-         *  reads as the primary way to explore the campus. */}
+        {/* Search row — inline, tight, integrated into the header surface */}
         {onSearchChange && (
-          <div className={cn("border-t", darkMode ? "border-gray-800 bg-gray-900/60" : "border-gray-100 bg-slate-50/80")}>
+          <div className="border-t border-[#d5dae0] dark:border-[#2a3040] bg-[#f5f6f8] dark:bg-[#12161f]">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
               <Search className={cn(
                 "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
-                (searchQuery && searchQuery.trim())
-                  ? "text-blue-600 dark:text-blue-400"
-                  : (darkMode ? "text-gray-500" : "text-gray-400"),
-              )} />
+                (searchQuery && searchQuery.trim()) ? "text-[#003d82] dark:text-[#4a90d9]" : "text-gray-400",
+              )} strokeWidth={2.25} />
               <Input
                 ref={searchInputRef}
                 type="search"
                 value={draftSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
+                placeholder={searchPlaceholder ?? (fi ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
-                  "h-11 w-full pl-10 pr-16 text-[16px] sm:text-[14px] rounded-full border transition-all",
-                  "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/50",
-                  darkMode
-                    ? "bg-gray-800/80 border-gray-700/60 text-white placeholder:text-gray-500"
-                    : "bg-gray-100/80 border-transparent hover:bg-gray-100 focus-visible:bg-white",
+                  "h-10 w-full pl-10 pr-16 text-[16px] sm:text-[14px] rounded-[6px] border font-medium transition-all",
+                  "bg-white dark:bg-gray-950 border-[#d5dae0] dark:border-[#2a3040]",
+                  "focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/25",
                 )}
-                aria-label={currentLang === "fi" ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
-                // Combobox pattern — pairs with the KSYKMapView results
-                // dropdown (id="search-results-listbox") so screen readers
-                // announce results as the user types.
+                aria-label={fi ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
                 role="combobox"
                 aria-controls="search-results-listbox"
                 aria-expanded={!!(draftSearch && draftSearch.trim())}
@@ -356,324 +318,304 @@ export default function Header({
                 autoCorrect="off"
                 spellCheck={false}
               />
-              {/* Right-side controls — clear button if searching, else a
-               *  subtle keyboard hint pill so users know how to focus
-               *  the field. MazeMap-style. */}
               {draftSearch ? (
                 <button
                   type="button"
                   onClick={() => { setDraftSearch(""); onSearchChange?.(""); }}
-                  className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Clear search"
+                  className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 h-7 w-7 rounded-[4px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label={fi ? "Tyhjennä haku" : "Clear search"}
                 >
-                  <X className="h-4 w-4 text-gray-400" />
+                  <X className="h-3.5 w-3.5" strokeWidth={2.5} />
                 </button>
               ) : (
-                <kbd className={cn(
-                  "absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border pointer-events-none select-none",
-                  darkMode
-                    ? "border-gray-700 bg-gray-800 text-gray-500"
-                    : "border-gray-200 bg-white text-gray-400",
-                )}>
+                <kbd className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-500 pointer-events-none select-none">
                   {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
                 </kbd>
               )}
             </div>
           </div>
         )}
-        </header>
       </div>
 
-      {/* ── Mobile menu — "Nordic Editorial" sheet.
-       *   Full-width drop-down from the header. Single KSYK-blue accent,
-       *   refined neutrals, editorial section labels, list rows with
-       *   chevrons, segmented control for theme + language. Grab handle
-       *   at the top signals it's a sheet.
-       *   Rendered outside <header> to escape the sticky positioning. */}
-
-      {/* Backdrop — soft dim + blur, click to close */}
+      {/* ── Mobile drawer — full-height navigation panel ─────────────────
+       *   Not a floating card.  A proper application drawer that slides in
+       *   from the right, hairline separator between sections, active
+       *   route flagged with a navy left edge marker.  Reads like
+       *   professional Finnish school admin software. */}
       <div
         aria-hidden="true"
-        onClick={() => setShowMobileMenu(false)}
-        className="fixed inset-0 z-[60] md:hidden bg-black/40 backdrop-blur-sm"
+        onClick={() => setDrawerOpen(false)}
+        className="fixed inset-0 z-[60] md:hidden bg-black/50"
         style={{
-          opacity: showMobileMenu ? 1 : 0,
-          pointerEvents: showMobileMenu ? "auto" : "none",
-          transition: "opacity 260ms cubic-bezier(0.16,1,0.3,1)",
+          opacity: drawerOpen ? 1 : 0,
+          pointerEvents: drawerOpen ? "auto" : "none",
+          transition: "opacity 220ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       />
 
-      {/* Floating rounded sheet — matches the top-bar + banner design.
-       *  Wrapped in horizontal padding + full rounded-2xl corners so the
-       *  sheet looks like a floating card, not an edge-to-edge modal. */}
-      <div
-        className={cn(
-          "fixed z-[70] md:hidden left-0 right-0 top-[3.5rem] sm:top-[4rem]",
-          "px-2 sm:px-3 md:px-4",
-        )}
-        style={{
-          opacity: showMobileMenu ? 1 : 0,
-          transform: showMobileMenu
-            ? "translateY(0)"
-            : "translateY(-16px)",
-          pointerEvents: showMobileMenu ? "auto" : "none",
-          transition: "opacity 260ms ease, transform 320ms cubic-bezier(0.16,1,0.3,1)",
-        }}
-      >
       <div
         id="mobile-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
-        className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
+        aria-label={fi ? "Navigointi" : "Navigation"}
+        className="fixed z-[70] md:hidden top-0 bottom-0 right-0 w-[min(88vw,320px)] bg-white dark:bg-gray-950 border-l border-[#d5dae0] dark:border-[#2a3040] flex flex-col"
         style={{
-          maxHeight: "min(85dvh, calc(100dvh - 6rem))",
-          paddingBottom: "env(safe-area-inset-bottom)",
+          transform: drawerOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)",
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        {/* Identity strip — theme-var driven, matches the top bar. */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border">
+        {/* Drawer header */}
+        <div className="shrink-0 flex items-center justify-between h-12 sm:h-14 px-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/40">
-              <KSYKLogo size="sm" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[15px] font-bold tracking-tight leading-tight text-foreground">
-                KSYK Maps
-              </div>
-              <div className="text-[11px] leading-tight text-muted-foreground">
-                {currentLang === 'fi' ? 'Kampusnavigointi' : 'Campus navigation'}
-              </div>
-            </div>
+            <KSYKLogo size="sm" />
+            <span className="text-[15px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
+              KSYK Maps
+            </span>
           </div>
           <button
-            onClick={() => setShowMobileMenu(false)}
-            className="h-9 w-9 rounded-full flex items-center justify-center active:scale-90 transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
-            aria-label={currentLang === 'fi' ? 'Sulje valikko' : 'Close menu'}
+            onClick={() => setDrawerOpen(false)}
+            className="h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
+            aria-label={fi ? "Sulje valikko" : "Close menu"}
           >
-            <X className="h-5 w-5" strokeWidth={2.5} />
+            <X className="h-5 w-5" strokeWidth={2.25} />
           </button>
         </div>
 
-        {/* Scrollable content — simple, single-column list.
-         *  KSYK colors are back: blue for settings, orange for lunch,
-         *  green for transport. No subtitles, no stagger — just clean
-         *  colored rows. */}
-        <div className="flex flex-col max-h-full overflow-y-auto">
-          <div className="w-full max-w-2xl mx-auto px-4 py-4 space-y-5">
-            {!isInAdminPanel ? (
-              <>
-                {/* ── Quick access — iOS Settings-style rows ──────── */}
-                <section>
-                  <div className={cn(
-                    "rounded-2xl overflow-hidden divide-y",
-                    darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]",
-                  )}>
-                    {onOpenSettings && (
-                      <button
-                        onClick={() => { setShowMobileMenu(false); onOpenSettings(); }}
-                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06]"
-                      >
-                        <Settings className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">
-                          {currentLang === 'fi' ? 'Asetukset' : 'Settings'}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </button>
-                    )}
-                    <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
-                        <UtensilsCrossed className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">
-                          {t('quickActions.lunch')}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </div>
-                    </Link>
-                    <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
-                        <Bus className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">
-                          {t('quickActions.transport')}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </div>
-                    </Link>
-                    <Link href="/support" onClick={() => setShowMobileMenu(false)}>
-                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
-                        <LifeBuoy className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">
-                          {currentLang === 'fi' ? 'Tuki' : 'Support'}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </div>
-                    </Link>
-                  </div>
-                </section>
+        {/* Drawer body */}
+        <div className="flex-1 overflow-y-auto">
+          {!isInAdminPanel && (
+            <>
+              {/* Primary section — Map / Lunch / Transport */}
+              <NavSection label={fi ? "Navigointi" : "Navigate"}>
+                {PRIMARY_ROUTES.map((r) => (
+                  <NavRow
+                    key={r.href}
+                    href={r.href}
+                    icon={r.icon}
+                    label={fi ? r.labelFi : r.labelEn}
+                    active={routeIsActive(r.href)}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
+                ))}
+                {onOpenSettings && (
+                  <NavRow
+                    icon={Settings}
+                    label={fi ? "Asetukset" : "Settings"}
+                    onClick={() => { setDrawerOpen(false); onOpenSettings(); }}
+                    active={false}
+                  />
+                )}
+              </NavSection>
 
-                {/* ── Appearance — segmented control ────────────── */}
-                <section className="space-y-2">
-                  <div className={cn(
-                    "text-xs font-semibold pl-1",
-                    darkMode ? "text-gray-400" : "text-gray-600",
-                  )}>
-                    {currentLang === 'fi' ? 'Ulkoasu' : 'Appearance'}
-                  </div>
-                  <div className={cn(
-                    "flex gap-1 p-1 rounded-2xl",
-                    darkMode ? "bg-gray-900/70 ring-1 ring-gray-800/70" : "bg-gray-100/80 ring-1 ring-gray-200/70",
-                  )}>
-                    <SegBtn
-                      active={theme === 'light'}
-                      onClick={() => handleThemeChange('light')}
-                      ariaLabel={t('theme.light')}
-                    >
-                      <Sun className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{t('theme.light')}</span>
-                    </SegBtn>
-                    <SegBtn
-                      active={theme === 'dark'}
-                      onClick={() => handleThemeChange('dark')}
-                      ariaLabel={t('theme.dark')}
-                    >
-                      <Moon className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{t('theme.dark')}</span>
-                    </SegBtn>
-                    <SegBtn
-                      active={theme === 'system'}
-                      onClick={() => handleThemeChange('system')}
-                      ariaLabel="System"
-                    >
-                      <Monitor className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{t('theme.system')}</span>
-                    </SegBtn>
-                    {neonUnlocked && (
-                      <SegBtn
-                        active={theme === 'neon'}
-                        onClick={() => handleThemeChange('neon')}
-                        ariaLabel="Neon"
-                      >
-                        <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-                        <span>Neon</span>
-                      </SegBtn>
-                    )}
-                  </div>
-                </section>
+              {/* Secondary section — Help / Support / Download / Privacy */}
+              <NavSection label={fi ? "Tietoja" : "Information"}>
+                {SECONDARY_ROUTES.map((r) => (
+                  <NavRow
+                    key={r.href}
+                    href={r.href}
+                    icon={r.icon}
+                    label={fi ? r.labelFi : r.labelEn}
+                    active={routeIsActive(r.href)}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
+                ))}
+              </NavSection>
 
-                {/* ── Language — segmented control ────────────── */}
-                <section className="space-y-2">
-                  <div className={cn(
-                    "text-xs font-semibold pl-1",
-                    darkMode ? "text-gray-400" : "text-gray-600",
-                  )}>
-                    {currentLang === 'fi' ? 'Kieli' : 'Language'}
-                  </div>
-                  <div className={cn(
-                    "flex gap-1 p-1 rounded-2xl",
-                    darkMode ? "bg-gray-900/70 ring-1 ring-gray-800/70" : "bg-gray-100/80 ring-1 ring-gray-200/70",
-                  )}>
-                    <SegBtn
-                      active={currentLang === 'en'}
-                      onClick={() => handleLanguageChange('en')}
-                      ariaLabel="English"
-                    >
-                      <span>English</span>
-                    </SegBtn>
-                    <SegBtn
-                      active={currentLang === 'fi'}
-                      onClick={() => handleLanguageChange('fi')}
-                      ariaLabel="Suomi"
-                    >
-                      <span>Suomi</span>
-                    </SegBtn>
-                    {localStorage.getItem('ksyk_british_unlocked') === 'true' && (
-                      <SegBtn
-                        active={currentLang === 'en-GB'}
-                        onClick={() => handleLanguageChange('en-GB')}
-                        ariaLabel="British"
-                      >
-                        <span>British</span>
-                      </SegBtn>
-                    )}
-                  </div>
-                </section>
+              {/* Preferences */}
+              <NavSection label={fi ? "Ulkoasu" : "Appearance"}>
+                <SegRow
+                  options={[
+                    { id: "light",  label: fi ? "Vaalea" : "Light",   icon: Sun },
+                    { id: "dark",   label: fi ? "Tumma" : "Dark",     icon: Moon },
+                    { id: "system", label: fi ? "Auto" : "System",    icon: Monitor },
+                    ...(neonUnlocked ? [{ id: "neon", label: "Neon", icon: Sparkles }] : []),
+                  ]}
+                  active={theme}
+                  onSelect={(id) => handleThemeChange(id as "light" | "dark" | "system" | "neon")}
+                />
+              </NavSection>
 
-                {/* Footer — attribution */}
-                <div className={cn(
-                  "flex items-center justify-between text-[11px] pt-1 pb-1",
-                  darkMode ? "text-gray-600" : "text-gray-500",
-                )}>
-                  <span>KSYK Maps</span>
-                  <span>Campus navigation</span>
-                </div>
-              </>
-            ) : (
-              // ─── Admin-panel variant ────────────────────────────────
-              <>
-                <section>
-                  <div className={cn(
-                    "rounded-2xl overflow-hidden divide-y",
-                    darkMode ? "bg-gray-800/50 divide-gray-700/60" : "bg-black/[0.04] divide-black/[0.06]",
-                  )}>
-                    <Link href="/lunch" onClick={() => setShowMobileMenu(false)}>
-                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
-                        <UtensilsCrossed className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">{t('quickActions.lunch')}</span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </div>
-                    </Link>
-                    <Link href="/hsl" onClick={() => setShowMobileMenu(false)}>
-                      <div className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06] cursor-pointer">
-                        <Bus className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-400" : "text-gray-500")} strokeWidth={1.75} />
-                        <span className="flex-1 text-[15px] font-medium text-foreground">{t('quickActions.transport')}</span>
-                        <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                      </div>
-                    </Link>
-                    <button
-                      onClick={() => { handleLogout(); setShowMobileMenu(false); }}
-                      className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:bg-black/[0.06] dark:active:bg-white/[0.06]"
-                    >
-                      <LogOut className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-red-400" : "text-red-500")} strokeWidth={1.75} />
-                      <span className="flex-1 text-[15px] font-medium text-foreground">{t('logout')}</span>
-                      <ChevronRight className="h-4 w-4 text-black/25 dark:text-white/25 shrink-0" />
-                    </button>
-                  </div>
-                </section>
+              <NavSection label={fi ? "Kieli" : "Language"}>
+                <SegRow
+                  options={[
+                    { id: "fi", label: "Suomi" },
+                    { id: "en", label: "English" },
+                    ...(typeof localStorage !== "undefined" && localStorage.getItem("ksyk_british_unlocked") === "true"
+                      ? [{ id: "en-GB", label: "British" }] : []),
+                  ]}
+                  active={currentLang}
+                  onSelect={handleLanguageChange}
+                />
+              </NavSection>
 
-                <section className="space-y-2">
-                  <div className={cn(
-                    "text-xs font-semibold pl-1",
-                    darkMode ? "text-gray-400" : "text-gray-600",
-                  )}>
-                    {currentLang === 'fi' ? 'Ulkoasu' : 'Appearance'}
-                  </div>
-                  <div className={cn(
-                    "flex gap-1 p-1 rounded-2xl",
-                    darkMode ? "bg-gray-900/70 ring-1 ring-gray-800/70" : "bg-gray-100/80 ring-1 ring-gray-200/70",
-                  )}>
-                    <SegBtn
-                      active={theme === 'light'}
-                      onClick={() => handleThemeChange('light')}
-                    >
-                      <Sun className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{t('theme.light')}</span>
-                    </SegBtn>
-                    <SegBtn
-                      active={theme === 'dark'}
-                      onClick={() => handleThemeChange('dark')}
-                    >
-                      <Moon className="h-4 w-4" strokeWidth={2.25} />
-                      <span>{t('theme.dark')}</span>
-                    </SegBtn>
-                  </div>
-                </section>
-              </>
-            )}
-          </div>
+              {isAdmin && (
+                <NavSection label={fi ? "Ylläpito" : "Admin"}>
+                  <NavRow
+                    href="/admin"
+                    icon={Shield}
+                    label={fi ? "Hallintapaneeli" : "Admin panel"}
+                    active={false}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
+                </NavSection>
+              )}
+            </>
+          )}
+
+          {isInAdminPanel && (
+            <>
+              <NavSection label={fi ? "Sivut" : "Pages"}>
+                {PRIMARY_ROUTES.filter((r) => r.href !== "/").map((r) => (
+                  <NavRow
+                    key={r.href}
+                    href={r.href}
+                    icon={r.icon}
+                    label={fi ? r.labelFi : r.labelEn}
+                    active={routeIsActive(r.href)}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
+                ))}
+                <NavRow
+                  href="/"
+                  icon={MapPin}
+                  label={fi ? "Julkinen kartta" : "Public map"}
+                  active={false}
+                  onNavigate={() => setDrawerOpen(false)}
+                />
+              </NavSection>
+
+              <NavSection label={fi ? "Ulkoasu" : "Appearance"}>
+                <SegRow
+                  options={[
+                    { id: "light",  label: fi ? "Vaalea" : "Light", icon: Sun },
+                    { id: "dark",   label: fi ? "Tumma" : "Dark",   icon: Moon },
+                  ]}
+                  active={theme}
+                  onSelect={(id) => handleThemeChange(id as "light" | "dark")}
+                />
+              </NavSection>
+
+              <NavSection label={fi ? "Tili" : "Account"}>
+                <NavRow
+                  icon={LogOut}
+                  label={fi ? "Kirjaudu ulos" : "Log out"}
+                  onClick={() => { setDrawerOpen(false); handleLogout(); }}
+                  active={false}
+                  danger
+                />
+              </NavSection>
+            </>
+          )}
+        </div>
+
+        {/* Drawer footer — attribution */}
+        <div className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-4 py-3">
+          <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+            KSYK Maps · Campus navigation
+          </p>
         </div>
       </div>
-      </div>
-
     </>
+  );
+}
+
+/** ── Drawer building blocks ─────────────────────────────────────── */
+
+function NavSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="border-b border-[#d5dae0] dark:border-[#2a3040] last:border-b-0">
+      <p className="px-4 pt-4 pb-2 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+        {label}
+      </p>
+      <div className="pb-2">{children}</div>
+    </section>
+  );
+}
+
+function NavRow({
+  href,
+  icon: Icon,
+  label,
+  active,
+  danger,
+  onClick,
+  onNavigate,
+}: {
+  href?: string;
+  icon: typeof MapPin;
+  label: string;
+  active: boolean;
+  danger?: boolean;
+  onClick?: () => void;
+  onNavigate?: () => void;
+}) {
+  const body = (
+    <div
+      className={cn(
+        "relative flex items-center gap-3 h-10 px-4 text-[14px] font-semibold transition-colors",
+        active
+          ? "text-[#003d82] dark:text-[#4a90d9] bg-[#e6ecf3] dark:bg-[#4a90d9]/10"
+          : danger
+            ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+            : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900",
+      )}
+    >
+      {active && (
+        <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-[2px] bg-[#003d82] dark:bg-[#4a90d9]" aria-hidden="true" />
+      )}
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+      <span className="flex-1 truncate">{label}</span>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} onClick={onNavigate}>
+        <a className="block">{body}</a>
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className="w-full text-left">
+      {body}
+    </button>
+  );
+}
+
+function SegRow({
+  options,
+  active,
+  onSelect,
+}: {
+  options: Array<{ id: string; label: string; icon?: typeof MapPin }>;
+  active: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="mx-4 mb-2 flex items-center border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] overflow-hidden">
+      {options.map((o) => {
+        const OIcon = o.icon;
+        const isActive = active === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onSelect(o.id)}
+            aria-pressed={isActive}
+            className={cn(
+              "flex-1 h-9 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors",
+              isActive
+                ? "bg-[#003d82] text-white"
+                : "bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900",
+            )}
+          >
+            {OIcon && <OIcon className="h-3.5 w-3.5" strokeWidth={2.25} />}
+            <span>{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

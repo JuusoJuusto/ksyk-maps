@@ -218,31 +218,29 @@ export default function Support() {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      <header className="border-b border-border/50 shrink-0 animate-fade-in">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <Link href="/" className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Back to map
+      {/* Document header — same shell as FAQ / Privacy */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center">
+          <Link href="/" className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            Map
           </Link>
         </div>
       </header>
-      <div className="flex-1 flex items-start sm:items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-2xl animate-fade-in-up">
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                  <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-                </div>
-                <div>
-                  <CardTitle className="text-[20px] font-semibold tracking-tight leading-[1.15]">Contact support</CardTitle>
-                  <CardDescription className="text-[14px] mt-0.5">
-                    Report a bug, request a feature, or ask a question.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-5 py-6 sm:py-8">
+        {/* Document title block */}
+        <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+            Support
+          </p>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+            Contact support
+          </h1>
+          <p className="text-[13px] mt-1 text-gray-500 dark:text-gray-400">
+            Report a bug, request a feature, or ask a question. Usually a reply within 24–48 hours.
+          </p>
+        </div>
+
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Type — 2×2 grid, hints always visible for all screen sizes */}
@@ -400,14 +398,11 @@ export default function Support() {
                   </button>
                 </div>
 
-                <p className="text-[12px] text-center text-slate-400 pt-1">
-                  <Link href="/privacy" className="underline decoration-slate-300 hover:text-slate-500 dark:decoration-slate-700">Privacy policy</Link>
+                <p className="text-[12px] text-gray-500 dark:text-gray-500 pt-2">
+                  <Link href="/privacy" className="text-[#003d82] dark:text-[#4a90d9] hover:underline underline-offset-2 font-semibold">Privacy policy</Link>
                 </p>
               </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

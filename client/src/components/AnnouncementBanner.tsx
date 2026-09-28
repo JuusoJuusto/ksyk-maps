@@ -107,9 +107,9 @@ export default function AnnouncementBanner() {
 
   const getPriorityIcon = (priority: string) => {
     if (priority === "urgent" || priority === "high") {
-      return <AlertTriangle className="h-5 w-5" />;
+      return <AlertTriangle className="h-3.5 w-3.5 text-white shrink-0" strokeWidth={2.5} />;
     }
-    return <Megaphone className="h-5 w-5" />;
+    return <Megaphone className="h-3.5 w-3.5 text-white shrink-0" strokeWidth={2.5} />;
   };
 
   const nextAnnouncement = () => {
@@ -120,127 +120,101 @@ export default function AnnouncementBanner() {
     setCurrentIndex((prev) => (prev - 1 + activeAnnouncements.length) % activeAnnouncements.length);
   };
 
+  // v4.7.43 — Wilma-style solid strip.  Navy on normal / high, red on
+  // urgent, thin amber for medium.  Full-width edge-to-edge, no floating
+  // chip, no card, no shadow.  32 px tall.
   const priorityBg =
     currentAnnouncement.priority === "urgent"
-      ? "bg-red-600 hover:bg-red-700"
+      ? "bg-red-700 hover:bg-red-800"
       : currentAnnouncement.priority === "high"
-      ? "bg-orange-500 hover:bg-orange-600"
-      : "bg-blue-600 hover:bg-blue-700";
+      ? "bg-amber-600 hover:bg-amber-700"
+      : "bg-[#003d82] hover:bg-[#002d5f]";
 
   return (
     <>
-      {/* Outer strip — solid colored strip runs edge to edge but the
-       *  inner card floats with side margin + all-corner rounding so the
-       *  banner looks like a chip at every screen size (mobile → desktop). */}
-      <div className="relative z-40 pt-2 px-2 sm:px-3 md:px-4 animate-fade-in">
-        <div
-          role="region"
-          aria-label="Site announcement"
-          className={cn(
-            "relative rounded-2xl shadow-md transition-colors duration-300 cursor-pointer overflow-hidden active:scale-[0.995]",
-            priorityBg,
-          )}
-          onClick={() => {
-            try {
-              trackFeatureUse('announcement_click', {
-                announcementId: currentAnnouncement.id,
-                priority: currentAnnouncement.priority,
-              });
-            } catch { /* non-fatal */ }
-            setIsDialogOpen(true);
-          }}
-        >
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-          {/* v3.28.0 — reverted the 3.27.5 size bump per feedback.
-           *  Back to the original compact strip that doesn't dominate
-           *  the top of the screen. Dialog polish moved to the modal
-           *  itself (see the AnnouncementDialog below). */}
-          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentAnnouncement.id}
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.35 }}
-                className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
-              >
-                <div className="flex-shrink-0 bg-white/20 p-1 sm:p-1.5 rounded-full">
-                  {getPriorityIcon(currentAnnouncement.priority)}
-                </div>
-                <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-white font-bold text-xs sm:text-sm truncate">
-                    {getLocalizedTitle(currentAnnouncement)}
-                  </p>
-                  <p className="text-white/85 text-[10px] sm:text-xs truncate hidden sm:block">
-                    {getLocalizedContent(currentAnnouncement)}
-                  </p>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+      <div
+        role="region"
+        aria-label="Site announcement"
+        className={cn(
+          "relative z-40 w-full transition-colors cursor-pointer",
+          priorityBg,
+        )}
+        onClick={() => {
+          try {
+            trackFeatureUse('announcement_click', {
+              announcementId: currentAnnouncement.id,
+              priority: currentAnnouncement.priority,
+            });
+          } catch { /* non-fatal */ }
+          setIsDialogOpen(true);
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex items-center gap-2 px-3 sm:px-4 h-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentAnnouncement.id}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.28 }}
+              className="flex items-center gap-2 flex-1 min-w-0"
+            >
+              {getPriorityIcon(currentAnnouncement.priority)}
+              <p className="text-white text-[12px] sm:text-[13px] font-semibold truncate">
+                {getLocalizedTitle(currentAnnouncement)}
+                <span className="hidden sm:inline text-white/75 font-normal ml-2">
+                  · {getLocalizedContent(currentAnnouncement)}
+                </span>
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {activeAnnouncements.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsPaused(!isPaused);
-                    }}
-                    className="h-7 w-7 p-0 rounded text-white hover:bg-white/20 transition-colors hidden sm:inline-flex items-center justify-center"
-                    title={isPaused ? "Resume" : "Pause"}
-                    aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
-                  >
-                    {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      prevAnnouncement();
-                    }}
-                    className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                    aria-label="Previous announcement"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <div
-                    className="hidden min-[360px]:block px-1.5 sm:px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded"
-                    role="status"
-                    aria-live="polite"
-                    aria-atomic="true"
-                    aria-label={`Announcement ${currentIndex + 1} of ${activeAnnouncements.length}`}
-                  >
-                    {currentIndex + 1}/{activeAnnouncements.length}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextAnnouncement();
-                    }}
-                    className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                    aria-label="Next announcement"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsVisible(false);
-                }}
-                className="h-7 w-7 p-0 rounded inline-flex items-center justify-center text-white hover:bg-black/30 transition-colors"
-                aria-label="Dismiss announcement"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {activeAnnouncements.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIsPaused(!isPaused); }}
+                  className="h-6 w-6 rounded-[4px] hidden sm:inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
+                >
+                  {isPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
+                  className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  aria-label="Previous announcement"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+                <span
+                  className="hidden min-[360px]:inline px-1.5 h-5 inline-flex items-center text-[10px] font-bold tabular-nums text-white/85"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {currentIndex + 1}/{activeAnnouncements.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
+                  className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  aria-label="Next announcement"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}
+              className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+              aria-label="Dismiss announcement"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
-        </div>
         </div>
       </div>
 

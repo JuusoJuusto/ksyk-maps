@@ -16,6 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.43 — Component-level rewrites)
+
+**Not restyling — actual component rewrites.**
+
+- **`Header.tsx` fully rewritten.** No more floating chip with backdrop-blur — a proper Wilma-style top bar sits on a hairline bottom border. Desktop shows inline navigation links (Lunch / Transport) with Wilma-navy `#003d82` active pill background. Mobile hamburger opens a full-height side drawer, not a floating card — hairline section separators, `PRIMARY_ROUTES` / `SECONDARY_ROUTES` typed constants, active-route detection with a 3px navy left-edge marker on the active row. Introduces `NavSection` + `NavRow` + `SegRow` internal components for reuse.
+- **`AnnouncementBanner.tsx` rewritten as a Wilma-style solid strip.** Was a `rounded-2xl` floating card with `shadow-md` and a decorative colored-pill icon. Now a full-width edge-to-edge 32 px navy strip (amber / red for high / urgent). Framer-motion crossfade preserved. Title + inline body on one line; carousel controls dropped to 24 px `rounded-[4px]` ghosts.
+- **`faq.tsx` restructured as a document.** Was rounded-2xl cards with per-question shadow, hover-lift, and staggered fade-in. Now: uppercase `HELP` masthead + big navy H1 + question count; a single bordered container with hairline-divided rows, each with a two-digit tabular numeral (01, 02, …) on the left. Answer text is `whitespace-pre-line` at 1.6 line-height.
+- **`privacy.tsx` restructured.** Now: uppercase `DOCUMENT` masthead, big navy H1, a bordered Table-of-Contents nav with jump links, sections with `§01`, `§02` legal-numeral labels + indented 1.65 body prose. Reads like an actual privacy notice.
+- **`support.tsx`** — killed the icon-pill card header (`bg-blue-50` circle with a Ticket icon). Uses the same document masthead as FAQ / Privacy. Form flows directly in the page grid — no CardContent wrapper wrapping the form.
+- **Same document shell across FAQ / Privacy / Support** — `h-12` hairline header + uppercase masthead + big navy H1 + 13px subtitle + `border-b` divider. Marketing pages now feel like the same product.
+- **Files touched** — `client/src/components/Header.tsx` (full rewrite), `client/src/components/AnnouncementBanner.tsx`, `client/src/pages/faq.tsx`, `client/src/pages/privacy.tsx`, `client/src/pages/support.tsx`, `client/src/lib/changelog.ts`.
+- **Revert paths** — since these are component rewrites (not CSS-layer overrides), only `git reset --hard rollback-before-wilma-mazemap-redesign` fully restores. Removing the `main.tsx` `setAttribute` still turns off the CSS layer but the rewritten components stay Wilma-shaped.
+- **Web version bumped** `4.7.42` → `4.7.43`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.42 — Design system finish)
 
 - **404 signature dropped**: removed the trailing "KSYK Maps" + `MapPin` line under the buttons on `not-found.tsx`. The big navy 404 now stands alone.
