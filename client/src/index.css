@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Wilma + MazeMap redesign layer.  Scoped to
+ * `.ksykmaps-app[data-ksyk-theme="wilma"]` — remove that attribute (see
+ * `ksykmaps-home.tsx`) plus this @import to fully revert.  Keeping this
+ * import active without the attribute is a no-op.  */
+@import "./styles/wilma-mazemap.css";
+
 @layer base {
   :root {
     --ksyk-brand-blue: #2563eb;

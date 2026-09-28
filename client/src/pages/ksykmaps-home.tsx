@@ -63,6 +63,7 @@ export default function KSYKMapsHome() {
   return (
     <div
       className={cn("ksykmaps-app flex flex-col overflow-hidden", darkMode ? "bg-gray-950" : "bg-white")}
+      data-ksyk-theme="wilma"
       style={{
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top, 0px)",

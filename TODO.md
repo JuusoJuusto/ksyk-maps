@@ -16,6 +16,22 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.40 — Wilma + MazeMap redesign, revertable)
+
+- **New file `client/src/styles/wilma-mazemap.css`** — scoped design layer applied via `data-ksyk-theme="wilma"` on the `.ksykmaps-app` root. Everything the layer changes is a single attribute + file removal away from a full revert. The `@import` in `client/src/index.css` is a no-op when the attribute is absent.
+- **Rollback tag** — `rollback-before-wilma-mazemap-redesign` (commit `e3a981f`) was created before this pass. `git reset --hard rollback-before-wilma-mazemap-redesign` restores every file. **Do this if the user says "revert".**
+- **Header chip → institutional school top bar** — killed the floating rounded card + backdrop blur + iOS shadow. Wilma navy `#003d82` brand title, uppercase muted "Campus navigation" subtitle, Wilma-style rectangular search input (40px, hairline border, navy focus ring — no pill).
+- **Map controls MazeMap-style** — unified glass pill split into distinct rectangular buttons with hairline dividers; no blur, sharp radius (6px vs 18px), navy active fill.
+- **Floor selector** — basement floors now show Finnish `K1`, `K2` (kellari) prefix instead of raw negative numbers. Active floor is filled navy with a 3px inset navy-dark accent bar down the left edge, corners squared off (via `wilma-mazemap.css`).
+- **Room / building info sheet** — `FeatureInfoSheet.tsx` header revamped. Killed the giant colored circular `MapPin` pin, replaced with a **Wilma-style room-code tag** (e.g. `K27` for a room, `LAB` / `GYM` / `BUILDING` for typed features). Title tighter, meta row denser. Primary CTA changed from a 32px iOS-blue pill to a 36px navy rectangle with copy `Get directions` / `Näytä reitti`. Metadata rows converted to label-above-value with tight uppercase captions and hairline dividers.
+- **Search results dropdown flattened** — type chips squared off (6px), rows have 10px vertical padding + hairline dividers, filter chips are rectangular. All applied via the scoped CSS layer (no component edit needed).
+- **Sheet has a 3px navy top-border accent** so users know at a glance which surface belongs to the map (MazeMap uses a similar accent).
+- **Announcement banner** switches to a solid navy strip when the Wilma theme is active.
+- **Global softening under `.ksykmaps-app[data-ksyk-theme="wilma"]`** — `.rounded-2xl` → 10px, `.rounded-xl` → 6px, universal `backdrop-blur-*` disabled inside the app surface. Shadow scale reduced (`.shadow-lg` → soft two-layer 2/6, `.shadow-md` → 1/2).
+- **Files touched** — `client/src/styles/wilma-mazemap.css` (new), `client/src/index.css` (added `@import`), `client/src/pages/ksykmaps-home.tsx` (attribute), `client/src/components/Header.tsx` (indirect via CSS layer), `client/src/components/KSYKMapView.tsx` (floor label `K1` prefix), `client/src/components/FeatureInfoSheet.tsx` (header chip, CTA copy, InfoRow layout), `client/src/lib/changelog.ts` (bump + entry).
+- **Web version bumped** `4.7.39` → `4.7.40`. `tsc` clean.
+- **NOT changed** — the admin panel (already went through the Apple-redesign pass in 4.7.38 and is fine there), the Android app (no design change), the marketing / standalone pages (`/lunch`, `/hsl`, `/faq`, `/privacy`, `/support`) which are outside `.ksykmaps-app`, and the Builder.
+
 ## ✅ Just shipped (web 4.7.39 — 3D visibility + room highlight + language sync + Get-the-app toggle)
 
 - **3D mode reworked for visibility** — wall shells removed (they were occluding rooms), all shadows off, chunky 5-unit room slabs on subtle floor plates, hairline edges, room-number pills with `depthTest: false` so they always render on top, camera auto-fits the whole campus on load. Colored roof cap now only at the top floor. `CampusThreeDView.tsx` fully rewritten.

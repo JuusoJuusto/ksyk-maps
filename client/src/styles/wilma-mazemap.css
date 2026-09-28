@@ -1,0 +1,333 @@
+/**
+ * KSYK Maps — Wilma + MazeMap redesign layer.
+ *
+ * REVERT: delete this file and the `@import` line in `client/src/index.css`,
+ * and set `data-ksyk-theme="apple"` on the app root. Everything else in the
+ * app returns to the prior Apple-Maps-inflected aesthetic.
+ *
+ * Scoped entirely under `.ksykmaps-app[data-ksyk-theme="wilma"]` so the
+ * layer never leaks into pages that opt out.
+ *
+ * Design references:
+ *   - Wilma: information-dense school-app density, navy #003d82 accent,
+ *     hairline borders, clear labels, no ornamental radius, subtle shadows.
+ *   - MazeMap: sharp map-control chrome, floor-strip on the right, clear
+ *     active state, tight typography, no glass.
+ */
+
+:root {
+  --ksyk-wm-navy: #003d82;
+  --ksyk-wm-navy-dark: #002d5f;
+  --ksyk-wm-navy-hover: #00306b;
+  --ksyk-wm-navy-tint: #e6ecf3;
+  --ksyk-wm-ink: #1a1a1a;
+  --ksyk-wm-body: #333333;
+  --ksyk-wm-muted: #6b7280;
+  --ksyk-wm-mute-2: #9ca3af;
+  --ksyk-wm-hair: #d5dae0;
+  --ksyk-wm-hair-strong: #b7bdc6;
+  --ksyk-wm-surface: #ffffff;
+  --ksyk-wm-surface-alt: #f5f6f8;
+  --ksyk-wm-surface-sunk: #edeef2;
+  --ksyk-wm-radius-sm: 4px;
+  --ksyk-wm-radius: 6px;
+  --ksyk-wm-radius-lg: 10px;
+  --ksyk-wm-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --ksyk-wm-shadow-2: 0 2px 6px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --ksyk-wm-shadow-3: 0 4px 16px rgba(15, 23, 42, 0.12);
+  --ksyk-wm-font: 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.dark [data-ksyk-theme="wilma"] {
+  --ksyk-wm-navy: #4a90d9;
+  --ksyk-wm-navy-dark: #6ba6e2;
+  --ksyk-wm-navy-hover: #8bb9e8;
+  --ksyk-wm-navy-tint: rgba(74, 144, 217, 0.15);
+  --ksyk-wm-ink: #f3f4f6;
+  --ksyk-wm-body: #e5e7eb;
+  --ksyk-wm-muted: #9ca3af;
+  --ksyk-wm-mute-2: #6b7280;
+  --ksyk-wm-hair: #2a3040;
+  --ksyk-wm-hair-strong: #3a4152;
+  --ksyk-wm-surface: #12161f;
+  --ksyk-wm-surface-alt: #1a1f2a;
+  --ksyk-wm-surface-sunk: #0d1017;
+}
+
+/* ── Only apply once the app opts in.  Everything below is scoped to
+ * `.ksykmaps-app[data-ksyk-theme="wilma"]` so it's a genuine additive
+ * layer — remove the attribute and the app snaps back. */
+
+.ksykmaps-app[data-ksyk-theme="wilma"] {
+  font-family: var(--ksyk-wm-font);
+  color: var(--ksyk-wm-body);
+  letter-spacing: -0.005em;
+}
+
+/* ── Header chip → practical school top bar.  Kills the floating rounded
+ * card + glass blur + Apple shadow.  Adds a Wilma-style hairline bottom
+ * border and a subtle navy tint at the far edge so it reads as an
+ * institutional application top bar. */
+.ksykmaps-app[data-ksyk-theme="wilma"] > div:first-of-type > .sticky {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] header.bg-white\/95,
+.ksykmaps-app[data-ksyk-theme="wilma"] header[class*="bg-white/95"] {
+  background: var(--ksyk-wm-surface) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ksyk-wm-hair) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.dark .ksykmaps-app[data-ksyk-theme="wilma"] header.bg-white\/95,
+.dark .ksykmaps-app[data-ksyk-theme="wilma"] header[class*="dark:bg-gray-900/95"] {
+  background: var(--ksyk-wm-surface) !important;
+  border-bottom-color: var(--ksyk-wm-hair) !important;
+}
+
+/* Header brand text: from Apple-blue "KSYK Maps" to Wilma navy title */
+.ksykmaps-app[data-ksyk-theme="wilma"] header h2.text-blue-600 {
+  color: var(--ksyk-wm-navy) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] header p.text-muted-foreground {
+  color: var(--ksyk-wm-muted) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase;
+  font-size: 10px !important;
+}
+
+/* ── Search bar: from pill to Wilma-style rectangle with a clear border */
+.ksykmaps-app[data-ksyk-theme="wilma"] header input[role="combobox"] {
+  border-radius: var(--ksyk-wm-radius) !important;
+  background: var(--ksyk-wm-surface) !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+  height: 40px !important;
+  font-weight: 500 !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] header input[role="combobox"]:focus-visible,
+.ksykmaps-app[data-ksyk-theme="wilma"] header input[role="combobox"]:focus {
+  border-color: var(--ksyk-wm-navy) !important;
+  box-shadow: 0 0 0 3px rgba(0, 61, 130, 0.12) !important;
+}
+.dark .ksykmaps-app[data-ksyk-theme="wilma"] header input[role="combobox"] {
+  background: var(--ksyk-wm-surface-alt) !important;
+  border-color: var(--ksyk-wm-hair) !important;
+  color: var(--ksyk-wm-ink) !important;
+}
+
+/* Kill the slate-50 background on the search row so it flows into the
+ * top bar directly. */
+.ksykmaps-app[data-ksyk-theme="wilma"] header .bg-slate-50\/80,
+.ksykmaps-app[data-ksyk-theme="wilma"] header .dark\:bg-gray-900\/60 {
+  background: var(--ksyk-wm-surface) !important;
+  border-top-color: var(--ksyk-wm-hair) !important;
+}
+
+/* ── Hamburger drawer: from Apple sheet to Wilma-style menu.  Reduce
+ * radius, replace the giant black backdrop shadow with a hairline. */
+.ksykmaps-app[data-ksyk-theme="wilma"] #mobile-drawer,
+[data-ksyk-theme="wilma"] #mobile-drawer {
+  border-radius: var(--ksyk-wm-radius) !important;
+  border-color: var(--ksyk-wm-hair) !important;
+  box-shadow: var(--ksyk-wm-shadow-3) !important;
+}
+[data-ksyk-theme="wilma"] #mobile-drawer .rounded-2xl {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+[data-ksyk-theme="wilma"] #mobile-drawer button,
+[data-ksyk-theme="wilma"] #mobile-drawer a > div {
+  border-radius: 0 !important;
+}
+
+/* ── Map controls: MazeMap-style rail.  Break the unified glass pill into
+ * clean rectangles with a hairline border.  No blur. Sharper active
+ * state (navy fill), tighter radius. */
+.ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30 > .flex.flex-col.rounded-\[18px\],
+.ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30.flex.flex-col.p-1.rounded-\[18px\] {
+  border-radius: var(--ksyk-wm-radius) !important;
+  background: var(--ksyk-wm-surface) !important;
+  border: 1px solid var(--ksyk-wm-hair-strong) !important;
+  box-shadow: var(--ksyk-wm-shadow-2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.dark .ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30 > .flex.flex-col.rounded-\[18px\],
+.dark .ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30.flex.flex-col.p-1.rounded-\[18px\] {
+  background: var(--ksyk-wm-surface) !important;
+  border-color: var(--ksyk-wm-hair-strong) !important;
+}
+/* Divider between stacked controls */
+.ksykmaps-app[data-ksyk-theme="wilma"] .divide-y.divide-black\/\[0\.06\] > * + *,
+.ksykmaps-app[data-ksyk-theme="wilma"] .dark\:divide-white\/\[0\.06\] > * + * {
+  border-top-color: var(--ksyk-wm-hair) !important;
+}
+
+/* Individual control buttons in the map rail */
+.ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30 button {
+  border-radius: 0 !important;
+  color: var(--ksyk-wm-ink);
+}
+/* Active state: navy fill, not iOS blue */
+.ksykmaps-app[data-ksyk-theme="wilma"] .absolute.right-3.z-30 button.bg-blue-600 {
+  background: var(--ksyk-wm-navy) !important;
+  color: #fff !important;
+}
+/* Floor selector active row — sharper corners, navy accent */
+.ksykmaps-app[data-ksyk-theme="wilma"] [aria-label="Floor selector"] button {
+  border-radius: 0 !important;
+  font-weight: 700 !important;
+  color: var(--ksyk-wm-ink);
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] [aria-label="Floor selector"] button[aria-pressed="true"] {
+  background: var(--ksyk-wm-navy) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 var(--ksyk-wm-navy-dark) !important;
+}
+
+/* Standalone floating chips (compass, GPS, 3D toggle mini) */
+.ksykmaps-app[data-ksyk-theme="wilma"] .rounded-full.bg-white\/95 {
+  border-radius: var(--ksyk-wm-radius) !important;
+  background: var(--ksyk-wm-surface) !important;
+  border-color: var(--ksyk-wm-hair-strong) !important;
+  backdrop-filter: none !important;
+}
+
+/* ── Floor toast animation → Wilma minimal chip */
+.ksykmaps-app[data-ksyk-theme="wilma"] [role="status"].rounded-full {
+  border-radius: var(--ksyk-wm-radius) !important;
+  background: var(--ksyk-wm-ink) !important;
+  color: #fff !important;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ── Feature info sheet — MazeMap-style compact info panel with
+ * information-dense meta rows */
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet {
+  border-radius: var(--ksyk-wm-radius) var(--ksyk-wm-radius) 0 0 !important;
+  border-top: 3px solid var(--ksyk-wm-navy) !important;
+  box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.14) !important;
+}
+@media (min-width: 640px) {
+  .ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet {
+    border-radius: var(--ksyk-wm-radius) !important;
+    border-top: 3px solid var(--ksyk-wm-navy) !important;
+    box-shadow: var(--ksyk-wm-shadow-3) !important;
+  }
+}
+/* Kill the giant colored circular pin — replace visual weight with
+ * a small square type chip.  Provided by direct component edit. */
+
+/* Primary CTA in the info sheet: from iOS-blue rounded pill to
+ * Wilma-navy rectangle with clear-cut edges. */
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet button.bg-blue-600,
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet a.bg-blue-600 {
+  background: var(--ksyk-wm-navy) !important;
+  border-radius: var(--ksyk-wm-radius) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.005em !important;
+  height: 36px !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet button.bg-blue-600:hover,
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet a.bg-blue-600:hover {
+  background: var(--ksyk-wm-navy-hover) !important;
+}
+
+/* Metadata rows: from Apple hairline-with-icon-pill to Wilma-style
+ * label-above-value. */
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet .border-b.border-black\/5 {
+  border-bottom-color: var(--ksyk-wm-hair) !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet .rounded-lg.bg-slate-100,
+.ksykmaps-app[data-ksyk-theme="wilma"] .map-room-sheet .dark\:bg-slate-800 {
+  background: var(--ksyk-wm-surface-alt) !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+  border-radius: var(--ksyk-wm-radius-sm) !important;
+}
+
+/* ── Search results dropdown → MazeMap-style flat list */
+.ksykmaps-app[data-ksyk-theme="wilma"] #search-results-listbox {
+  border-radius: var(--ksyk-wm-radius) !important;
+  border-color: var(--ksyk-wm-hair-strong) !important;
+  box-shadow: var(--ksyk-wm-shadow-3) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] #search-results-listbox li {
+  border-bottom: 1px solid var(--ksyk-wm-hair) !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+/* Type chip: from circular pill to Wilma-style square tag */
+.ksykmaps-app[data-ksyk-theme="wilma"] #search-results-listbox li > span:first-child {
+  border-radius: var(--ksyk-wm-radius-sm) !important;
+  height: 32px !important;
+  width: 32px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  outline: none !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+}
+/* Filter chips: MazeMap-style rectangular button */
+.ksykmaps-app[data-ksyk-theme="wilma"] #search-results-listbox .rounded-full {
+  border-radius: var(--ksyk-wm-radius-sm) !important;
+  font-weight: 600 !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] #search-results-listbox .rounded-full.bg-blue-600 {
+  background: var(--ksyk-wm-navy) !important;
+}
+
+/* ── Announcement banner: Wilma-style solid navy strip */
+.ksykmaps-app[data-ksyk-theme="wilma"] .announcement-banner {
+  background: var(--ksyk-wm-navy) !important;
+  color: #fff !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+}
+
+/* ── Utility: universal ".rounded-2xl" softening under Wilma mode so
+ * over-inflated Apple-style cards inside the map get closer to the
+ * Wilma vibe without touching every component. */
+.ksykmaps-app[data-ksyk-theme="wilma"] .rounded-2xl {
+  border-radius: var(--ksyk-wm-radius-lg) !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] .rounded-xl {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] .rounded-\[18px\] {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+
+/* Kill iOS glass blur everywhere inside the map surface */
+.ksykmaps-app[data-ksyk-theme="wilma"] .backdrop-blur-md,
+.ksykmaps-app[data-ksyk-theme="wilma"] .backdrop-blur-xl,
+.ksykmaps-app[data-ksyk-theme="wilma"] .backdrop-blur-sm,
+.ksykmaps-app[data-ksyk-theme="wilma"] .backdrop-blur {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── Reduce shadow heaviness across the app so the aesthetic reads as
+ * institutional / practical, not iOS-decorative. */
+.ksykmaps-app[data-ksyk-theme="wilma"] .shadow-lg {
+  box-shadow: var(--ksyk-wm-shadow-2) !important;
+}
+.ksykmaps-app[data-ksyk-theme="wilma"] .shadow-md {
+  box-shadow: var(--ksyk-wm-shadow-1) !important;
+}
+
+/* ── Text hierarchy — tighten tracking, add slight weight to primary
+ * titles so the interface reads like something serious, not marketing. */
+.ksykmaps-app[data-ksyk-theme="wilma"] h1,
+.ksykmaps-app[data-ksyk-theme="wilma"] h2,
+.ksykmaps-app[data-ksyk-theme="wilma"] h3 {
+  letter-spacing: -0.015em;
+  color: var(--ksyk-wm-ink);
+}

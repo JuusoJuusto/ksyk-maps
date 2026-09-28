@@ -132,23 +132,34 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
         <span className="h-[3px] w-9 rounded-full bg-black/12 dark:bg-white/15" />
       </div>
 
-      {/* ── MazeMap-style header: colored pin + name + location ───────── */}
-      <div className="shrink-0 px-3.5 pt-3 pb-0">
+      {/* ── Wilma+MazeMap header: room code tag + name + type/floor meta.
+       *   Replaces the Apple-style colored MapPin pin with a MazeMap-style
+       *   room code chip (e.g. "K27") when we have one, or a compact type
+       *   tag ("BUILDING", "GYM") otherwise.  Reads like a school directory
+       *   entry, not a mobile app card. */}
+      <div className="shrink-0 px-4 pt-3 pb-0">
         <div className="flex items-start gap-3">
-          {/* Colored circular pin — MazeMap style */}
-          <div
-            className="h-9 w-9 rounded-full shrink-0 flex items-center justify-center shadow-sm mt-0.5"
-            style={{ background: color }}
-          >
-            <MapPin className="h-4 w-4 text-white" fill="rgba(255,255,255,0.25)" strokeWidth={2.5} />
-          </div>
+          {(() => {
+            const roomNo = feature.kind === "room" ? (feature.entity as Room).roomNumber?.trim() : null;
+            const kindTag = featureKindLabel(feature, lang).toUpperCase().slice(0, 6);
+            const display = roomNo || kindTag;
+            return (
+              <div
+                className="h-10 min-w-[42px] px-1.5 rounded-[4px] shrink-0 flex items-center justify-center text-white text-[13px] font-bold tabular-nums tracking-tight shadow-sm"
+                style={{ background: color, letterSpacing: roomNo ? "-0.01em" : "0.04em" }}
+                aria-hidden="true"
+              >
+                {display}
+              </div>
+            );
+          })()}
 
-          {/* Name + type/floor subtitle */}
+          {/* Name + type/floor meta */}
           <div className="flex-1 min-w-0">
-            <h2 className="text-[15px] font-bold leading-tight text-gray-900 dark:text-white line-clamp-2">
+            <h2 className="text-[16px] font-bold leading-[1.15] text-gray-900 dark:text-white line-clamp-2 tracking-tight">
               {title}
             </h2>
-            <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+            <p className="text-[12px] text-gray-600 dark:text-gray-400 mt-1 leading-snug font-medium">
               {[
                 featureKindLabel(feature, lang),
                 typeof floor === "number" ? (fi ? `Kerros ${floor}` : `Floor ${floor}`) : null,
@@ -161,50 +172,49 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/6 dark:hover:bg-white/10 transition-colors"
+            className="shrink-0 h-8 w-8 rounded-md flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             aria-label="Close"
           >
-            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <X className="h-4 w-4" strokeWidth={2.25} />
           </button>
         </div>
       </div>
 
-      {/* ── MazeMap-style action row — no divider, flush under name ──── */}
+      {/* ── Action row — MazeMap-style rectangular buttons, tighter,
+       *   institutional feel.  CTA reads "Navigate to K27" style. */}
       {showActions && (
-        <div className="shrink-0 px-3 pt-2.5 pb-0.5 flex gap-1.5 items-center">
-          {/* Secondary icon buttons (flat, no fill) */}
+        <div className="shrink-0 px-4 pt-3 pb-1 flex gap-2 items-center">
           {scheduleUrl && canUseRouting && (
             <a
               href={scheduleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-black/6 dark:hover:bg-white/10 hover:text-gray-800 dark:hover:text-gray-100 transition-colors active:scale-[0.95]"
+              className="h-9 px-2.5 rounded-md flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 text-[12px] font-semibold transition-colors"
               aria-label={scheduleLabel}
               title={scheduleLabel}
             >
               <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />
+              <span className="hidden sm:inline">{fi ? "Aikataulu" : "Schedule"}</span>
             </a>
           )}
-          {/* Primary CTA — grows to fill remaining space */}
           {canUseRouting && (
             <button
               type="button"
               onClick={() => onRouteTo(feature)}
-              className="flex-1 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all"
+              className="flex-1 h-9 rounded-md bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white flex items-center justify-center gap-2 text-[13px] font-semibold transition-colors"
             >
-              <Navigation2 className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-              {fi ? "Reittiohjeet" : "Directions"}
+              <Navigation2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+              {fi ? "Näytä reitti" : "Get directions"}
             </button>
           )}
-          {/* Fallback: schedule only, no routing */}
           {!canUseRouting && scheduleUrl && (
             <a
               href={scheduleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-all"
+              className="flex-1 h-9 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white flex items-center justify-center gap-2 text-[13px] font-semibold transition-colors"
             >
-              <ExternalLink className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
               {scheduleLabel}
             </a>
           )}
@@ -487,16 +497,13 @@ function InfoRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-black/5 dark:border-white/6 last:border-0">
+    <div className="flex items-start gap-2 py-2 border-b border-gray-200 dark:border-gray-800 last:border-0">
       {Icon && (
-        <span className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
-          <Icon className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-        </span>
+        <Icon className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500 shrink-0 mt-[3px]" strokeWidth={2} />
       )}
-      {!Icon && <span className="w-0" />}
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">{label}</p>
-        <p className="text-[13px] text-foreground leading-snug break-words">{children}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 leading-none mb-1">{label}</p>
+        <p className="text-[13px] text-gray-900 dark:text-gray-100 leading-snug break-words font-medium">{children}</p>
       </div>
     </div>
   );

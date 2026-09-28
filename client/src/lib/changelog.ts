@@ -10,17 +10,46 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.39";
+export const APP_VERSION = "4.7.40";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.40",
+    date: "September 2026",
+    title: "Wilma + MazeMap redesign — practical school-map chrome, information-dense info card, sharper controls",
+    titleFi: "Wilma + MazeMap -uudistus — käytännönläheinen kartta, tiiviimpi tietokortti, terävämmät kontrollit",
+    latest: true,
+    highlights: [
+      "New Wilma + MazeMap design layer. Introduced `client/src/styles/wilma-mazemap.css`, a scoped stylesheet applied via `data-ksyk-theme=\"wilma\"` on the app root — the entire aesthetic is a single revert away: remove the attribute and the file to snap back to the Apple-inflected chrome.",
+      "Header chip → practical school top bar. Killed the floating rounded card + backdrop blur + iOS shadow. Now a clean surface with a hairline bottom border, navy `#003d82` brand title, uppercase muted \"Campus navigation\" subtitle, and a Wilma-style rectangular search input with a navy focus ring instead of the pill.",
+      "Map controls redesigned MazeMap-style. Unified glass pill split into distinct rectangular buttons with hairline dividers; no more blur, sharper radius (6px vs 18px), navy active fill instead of iOS blue.",
+      "Floor selector reads as an indoor-mapping strip. Basement floors show Finnish-school \"K1\", \"K2\" prefix (kellari) instead of \"-1\", \"-2\"; active row is filled navy with an inset navy-dark accent bar; corners squared off.",
+      "Room / building info sheet completely reworked. Killed the giant colored circular MapPin pin; replaced with a Wilma-style room-code tag (e.g. \"K27\", \"LAB\", \"GYM\") that reads like a school directory entry. Title tighter, meta row denser, primary action \"Get directions\" / \"Näytä reitti\" now a 36px navy rectangle. Metadata rows converted to label-above-value with tight uppercase captions and hairline dividers.",
+      "Search results dropdown flattened. Type chips squared off, rows have 10px vertical padding + hairline dividers, filter chips are rectangular. Reads like an institutional list, not an AI dashboard.",
+      "Sheet has a 3px navy top-border accent so users know at a glance which surface belongs to the map (MazeMap uses a similar accent).",
+      "Announcement banner switches to a solid navy strip.",
+      "Global softening: `.rounded-2xl` → 10px, `.rounded-xl` → 6px, universal `backdrop-blur-*` disabled inside the app surface. Shadow scale reduced across the board so cards look practical, not decorative.",
+      "Web version bumped `4.7.39` → `4.7.40`.",
+      "REVERT: `git reset --hard rollback-before-wilma-mazemap-redesign` (tag created before this pass) restores every file exactly as it was.",
+    ],
+    highlightsFi: [
+      "Uusi Wilma + MazeMap -tyylikerros. Uusi tiedosto `client/src/styles/wilma-mazemap.css`, aktivoituu appirungon `data-ksyk-theme=\"wilma\"` -attribuutilla — koko ulkoasu palautuu poistamalla attribuutti ja tiedosto.",
+      "Yläpalkki: leijuva iOS-kortti pois, tilalla käytännöllinen kouluohjelman ylätunniste hiuksenohuella alarajalla, navy-brändivärillä ja neliskulmaisella hakukentällä.",
+      "Kartan kontrollit MazeMap-tyyliin. Iso lasipilleri jaettu kulmikkaiksi napeiksi joiden välissä hiusviiva; ei sumennuksia, terävämpi kulma, aktiivinen nappi navy.",
+      "Kerrosvalitsin näyttää sisäkarttaohjelmiston kerrosstripiltä. Kellarikerrokset merkittyinä K1, K2 (ei -1, -2). Aktiivinen rivi navy täytöllä ja tummemmalla navy-viivalla.",
+      "Huoneen / rakennuksen tietokortti uusittu. Iso värillinen MapPin-pallo pois; tilalla Wilma-tyylinen huonekoodikyltti (K27, LAB, GYM). Nimi tiiviimpi, meta-rivi selkeämpi, ensisijainen \"Näytä reitti\" -nappi on nyt 36px navy-suorakulmio.",
+      "Hakutulokset litistetty MazeMap-tyyliin. Neliskulmaiset tyyppikyltit, hiuksenohut jakolinja rivien välissä.",
+      "Palauta muutokset: `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+    ],
+  },
+  {
     version: "4.7.39",
     date: "September 2026",
     title: "3D visible again · room highlight · privacy language sync · Get-the-app toggle",
     titleFi: "3D taas näkyvissä · huoneen korostus · tietosuojan kieli · Lataa-popupin katkaisin",
-    latest: true,
+    latest: false,
     highlights: [
       "3D mode fully reworked so every room is visible from every angle: wall shells removed (they were hiding rooms), no shadows, chunky 5-unit room slabs on subtle floor plates, hairline edges, room-number pills that always render on top and fade smoothly with camera distance, camera auto-fits the whole campus on load.",
       "Room click highlight redesigned Apple-Maps-style: soft blue polygon fill + hairline edge as the resting selection, plus a single clean pulse ring that expands once and fades — no more looping AI-slop pulse.",
