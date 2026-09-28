@@ -1,7 +1,11 @@
 /**
  * "Get the app" popup — nudges web visitors to install the Android app.
- * Feature-flagged via /api/settings.showGetAppPopup. Shows once per
- * session (sessionStorage flag). Dismiss to hide for the tab.
+ * Feature-flagged via /api/settings.showGetAppPopup (admin). Also
+ * respects a per-visitor localStorage kill switch so the user can turn
+ * it off permanently via Settings.
+ *
+ * Shows once per session (sessionStorage flag) as long as neither the
+ * admin flag nor the per-user switch is off.
  *
  * Sits above map with a small semi-transparent card in the bottom-right
  * on desktop, full-width bottom sheet on mobile. Follows Apple HIG
@@ -13,6 +17,10 @@ import { Smartphone, X, Download } from "lucide-react";
 interface Settings { showGetAppPopup?: boolean; getAppUrl?: string; }
 
 const DISMISSED_KEY = "ksyk_get_app_dismissed_v1";
+/** Per-user permanent kill switch. Set to "0" via Settings → "Get the
+ *  app" popup to disable across all sessions. Default (missing key) is
+ *  ON — the popup falls back to the admin's server-side setting. */
+export const GET_APP_USER_ENABLED_KEY = "ksyk_get_app_enabled_v1";
 
 export default function GetAppPopup() {
   const [visible, setVisible] = useState(false);
@@ -21,12 +29,12 @@ export default function GetAppPopup() {
   const [href, setHref] = useState("/download");
 
   useEffect(() => {
-    // Skip on the app itself — this is only for web visitors.
     if (typeof window === "undefined") return;
-    if (/wv|Version.*Mobile.*Safari|(iPhone|iPad|iPod|Android)/i.test(navigator.userAgent)) {
-      // Mobile web — show the popup because they can install
-    }
-    // Skip if dismissed this session
+    // Per-user kill switch takes precedence over the admin toggle.
+    try {
+      if (localStorage.getItem(GET_APP_USER_ENABLED_KEY) === "0") return;
+    } catch { /* ignore */ }
+    // Skip if dismissed this session.
     try { if (sessionStorage.getItem(DISMISSED_KEY) === "1") return; } catch { /* ignore */ }
 
     let cancelled = false;
@@ -36,7 +44,6 @@ export default function GetAppPopup() {
         if (cancelled) return;
         if (!s?.showGetAppPopup) return;
         if (s.getAppUrl) setHref(s.getAppUrl);
-        // Delay 3 s so the user sees the map first
         setTimeout(() => !cancelled && setVisible(true), 3000);
       })
       .catch(() => { /* silent — popup optional */ });

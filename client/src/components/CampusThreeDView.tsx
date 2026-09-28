@@ -1,20 +1,19 @@
 /**
- * KSYK Maps — In-browser 3D campus view (MazeMap-inspired).
+ * KSYK Maps — In-browser 3D campus view.
  *
- * Renders the campus as a set of soft, opaque building shells with
- * subtle floor plates and low-saturation room slabs. Two camera modes
- * share the scene:
+ * Fully rewritten for visibility and Apple-Maps / MazeMap aesthetics:
  *
- *   • Orbit — top-down / orbit camera; entry point for browsing.
- *   • Walk  — first-person WASD camera for exploring interior corridors.
- *
- * Visual language:
- *   - Warm neutral ground + fog (no dashed grid)
- *   - Building walls at 65% opacity in the building's brand color
- *   - Cream floor plates, hairline separation between floors
- *   - Muted Apple-Maps-style room palette
- *   - Small room-number pills that fade out when the camera pulls back
- *   - Single subtle chrome family: same border, radius, shadow everywhere
+ *   - NO wall shells (the old glass boxes hid the rooms). Buildings are
+ *     represented by a soft floor plate per floor + a colored roof cap
+ *     ONLY on the top floor. Rooms are the primary visual element.
+ *   - Rooms are chunky slabs (5 units tall) so they read clearly at
+ *     any camera angle. Colored by type, muted palette.
+ *   - Room-number pills are always visible in orbit mode; scale
+ *     smoothly with distance.
+ *   - NO shadows. Flat, soft, even lighting.
+ *   - Warm neutral ground (no fog occluding rooms).
+ *   - Camera framing auto-fits every mount so the whole campus is
+ *     visible on load.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,8 +49,7 @@ interface Building {
   metadata?: { style?: Record<string, unknown> } | null;
 }
 
-/** Loads three.js once from a CDN. Returns a promise that resolves to
- *  whatever lives at window.THREE. */
+/** Loads three.js once from a CDN. */
 let threeReady: Promise<any> | null = null;
 function loadThree(): Promise<any> {
   if (threeReady) return threeReady;
@@ -72,29 +70,20 @@ function loadThree(): Promise<any> {
 
 type CameraMode = "orbit" | "walk";
 
-/** Muted Apple-Maps / MazeMap-inspired palette. All values are lightly
- *  desaturated so no single room screams; the building shells do the
- *  heavy visual grouping. */
+/** Muted palette — reads clean at low saturation, still colorful enough
+ *  to distinguish room types at a glance. */
 const TYPE_COLORS: Record<string, number> = {
   classroom:  0x6b8ac5,
   office:     0x8b7bb8,
   lab:        0x5eaab3,
-  library:    0xc99c5b,
-  cafeteria:  0xc47070,
-  auditorium: 0xb76a90,
-  gym:        0x5faa8a,
-  hallway:    0xa8b0be,
-  stairs:     0x7c8695,
-  wc:         0x9c93c4,
-  other:      0x94a3b8,
-};
-
-const STATUS_TINT: Record<string, number> = {
-  available: 0x5faa8a,
-  occupied:  0xc47070,
-  busy:      0xc99c5b,
-  closed:    0x7c8695,
-  unknown:   0xa8b0be,
+  library:    0xd4a15e,
+  cafeteria:  0xd97878,
+  auditorium: 0xc27ba0,
+  gym:        0x6bb598,
+  hallway:    0xbcc4d0,
+  stairs:     0x8994a3,
+  wc:         0xa89bc8,
+  other:      0x9ba5b5,
 };
 
 export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
@@ -105,8 +94,6 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(true);
-  // Store handles set by the render effect so we can reset the camera
-  // from the top-right button without tearing the whole scene down.
   const resetRef = useRef<(() => void) | null>(null);
 
   const { data: rooms = [] } = useQuery<Room[]>({
@@ -129,31 +116,32 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     staleTime: 60_000,
   });
 
-  // Auto-hide the mode hint after 4s each time the mode changes.
   useEffect(() => {
     setShowHint(true);
     const t = setTimeout(() => setShowHint(false), 4000);
     return () => clearTimeout(t);
   }, [mode]);
 
-  // Memoised palette so the useEffect deps stay stable.
   const palette = useMemo(() => darkMode ? {
-    ground:      0x101623,
-    fog:         0x0f1420,
-    plate:       0x1d2739,
-    edge:        0x0b1220,
+    ground:      0x0f1420,
+    plate:       0x1a2334,
+    edge:        0x0a0f18,
     ambient1:    0xe8ecf5,
     ambient2:    0x2a3448,
+    label:       "rgba(15,20,30,0.94)",
+    labelText:   "#f1f5f9",
+    labelBorder: "rgba(255,255,255,0.12)",
   } : {
-    ground:      0xeef1f4,
-    fog:         0xe4e8ef,
-    plate:       0xf5f2ec,
-    edge:        0xd6dbe4,
+    ground:      0xf1f3f7,
+    plate:       0xffffff,
+    edge:        0xc9d0dc,
     ambient1:    0xffffff,
-    ambient2:    0xd8dee9,
+    ambient2:    0xe0e4ec,
+    label:       "rgba(255,255,255,0.98)",
+    labelText:   "#111827",
+    labelBorder: "rgba(0,0,0,0.10)",
   }, [darkMode]);
 
-  // ── Three.js scene + animation loop ───────────────────────────────
   useEffect(() => {
     if (!canvasHostRef.current) return;
     let disposed = false;
@@ -171,51 +159,40 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(palette.ground);
-      scene.fog = new THREE.Fog(palette.fog, 400, 2200);
+      // Very light fog for depth cues; kicks in far away so nothing
+      // useful gets occluded.
+      scene.fog = new THREE.Fog(palette.ground, 900, 3000);
 
-      const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 5000);
-      camera.position.set(0, 550, 550);
-      camera.lookAt(0, 0, 0);
+      const camera = new THREE.PerspectiveCamera(50, w / h, 1, 8000);
 
+      // NO shadows. Flat, soft, even lighting: bright hemisphere + weak
+      // sun so extrusions still get a subtle facing gradient.
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       renderer.setSize(w, h);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.enabled = false;
       host.appendChild(renderer.domElement);
 
-      // Warm, even lighting — one soft hemisphere + a single sun casting
-      // gentle shadows. No harsh contrast.
-      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 0.75));
-      const sun = new THREE.DirectionalLight(0xffffff, 0.6);
-      sun.position.set(300, 700, 250);
-      sun.castShadow = true;
-      sun.shadow.mapSize.width = 1024;
-      sun.shadow.mapSize.height = 1024;
-      sun.shadow.camera.left = -800;
-      sun.shadow.camera.right = 800;
-      sun.shadow.camera.top = 800;
-      sun.shadow.camera.bottom = -800;
-      sun.shadow.bias = -0.0005;
+      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 1.0));
+      const sun = new THREE.DirectionalLight(0xffffff, 0.35);
+      sun.position.set(300, 800, 300);
       scene.add(sun);
 
-      // Ground plane — matches the sky/fog so distant edges dissolve.
-      // No grid helper: the buildings themselves supply the reference.
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(4000, 4000),
-        new THREE.MeshStandardMaterial({
-          color: palette.ground,
-          roughness: 0.98,
-          metalness: 0,
-        }),
-      );
+      // Ground plane — matches sky. No grid.
+      const groundGeo = new THREE.PlaneGeometry(6000, 6000);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: palette.ground,
+        roughness: 1,
+        metalness: 0,
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
-      ground.receiveShadow = true;
       scene.add(ground);
 
-      // ── Build a mesh per room ──────────────────────────────────
+      // Scene centre — average of all placed rooms so the camera looks
+      // at the middle of what actually exists.
+      const placed = rooms.filter((r) => r.mapPositionX != null && r.mapPositionY != null);
       const sceneCentre = (() => {
-        const placed = rooms.filter((r) => r.mapPositionX != null && r.mapPositionY != null);
         if (placed.length === 0) return { x: 0, y: 0 };
         const xs = placed.map((r) => (r.mapPositionX ?? 0) + (r.width ?? 56) / 2);
         const ys = placed.map((r) => (r.mapPositionY ?? 0) + (r.height ?? 40) / 2);
@@ -225,52 +202,27 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         };
       })();
 
-      const FLOOR_HEIGHT = 12;
-      const ROOM_SLAB = 2.5;
+      const FLOOR_HEIGHT = 14;   // per-floor world units
+      const ROOM_SLAB    = 5.5;  // room extrusion — chunky, visible from any angle
       const SCALE = 1;
 
-      // Pre-computed room / building rectangles for the minimap.
-      const miniRooms = rooms
-        .filter((r) => r.mapPositionX != null && r.mapPositionY != null)
-        .map((r) => ({
-          x: (r.mapPositionX! + (r.width ?? 56) / 2) - sceneCentre.x,
-          z: (r.mapPositionY! + (r.height ?? 40) / 2) - sceneCentre.y,
-          w: r.width ?? 56,
-          h: r.height ?? 40,
-          color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
-          floor: r.floor ?? 1,
-        }));
-      const miniBuildings = buildings
-        .filter((b) => b.mapPositionX != null && b.mapPositionY != null)
-        .map((b) => ({
-          x: (b.mapPositionX! + (b.width ?? 160) / 2) - sceneCentre.x,
-          z: (b.mapPositionY! + (b.height ?? 120) / 2) - sceneCentre.y,
-          w: b.width ?? 160,
-          h: b.height ?? 120,
-          color: b.colorCode ?? "#6b8ac5",
-        }));
-      const miniBounds = (() => {
-        if (miniRooms.length === 0) return { minX: -100, maxX: 100, minZ: -100, maxZ: 100 };
-        return {
-          minX: Math.min(...miniRooms.map(r => r.x - r.w / 2)),
-          maxX: Math.max(...miniRooms.map(r => r.x + r.w / 2)),
-          minZ: Math.min(...miniRooms.map(r => r.z - r.h / 2)),
-          maxZ: Math.max(...miniRooms.map(r => r.z + r.h / 2)),
-        };
-      })();
+      // Scene-space extent so we can auto-fit the camera.
+      let extentMin = { x: Infinity, z: Infinity };
+      let extentMax = { x: -Infinity, z: -Infinity };
+      const bumpExtent = (cx: number, cz: number, w: number, d: number) => {
+        extentMin.x = Math.min(extentMin.x, cx - w / 2);
+        extentMin.z = Math.min(extentMin.z, cz - d / 2);
+        extentMax.x = Math.max(extentMax.x, cx + w / 2);
+        extentMax.z = Math.max(extentMax.z, cz + d / 2);
+      };
 
-      const roomGroup = new THREE.Group();
-      scene.add(roomGroup);
-
-      // Track disposables so cleanup can reach every resource.
-      const disposables: any[] = [];
-      const dispose = (obj: any) => { if (obj) disposables.push(obj); };
-
-      // ── Buildings first — opaque low-saturation shells with floor
-      //    plates and a colored cap. Matches the MazeMap "block of
-      //    stacked platforms" look at a very quiet volume.
+      // ── Buildings — floor plates + optional roof cap. NO WALLS.
+      //   Rooms sit ON these plates and are fully visible from any
+      //   viewing angle because nothing occludes them.
       const buildingGroup = new THREE.Group();
       scene.add(buildingGroup);
+      const buildingHeightById = new Map<string, number>();
+
       for (const b of buildings) {
         if (b.mapPositionX == null || b.mapPositionY == null) continue;
         const bw = (b.width ?? 160) * SCALE;
@@ -282,96 +234,54 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const perFloor = typeof bStyle.heightPerFloor === "number" && bStyle.heightPerFloor > 0
           ? bStyle.heightPerFloor * 4
           : FLOOR_HEIGHT;
-        const heightOverride = typeof bStyle.totalHeight === "number" && bStyle.totalHeight > 0
-          ? bStyle.totalHeight * 4
-          : null;
-        const totalHeight = heightOverride ?? (floors * perFloor);
+        buildingHeightById.set(b.id, perFloor);
+        bumpExtent(cx, cz, bw, bd);
+
         const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
-        // Desaturate the brand color a touch so wall opacity reads as
-        // architectural volume, not saturation.
-        const hsl = { h: 0, s: 0, l: 0 };
-        brand.getHSL(hsl);
-        brand.setHSL(hsl.h, Math.min(0.55, hsl.s * 0.8), darkMode ? 0.42 : 0.68);
 
-        // Wall shell — hollow extrusion.
-        const outer = new THREE.Shape([
-          new THREE.Vector2(-bw / 2, -bd / 2),
-          new THREE.Vector2( bw / 2, -bd / 2),
-          new THREE.Vector2( bw / 2,  bd / 2),
-          new THREE.Vector2(-bw / 2,  bd / 2),
-        ]);
-        const wallThickness = 1.6;
-        const holeW = Math.max(0, bw - wallThickness * 2);
-        const holeD = Math.max(0, bd - wallThickness * 2);
-        if (holeW > 0 && holeD > 0) {
-          const hole = new THREE.Path([
-            new THREE.Vector2(-holeW / 2, -holeD / 2),
-            new THREE.Vector2( holeW / 2, -holeD / 2),
-            new THREE.Vector2( holeW / 2,  holeD / 2),
-            new THREE.Vector2(-holeW / 2,  holeD / 2),
-          ]);
-          outer.holes.push(hole);
-        }
-        const shellGeo = new THREE.ExtrudeGeometry(outer, {
-          depth: totalHeight,
-          bevelEnabled: false,
-        });
-        shellGeo.rotateX(-Math.PI / 2);
-        const shellMat = new THREE.MeshStandardMaterial({
-          color: brand,
-          roughness: 0.85,
-          metalness: 0.02,
-          transparent: true,
-          opacity: 0.42,
-          side: THREE.DoubleSide,
-        });
-        const shell = new THREE.Mesh(shellGeo, shellMat);
-        shell.position.set(cx, 0, cz);
-        shell.receiveShadow = true;
-        buildingGroup.add(shell);
-        dispose(shellGeo); dispose(shellMat);
-
-        // Floor plates — cream/near-black slabs, one per floor.
+        // One thin plate per floor. Very subtle — reads as "this is
+        // where floor N sits".
         for (let f = 0; f < floors; f++) {
-          const plateGeo = new THREE.BoxGeometry(bw - 0.4, 0.35, bd - 0.4);
+          const plateGeo = new THREE.BoxGeometry(bw, 0.6, bd);
           const plateMat = new THREE.MeshStandardMaterial({
             color: palette.plate,
-            roughness: 0.95,
+            roughness: 0.98,
             metalness: 0,
           });
           const plate = new THREE.Mesh(plateGeo, plateMat);
           plate.position.set(cx, f * perFloor, cz);
-          plate.receiveShadow = true;
           buildingGroup.add(plate);
-          dispose(plateGeo); dispose(plateMat);
+          // Hairline plate edge so floors don't melt into their rooms.
+          const plateEdgeGeo = new THREE.EdgesGeometry(plateGeo);
+          const plateEdgeMat = new THREE.LineBasicMaterial({
+            color: palette.edge,
+            transparent: true,
+            opacity: 0.5,
+          });
+          const plateEdges = new THREE.LineSegments(plateEdgeGeo, plateEdgeMat);
+          plateEdges.position.copy(plate.position);
+          buildingGroup.add(plateEdges);
         }
 
-        // Colored roof cap — reads as the building's brand mark.
-        const roofGeo = new THREE.BoxGeometry(bw, 0.4, bd);
+        // Roof cap — colored (brand) at the very top so the campus
+        // reads as clusters of colored buildings from far away.
+        const roofGeo = new THREE.BoxGeometry(bw, 0.7, bd);
         const roofMat = new THREE.MeshStandardMaterial({
           color: brand,
           roughness: 0.7,
-          metalness: 0.04,
+          metalness: 0.03,
           transparent: true,
-          opacity: 0.72,
+          opacity: 0.85,
         });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.set(cx, totalHeight, cz);
+        roof.position.set(cx, floors * perFloor, cz);
         buildingGroup.add(roof);
-        dispose(roofGeo); dispose(roofMat);
       }
 
-      const buildingHeightById = new Map<string, number>();
-      for (const b of buildings) {
-        const s = b.metadata?.style ?? {};
-        const pf = typeof s.heightPerFloor === "number" && s.heightPerFloor > 0
-          ? s.heightPerFloor * 4
-          : FLOOR_HEIGHT;
-        buildingHeightById.set(b.id, pf);
-      }
-
-      // Track sprites so we can fade them by camera distance.
-      const labelSprites: { sprite: any; center: any }[] = [];
+      // ── Rooms — chunky slabs, fully visible.
+      const roomGroup = new THREE.Group();
+      scene.add(roomGroup);
+      const labelSprites: any[] = [];
 
       for (const r of rooms) {
         if (r.mapPositionX == null || r.mapPositionY == null) continue;
@@ -382,112 +292,100 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const customSlab = typeof rStyle.slabHeight === "number" && rStyle.slabHeight > 0
           ? rStyle.slabHeight * 4
           : null;
+        // Rooms are chunky. Hallways/stairs a bit shorter so they read
+        // as circulation vs. actual rooms.
         const tall = customSlab ?? (
-          (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.5 : ROOM_SLAB
+          (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.4 : ROOM_SLAB
         );
-        const baseColor = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
-        const tint = STATUS_TINT[r.currentStatus ?? "unknown"] ?? STATUS_TINT.unknown;
-        const mixed = mixColor(baseColor, tint, 0.22);
+        const base = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
+
+        const cx = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
+        const cz = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
+        bumpExtent(cx, cz, w, d);
+
+        const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_HEIGHT;
+        const cy = (floor - 1) * parentPerFloor + 0.6 + tall / 2;
 
         const geo = new THREE.BoxGeometry(w, tall, d);
         const mat = new THREE.MeshStandardMaterial({
-          color: mixed,
-          roughness: 0.72,
-          metalness: 0.04,
+          color: base,
+          roughness: 0.7,
+          metalness: 0.02,
         });
         const cube = new THREE.Mesh(geo, mat);
-        cube.position.x = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
-        cube.position.z = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
-        const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_HEIGHT;
-        cube.position.y = (floor - 1) * parentPerFloor + 0.4 + tall / 2;
-        cube.castShadow = true;
-        cube.receiveShadow = true;
+        cube.position.set(cx, cy, cz);
         cube.userData = { room: r };
         roomGroup.add(cube);
-        dispose(geo); dispose(mat);
 
-        // Hairline edge — reads as architecture.
         const edgeGeo = new THREE.EdgesGeometry(geo);
         const edgeMat = new THREE.LineBasicMaterial({
           color: palette.edge,
           transparent: true,
-          opacity: darkMode ? 0.35 : 0.25,
+          opacity: darkMode ? 0.55 : 0.42,
         });
         const edges = new THREE.LineSegments(edgeGeo, edgeMat);
         edges.position.copy(cube.position);
         roomGroup.add(edges);
-        dispose(edgeGeo); dispose(edgeMat);
 
-        // Compact room-number pill. Smaller than the previous version;
-        // fades out when the camera is far so labels don't overwhelm the
-        // orbit view.
+        // Room-number pill — draw canvas, wrap in a sprite. Always
+        // rendered on top by disabling depth test.
         if (r.roomNumber) {
           const labelCanvas = document.createElement("canvas");
           labelCanvas.width = 192; labelCanvas.height = 64;
           const ctx = labelCanvas.getContext("2d")!;
-          ctx.font = "600 32px -apple-system, Segoe UI, Roboto, sans-serif";
+          ctx.font = "600 34px -apple-system, Segoe UI, Roboto, sans-serif";
           ctx.textBaseline = "middle";
           ctx.textAlign = "center";
           const m = ctx.measureText(r.roomNumber);
-          const pillW = m.width + 26;
-          const pillH = 44;
+          const pillW = m.width + 30;
+          const pillH = 48;
           const pillX = (192 - pillW) / 2;
           const pillY = (64 - pillH) / 2;
-          // Soft white pill, no drop shadow.
-          ctx.fillStyle = darkMode ? "rgba(23,32,51,0.94)" : "rgba(255,255,255,0.96)";
+          ctx.fillStyle = palette.label;
           ctx.beginPath();
-          // @ts-ignore — roundRect is available in modern Canvas
-          ctx.roundRect?.(pillX, pillY, pillW, pillH, 10);
+          // @ts-ignore roundRect is fine in modern browsers
+          ctx.roundRect?.(pillX, pillY, pillW, pillH, 12);
           ctx.fill();
-          ctx.strokeStyle = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+          ctx.strokeStyle = palette.labelBorder;
           ctx.lineWidth = 1;
           ctx.stroke();
-          ctx.fillStyle = darkMode ? "#f1f5f9" : "#111827";
-          ctx.fillText(r.roomNumber, 96, 33);
+          ctx.fillStyle = palette.labelText;
+          ctx.fillText(r.roomNumber, 96, 34);
+
           const tex = new THREE.CanvasTexture(labelCanvas);
           tex.minFilter = THREE.LinearFilter;
-          const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true });
-          const sprite = new THREE.Sprite(spriteMat);
-          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 2.6, cube.position.z);
-          sprite.scale.set(16, 5.5, 1);
-          roomGroup.add(sprite);
-          labelSprites.push({ sprite, center: sprite.position.clone() });
-          dispose(spriteMat); dispose(tex);
-        }
-      }
-
-      // Collidables for walk-camera wall clipping.
-      const collidables: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[] = [];
-      roomGroup.traverse((o: any) => {
-        if (o.isMesh && o.userData?.room) {
-          const box = new THREE.Box3().setFromObject(o);
-          collidables.push({
-            minX: box.min.x - 6, maxX: box.max.x + 6,
-            minY: box.min.y,     maxY: box.max.y,
-            minZ: box.min.z - 6, maxZ: box.max.z + 6,
+          const spriteMat = new THREE.SpriteMaterial({
+            map: tex,
+            transparent: true,
+            depthTest: false,       // always on top
+            depthWrite: false,
           });
+          const sprite = new THREE.Sprite(spriteMat);
+          sprite.position.set(cx, cy + tall / 2 + 3.2, cz);
+          sprite.scale.set(15, 5, 1);
+          sprite.renderOrder = 999;
+          roomGroup.add(sprite);
+          labelSprites.push(sprite);
         }
-      });
-      function blocked(nx: number, ny: number, nz: number): boolean {
-        for (const b of collidables) {
-          if (nx >= b.minX && nx <= b.maxX && ny >= b.minY && ny <= b.maxY && nz >= b.minZ && nz <= b.maxZ) {
-            return true;
-          }
-        }
-        return false;
       }
 
-      // ── Cameras ──────────────────────────────────────────────
+      // Auto-fit camera on load so everything is visible.
+      const extentW = Math.max(80, extentMax.x - extentMin.x);
+      const extentD = Math.max(80, extentMax.z - extentMin.z);
+      const extentR = Math.max(extentW, extentD) * 0.75;
       const initialYaw = -Math.PI / 4;
-      const initialPitch = Math.PI / 3.2;
-      const initialDist = 480;
+      const initialPitch = Math.PI / 4;
+      const initialDist = Math.max(220, extentR * 1.6);
       let yaw = initialYaw, pitch = initialPitch, dist = initialDist;
-      const walkPos = new THREE.Vector3(0, 5, 120);
+
+      const walkStart = placed.length > 0 ? {
+        x: 0, y: 4, z: extentD * 0.35,
+      } : { x: 0, y: 4, z: 120 };
+      const walkPos = new THREE.Vector3(walkStart.x, walkStart.y, walkStart.z);
       const walkLook = { yaw: 0, pitch: 0 };
       const keys = new Set<string>();
-      // Subtle auto-rotate on entry. Stops after the first user drag.
       let autoRotate = true;
-      const AUTO_ROTATE_SPEED = 0.06;
+      const AUTO_ROTATE_SPEED = 0.05;
 
       function updateCameraOrbit() {
         const x = dist * Math.cos(pitch) * Math.cos(yaw);
@@ -509,7 +407,6 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       }
       updateCameraOrbit();
 
-      // Reset — restores initial orbit framing and returns to orbit mode.
       resetRef.current = () => {
         yaw = initialYaw;
         pitch = initialPitch;
@@ -518,7 +415,29 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         updateCameraOrbit();
       };
 
-      // ── Input ─────────────────────────────────────────────────
+      // Walk collidables — rooms as AABBs, expanded a bit so the camera
+      // slides along walls smoothly.
+      const collidables: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[] = [];
+      roomGroup.traverse((o: any) => {
+        if (o.isMesh && o.userData?.room) {
+          const box = new THREE.Box3().setFromObject(o);
+          collidables.push({
+            minX: box.min.x - 4, maxX: box.max.x + 4,
+            minY: box.min.y,     maxY: box.max.y,
+            minZ: box.min.z - 4, maxZ: box.max.z + 4,
+          });
+        }
+      });
+      const blocked = (nx: number, ny: number, nz: number) => {
+        for (const b of collidables) {
+          if (nx >= b.minX && nx <= b.maxX && ny >= b.minY && ny <= b.maxY && nz >= b.minZ && nz <= b.maxZ) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      // Input handlers.
       let dragging = false;
       let lastX = 0, lastY = 0;
       const cv = renderer.domElement;
@@ -538,7 +457,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         lastX = e.clientX; lastY = e.clientY;
         if (mode === "orbit") {
           yaw -= dx * 0.005;
-          pitch = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, pitch + dy * 0.004));
+          pitch = Math.max(0.15, Math.min(Math.PI / 2 - 0.05, pitch + dy * 0.004));
         } else {
           walkLook.yaw += dx * 0.004;
           walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch - dy * 0.004));
@@ -548,7 +467,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         autoRotate = false;
         if (mode === "orbit") {
-          dist = Math.max(40, Math.min(1400, dist * (1 + e.deltaY * 0.001)));
+          dist = Math.max(50, Math.min(2200, dist * (1 + e.deltaY * 0.001)));
         }
       };
       cv.addEventListener("pointerdown", onPointerDown);
@@ -565,23 +484,45 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       window.addEventListener("keydown", downH);
       window.addEventListener("keyup", upH);
 
-      // ── Render loop ───────────────────────────────────────────
-      let last = performance.now();
+      // Minimap paint.
+      const miniRooms = placed.map((r) => ({
+        x: (r.mapPositionX! + (r.width ?? 56) / 2) - sceneCentre.x,
+        z: (r.mapPositionY! + (r.height ?? 40) / 2) - sceneCentre.y,
+        w: r.width ?? 56,
+        h: r.height ?? 40,
+        color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
+      }));
+      const miniBuildings = buildings
+        .filter((b) => b.mapPositionX != null && b.mapPositionY != null)
+        .map((b) => ({
+          x: (b.mapPositionX! + (b.width ?? 160) / 2) - sceneCentre.x,
+          z: (b.mapPositionY! + (b.height ?? 120) / 2) - sceneCentre.y,
+          w: b.width ?? 160,
+          h: b.height ?? 120,
+          color: b.colorCode ?? "#6b8ac5",
+        }));
+      const miniBounds = (() => {
+        if (miniRooms.length === 0) return { minX: -100, maxX: 100, minZ: -100, maxZ: 100 };
+        return {
+          minX: Math.min(...miniRooms.map(r => r.x - r.w / 2)),
+          maxX: Math.max(...miniRooms.map(r => r.x + r.w / 2)),
+          minZ: Math.min(...miniRooms.map(r => r.z - r.h / 2)),
+          maxZ: Math.max(...miniRooms.map(r => r.z + r.h / 2)),
+        };
+      })();
+
       const tick = () => {
         if (disposed) return;
         raf = requestAnimationFrame(tick);
-        const now = performance.now();
-        const dt = (now - last) / 1000;
-        last = now;
+        const dt = 1 / 60;
 
-        // Minimap paint — flat rectangles, no dashed strokes, no title.
         const mm = minimapRef.current;
         if (mm) {
           const ctx = mm.getContext("2d");
           if (ctx) {
             const W = mm.width, H = mm.height;
             ctx.clearRect(0, 0, W, H);
-            ctx.fillStyle = darkMode ? "rgba(16,22,35,0.94)" : "rgba(240,243,247,0.96)";
+            ctx.fillStyle = darkMode ? "rgba(15,20,30,0.95)" : "rgba(240,243,247,0.96)";
             ctx.fillRect(0, 0, W, H);
             const bw = miniBounds.maxX - miniBounds.minX;
             const bh = miniBounds.maxZ - miniBounds.minZ;
@@ -589,25 +530,23 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             const cx = W / 2, cy = H / 2;
             const bcx = (miniBounds.minX + miniBounds.maxX) / 2;
             const bcz = (miniBounds.minZ + miniBounds.maxZ) / 2;
-            // Building fills — muted brand tint at low opacity, no stroke.
             for (const bl of miniBuildings) {
               const px = cx + (bl.x - bcx) * scale;
               const py = cy + (bl.z - bcz) * scale;
               const pw = bl.w * scale;
               const ph = bl.h * scale;
               ctx.fillStyle = bl.color;
-              ctx.globalAlpha = darkMode ? 0.28 : 0.20;
+              ctx.globalAlpha = darkMode ? 0.28 : 0.18;
               ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
               ctx.globalAlpha = 1;
             }
-            // Rooms as tiny dots — read as density.
             for (const r of miniRooms) {
               const px = cx + (r.x - bcx) * scale;
               const py = cy + (r.z - bcz) * scale;
               ctx.fillStyle = "#" + r.color.toString(16).padStart(6, "0");
               ctx.globalAlpha = 0.85;
               ctx.beginPath();
-              ctx.arc(px, py, 1.4, 0, Math.PI * 2);
+              ctx.arc(px, py, 1.5, 0, Math.PI * 2);
               ctx.fill();
               ctx.globalAlpha = 1;
             }
@@ -622,8 +561,8 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
               ctx.lineWidth = 1.5;
               ctx.beginPath();
               ctx.moveTo(0, -7);
-              ctx.lineTo(-4.5, 5);
-              ctx.lineTo(4.5, 5);
+              ctx.lineTo(-5, 5);
+              ctx.lineTo(5, 5);
               ctx.closePath();
               ctx.fill();
               ctx.stroke();
@@ -636,7 +575,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           if (autoRotate) yaw -= AUTO_ROTATE_SPEED * dt;
           updateCameraOrbit();
         } else {
-          const speed = 40 * dt * (keys.has("shift") ? 2.5 : 1);
+          const speed = 45 * dt * (keys.has("shift") ? 2.5 : 1);
           const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
           let dx = 0, dz = 0;
           if (keys.has("w") || keys.has("arrowup"))    { dx += cy * speed; dz += sy * speed; }
@@ -650,24 +589,25 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           updateCameraWalk();
         }
 
-        // Fade the room-number pills as the camera pulls back — keeps
-        // the orbit view calm and the walk view legible.
-        const camY = camera.position.y;
-        const labelOpacity = mode === "walk"
-          ? 1
-          : Math.max(0, Math.min(1, 1 - (dist - 220) / 320));
-        for (const { sprite } of labelSprites) {
-          (sprite.material as any).opacity = labelOpacity;
-          sprite.visible = labelOpacity > 0.02;
+        // Fade labels smoothly with camera distance in orbit mode; in
+        // walk mode keep them fully visible up close, invisible far.
+        if (mode === "orbit") {
+          const labelOpacity = Math.max(0, Math.min(1, 1.15 - (dist - 200) / (initialDist * 1.2)));
+          for (const sprite of labelSprites) {
+            (sprite.material as any).opacity = labelOpacity;
+            sprite.visible = labelOpacity > 0.02;
+          }
+        } else {
+          for (const sprite of labelSprites) {
+            (sprite.material as any).opacity = 1;
+            sprite.visible = true;
+          }
         }
-        // Silence lint about unused camY — reserved for future dynamic scale.
-        void camY;
 
         renderer.render(scene, camera);
       };
       tick();
 
-      // ── Resize ────────────────────────────────────────────────
       const ro = new ResizeObserver(() => {
         const ww = host.clientWidth, hh = host.clientHeight;
         renderer.setSize(ww, hh);
@@ -687,16 +627,18 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         cv.removeEventListener("pointermove", onPointerMove);
         cv.removeEventListener("wheel", onWheel);
         cancelAnimationFrame(raf);
-        for (const d of disposables) d.dispose?.();
-        renderer.dispose();
-        try { host.removeChild(renderer.domElement); } catch { /* already gone */ }
         scene.traverse((o: any) => {
           if (o.geometry) o.geometry.dispose?.();
           if (o.material) {
             const m = o.material;
-            (Array.isArray(m) ? m : [m]).forEach((mm: any) => mm.dispose?.());
+            (Array.isArray(m) ? m : [m]).forEach((mm: any) => {
+              if (mm?.map) mm.map.dispose?.();
+              mm.dispose?.();
+            });
           }
         });
+        renderer.dispose();
+        try { host.removeChild(renderer.domElement); } catch { /* already gone */ }
         resetRef.current = null;
       };
     })();
@@ -705,15 +647,14 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   }, [rooms, buildings, mode, darkMode, palette]);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-fade-in">
       <div className={cn(
-        "relative w-full h-full rounded-2xl overflow-hidden border shadow-2xl",
+        "relative w-full h-full rounded-2xl overflow-hidden border",
         darkMode ? "bg-gray-950 border-gray-800/70" : "bg-white border-gray-200/70",
       )}>
-        {/* 3D canvas host */}
         <div ref={canvasHostRef} className="absolute inset-0" />
 
-        {/* Top-right controls — Reset + Close, as a unified pill. */}
+        {/* Top-right: Reset + Close as a unified pill. */}
         <div className={cn(
           "absolute top-3 right-3 z-10 flex flex-row rounded-[14px] overflow-hidden backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -741,7 +682,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Minimap — clean, no title, hairline border. */}
+        {/* Minimap — top-left, clean. */}
         <div className={cn(
           "absolute top-3 left-3 z-10 p-1.5 rounded-[14px] backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -756,7 +697,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        {/* Mode toggle — segmented control at the bottom-center. */}
+        {/* Segmented mode toggle — bottom centre. */}
         <div className={cn(
           "absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex flex-row rounded-full p-1 backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -793,7 +734,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Mode hint — fades in on mode change, fades out after 4s. */}
+        {/* Mode hint — fades in on change, out after 4s. */}
         <div
           className={cn(
             "absolute bottom-16 left-1/2 -translate-x-1/2 z-10 px-3.5 py-2 rounded-full text-[12px] font-medium pointer-events-none transition-opacity duration-500 backdrop-blur-xl border",
@@ -839,13 +780,4 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
-}
-
-function mixColor(a: number, b: number, t: number): number {
-  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
-  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
-  const r = Math.round(ar + (br - ar) * t);
-  const g = Math.round(ag + (bg - ag) * t);
-  const bl = Math.round(ab + (bb - ab) * t);
-  return (r << 16) | (g << 8) | bl;
 }

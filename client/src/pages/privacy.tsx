@@ -124,7 +124,11 @@ export default function Privacy() {
             {isFi ? "Takaisin kartalle" : "Back to map"}
           </Link>
           <button
-            onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
+            onClick={() => {
+              const next = lang === "fi" ? "en" : "fi";
+              setLang(next);
+              try { localStorage.setItem("ksyk_language", next); } catch { /* ignore */ }
+            }}
             className={cn(
               "text-[13px] font-semibold h-9 px-3 rounded-lg transition-colors",
               darkMode

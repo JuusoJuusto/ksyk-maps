@@ -575,33 +575,42 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
         </button>
       )}
 
-      {/* Peek bar — compact Google Maps style summary strip */}
+      {/* Peek bar — compact Google Maps style summary strip. The whole
+       *  icon+text row is one tappable button that expands the sheet;
+       *  the close button is the only exception. */}
       {isSmall && mobileSnap === "peek" ? (
-        <div className="flex items-center gap-3 px-4 pb-3 shrink-0">
-          <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            {to ? (
-              <>
-                <p className="text-[13px] font-semibold text-foreground truncate">{endpointLabel(to)}</p>
-                {route ? (
-                  <p className="text-[11px] text-muted-foreground tabular-nums">
-                    {route.distanceMeters < 1000 ? `${route.distanceMeters.toFixed(0)} m` : `${(route.distanceMeters / 1000).toFixed(2)} km`}
-                    {" · "}{formatWalkTime(walkingSeconds)}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">Tap to plan route</p>
-                )}
-              </>
-            ) : (
-              <p className="text-[13px] font-medium text-muted-foreground">Tap to open navigation</p>
-            )}
-          </div>
+        <div className="flex items-center gap-1 px-2 pb-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileSnap("half")}
+            className="flex-1 flex items-center gap-3 px-2 py-1 rounded-xl text-left transition-colors active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+            aria-label="Expand navigation"
+          >
+            <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {to ? (
+                <>
+                  <p className="text-[13px] font-semibold text-foreground truncate">{endpointLabel(to)}</p>
+                  {route ? (
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      {route.distanceMeters < 1000 ? `${route.distanceMeters.toFixed(0)} m` : `${(route.distanceMeters / 1000).toFixed(2)} km`}
+                      {" · "}{formatWalkTime(walkingSeconds)}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">Tap to plan route</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[13px] font-medium text-muted-foreground">Tap to open navigation</p>
+              )}
+            </div>
+          </button>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted"
+            className="h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted shrink-0"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

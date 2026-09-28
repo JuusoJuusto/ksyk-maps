@@ -66,8 +66,12 @@ export default function SearchResultsDropdown({
       const header = document.querySelector<HTMLElement>('header');
       if (!header) return;
       const rect = header.getBoundingClientRect();
-      // 6px breathing gap between the input and the dropdown.
-      setAutoOffset(Math.max(0, rect.bottom + 6));
+      // Breathing gap between the input and the dropdown. Larger on
+      // desktop where the header renders as a floating chip (2px
+      // outer padding + 1px border), so a 6px gap looks cramped and
+      // the dropdown appears to touch the input.
+      const gap = window.innerWidth >= 640 ? 14 : 8;
+      setAutoOffset(Math.max(0, rect.bottom + gap));
     };
     measure();
     // Recompute on every resize / orientation change so mobile browsers

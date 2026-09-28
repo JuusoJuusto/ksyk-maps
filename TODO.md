@@ -16,6 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.39 — 3D visibility + room highlight + language sync + Get-the-app toggle)
+
+- **3D mode reworked for visibility** — wall shells removed (they were occluding rooms), all shadows off, chunky 5-unit room slabs on subtle floor plates, hairline edges, room-number pills with `depthTest: false` so they always render on top, camera auto-fits the whole campus on load. Colored roof cap now only at the top floor. `CampusThreeDView.tsx` fully rewritten.
+- **Room click highlight (`FeatureHighlight.tsx`)** — Apple-Maps style: soft blue polygon fill (16% opacity) + hairline edge as the resting selection + one clean pulse ring that expands once (1.2s) then fades. No looping.
+- **Privacy page (`privacy.tsx`)** — language toggle now writes to `localStorage.ksyk_language`, so the choice persists and syncs everywhere via the existing storage event listener.
+- **`GetAppPopup.tsx`** — added `GET_APP_USER_ENABLED_KEY = "ksyk_get_app_enabled_v1"` per-user kill switch. If localStorage key is "0" the popup is disabled regardless of the admin flag.
+- **User toggle in `CampusSettingsPanel.tsx` › Appearance** — new "Notifications" card with a switch for the "Get the app" popup, writes `ksyk_get_app_enabled_v1`.
+- **`NavigationPanel.tsx` peek bar** — the whole "Tap to open navigation" row is now a button that expands the sheet (was: only the drag handle worked). Close X remains a separate button on the right.
+- **`SearchResultsDropdown.tsx`** — gap between header and dropdown is now 14px on desktop, 8px on mobile (was 6px flat). No more collision with the search bar.
+- **`Header.tsx` hamburger drawer** — replaced loud colored icon-square pills (blue/orange/green/purple/red) with clean monochrome lucide icons + hairline hover states, iOS-Settings-style. Removed flag emojis from language selector. Softened header shadow.
+- **Floor picker (`KSYKMapView.tsx`)** — buttons bumped to 40×40 with subtle blue shadow on active, matches the map-controls pill exactly.
+- **Settings sticky header** — dropped the "KSYK Maps · | Settings" editorial split; single clean title. Back button hover uses black/[0.05] instead of muted.
+- **`.hover-lift` CSS utility** in `index.css` — Apple-style subtle 1px lift on hover for `hover:` capable devices, with `prefers-reduced-motion` fallback.
+
 ## ✅ Just shipped (web 4.7.38 · Android 1.99.0 — admin Apple redesign + Android polish + dead-code purge)
 
 - **Admin panel full Apple redesign** — colored stat-card backgrounds and icon-in-pill decorations gone, hairline-bordered neutral cards throughout, monochrome icons (`text-gray-400/500` at `h-[18px]`), pastel status/priority badges replaced with outlined chips + colored dot pattern, big drop shadows removed. Files: `AdminDashboard.tsx`, `AdminAnalyticsDashboard.tsx`, `OverviewInsightsCards.tsx`, `SecuritySettingsPanel.tsx`, `AnalyticsExternalPanel.tsx`, `TicketManager.tsx`, `AppSettingsManager.tsx`, `AppLogsManager.tsx`, `AnnouncementManager.tsx`, `PostHogReplaysPanel.tsx`, `HallwayManagement.tsx`, `admin-forgot-password.tsx`, `admin-reset-password.tsx`.

@@ -61,6 +61,11 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   const [currentLang, setCurrentLang] = useState(
     () => localStorage.getItem("ksyk_language") || i18n.language
   );
+  // Per-user opt-out for the "Get the app" popup. Missing key = default on.
+  const [getAppEnabled, setGetAppEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem("ksyk_get_app_enabled_v1") !== "0"; }
+    catch { return true; }
+  });
   const britishUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
   const isFi = currentLang === "fi";
 
@@ -105,46 +110,33 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
          *  the panel body scrolls. */}
         <div
           className={cn(
-            "sticky top-0 -mx-3 sm:-mx-4 px-4 sm:px-6 py-3 sm:py-5 mb-4 sm:mb-6 z-20 backdrop-blur-xl border-b",
+            "sticky top-0 -mx-3 sm:-mx-4 px-4 sm:px-6 py-3 mb-4 sm:mb-6 z-20 backdrop-blur-xl border-b",
             darkMode ? "bg-gray-950/85 border-gray-800/70" : "bg-white/85 border-gray-200/70",
           )}
-          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+          style={{ paddingTop: 'max(0.75rem, calc(0.5rem + env(safe-area-inset-top)))' }}
         >
-          <div className="max-w-5xl mx-auto flex items-center gap-3">
+          <div className="max-w-5xl mx-auto flex items-center gap-2">
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
                 className={cn(
-                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center active:scale-90 transition-all",
+                  "shrink-0 h-10 w-10 -ml-2 rounded-full flex items-center justify-center active:scale-90 transition-colors",
                   darkMode
-                    ? "text-gray-300 hover:text-white hover:bg-gray-800/70"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+                    ? "text-gray-300 hover:text-white hover:bg-white/[0.06]"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-black/[0.05]",
                 )}
                 aria-label={isFi ? "Takaisin" : "Back"}
               >
                 <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
               </button>
             )}
-            <div className="flex items-baseline gap-2.5 min-w-0 flex-1">
-              {/* Editorial label */}
-              <span className={cn(
-                "text-[10px] font-bold tracking-[0.18em] uppercase hidden sm:inline shrink-0 pt-2",
-                darkMode ? "text-gray-500" : "text-gray-400",
-              )}>
-                KSYK Maps
-              </span>
-              <span className={cn(
-                "hidden sm:inline w-px h-4 self-center shrink-0",
-                darkMode ? "bg-gray-800" : "bg-gray-300",
-              )} />
-              <h1 className={cn(
-                "text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-none truncate",
-                darkMode ? "text-white" : "text-gray-900",
-              )}>
-                {isFi ? "Asetukset" : "Settings"}
-              </h1>
-            </div>
+            <h1 className={cn(
+              "text-[20px] sm:text-[22px] font-semibold tracking-[-0.01em] leading-none truncate",
+              darkMode ? "text-white" : "text-gray-900",
+            )}>
+              {isFi ? "Asetukset" : "Settings"}
+            </h1>
           </div>
         </div>
 
@@ -324,6 +316,36 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     description={isFi ? "Kasvattaa käyttöliittymän tekstin kokoa" : "Bumps up interface text size"}
                   >
                     <Switch checked={settings.largeText} onCheckedChange={(v) => update("largeText", v)} />
+                  </SettingRow>
+                </CardContent>
+              </Card>
+            )}
+
+            {tab === "appearance" && (
+              <Card className={cn(
+                "rounded-2xl overflow-hidden shadow-none border mt-4",
+                darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
+              )}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-[15px] font-semibold">
+                    {isFi ? "Ilmoitukset" : "Notifications"}
+                  </CardTitle>
+                  <CardDescription className="text-[13px]">
+                    {isFi ? "Ohjaa mitä sovellus näyttää sinulle" : "Control what the app shows you"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-800" : "divide-gray-100")}>
+                  <SettingRow
+                    label={isFi ? '"Lataa sovellus" -popup' : '"Get the app" popup'}
+                    description={isFi ? "Näytä muistutus ladata Android-sovellus" : "Show the reminder to install the Android app"}
+                  >
+                    <Switch
+                      checked={getAppEnabled}
+                      onCheckedChange={(v) => {
+                        try { localStorage.setItem("ksyk_get_app_enabled_v1", v ? "1" : "0"); } catch { /* ignore */ }
+                        setGetAppEnabled(v);
+                      }}
+                    />
                   </SettingRow>
                 </CardContent>
               </Card>

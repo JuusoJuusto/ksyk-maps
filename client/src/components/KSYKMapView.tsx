@@ -681,10 +681,10 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                   setSelectedFloor(floor);
                 }}
                 className={cn(
-                  "min-w-[36px] h-9 px-1.5 rounded-xl text-[13px] font-semibold transition-colors leading-none tabular-nums flex items-center justify-center active:scale-[0.94]",
+                  "min-w-[40px] h-10 px-1.5 rounded-xl text-[13px] font-semibold transition-colors leading-none tabular-nums flex items-center justify-center active:scale-[0.94]",
                   selectedFloor === floor
-                    ? "bg-blue-600 text-white"
-                    : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
+                    : "text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.07]",
                 )}
               >
                 {floor}
