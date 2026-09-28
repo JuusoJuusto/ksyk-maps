@@ -671,7 +671,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTemporaryPassword: false
       });
       
-      console.log('Password changed for user:', userId);
       res.json({ success: true, message: "Password changed successfully" });
     } catch (error) {
       await logError(error, 'POST /api/auth/change-password', { userId: req.user?.claims?.sub });
@@ -693,7 +692,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Always return success to prevent email enumeration
       if (!user) {
-        console.log('Password reset requested for non-existent email:', email);
         return res.json({ success: true, message: "If the email exists, a reset link has been sent" });
       }
       
@@ -744,7 +742,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
           `
         });
-        console.log('✅ Password reset email sent to:', email);
       } catch (emailError) {
         console.error('❌ Failed to send password reset email:', emailError);
         return res.status(500).json({ message: "Failed to send reset email" });
@@ -793,7 +790,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isTemporaryPassword: false
       });
       
-      console.log('✅ Password reset successful for user:', user.email);
       res.json({ success: true, message: "Password has been reset successfully" });
     } catch (error) {
       await logError(error, 'POST /api/auth/reset-password');
@@ -1640,7 +1636,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/test-email', isAuthenticated, async (req: any, res) => {
     try {
-      console.log('📧 Test email requested');
       const user = await storage.getUser(req.user.claims.sub);
       if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
@@ -1796,7 +1791,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const expired of expiredAnnouncements) {
         try {
           await storage.deleteAnnouncement(expired.id);
-          console.log(`🗑️ Auto-deleted expired announcement: ${expired.id} (${expired.title})`);
         } catch (deleteError) {
           console.error(`❌ Failed to delete expired announcement ${expired.id}:`, deleteError);
         }
@@ -2091,9 +2085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Forbidden' });
       }
       
-      console.log('🗑️ Deleting ticket:', req.params.id);
       await storage.deleteTicket(req.params.id);
-      console.log('✅ Ticket deleted successfully');
       
       res.json({ success: true, message: 'Ticket deleted' });
     } catch (error) {
@@ -2112,7 +2104,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { ownerEmail, ticketId, type, title, description, email, name, errorReferenceId } = req.body;
       
-      console.log('📧 Sending ticket notification to owner:', ownerEmail);
       
       const { sendTicketEmail } = await import('./emailService.js');
       
@@ -2157,7 +2148,6 @@ KSYK Maps Support System
       }
       const { email, ticketId, type, title } = req.body;
       
-      console.log('📧 Sending ticket confirmation to:', email);
       
       const { sendTicketEmail } = await import('./emailService.js');
       
@@ -2196,7 +2186,6 @@ https://ksykmaps.fi
       }
       const { email, ticketId, title, response } = req.body;
       
-      console.log('📧 Sending ticket response to:', email);
       
       const { sendTicketEmail } = await import('./emailService.js');
       
@@ -2230,7 +2219,6 @@ https://ksykmaps.fi
     try {
       const { email, ticketId, status, title, response } = req.body;
       
-      console.log('📧 Sending ticket status update to:', email);
       
       const { sendTicketEmail } = await import('./emailService.js');
       
@@ -2290,7 +2278,6 @@ https://ksykmaps.fi
         return res.status(400).json({ message: "Valid email address required" });
       }
 
-      console.log('📧 Sending test email to:', email);
 
       const { sendPasswordSetupEmail } = await import('./emailService.js');
 
@@ -3146,9 +3133,6 @@ https://ksykmaps.fi
         return res.status(400).json({ message: 'Confirmation required: DELETE_EVERYTHING' });
       }
       
-      console.log('\n🗑️ ========== COMPLETE DATA CLEANUP ==========');
-      console.log('⚠️ DELETING ALL BUILDINGS, ROOMS, HALLWAYS, STAIRS...');
-      
       let deletedCount = {
         buildings: 0,
         rooms: 0,
@@ -3157,78 +3141,56 @@ https://ksykmaps.fi
         announcements: 0,
         staff: 0
       };
-      
+
       // Delete all buildings
       const buildings = await storage.getBuildings();
-      console.log(`🏢 Found ${buildings.length} buildings to delete`);
       for (const building of buildings) {
         await storage.deleteBuilding(building.id);
         deletedCount.buildings++;
       }
-      
+
       // Delete all rooms
       const rooms = await storage.getRooms();
-      console.log(`🚪 Found ${rooms.length} rooms to delete`);
       for (const room of rooms) {
         await storage.deleteRoom(room.id);
         deletedCount.rooms++;
       }
-      
+
       // Delete all hallways
       try {
         const hallways = await storage.getHallways();
-        console.log(`🛤️ Found ${hallways.length} hallways to delete`);
         for (const hallway of hallways) {
           await storage.deleteHallway(hallway.id);
           deletedCount.hallways++;
         }
-      } catch (error) {
-        console.log('No hallways to delete or method not available');
-      }
-      
+      } catch { /* method not available */ }
+
       // Delete all floors
       try {
         const floors = await storage.getFloors();
-        console.log(`🏗️ Found ${floors.length} floors to delete`);
         for (const floor of floors) {
           if (storage.deleteFloor) {
             await storage.deleteFloor(floor.id);
             deletedCount.floors++;
           }
         }
-      } catch (error) {
-        console.log('No floors to delete or method not available');
-      }
-      
+      } catch { /* method not available */ }
+
       // Delete all announcements
       const announcements = await storage.getAnnouncements(1000);
-      console.log(`📢 Found ${announcements.length} announcements to delete`);
       for (const announcement of announcements) {
         await storage.deleteAnnouncement(announcement.id);
         deletedCount.announcements++;
       }
-      
+
       // Delete all staff
       try {
         const staff = await storage.getStaff();
-        console.log(`👥 Found ${staff.length} staff members to delete`);
         for (const staffMember of staff) {
           await storage.deleteStaffMember(staffMember.id);
           deletedCount.staff++;
         }
-      } catch (error) {
-        console.log('No staff to delete or method not available');
-      }
-      
-      console.log('\n✅ CLEANUP COMPLETE!');
-      console.log('📊 Deletion Summary:');
-      console.log(`   Buildings: ${deletedCount.buildings}`);
-      console.log(`   Rooms: ${deletedCount.rooms}`);
-      console.log(`   Hallways: ${deletedCount.hallways}`);
-      console.log(`   Floors: ${deletedCount.floors}`);
-      console.log(`   Announcements: ${deletedCount.announcements}`);
-      console.log(`   Staff: ${deletedCount.staff}`);
-      console.log('==========================================\n');
+      } catch { /* method not available */ }
       
       res.json({
         success: true,
@@ -3238,7 +3200,7 @@ https://ksykmaps.fi
       });
       
     } catch (error: any) {
-      console.error('❌ CLEANUP ERROR:', error);
+      console.error('[cleanup] Error:', error);
       await logError(error, 'POST /api/admin/cleanup-all');
       res.status(500).json({
         success: false,
@@ -3491,16 +3453,9 @@ https://ksykmaps.fi
   // ============================================
   // REGISTER AALTO SPACE ROUTES
   // ============================================
-  console.log('🏫 Registering KSYK Maps campus routes...');
   registerCampusRoutes(app);
-
-  console.log('🗺️  Registering nav-graph + route + map-package routes...');
   registerMapRoutes(app);
-
-  console.log('🥚 Registering easter-egg routes...');
   registerEasterEggRoutes(app);
-
-  console.log('📊 Registering adblock-safe telemetry routes...');
   registerTelemetryRoutes(app);
 
   const httpServer = createServer(app);

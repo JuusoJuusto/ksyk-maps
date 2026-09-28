@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, LifeBuoy } from "lucide-react";
@@ -5,6 +6,12 @@ import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export default function NotFound() {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "Page not found — KSYK Maps";
+    return () => { document.title = prev; };
+  }, []);
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
       <AnnouncementBanner />
@@ -40,7 +47,7 @@ export default function NotFound() {
                     className="w-full sm:w-auto h-11 px-6 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/25 active:scale-[0.98] transition-all"
                   >
                     <Home className="mr-2 h-4 w-4" />
-                    Go home
+                    Go to map
                   </Button>
                 </Link>
                 <Button

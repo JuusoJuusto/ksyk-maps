@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Camera, 
-  Navigation, 
+import {
+  Camera,
+  Navigation,
   MapPin,
   Target,
   Compass,
@@ -13,7 +13,8 @@ import {
   Zap,
   Eye,
   Smartphone,
-  Wifi
+  Wifi,
+  Building2
 } from 'lucide-react';
 
 interface ARMarker {
@@ -497,9 +498,9 @@ export function ARRoomFinder() {
                   <div>
                     <h4 className="font-semibold">{marker.roomName}</h4>
                     <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>📍 {marker.distance.toFixed(1)}m away</span>
-                      <span>🧭 {marker.direction}° direction</span>
-                      <span>🏢 Floor {marker.floor}</span>
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {marker.distance.toFixed(1)}m away</span>
+                      <span className="flex items-center gap-1"><Compass className="h-3.5 w-3.5" /> {marker.direction}°</span>
+                      <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> Floor {marker.floor}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

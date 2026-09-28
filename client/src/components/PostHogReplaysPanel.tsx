@@ -302,7 +302,7 @@ export function PostHogReplaysPanel({ range }: { range: DateRange }) {
 
   const { data, isLoading, isError, refetch } = query;
 
-  const notConfigured = isUnconfigured(data);
+  const notConfigured = isUnconfigured(data ?? null);
   const list = (!notConfigured && data && "results" in data) ? (data as PostHogRecordingsList) : null;
   const recordings = list?.results ?? [];
   const totalCount = list?.count ?? 0;

@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import { useQuery } from "@tanstack/react-query";
+import { MapPin, Star } from "lucide-react";
 
 interface MapEvent {
   id: string;
@@ -173,7 +174,9 @@ export default function CampusEventsLayer({ map, lang = "fi" }: Props) {
   return (
     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 max-w-md w-[calc(100%-2rem)] bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-amber-50 dark:bg-amber-950/30 flex items-start gap-3">
-        <div className="text-2xl leading-none">★</div>
+        <div className="flex items-center justify-center h-7 w-7">
+          <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
             {lang === "fi" ? "Tapahtuma" : "Event"}
@@ -191,7 +194,10 @@ export default function CampusEventsLayer({ map, lang = "fi" }: Props) {
           {fmt(selected.startTime)} → {fmt(selected.endTime)}
         </div>
         {selected.location && (
-          <div className="text-[12px] text-muted-foreground">📍 {selected.location}</div>
+          <div className="text-[12px] text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            {selected.location}
+          </div>
         )}
         {desc && <p className="text-sm text-foreground pt-1 leading-relaxed">{desc}</p>}
       </div>

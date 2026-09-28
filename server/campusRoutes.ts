@@ -96,5 +96,4 @@ export function registerCampusRoutes(app: Express) {
     res.json([]);
   });
 
-  console.log('✅ KSYK Maps campus routes registered');
 }

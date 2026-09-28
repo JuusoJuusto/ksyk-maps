@@ -74,7 +74,6 @@ export async function checkRateLimit(
       
       if (now < lockedUntil) {
         const minutesLeft = Math.ceil((lockedUntil.getTime() - now.getTime()) / 60000);
-        console.log(`🔒 Account locked for ${email}, ${minutesLeft} minutes remaining`);
         return { 
           allowed: false, 
           lockedUntil,
@@ -109,7 +108,6 @@ export async function checkRateLimit(
     if (data.attempts >= MAX_ATTEMPTS) {
       const lockedUntil = new Date(now.getTime() + LOCK_DURATION);
       await docRef.update({ lockedUntil });
-      console.log(`🔒 Account locked for ${email} due to ${data.attempts} failed attempts`);
       return { 
         allowed: false, 
         lockedUntil,
@@ -155,7 +153,6 @@ export async function recordLoginAttempt(
         ipAddress,
         lastSuccessfulLogin: new Date()
       });
-      console.log(`✅ Login attempt recorded for ${email}: SUCCESS`);
     } else {
       if (doc.exists) {
         const data = doc.data() as LoginAttempt;
@@ -164,7 +161,6 @@ export async function recordLoginAttempt(
           lastAttempt: new Date(),
           ipAddress
         });
-        console.log(`❌ Login attempt recorded for ${email}: FAILED (${(data.attempts || 0) + 1}/${MAX_ATTEMPTS})`);
       } else {
         await docRef.set({
           email: email.toLowerCase(),
@@ -172,7 +168,6 @@ export async function recordLoginAttempt(
           lastAttempt: new Date(),
           ipAddress
         });
-        console.log(`❌ Login attempt recorded for ${email}: FAILED (1/${MAX_ATTEMPTS})`);
       }
     }
   } catch (error) {
@@ -194,7 +189,6 @@ export async function unlockAccount(email: string): Promise<void> {
       unlockedAt: new Date(),
       unlockedBy: 'admin'
     });
-    console.log(`🔓 Account unlocked for ${email}`);
   } catch (error) {
     console.error('❌ Error unlocking account:', error);
     throw error;
@@ -236,7 +230,6 @@ export async function cleanupOldLoginAttempts(): Promise<number> {
     
     await batch.commit();
     
-    console.log(`🧹 Cleaned up ${snapshot.size} old login attempt records`);
     return snapshot.size;
   } catch (error) {
     console.error('❌ Error cleaning up old login attempts:', error);

@@ -31,7 +31,6 @@ export class NotificationService {
       
       // Check if user wants this type of notification
       if (!this.shouldSendNotification(type, preferences)) {
-        console.log(`Notification blocked by user preferences: ${type} for user ${userId}`);
         return false;
       }
 
@@ -196,7 +195,6 @@ export class NotificationService {
   private static async sendPushNotification(userId: string, notification: any): Promise<void> {
     // Check if browser supports notifications
     if (!('Notification' in window)) {
-      console.log('Browser does not support notifications');
       return;
     }
 

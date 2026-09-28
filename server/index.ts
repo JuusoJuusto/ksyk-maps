@@ -205,10 +205,7 @@ app.use((req, res, next) => {
           priority: "high",
           authorId: "owner-admin-user"
         });
-        console.log("✅ Sample data created");
-      } catch (error) {
-        console.log("ℹ️ Sample data already exists or error:", error instanceof Error ? error.message : error);
-      }
+      } catch { /* sample data already exists */ }
     }
   });
 })();

@@ -44,7 +44,7 @@ export default function FMIWeatherWidget({
       setForecast(data.forecast);
       setLastUpdate(new Date());
     } catch (err) {
-      console.error('❌ Failed to load FMI weather:', err);
+      console.error('Failed to load FMI weather:', err);
       setError('Säätietojen lataus epäonnistui (FMI API)');
     } finally {
       setLoading(false);
@@ -200,8 +200,8 @@ export default function FMIWeatherWidget({
                         {hour.temperature}°
                       </p>
                       {hour.precipitation > 0 && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          💧 {hour.precipitation}mm
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center justify-center gap-0.5">
+                          <Droplets className="h-3 w-3 shrink-0" />{hour.precipitation}mm
                         </p>
                       )}
                     </div>
@@ -236,8 +236,8 @@ export default function FMIWeatherWidget({
                         {hour.temperature}°
                       </p>
                       {hour.precipitation > 0 && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          💧 {hour.precipitation}mm
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center justify-center gap-0.5">
+                          <Droplets className="h-3 w-3 shrink-0" />{hour.precipitation}mm
                         </p>
                       )}
                     </div>

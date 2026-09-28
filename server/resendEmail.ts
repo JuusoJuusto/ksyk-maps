@@ -3,15 +3,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendPasswordSetupEmail(email: string, firstName: string, tempPassword: string) {
-  console.log('\n📧 ========== SENDING EMAIL WITH RESEND ==========');
-  console.log('To:', email);
-  console.log('Name:', firstName);
-  console.log('Resend API Key:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
-  console.log('================================================\n');
-
   if (!process.env.RESEND_API_KEY) {
-    console.log('⚠️ RESEND_API_KEY not set, showing password in console');
-    console.log(`📝 Password for ${email}: ${tempPassword}`);
     return { success: true, mode: 'console', password: tempPassword };
   }
 
@@ -66,12 +58,10 @@ export async function sendPasswordSetupEmail(email: string, firstName: string, t
     });
 
     if (error) {
-      console.error('❌ Resend error:', error);
+      console.error('[resend] Email send error:', error);
       return { success: false, error, mode: 'console', password: tempPassword };
     }
 
-    console.log('✅ Email sent successfully via Resend!');
-    console.log('   Email ID:', data?.id);
     return { success: true, mode: 'email', messageId: data?.id, password: tempPassword };
   } catch (error: any) {
     console.error('❌ Exception:', error);

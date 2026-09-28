@@ -10,17 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.35";
+export const APP_VERSION = "4.7.36";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.36",
+    date: "September 2026",
+    title: "Icon polish · CSS cleanup · server log hygiene · copy fixes",
+    titleFi: "Ikoniviimistely · CSS-siivous · palvelinlokien siivous · tekstikorjaukset",
+    latest: true,
+    highlights: [
+      "All emoji used as interface icons replaced with consistent lucide-react icons across AnnouncementManager, ARRoomFinder, CampusEventsLayer, FMIWeatherWidget, ErrorBoundary, and SearchResultsDropdown.",
+      "Removed ~850 lines of dead CSS: the legacy EduWilma design system, 30+ unused animation keyframes, duplicate global transition rules, and a background-pulsing dark mode animation.",
+      "Removed 100+ debug console.log calls from server routes, email, FCM, and storage — these were leaking PII and cluttering production logs.",
+      "Copy fixes: 404 page now has a proper page title and 'Go to map' CTA; iOS download label changed from 'Not yet' to 'Coming later'; support success screen only shows email confirmation when an email was entered.",
+    ],
+    highlightsFi: [
+      "Kaikki käyttöliittymäikonina käytetyt emojit korvattu yhtenäisillä lucide-react-ikoneilla.",
+      "Poistettu noin 850 riviä kuollutta CSS-koodia: vanha EduWilma-järjestelmä, 30+ animaatioavainkehystä ja turha dark-mode-taustaanimaatio.",
+      "Poistettu yli 100 debug-logia palvelinpuolelta — ne vuotivat henkilötietoja tuotantologeihin.",
+      "Tekstikorjauksia: 404-sivulle sivuotsikko ja 'Siirry karttaan' -painike; iOS-latausmerkintä 'Coming later'; tuki-sivun sähköpostivahvistus näkyy vain kun sähköposti annettiin.",
+    ],
+  },
+  {
     version: "4.7.35",
     date: "September 2026",
     title: "Session replay for all visitors · admin logout URL fix",
     titleFi: "Istunnon tallennus kaikille · admin-uloskirjautumisen URL-korjaus",
-    latest: true,
+    latest: false,
     highlights: [
       "Every visitor session is now recorded and playable in Admin → Analytics → Sessions. Previously, sessions were skipped if the admin feature flag was off or if an admin token was present in the browser.",
       "Admin auto-logout no longer appends a ?redirect= query string to the URL — the login page now always redirects cleanly to /admin.",

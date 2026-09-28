@@ -17,7 +17,8 @@ import {
   X,
   AlertTriangle,
   Info,
-  Clock
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -552,8 +553,9 @@ export default function AnnouncementManager() {
                       </div>
                       <p className="text-gray-700 dark:text-gray-300 mb-2 text-sm">{announcement.content}</p>
                       <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                        <span>
-                          📅 Created {(() => {
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          Created {(() => {
                             try {
                               const timestamp = announcement.createdAt;
                               if (!timestamp) return 'recently';
@@ -573,8 +575,9 @@ export default function AnnouncementManager() {
                           })()}
                         </span>
                         {announcement.publishedAt && (
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                            📢 Published {(() => {
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold inline-flex items-center gap-1">
+                            <Megaphone className="h-3.5 w-3.5 shrink-0" />
+                            Published {(() => {
                               try {
                                 const timestamp = announcement.publishedAt;
                                 let date: Date;
@@ -594,8 +597,9 @@ export default function AnnouncementManager() {
                           </span>
                         )}
                         {announcement.expiresAt && (
-                          <span className="text-orange-600 dark:text-orange-400 font-semibold">
-                            ⏰ Expires {(() => {
+                          <span className="text-orange-600 dark:text-orange-400 font-semibold inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            Expires {(() => {
                               try {
                                 const timestamp = announcement.expiresAt;
                                 let date: Date;

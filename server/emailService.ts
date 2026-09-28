@@ -8,7 +8,6 @@ const SUPPORT_EMAIL = 'juusojuusto112@gmail.com';
 
 const createTransporter = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.log('⚠️ Email credentials not configured');
     return null;
   }
   return nodemailer.createTransport({

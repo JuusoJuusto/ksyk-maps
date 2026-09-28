@@ -121,7 +121,7 @@ export default function DownloadPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-[15px] font-semibold">iOS</h2>
-                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">Not yet</p>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">Coming later</p>
                 </div>
                 <span className="text-[10px] font-medium text-muted-foreground">
                   Coming later

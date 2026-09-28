@@ -486,10 +486,10 @@ function NotificationsPanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Send className="h-4 w-4" />
-            Lähetä kaikille (Send to all)
+            Broadcast to all devices
           </CardTitle>
           <CardDescription>
-            Creates an announcement AND sends a real FCM push notification to every registered device.
+            Saves an announcement and sends a real FCM push notification to every registered device.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

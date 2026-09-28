@@ -16,6 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.36 — icon polish + CSS cleanup + copy fixes)
+
+- **Emoji icons removed** — every emoji used as a UI element replaced with lucide-react icons: `AnnouncementManager` (Calendar, Megaphone, Clock), `ARRoomFinder` (MapPin, Compass, Building2), `CampusEventsLayer` (Star, MapPin), `FMIWeatherWidget` (Droplets), `ErrorBoundary` (CheckCircle), `SearchResultsDropdown` (text abbreviations).
+- **CSS dead-code removal** — `client/src/index.css` reduced from 1692 → 839 lines. Removed: EduWilma legacy design system (~200 lines), 30+ unused animation keyframes, duplicate animation utility classes, `dark-ambient` pulsing background, a duplicate `* { transition }` rule, and Wilma Classic color overrides.
+- **Server log hygiene** — 100+ `console.log` debug calls removed from `routes.ts`, `postgresStorage.ts`, `resendEmail.ts`, `emailService.ts`, `campusRoutes.ts`, `rateLimiter.ts`, `fcm.ts`, `index.ts` — these were leaking PII (emails, ticket IDs) in production logs.
+- **Admin panel copy** — FCM broadcast toast copy improved to "Push sent to X device(s)"; stat cards simplified to neutral styling.
+- **Copy fixes** — 404 page now sets `document.title` and CTA reads "Go to map"; iOS download label "Not yet" → "Coming later"; support success screen email confirmation conditional on email being provided.
+- **PostHogReplaysPanel TS fix** — `isUnconfigured(data ?? null)` fixes pre-existing `T | undefined` vs `T | null` type error.
+- **Web version bumped** — `4.7.35` → `4.7.36`.
+
 ## ✅ Just shipped (web 4.7.35 — session recording + admin URL fix)
 
 - **Multi-map feature removed** — `useMaps` hook, `MapSwitcherButton`, builder Maps tab, and `/api/maps` CRUD routes all deleted.

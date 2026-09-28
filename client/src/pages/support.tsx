@@ -54,13 +54,11 @@ export default function Support() {
         if (t === "feature" || t === "support" || t === "question" || t === "bug") setType(t);
         else setType("bug");
         if (msg) setTitle(`Auto-report: ${msg.slice(0, MAX_TITLE - 14)}`);
-        setDescription([
-          msg && `Error: ${msg}`,
-          ref && `Reference ID: ${ref}`,
-          "",
-          "What I was doing when this happened:",
-          "",
-        ].filter(Boolean).join("\n"));
+        const lines: string[] = [];
+        if (msg) lines.push(`Error: ${msg}`);
+        if (ref) lines.push(`Reference ID: ${ref}`);
+        lines.push("", "What I was doing when this happened:", "");
+        setDescription(lines.join("\n"));
       }
     } catch { /* ignore malformed URL */ }
     analytics.featureUsed("support", "opened");
@@ -152,7 +150,9 @@ export default function Support() {
                   We got it. Thank you.
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                  A confirmation is on its way to your inbox. We aim to reply within 24–48 hours.
+                  {email.trim()
+                    ? "A confirmation is on its way to your inbox. We aim to reply within 24–48 hours."
+                    : "We'll look into it. If you left an email, we'll follow up within 24–48 hours."}
                 </p>
 
                 <div className="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 mb-6 text-left">

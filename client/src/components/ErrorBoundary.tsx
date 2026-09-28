@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home, Send } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Send, CheckCircle } from 'lucide-react';
 import { analytics } from '@/lib/analytics-sdk';
 import posthog from '@/lib/posthog';
 import Sentry from '@/lib/sentry';
@@ -63,8 +63,7 @@ class ErrorBoundary extends Component<Props, State> {
     // Generate unique error reference ID
     const errorReferenceId = `${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    console.error('Error caught by boundary:', error, errorInfo);
-    console.error('Error Reference ID:', errorReferenceId);
+    console.error('Error caught by boundary:', error, errorInfo, { errorReferenceId });
     
     this.setState({
       errorInfo,
@@ -225,8 +224,9 @@ class ErrorBoundary extends Component<Props, State> {
 
                 {/* Success banner */}
                 {this.state.ticketSubmitted && (
-                  <div className="rounded-2xl ring-1 ring-emerald-200 dark:ring-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 p-3 mb-4 text-sm text-emerald-800 dark:text-emerald-300">
-                    ✓ Report submitted. We'll investigate.
+                  <div className="rounded-2xl ring-1 ring-emerald-200 dark:ring-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 p-3 mb-4 text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                    Report submitted. We'll investigate.
                   </div>
                 )}
 

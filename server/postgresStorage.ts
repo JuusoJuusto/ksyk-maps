@@ -520,24 +520,24 @@ export class DatabaseStorage implements Partial<IStorage> {
   // ============================================
 
   // Analytics operations
-  async createPageView(view: any): Promise<void> {
-    console.log('ðŸ“Š Page View:', view);
+  async createPageView(_view: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
-  async createSearchAnalytic(search: any): Promise<void> {
-    console.log('ðŸ” Search Analytic:', search);
+  async createSearchAnalytic(_search: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
-  async createNavigationAnalytic(navigation: any): Promise<void> {
-    console.log('ðŸ§­ Navigation Analytic:', navigation);
+  async createNavigationAnalytic(_navigation: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
-  async createUserSession(session: any): Promise<void> {
-    console.log('ðŸ‘¤ User Session:', session);
+  async createUserSession(_session: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
-  async updateUserSession(sessionId: string, updates: any): Promise<void> {
-    console.log('ðŸ”„ Update Session:', sessionId, updates);
+  async updateUserSession(_sessionId: string, _updates: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
   async getAnalyticsSummary(days?: number): Promise<any> {
@@ -568,8 +568,8 @@ export class DatabaseStorage implements Partial<IStorage> {
     return { totalVisitors: 0, uniqueVisitors: 0 };
   }
 
-  async createAnalyticsEvent(event: any): Promise<void> {
-    console.log('ðŸ“Š Analytics Event:', event);
+  async createAnalyticsEvent(_event: any): Promise<void> {
+    // stub - not yet stored in Postgres
   }
 
 }

@@ -163,7 +163,6 @@ export async function sendToTokens(
         });
         if (dead.length) {
           await db.execute(sql`DELETE FROM push_tokens WHERE fcm_token = ANY(${dead})`);
-          console.log(`[FCM] Removed ${dead.length} stale tokens`);
         }
       }
     } catch (e: any) {
