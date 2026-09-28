@@ -220,15 +220,15 @@ export default function AnnouncementManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Announcement Management</h2>
-          <p className="text-gray-600 dark:text-gray-400">Create and manage campus announcements</p>
+          <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">Announcement Management</h2>
+          <p className="text-[13px] text-muted-foreground mt-0.5">Create and manage campus announcements</p>
         </div>
         {!isCreating && (
           <Button
             onClick={() => setIsCreating(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" strokeWidth={1.75} />
             New Announcement
           </Button>
         )}
@@ -236,21 +236,18 @@ export default function AnnouncementManager() {
 
       {/* Create/Edit Form */}
       {isCreating && (
-        <Card className={cn(
-          "shadow-lg border",
-          darkMode ? "border-blue-800 bg-gray-900" : "border-blue-200 bg-white"
-        )}>
-          <CardHeader className="bg-blue-600 text-white rounded-t-xl">
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center">
-                <Megaphone className="h-5 w-5 mr-2" />
-                {editingId ? "Edit Announcement" : "Create New Announcement"}
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+            <CardTitle className="flex items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-white">
+              <span className="flex items-center gap-2">
+                <Megaphone className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
+                {editingId ? "Edit announcement" : "New announcement"}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={resetForm}
-                className="text-white hover:bg-white/20"
+                className="h-8 w-8 p-0"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -487,23 +484,14 @@ export default function AnnouncementManager() {
       )}
 
       {/* Announcements List */}
-      <Card className={cn(
-        "shadow-lg border",
-        darkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white"
-      )}>
-        <CardHeader className={cn(
-          "rounded-t-xl border-b",
-          darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"
-        )}>
-          <CardTitle className={cn(
-            "flex items-center justify-between",
-            darkMode ? "text-white" : "text-gray-900"
-          )}>
-            <span className="flex items-center">
-              <Megaphone className="h-5 w-5 mr-2" />
-              All Announcements ({announcements.length})
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+          <CardTitle className="flex items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-white">
+            <span className="flex items-center gap-2">
+              <Megaphone className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
+              All announcements
             </span>
-            <Badge variant="secondary">
+            <Badge variant="outline" className="rounded-full text-[11px] border-gray-200 dark:border-gray-800">
               {announcements.length} Total
             </Badge>
           </CardTitle>

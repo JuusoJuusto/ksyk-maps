@@ -199,23 +199,26 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
     }
   };
 
-  const getStatusColor = (status: string) => {
+  // Apple-native: neutral badge, small colored dot for status accent.
+  const getStatusColor = (_status: string) => "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 bg-transparent";
+  const getStatusDot = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700';
-      case 'in_progress': return 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
-      case 'resolved': return 'bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700';
-      case 'closed': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
-      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+      case 'pending': return 'bg-amber-500';
+      case 'in_progress': return 'bg-blue-500';
+      case 'resolved': return 'bg-emerald-500';
+      case 'closed': return 'bg-gray-400';
+      default: return 'bg-gray-400';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (_priority: string) => "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 bg-transparent";
+  const getPriorityDot = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700';
-      case 'high': return 'bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700';
-      case 'normal': return 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
-      case 'low': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
-      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+      case 'critical': return 'bg-red-500';
+      case 'high': return 'bg-amber-500';
+      case 'normal': return 'bg-blue-500';
+      case 'low': return 'bg-gray-400';
+      default: return 'bg-gray-400';
     }
   };
 
@@ -318,34 +321,34 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
             ) : (
               filteredTickets.map((ticket: any) => (
                 <Card key={ticket.id} className={cn(
-                  "hover:shadow-md transition-shadow",
-                  darkMode && "bg-gray-800 border-gray-700"
+                  "border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-colors",
                 )}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <Badge variant="outline" className="text-sm font-mono px-3 py-1">
-                            Ticket ID: {ticket.ticketId || ticket.id || 'NO-ID'}
+                          <Badge variant="outline" className="text-[11px] font-mono px-2 py-0.5 rounded-full border-gray-200 dark:border-gray-800">
+                            {ticket.ticketId || ticket.id || 'NO-ID'}
                           </Badge>
-                          <Badge className={`${getStatusColor(ticket.status)} border`}>
-                            {getStatusIcon(ticket.status)}
-                            <span className="ml-1">{ticket.status}</span>
+                          <Badge className={cn("rounded-full text-[11px] border font-medium gap-1.5", getStatusColor(ticket.status))}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(ticket.status))} />
+                            {ticket.status}
                           </Badge>
-                          <Badge className={`${getPriorityColor(ticket.priority)} border`}>
+                          <Badge className={cn("rounded-full text-[11px] border font-medium gap-1.5", getPriorityColor(ticket.priority))}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full", getPriorityDot(ticket.priority))} />
                             {ticket.priority}
                           </Badge>
-                          <Badge variant="outline">{ticket.type}</Badge>
+                          <Badge variant="outline" className="rounded-full text-[11px] border-gray-200 dark:border-gray-800">{ticket.type}</Badge>
                         </div>
-                        <h3 className="font-semibold text-lg mb-1 truncate text-gray-900 dark:text-white">
+                        <h3 className="text-[15px] font-semibold mb-1 truncate text-gray-900 dark:text-white">
                           {ticket.title}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+                        <p className="text-[13px] text-muted-foreground line-clamp-2 mb-2">
                           {ticket.description}
                         </p>
                         {ticket.errorReferenceId && (
-                          <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded px-2 py-1 inline-block">
-                            <span className="text-xs font-mono text-red-800 dark:text-red-300">
+                          <div className="border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 inline-block">
+                            <span className="text-[11px] font-mono text-muted-foreground">
                               Error Ref: {ticket.errorReferenceId}
                             </span>
                           </div>
@@ -402,24 +405,26 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-3">
-                    <Badge variant="outline" className="text-lg font-mono px-4 py-2">
-                      Ticket ID: {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
+                    <Badge variant="outline" className="text-[12px] font-mono px-3 py-1 rounded-full border-gray-200 dark:border-gray-800">
+                      {selectedTicket.ticketId || selectedTicket.id || 'NO-ID'}
                     </Badge>
                   </div>
-                  <CardTitle className="text-2xl mb-2 text-gray-900 dark:text-white">
+                  <CardTitle className="text-[22px] font-semibold mb-2 text-gray-900 dark:text-white tracking-[-0.01em]">
                     {selectedTicket.title}
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge className={`${getStatusColor(selectedTicket.status)} border`}>
+                    <Badge className={cn("rounded-full text-[11px] border font-medium gap-1.5", getStatusColor(selectedTicket.status))}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(selectedTicket.status))} />
                       {selectedTicket.status}
                     </Badge>
-                    <Badge className={`${getPriorityColor(selectedTicket.priority)} border`}>
+                    <Badge className={cn("rounded-full text-[11px] border font-medium gap-1.5", getPriorityColor(selectedTicket.priority))}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", getPriorityDot(selectedTicket.priority))} />
                       {selectedTicket.priority}
                     </Badge>
                   </div>
                 </div>
                 <Button variant="ghost" onClick={() => setSelectedTicket(null)}>
-                  ✕
+                  <XCircle className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
@@ -469,9 +474,9 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
               {/* Error Details */}
               {selectedTicket.errorStack && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Error Stack Trace</h4>
-                  <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                    <pre className="text-xs overflow-x-auto text-red-900 dark:text-red-200">
+                  <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">Error Stack Trace</h4>
+                  <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-xl">
+                    <pre className="text-[11px] overflow-x-auto text-gray-700 dark:text-gray-300 font-mono">
                       {selectedTicket.errorStack}
                     </pre>
                   </div>
@@ -556,9 +561,9 @@ export default function TicketManager({ defaultOpenId }: { defaultOpenId?: strin
             onClick={(e) => e.stopPropagation()}
           >
             <CardHeader>
-              <CardTitle className="text-xl text-red-600 dark:text-red-400 flex items-center gap-2">
-                <AlertCircle className="h-6 w-6" />
-                Confirm Delete
+              <CardTitle className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <AlertCircle className="h-[18px] w-[18px] text-red-500" strokeWidth={1.75} />
+                Delete ticket?
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

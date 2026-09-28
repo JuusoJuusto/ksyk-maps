@@ -323,53 +323,51 @@ function NotificationsPanel({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold">Push Notifications</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">Push Notifications</h2>
+        <p className="text-[13px] text-muted-foreground mt-1">
           Send real FCM push notifications to every installed KSYK Maps device.
         </p>
       </div>
 
       {/* FCM + announcement stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card>
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">FCM</p>
-            <p className={`text-lg font-bold mt-0.5 ${fcmStats?.configured ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">FCM</p>
+            <p className={`text-[17px] font-semibold mt-1 ${fcmStats?.configured ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
               {fcmStats === null ? "…" : fcmStats.configured ? "Ready" : "Not set up"}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Firebase Admin SDK</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Firebase Admin SDK</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Devices</p>
-            <p className="text-2xl font-bold">{(fcmStats as any)?.totalDevices ?? "…"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">registered tokens</p>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">Devices</p>
+            <p className="text-[22px] font-semibold mt-1 tabular-nums text-gray-900 dark:text-white">{(fcmStats as any)?.totalDevices ?? "…"}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">registered tokens</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active 7d</p>
-            <p className="text-2xl font-bold">{(fcmStats as any)?.active7d ?? fcmStats?.active30d ?? "…"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">recent devices</p>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">Active 7d</p>
+            <p className="text-[22px] font-semibold mt-1 tabular-nums text-gray-900 dark:text-white">{(fcmStats as any)?.active7d ?? fcmStats?.active30d ?? "…"}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">recent devices</p>
           </CardContent>
         </Card>
         {lastResult ? (
-          <Card>
-            <CardContent className="p-4 flex items-start gap-2">
-              <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${lastResult.sent > 0 ? "text-emerald-600" : "text-amber-600"}`} />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-muted-foreground">Last result</p>
-                <p className="text-sm font-bold">{lastResult.sent}/{lastResult.total} delivered</p>
-              </div>
+          <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
+            <CardContent className="p-4">
+              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">Last result</p>
+              <p className={`text-[17px] font-semibold mt-1 tabular-nums ${lastResult.sent > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>{lastResult.sent}/{lastResult.total}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">delivered</p>
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Announcements</p>
-              <p className="text-2xl font-bold">{announcements.length}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">all time</p>
+              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">Announcements</p>
+              <p className="text-[22px] font-semibold mt-1 tabular-nums text-gray-900 dark:text-white">{announcements.length}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">all time</p>
             </CardContent>
           </Card>
         )}
@@ -377,20 +375,23 @@ function NotificationsPanel({
 
       {/* Per-token FCM error details from the most recent broadcast/test */}
       {(lastResult?.warning || (lastResult?.errors && lastResult.errors.length > 0)) && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-800 dark:text-amber-300">Last send diagnostics</CardTitle>
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+              <AlertTriangle className="h-[18px] w-[18px] text-amber-500" strokeWidth={1.75} />
+              Last send diagnostics
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-amber-800 dark:text-amber-300">
+          <CardContent className="space-y-2 text-[13px] text-muted-foreground">
             {lastResult.warning && (
-              <p className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded">{lastResult.warning}</p>
+              <p className="p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">{lastResult.warning}</p>
             )}
             {lastResult.errors && lastResult.errors.length > 0 && (
               <div>
-                <p className="font-semibold mb-1">Per-token errors:</p>
-                <ul className="space-y-0.5 font-mono text-[10px]">
+                <p className="font-semibold mb-1 text-gray-900 dark:text-white">Per-token errors:</p>
+                <ul className="space-y-0.5 font-mono text-[11px]">
                   {lastResult.errors.map((e, i) => (
-                    <li key={i} className="bg-amber-100 dark:bg-amber-900/40 p-1 rounded break-all">{e}</li>
+                    <li key={i} className="bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded break-all">{e}</li>
                   ))}
                 </ul>
               </div>
@@ -401,15 +402,15 @@ function NotificationsPanel({
 
       {/* Firebase Admin init error — surfaces the exact reason FCM sends fail */}
       {fcmStats?.initError && (
-        <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardContent className="p-4 flex gap-3">
-            <Bell className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800 dark:text-red-300 flex-1 min-w-0">
-              <p className="font-semibold mb-1">Firebase Admin init failed</p>
-              <p className="font-mono text-xs bg-red-100 dark:bg-red-900/40 p-2 rounded break-all">{fcmStats.initError}</p>
-              <p className="text-red-700 dark:text-red-400 text-xs mt-2">
+            <AlertTriangle className="h-[18px] w-[18px] text-red-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="text-[13px] flex-1 min-w-0">
+              <p className="font-semibold mb-1 text-gray-900 dark:text-white">Firebase Admin init failed</p>
+              <p className="font-mono text-[11px] bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg break-all">{fcmStats.initError}</p>
+              <p className="text-muted-foreground mt-2">
                 Common causes: private key not converted from <code>\n</code>, service account revoked, Firebase Cloud Messaging API V1 disabled at
-                {" "}<a className="underline" href="https://console.cloud.google.com/apis/library/fcm.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com/apis/library/fcm.googleapis.com</a>.
+                {" "}<a className="underline text-blue-600 dark:text-blue-400" href="https://console.cloud.google.com/apis/library/fcm.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com/apis/library/fcm.googleapis.com</a>.
               </p>
             </div>
           </CardContent>
@@ -418,15 +419,15 @@ function NotificationsPanel({
 
       {/* FCM not configured warning */}
       {fcmStats && !fcmStats.configured && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardContent className="p-4 flex gap-3">
-            <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-800 dark:text-amber-300">
-              <p className="font-semibold mb-1">FCM not configured</p>
-              <p className="text-amber-700 dark:text-amber-400 text-xs">
-                Set <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_PROJECT_ID</code>,{" "}
-                <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_CLIENT_EMAIL</code> and{" "}
-                <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">FIREBASE_PRIVATE_KEY</code> environment variables on the server.
+            <AlertTriangle className="h-[18px] w-[18px] text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="text-[13px]">
+              <p className="font-semibold mb-1 text-gray-900 dark:text-white">FCM not configured</p>
+              <p className="text-muted-foreground">
+                Set <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">FIREBASE_PROJECT_ID</code>,{" "}
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">FIREBASE_CLIENT_EMAIL</code> and{" "}
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">FIREBASE_PRIVATE_KEY</code> environment variables on the server.
                 Announcements will still be saved but push delivery will be skipped.
               </p>
             </div>
@@ -458,7 +459,7 @@ function NotificationsPanel({
                   toast({ title: "Failed", description: e?.message, variant: "destructive" });
                 }
               }}
-              className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+              className="h-8 px-3 rounded-lg text-[12px] font-medium border border-gray-200 dark:border-gray-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
             >
               Reset all tokens
             </button>
@@ -607,13 +608,18 @@ function InsightsPanel() {
   const activePill = pills.find(p => p.key === inner);
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+      <div className="flex flex-wrap gap-1.5 border-b border-gray-100 dark:border-gray-800 pb-3">
         {pills.map((p) => (
           <button
             key={p.key}
             onClick={() => setInner(p.key)}
             title={p.hint}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${inner === p.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+            className={cn(
+              "h-9 px-3.5 rounded-xl text-[13px] font-medium transition-colors",
+              inner === p.key
+                ? "bg-blue-600 text-white"
+                : "border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900",
+            )}
           >
             {p.label}
           </button>
@@ -640,13 +646,13 @@ function ErrorsPanel() {
   const SENTRY_PROJECT = "ksyk-maps";
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+          <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <AlertTriangle className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
             Sentry error tracking
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-[13px]">
             Web + Android crashes and unhandled exceptions are captured by Sentry.
             Individual event pages carry the linked <span className="font-mono text-[11px]">posthog_session</span> tag to jump to the replay.
           </CardDescription>
@@ -657,16 +663,16 @@ function ErrorsPanel() {
               href={`https://${SENTRY_ORG}.sentry.io/issues/?project=${SENTRY_PROJECT}&statsPeriod=24h`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-blue-600 text-white text-[14px] font-medium hover:bg-blue-700"
             >
-              <AlertTriangle className="h-3.5 w-3.5" />
+              <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
               Open Sentry Issues (24 h)
             </a>
             <a
               href={`https://${SENTRY_ORG}.sentry.io/discover/?project=${SENTRY_PROJECT}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted text-foreground text-sm font-semibold hover:bg-muted/80"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-[14px] font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
             >
               Discover events
             </a>
@@ -674,14 +680,14 @@ function ErrorsPanel() {
               href={`https://${SENTRY_ORG}.sentry.io/replays/?project=${SENTRY_PROJECT}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted text-foreground text-sm font-semibold hover:bg-muted/80"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-[14px] font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
             >
               Sentry replays
             </a>
           </div>
-          <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs">
-            <p className="font-semibold text-amber-900 dark:text-amber-200">Also see:</p>
-            <ul className="mt-1 space-y-1 text-amber-800 dark:text-amber-300">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-[13px] text-muted-foreground">
+            <p className="font-semibold text-gray-900 dark:text-white mb-1">Also see:</p>
+            <ul className="space-y-1">
               <li>· <strong>Feedback → Crashes</strong> tab: mobile crashes uploaded from the app's <em>Sovellus kaatui viimeksi</em> card.</li>
               <li>· <strong>Logs</strong> tab: server-side app_logs Postgres feed.</li>
               <li>· <strong>Analytics</strong> tab: session drill dialog "Watch replay in PostHog" button links to the session's recording.</li>
@@ -748,30 +754,30 @@ function FeedbackPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold">Feedback, Bugs & Crashes</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">Feedback, Bugs & Crashes</h2>
+        <p className="text-[13px] text-muted-foreground mt-1">
           Submitted from the KSYK Maps mobile app.
         </p>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setTab("feedback")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          Feedback ({tab === "feedback" ? items.length : "…"})
-        </button>
-        <button
-          onClick={() => setTab("bugs")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "bugs" ? "bg-destructive text-destructive-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          Bug Reports ({tab === "bugs" ? items.length : "…"})
-        </button>
-        <button
-          onClick={() => setTab("crashes")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "crashes" ? "bg-orange-600 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          Crashes ({tab === "crashes" ? items.length : "…"})
-        </button>
+      <div className="flex flex-wrap gap-1.5">
+        {(["feedback", "bugs", "crashes"] as const).map((k) => {
+          const active = tab === k;
+          const label = k === "feedback" ? "Feedback" : k === "bugs" ? "Bug Reports" : "Crashes";
+          return (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={cn(
+                "h-10 px-4 rounded-xl text-[13px] font-medium transition-colors",
+                active
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900",
+              )}
+            >
+              {label} ({tab === k ? items.length : "…"})
+            </button>
+          );
+        })}
       </div>
       {/* Status filter pills */}
       <div className="flex flex-wrap gap-1.5">
@@ -815,15 +821,7 @@ function FeedbackPanel() {
                       {tab === "crashes" && item.log_lines && (
                         <Badge variant="outline">{item.log_lines} lines</Badge>
                       )}
-                      <Badge
-                        className={
-                          currentStatus === "closed" || currentStatus === "archived"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-                            : currentStatus === "in_progress" || currentStatus === "reviewed"
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        }
-                      >
+                      <Badge variant="outline" className="rounded-full text-[11px] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
                         {currentStatus}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -1290,7 +1288,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
         {currentUser && (
           <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-sm shadow-blue-500/30">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-semibold">
                 {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
@@ -1341,9 +1339,9 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   </span>
                 </div>
                 <span className={cn(
-                  "hidden xs:inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ml-1",
-                  "bg-blue-50 border border-blue-200 text-blue-900",
-                  "dark:bg-blue-950/40 dark:border-blue-900/40 dark:text-blue-100",
+                  "hidden xs:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ml-1",
+                  "border border-gray-200 text-gray-600",
+                  "dark:border-gray-800 dark:text-gray-400",
                 )}>
                   {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </span>
@@ -1369,12 +1367,12 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           )}
           <div className="relative overflow-hidden">
             <div className="overflow-x-auto scrollbar-none px-3 py-2">
-              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl ring-1 ring-black/5 dark:ring-white/5 h-auto">
+              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl h-auto">
                 {NAV_ITEMS.map(({ value, label, Icon }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-600/30 rounded-lg px-3.5 min-h-[38px] text-xs font-semibold gap-1.5 inline-flex items-center transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
+                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-3.5 min-h-[38px] text-xs font-medium gap-1.5 inline-flex items-center transition-colors whitespace-nowrap"
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>{label}</span>
@@ -1415,19 +1413,13 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           if (!meta || activeTab === "campus-map") return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-6 pb-4 sm:pb-5 border-b border-gray-100 dark:border-gray-800">
-              <div className={cn(
-                "flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl mt-0.5",
-                "bg-blue-50 border border-blue-200 text-blue-900",
-                "dark:bg-blue-950/40 dark:border-blue-900/40 dark:text-blue-100",
-              )}>
-                <Icon className="h-5 w-5 sm:h-5.5 sm:w-5.5" strokeWidth={2.25} />
-              </div>
+            <div className="flex items-start gap-3 mb-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
               <div className="min-w-0 flex-1">
-                <h2 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-tight text-gray-900 dark:text-white">
+                <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.01em] leading-tight text-gray-900 dark:text-white">
                   {meta.title}
                 </h2>
-                <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-snug">
+                <p className="mt-1 text-[13px] text-muted-foreground leading-snug">
                   {meta.description}
                 </p>
               </div>
@@ -1465,30 +1457,27 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                 )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, bar: "bg-blue-500", iconBg: "bg-blue-500", icon: Building, tab: "__builder", sub: null },
-                    { label: "Rooms", value: total || (rooms as any[]).length, bar: "bg-emerald-500", iconBg: "bg-emerald-500", icon: MapPin, tab: "__builder", sub: total > 0 ? `${availPct}% available` : null },
-                    { label: "Staff", value: (staff as any[])?.length ?? 0, bar: "bg-amber-500", iconBg: "bg-amber-500", icon: IdCard, tab: "staff", sub: null },
-                    { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, bar: "bg-rose-500", iconBg: "bg-rose-500", icon: Megaphone, tab: "announcements", sub: "active" },
-                  ].map(({ label, value, bar, iconBg, icon: Icon, tab, sub }) => (
+                    { label: "Buildings", value: (buildings as any[])?.length ?? 0, icon: Building, tab: "__builder", sub: null },
+                    { label: "Rooms", value: total || (rooms as any[]).length, icon: MapPin, tab: "__builder", sub: total > 0 ? `${availPct}% available` : null },
+                    { label: "Staff", value: (staff as any[])?.length ?? 0, icon: IdCard, tab: "staff", sub: null },
+                    { label: "Announcements", value: (announcements as any[])?.filter((a: any) => a.isActive).length ?? 0, icon: Megaphone, tab: "announcements", sub: "active" },
+                  ].map(({ label, value, icon: Icon, tab, sub }) => (
                     <button key={label} type="button"
                       onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
                       className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-2xl active:scale-[0.98] transition-transform"
                       aria-label={`Go to ${label} tab`}>
-                      <Card className="relative overflow-hidden border-0 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 hover:ring-blue-200 dark:hover:ring-blue-900/50 transition-all duration-200 cursor-pointer">
-                        <div className={`absolute inset-x-0 top-0 h-1 ${bar}`} />
+                      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-colors cursor-pointer">
                         <CardContent className="p-4 md:p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
                               {isLoadingOverview
-                                ? <div className="h-9 w-16 mt-1 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                                : <p className="text-3xl md:text-4xl font-bold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
+                                ? <div className="h-8 w-16 mt-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                                : <p className="text-[26px] font-semibold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
                               }
-                              {sub && !isLoadingOverview && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
+                              {sub && !isLoadingOverview && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
                             </div>
-                            <div className={`p-2 rounded-xl ${iconBg} text-white shrink-0`}>
-                              <Icon className="h-5 w-5" />
-                            </div>
+                            <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-0.5" strokeWidth={1.75} />
                           </div>
                         </CardContent>
                       </Card>
@@ -1498,24 +1487,24 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
 
                 {/* Campus occupancy card */}
                 {total > 0 && (
-                  <Card className="overflow-hidden">
+                  <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-teal-500" />
+                        <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                          <MapPin className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
                           Campus Occupancy
                         </CardTitle>
                         <div className="flex items-center gap-3">
-                          <span className={`text-2xl font-black tabular-nums ${utilColor}`}>{utilPct}%</span>
-                          <span className="text-xs text-muted-foreground">in use</span>
-                          <span className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
-                          <span className="text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">{availPct}%</span>
-                          <span className="text-xs text-muted-foreground">free</span>
+                          <span className={`text-[22px] font-semibold tabular-nums ${utilColor}`}>{utilPct}%</span>
+                          <span className="text-[13px] text-muted-foreground">in use</span>
+                          <span className="h-4 w-px bg-gray-200 dark:bg-gray-800" />
+                          <span className="text-[22px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{availPct}%</span>
+                          <span className="text-[13px] text-muted-foreground">free</span>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0 space-y-3">
-                      <div className="flex h-4 rounded-full overflow-hidden gap-0.5">
+                      <div className="flex h-2.5 rounded-full overflow-hidden gap-0.5">
                         {statusDefs.map(({ key, bg, count }) => {
                           const pct = total > 0 ? (count / total) * 100 : 0;
                           if (pct === 0) return null;
@@ -1524,13 +1513,13 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                       </div>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {statusDefs.map(({ key, label, color, count }) => (
-                          <div key={key} className="flex flex-col gap-0.5 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                          <div key={key} className="flex flex-col gap-0.5 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800">
                             <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                              <span className="text-[10px] text-muted-foreground">{label}</span>
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                              <span className="text-[11px] text-muted-foreground">{label}</span>
                             </div>
-                            <span className="text-base font-black tabular-nums leading-none" style={{ color }}>{count}</span>
-                            <span className="text-[9px] text-muted-foreground">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
+                            <span className="text-[17px] font-semibold tabular-nums leading-none" style={{ color }}>{count}</span>
+                            <span className="text-[10px] text-muted-foreground">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
                           </div>
                         ))}
                       </div>
@@ -1570,37 +1559,38 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           })()}
 
           {/* Quick actions */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {[
-              { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements", accent: "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-400" },
-              { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff", accent: "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800 dark:text-violet-400" },
-              { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "__builder", accent: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400" },
-              { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map", accent: "bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-400" },
-              { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets", accent: "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400" },
-              { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "insights", accent: "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-950/30 dark:border-slate-800 dark:text-slate-400" },
-            ].map(({ label, desc, icon: Icon, tab, accent }) => (
-              <button key={label} type="button"
-                onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
-                className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all hover:-translate-y-px ${accent}`}>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-900/40">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold leading-tight">{label}</p>
-                  <p className="text-[10px] opacity-65 truncate mt-0.5">{desc}</p>
-                </div>
-              </button>
-            ))}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2 px-1">Quick actions</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements" },
+                { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff" },
+                { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "__builder" },
+                { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map" },
+                { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets" },
+                { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "insights" },
+              ].map(({ label, desc, icon: Icon, tab }) => (
+                <button key={label} type="button"
+                  onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-left transition-colors hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/70">
+                  <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium leading-tight text-gray-900 dark:text-white">{label}</p>
+                    <p className="text-[12px] text-muted-foreground truncate mt-0.5">{desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Campus buildings summary + latest announcements side by side on wide screens */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Campus buildings */}
-            <Card>
+            <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Building className="h-4 w-4 text-blue-500" />
+                  <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <Building className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
                     Campus Buildings
                   </CardTitle>
                   <button
@@ -1646,11 +1636,11 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             </Card>
 
             {/* Latest announcements */}
-            <Card>
+            <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Megaphone className="h-4 w-4 text-rose-500" />
+                  <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <Megaphone className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
                     Active Announcements
                   </CardTitle>
                   <button
@@ -1674,15 +1664,16 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                 ) : (
                   <div className="space-y-2">
                     {(announcements as Announcement[]).filter((a) => a.isActive).slice(0, 4).map((a) => (
-                      <div key={a.id} className="flex items-start gap-3 py-1.5 border-b last:border-0">
-                        <span className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
-                          a.priority === "urgent" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" :
-                          a.priority === "high" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" :
-                          "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
-                        }`}>{a.priority}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{a.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{a.content}</p>
+                      <div key={a.id} className="flex items-start gap-3 py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                        <span className={cn(
+                          "mt-1 shrink-0 h-1.5 w-1.5 rounded-full",
+                          a.priority === "urgent" ? "bg-red-500" :
+                          a.priority === "high" ? "bg-amber-500" :
+                          "bg-blue-500",
+                        )} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-medium truncate text-gray-900 dark:text-gray-100">{a.title}</p>
+                          <p className="text-[12px] text-muted-foreground truncate">{a.content}</p>
                         </div>
                       </div>
                     ))}
@@ -1995,9 +1986,9 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   {/* Password Viewer Modal */}
                   {viewingPassword && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
-                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">User Password</h3>
+                          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">User Password</h3>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -2006,25 +1997,23 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Email</p>
-                          <p className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                        <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Email</p>
+                          <p className="font-mono text-[13px] font-medium text-gray-900 dark:text-gray-100 mb-3">
                             {users.find((u: any) => u.id === viewingPassword)?.email}
                           </p>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Password</p>
-                          <p className="font-mono text-base font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-200 dark:border-blue-800 select-all">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Password</p>
+                          <p className="font-mono text-[15px] font-semibold text-blue-600 dark:text-blue-400 select-all">
                             {users.find((u: any) => u.id === viewingPassword)?.password || "No password set"}
                           </p>
                         </div>
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                          <p className="text-xs text-amber-800 dark:text-amber-300">
-                            Keep this password secure. Share it only with the intended user.
-                          </p>
-                        </div>
+                        <p className="text-[12px] text-muted-foreground">
+                          Keep this password secure. Share it only with the intended user.
+                        </p>
                         <div className="flex justify-end mt-4">
                           <Button
                             onClick={() => setViewingPassword(null)}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium"
                           >
                             Close
                           </Button>
@@ -2053,21 +2042,15 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
                             <td className="px-4 py-3">
-                              <Badge className={`capitalize text-xs font-semibold px-2 py-0.5 ${
-                                user.role === 'owner' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-700' :
-                                user.role === 'admin' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700' :
-                                user.role === 'user' ? 'bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700' :
-                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'
-                              }`}>
+                              <Badge variant="outline" className="capitalize text-[11px] font-medium px-2 py-0.5 rounded-full border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
                                 {user.role}
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge className={user.isActive !== false
-                                ? "bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300"
-                                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"}>
+                              <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-600 dark:text-gray-400">
+                                <span className={cn("h-1.5 w-1.5 rounded-full", user.isActive !== false ? "bg-emerald-500" : "bg-gray-400")} />
                                 {user.isActive !== false ? "Active" : "Inactive"}
-                              </Badge>
+                              </span>
                             </td>
                             <td className="px-4 py-3">
                               {user.email !== "JuusoJuusto112@gmail.com" ? (
@@ -2111,7 +2094,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                                   </div>
                                 )
                               ) : (
-                                <Badge className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700">Owner</Badge>
+                                <Badge variant="outline" className="text-[11px] rounded-full border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">Owner</Badge>
                               )}
                             </td>
                           </tr>
@@ -2339,12 +2322,12 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                     onClick={() => { setShowStaffForm(false); setEditingStaff(null); }}>
                     Cancel
                   </Button>
-                  <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                  <Button size="sm" className="h-9 px-4 rounded-xl text-[13px] bg-blue-600 hover:bg-blue-700 text-white font-medium"
                     disabled={createStaffMutation.isPending || updateStaffMutation.isPending}
                     onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}>
                     {(createStaffMutation.isPending || updateStaffMutation.isPending)
                       ? <><span className="h-3 w-3 mr-1.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />Saving…</>
-                      : <><Save className="h-3.5 w-3.5 mr-1.5" />{editingStaff ? "Update" : "Add"} Member</>}
+                      : <><Save className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.75} />{editingStaff ? "Update" : "Add"} Member</>}
                   </Button>
                 </div>
               </CardContent>
@@ -2354,16 +2337,16 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           {/* Staff Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Total", value: staff.length, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", Icon: Users },
-              { label: "Active", value: staff.filter((s: Staff) => s.isActive).length, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30", Icon: Users },
-              { label: "Departments", value: new Set(staff.map((s: Staff) => s.department).filter(Boolean)).size, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30", Icon: Building },
-              { label: "Positions", value: new Set(staff.map((s: Staff) => s.position).filter(Boolean)).size, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30", Icon: Layers },
-            ].map(({ label, value, color, bg, Icon }) => (
-              <div key={label} className={`rounded-xl ${bg} p-4 flex items-center gap-3`}>
-                <Icon className={`h-5 w-5 shrink-0 ${color}`} />
+              { label: "Total", value: staff.length, color: "text-blue-600 dark:text-blue-400", Icon: Users },
+              { label: "Active", value: staff.filter((s: Staff) => s.isActive).length, color: "text-emerald-600 dark:text-emerald-400", Icon: Users },
+              { label: "Departments", value: new Set(staff.map((s: Staff) => s.department).filter(Boolean)).size, color: "text-purple-600 dark:text-purple-400", Icon: Building },
+              { label: "Positions", value: new Set(staff.map((s: Staff) => s.position).filter(Boolean)).size, color: "text-amber-600 dark:text-amber-400", Icon: Layers },
+            ].map(({ label, value, color, Icon }) => (
+              <div key={label} className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex items-center gap-3">
+                <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">{label}</p>
-                  <p className={`text-2xl font-bold tabular-nums ${color}`}>{value}</p>
+                  <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.08em]">{label}</p>
+                  <p className={cn("text-[22px] font-semibold tabular-nums mt-0.5", color)}>{value}</p>
                 </div>
               </div>
             ))}

@@ -126,21 +126,18 @@ export default function SecuritySettingsPanel() {
   return (
     <div className="space-y-5">
       {/* Hero strip */}
-      <Card className="border-0 shadow-md overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-              <Shield className="h-5 w-5" />
-            </div>
+            <Shield className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-base">Security & access</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Security & access</CardTitle>
+              <CardDescription className="text-[13px]">
                 Control who can use the map, when, and from where. Owner / admin accounts always bypass these rules.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Label htmlFor="sec-master" className="text-xs font-semibold">
+              <Label htmlFor="sec-master" className="text-[13px] font-medium">
                 {draft.enabled ? "Active" : "Disabled"}
               </Label>
               <Switch
@@ -153,12 +150,12 @@ export default function SecuritySettingsPanel() {
         </CardHeader>
         {!draft.enabled && (
           <CardContent className="pt-0">
-            <Alert variant="default" className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs text-amber-900 dark:text-amber-200">
+            <div className="flex items-start gap-2.5 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
+              <AlertTriangle className="h-[18px] w-[18px] text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+              <p className="text-[13px] text-gray-700 dark:text-gray-300">
                 Security gate is currently <strong>disabled</strong> — every visitor gets full access.
-              </AlertDescription>
-            </Alert>
+              </p>
+            </div>
           </CardContent>
         )}
       </Card>
@@ -167,15 +164,13 @@ export default function SecuritySettingsPanel() {
       <DecisionPreview draft={draft} />
 
       {/* Time window */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400">
-              <Clock className="h-4 w-4" />
-            </div>
+            <Clock className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-sm">Time-based access</CardTitle>
-              <CardDescription className="text-xs">School hours, weekends, holidays.</CardDescription>
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Time-based access</CardTitle>
+              <CardDescription className="text-[13px]">School hours, weekends, holidays.</CardDescription>
             </div>
             <Switch checked={draft.timeWindowEnabled} onCheckedChange={(v) => patch("timeWindowEnabled", v)} />
           </div>
@@ -210,15 +205,13 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* IP gate */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-              <Wifi className="h-4 w-4" />
-            </div>
+            <Wifi className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-sm">Network / IP gate</CardTitle>
-              <CardDescription className="text-xs">Only allow the school Wi-Fi (or any list of CIDR ranges).</CardDescription>
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Network / IP gate</CardTitle>
+              <CardDescription className="text-[13px]">Only allow the school Wi-Fi (or any list of CIDR ranges).</CardDescription>
             </div>
             <Switch checked={draft.ipGateEnabled} onCheckedChange={(v) => patch("ipGateEnabled", v)} />
           </div>
@@ -235,15 +228,13 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* Login gate */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-              <Mail className="h-4 w-4" />
-            </div>
+            <Mail className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-sm">School-email login</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">School-email login</CardTitle>
+              <CardDescription className="text-[13px]">
                 Require sign-in with a @ksyk.fi (or any) domain via Microsoft.
               </CardDescription>
             </div>
@@ -290,15 +281,13 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* Exceptions */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-              <UserCheck className="h-4 w-4" />
-            </div>
+            <UserCheck className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-sm">Per-user exceptions</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Per-user exceptions</CardTitle>
+              <CardDescription className="text-[13px]">
                 Override the computed tier for specific users (e.g. give a guest full access).
               </CardDescription>
             </div>
@@ -313,19 +302,17 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* Access requests inbox */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
-              <Inbox className="h-4 w-4" />
-            </div>
+            <Inbox className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1">
-              <CardTitle className="text-sm">Access requests</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Access requests</CardTitle>
+              <CardDescription className="text-[13px]">
                 Submitted from the lockout screen. Approving creates a "full" exception for that email.
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="outline" className="text-[11px] rounded-full">
               {draft.accessRequests.filter((r) => r.status === "pending").length} pending
             </Badge>
           </div>
@@ -413,24 +400,24 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* Lockout message + dry run */}
-      <Card>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Lockout screen</CardTitle>
-          <CardDescription className="text-xs">Shown to blocked users.</CardDescription>
+          <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Lockout screen</CardTitle>
+          <CardDescription className="text-[13px]">Shown to blocked users.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Label className="text-xs font-semibold">Message</Label>
+          <Label className="text-[13px] font-medium">Message</Label>
           <textarea
             value={draft.lockoutMessage}
             onChange={(e) => patch("lockoutMessage", e.target.value)}
             rows={3}
-            className="w-full text-sm p-2.5 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
+            className="w-full text-[14px] p-2.5 border border-gray-200 dark:border-gray-800 bg-background rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
           />
-          <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 cursor-pointer">
-            <FlaskConical className="h-4 w-4 text-amber-600 shrink-0" />
+          <label className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 cursor-pointer">
+            <FlaskConical className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Dry-run mode</p>
-              <p className="text-[11px] text-amber-700 dark:text-amber-300/80">
+              <p className="text-[14px] font-medium text-gray-900 dark:text-white">Dry-run mode</p>
+              <p className="text-[12px] text-muted-foreground">
                 Logs the decision but doesn't enforce it. Use to test rules safely.
               </p>
             </div>
@@ -440,29 +427,26 @@ export default function SecuritySettingsPanel() {
       </Card>
 
       {/* Bottom action bar — sticky-ish via mt-auto */}
-      <div className={cn(
-        "sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 z-10",
-        dirty && "shadow-2xl",
-      )}>
+      <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 z-10">
         <Button
           variant="ghost"
           size="sm"
           onClick={handleResetDefaults}
-          className="text-xs gap-1.5 text-muted-foreground hover:text-red-600"
+          className="text-[13px] gap-1.5 text-muted-foreground hover:text-red-600"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
+          <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} /> Reset to defaults
         </Button>
         <div className="flex-1" />
         {dirty && (
-          <Button variant="outline" size="sm" onClick={handleDiscard}>Discard</Button>
+          <Button variant="outline" size="sm" onClick={handleDiscard} className="h-10 px-4 rounded-xl border-gray-200 dark:border-gray-800 text-[14px]">Discard</Button>
         )}
         <Button
           size="sm"
           onClick={handleSave}
           disabled={!dirty || saving}
-          className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+          className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium gap-1.5"
         >
-          <Save className="h-3.5 w-3.5" />
+          <Save className="h-3.5 w-3.5" strokeWidth={1.75} />
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>
@@ -500,13 +484,13 @@ function DecisionPreview({ draft }: { draft: SecuritySettings }) {
   const tierColor = decision.tier === "full" ? "emerald" : decision.tier === "restricted" ? "amber" : "red";
 
   return (
-    <Card className="border-dashed">
+    <Card className="border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <FlaskConical className="h-4 w-4 text-blue-500" />
-          <CardTitle className="text-sm">Live decision preview</CardTitle>
+          <FlaskConical className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
+          <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">Live decision preview</CardTitle>
         </div>
-        <CardDescription className="text-xs">
+        <CardDescription className="text-[13px]">
           Test how a specific user / IP / time would be treated under your current draft.
         </CardDescription>
       </CardHeader>
@@ -516,42 +500,45 @@ function DecisionPreview({ draft }: { draft: SecuritySettings }) {
             placeholder="user@ksyk.fi"
             value={previewEmail}
             onChange={(e) => setPreviewEmail(e.target.value)}
-            className="h-9 text-sm"
+            className="h-10 text-[14px] rounded-xl"
           />
           <Input
             placeholder="192.168.1.10"
             value={previewIp}
             onChange={(e) => setPreviewIp(e.target.value)}
-            className="h-9 text-sm font-mono"
+            className="h-10 text-[14px] font-mono rounded-xl"
           />
           <select
             value={previewWhen}
             onChange={(e) => setPreviewWhen(e.target.value as typeof previewWhen)}
-            className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm"
+            className="h-10 rounded-xl border border-gray-200 dark:border-gray-800 bg-background px-2.5 text-[14px]"
           >
             <option value="now">Right now</option>
             <option value="after-hours">After hours (10pm)</option>
             <option value="weekend">Saturday morning</option>
           </select>
         </div>
-        <div className={cn(
-          "flex items-start gap-3 p-3 rounded-lg border",
-          tierColor === "emerald" && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50",
-          tierColor === "amber" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50",
-          tierColor === "red" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50",
-        )}>
+        <div className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800">
           <span className={cn(
-            "shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-            tierColor === "emerald" && "bg-emerald-500 text-white",
-            tierColor === "amber" && "bg-amber-500 text-white",
-            tierColor === "red" && "bg-red-500 text-white",
-          )}>
-            {decision.tier}
-          </span>
-          <p className="text-xs flex-1 min-w-0">
-            {decision.reason}
-            {decision.nextOpen && <span className="block mt-1 text-muted-foreground">Opens {decision.nextOpen.en}</span>}
-          </p>
+            "shrink-0 h-2 w-2 rounded-full mt-1.5",
+            tierColor === "emerald" && "bg-emerald-500",
+            tierColor === "amber" && "bg-amber-500",
+            tierColor === "red" && "bg-red-500",
+          )} />
+          <div className="flex-1 min-w-0">
+            <p className={cn(
+              "text-[13px] font-semibold uppercase tracking-[0.08em] mb-0.5",
+              tierColor === "emerald" && "text-emerald-600 dark:text-emerald-400",
+              tierColor === "amber" && "text-amber-600 dark:text-amber-400",
+              tierColor === "red" && "text-red-600 dark:text-red-400",
+            )}>
+              {decision.tier}
+            </p>
+            <p className="text-[13px] text-muted-foreground">
+              {decision.reason}
+              {decision.nextOpen && <span className="block mt-1">Opens {decision.nextOpen.en}</span>}
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -765,31 +752,36 @@ function RequestsInbox({ requests, onApprove, onDeny, onClear }: {
       <div className="space-y-1.5 max-h-72 overflow-y-auto">
         {requests.map((r) => (
           <div key={r.id} className={cn(
-            "flex items-start gap-3 p-2.5 rounded-lg border",
-            r.status === "pending" && "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/30",
-            r.status === "approved" && "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/30",
-            r.status === "denied" && "bg-gray-50 dark:bg-gray-800/40 border-gray-200/50 dark:border-gray-800/50 opacity-60",
+            "flex items-start gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800",
+            r.status === "denied" && "opacity-60",
           )}>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">{r.email}</p>
-              {r.reason && <p className="text-[11px] text-muted-foreground truncate">{r.reason}</p>}
-              <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
+              <p className="text-[13px] font-medium truncate text-gray-900 dark:text-white">{r.email}</p>
+              {r.reason && <p className="text-[12px] text-muted-foreground truncate">{r.reason}</p>}
+              <p className="text-[11px] text-muted-foreground mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
             </div>
             {r.status === "pending" ? (
               <div className="flex gap-1 shrink-0">
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-emerald-600 border-emerald-300" onClick={() => onApprove(r)}>
-                  <CheckCircle2 className="h-3 w-3" />Approve
+                <Button size="sm" variant="outline" className="h-8 text-[12px] rounded-lg gap-1 border-gray-200 dark:border-gray-800" onClick={() => onApprove(r)}>
+                  <CheckCircle2 className="h-3 w-3" strokeWidth={1.75} />Approve
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600" onClick={() => onDeny(r)}>
+                <Button size="sm" variant="ghost" className="h-8 text-[12px] rounded-lg text-red-600" onClick={() => onDeny(r)}>
                   Deny
                 </Button>
               </div>
             ) : (
-              <Badge variant="secondary" className={cn(
-                "text-[10px] shrink-0 capitalize",
-                r.status === "approved" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-                r.status === "denied" && "bg-red-500/15 text-red-700 dark:text-red-300",
-              )}>{r.status}</Badge>
+              <span className={cn(
+                "inline-flex items-center gap-1.5 text-[12px] capitalize shrink-0",
+                r.status === "approved" && "text-emerald-600 dark:text-emerald-400",
+                r.status === "denied" && "text-red-600 dark:text-red-400",
+              )}>
+                <span className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  r.status === "approved" && "bg-emerald-500",
+                  r.status === "denied" && "bg-red-500",
+                )} />
+                {r.status}
+              </span>
             )}
           </div>
         ))}

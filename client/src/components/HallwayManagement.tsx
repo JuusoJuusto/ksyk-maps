@@ -195,17 +195,17 @@ export default function HallwayManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Route className="h-6 w-6" />
+          <h2 className="text-[17px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <Route className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
             Hallway Management
           </h2>
-          <p className="text-muted-foreground">Manage hallways and corridors in buildings</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">Manage hallways and corridors in buildings</p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingHallway(null)} data-testid="button-add-hallway" className="bg-blue-600 hover:bg-blue-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={() => setEditingHallway(null)} data-testid="button-add-hallway" className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium">
+              <Plus className="h-4 w-4 mr-2" strokeWidth={1.75} />
               Add Hallway
             </Button>
           </DialogTrigger>

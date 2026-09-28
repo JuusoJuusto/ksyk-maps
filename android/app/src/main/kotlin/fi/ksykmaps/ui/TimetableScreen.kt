@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -269,15 +268,18 @@ fun TimetableScreen(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            dayName.replaceFirstChar { it.titlecase(loc) },
-                            fontSize = 32.sp,
+                            // Finnish weekdays stay lowercase per Finnish orthography;
+                            // English title-cases as usual.
+                            if (lang == "fi") dayName.lowercase(loc)
+                            else dayName.replaceFirstChar { it.titlecase(loc) },
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 36.sp,
+                            letterSpacing = (-0.4).sp,
                         )
                         Text(
                             monthDay,
-                            fontSize = 15.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = if (isToday) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -509,16 +511,18 @@ private fun TodayGlanceCard(
                     if (current.roomId.isNotBlank()) {
                         Box(
                             Modifier
-                                .size(44.dp)
-                                .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
-                                .clickable { onNavigate(current) },
+                                .clickable(
+                                    onClickLabel = if (lang == "fi") "Navigoi luokkaan" else "Navigate to room",
+                                ) { onNavigate(current) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.Outlined.Navigation, null,
-                                Modifier.size(20.dp),
+                                Icons.Outlined.Navigation,
+                                contentDescription = if (lang == "fi") "Navigoi" else "Navigate",
+                                modifier = Modifier.size(22.dp),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }

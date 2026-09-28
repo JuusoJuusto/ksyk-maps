@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -573,37 +574,46 @@ fun MapScreen() {
             Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 12.dp)
-                .widthIn(max = 46.dp),
+                .widthIn(max = 48.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Zoom pair rendered as a single rounded rect with a divider.
             GroupedPill(
                 items = listOf(
-                    Icons.Outlined.Add to {
-                        mapRef?.let { m ->
-                            m.animateCamera(
-                                CameraUpdateFactory.zoomTo(
-                                    (m.cameraPosition.zoom + 1.0).coerceAtMost(21.0),
-                                ),
-                                220,
-                            )
-                        }
-                    },
-                    Icons.Outlined.Remove to {
-                        mapRef?.let { m ->
-                            m.animateCamera(
-                                CameraUpdateFactory.zoomTo(
-                                    (m.cameraPosition.zoom - 1.0).coerceAtLeast(12.0),
-                                ),
-                                220,
-                            )
-                        }
-                    },
+                    Triple(
+                        Icons.Outlined.Add,
+                        if (lang == "fi") "Lähennä" else "Zoom in",
+                        {
+                            mapRef?.let { m ->
+                                m.animateCamera(
+                                    CameraUpdateFactory.zoomTo(
+                                        (m.cameraPosition.zoom + 1.0).coerceAtMost(21.0),
+                                    ),
+                                    220,
+                                )
+                            }
+                        },
+                    ),
+                    Triple(
+                        Icons.Outlined.Remove,
+                        if (lang == "fi") "Loitonna" else "Zoom out",
+                        {
+                            mapRef?.let { m ->
+                                m.animateCamera(
+                                    CameraUpdateFactory.zoomTo(
+                                        (m.cameraPosition.zoom - 1.0).coerceAtLeast(12.0),
+                                    ),
+                                    220,
+                                )
+                            }
+                        },
+                    ),
                 ),
             )
             PillButton(
                 icon = Icons.Outlined.MyLocation,
+                contentDescription = if (lang == "fi") "Näytä sijaintini" else "Show my location",
                 selected = followMe,
                 onClick = {
                     val perm = ContextCompat.checkSelfPermission(
@@ -619,6 +629,7 @@ fun MapScreen() {
             )
             PillButton(
                 icon = Icons.Outlined.Refresh,
+                contentDescription = if (lang == "fi") "Päivitä ja keskitä kartta" else "Refresh and recentre map",
                 onClick = {
                     dataRetry++
                     MapHolder.autofitDone = false
@@ -1436,24 +1447,30 @@ private fun enableLocation(ctx: android.content.Context, map: MapLibreMap) {
 @Composable
 private fun PillButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String? = null,
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(14.dp)
     val bg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
     else MaterialTheme.colorScheme.surface
     val fg = if (selected) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .shadow(6.dp, shape, spotColor = Color(0x40000000))
+            .size(46.dp)
+            .shadow(3.dp, shape, spotColor = Color(0x33000000))
             .clip(shape)
             .background(bg)
-            .clickable(onClick = onClick),
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                shape = shape,
+            )
+            .clickable(onClickLabel = contentDescription, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = contentDescription, tint = fg, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -1464,26 +1481,32 @@ private fun PillButton(
  */
 @Composable
 private fun GroupedPill(
-    items: List<Pair<androidx.compose.ui.graphics.vector.ImageVector, () -> Unit>>,
+    items: List<Triple<androidx.compose.ui.graphics.vector.ImageVector, String?, () -> Unit>>,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(14.dp)
     Column(
         Modifier
-            .width(44.dp)
-            .shadow(6.dp, shape, spotColor = Color(0x40000000))
+            .width(46.dp)
+            .shadow(3.dp, shape, spotColor = Color(0x33000000))
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                shape = shape,
+            ),
     ) {
-        items.forEachIndexed { i, (icon, action) ->
+        items.forEachIndexed { i, (icon, description, action) ->
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(42.dp)
-                    .clickable(onClick = action),
+                    .height(44.dp)
+                    .clickable(onClickLabel = description, onClick = action),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    icon, null,
+                    icon,
+                    contentDescription = description,
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                     modifier = Modifier.size(20.dp),
                 )

@@ -91,26 +91,22 @@ export default function AdminResetPassword() {
     <div
       className={cn(
         "min-h-screen flex items-center justify-center p-4",
-        darkMode
-          ? "bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900"
-          : "bg-gradient-to-br from-slate-50 via-white to-blue-50/60",
+        darkMode ? "bg-gray-950" : "bg-white",
       )}
     >
       <div
         className={cn(
-          "w-full max-w-md rounded-2xl border shadow-xl p-8",
-          darkMode ? "bg-gray-950/90 border-gray-800" : "bg-white border-gray-200",
+          "w-full max-w-md rounded-2xl border p-8",
+          darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
         )}
       >
-        <div className="flex items-center gap-2 mb-6">
-          <div className="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shadow-blue-600/25">
-            <Lock className="h-4 w-4" />
-          </div>
+        <div className="flex items-center gap-2.5 mb-6">
+          <Lock className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500">
               KSYK Admin
             </p>
-            <h1 className={cn("text-lg font-bold tracking-tight leading-none mt-0.5", darkMode ? "text-white" : "text-gray-900")}>
+            <h1 className={cn("text-[17px] font-semibold tracking-tight leading-none mt-0.5", darkMode ? "text-white" : "text-gray-900")}>
               Choose a new password
             </h1>
           </div>

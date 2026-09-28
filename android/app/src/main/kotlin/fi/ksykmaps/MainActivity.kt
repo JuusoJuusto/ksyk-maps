@@ -12,12 +12,16 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,7 +30,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.Session
 import fi.ksykmaps.ui.AdminPanelScreen
@@ -191,7 +194,12 @@ object NotifNavIntent {
     var pendingTab: String? = null
 }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+    val iconSelected: ImageVector,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -429,39 +437,40 @@ private fun BottomBar(
     onTabSelected: (String) -> Unit,
 ) {
     val tabs = if (lang == "fi") listOf(
-        Tab("home",      "Koti",      Icons.Outlined.Home),
-        Tab("map",       "Kartta",    Icons.Outlined.Map),
-        Tab("timetable", "Tunnit",    Icons.Outlined.CalendarMonth),
-        Tab("lunch",     "Lounas",    Icons.Outlined.Restaurant),
-        Tab("settings",  "Asetukset", Icons.Outlined.Settings),
+        Tab("home",      "Koti",      Icons.Outlined.Home,         Icons.Rounded.Home),
+        Tab("map",       "Kartta",    Icons.Outlined.Map,          Icons.Rounded.Map),
+        Tab("timetable", "Tunnit",    Icons.Outlined.CalendarMonth, Icons.Rounded.CalendarMonth),
+        Tab("lunch",     "Lounas",    Icons.Outlined.Restaurant,   Icons.Rounded.Restaurant),
+        Tab("settings",  "Asetukset", Icons.Outlined.Settings,     Icons.Rounded.Settings),
     ) else listOf(
-        Tab("home",      "Home",      Icons.Outlined.Home),
-        Tab("map",       "Map",       Icons.Outlined.Map),
-        Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth),
-        Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant),
-        Tab("settings",  "Settings",  Icons.Outlined.Settings),
+        Tab("home",      "Home",      Icons.Outlined.Home,         Icons.Rounded.Home),
+        Tab("map",       "Map",       Icons.Outlined.Map,          Icons.Rounded.Map),
+        Tab("timetable", "Timetable", Icons.Outlined.CalendarMonth, Icons.Rounded.CalendarMonth),
+        Tab("lunch",     "Lunch",     Icons.Outlined.Restaurant,   Icons.Rounded.Restaurant),
+        Tab("settings",  "Settings",  Icons.Outlined.Settings,     Icons.Rounded.Settings),
     )
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        modifier = Modifier.height(72.dp),
+        modifier = Modifier.height(80.dp),
     ) {
         tabs.forEach { tab ->
+            val isSelected = selectedTab == tab.route
             NavigationBarItem(
-                selected  = selectedTab == tab.route,
+                selected  = isSelected,
                 onClick   = { onTabSelected(tab.route) },
                 icon      = {
                     Icon(
-                        tab.icon,
+                        if (isSelected) tab.iconSelected else tab.icon,
                         contentDescription = tab.label,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 },
                 label     = {
                     androidx.compose.material3.Text(
                         tab.label,
-                        fontSize = 11.sp,
-                        fontWeight = if (selectedTab == tab.route)
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected)
                             androidx.compose.ui.text.font.FontWeight.SemiBold
                         else androidx.compose.ui.text.font.FontWeight.Medium,
                     )

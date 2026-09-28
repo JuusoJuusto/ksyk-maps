@@ -513,16 +513,14 @@ export default function AppLogsManager() {
             </TabsList>
 
             <TabsContent value="live" className="mt-4">
-              <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-800 dark:text-green-300 font-semibold">Live Activity Feed</span>
-                  <Badge variant="outline" className="text-green-700 dark:text-green-400 border-green-300 dark:border-green-700">
-                    Real-time
-                  </Badge>
+              <div className="mb-4 p-4 border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[14px] font-semibold text-gray-900 dark:text-white">Live activity feed</span>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Real-time</span>
                 </div>
-                <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                  Showing real user activity on KSYK Maps (updates every 10 seconds)
+                <p className="text-[12px] text-muted-foreground mt-1">
+                  Showing real user activity on KSYK Maps (updates every 10 seconds).
                 </p>
               </div>
               
@@ -543,7 +541,7 @@ export default function AppLogsManager() {
                     analyticsEvents.map((event: any) => (
                       <div
                         key={event.id}
-                        className="border rounded-lg p-4 transition-all hover:shadow-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
+                        className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 transition-colors bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center space-x-3">

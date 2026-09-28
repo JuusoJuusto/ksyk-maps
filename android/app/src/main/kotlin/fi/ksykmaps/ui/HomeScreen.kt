@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -28,7 +29,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -442,13 +442,19 @@ private fun GreetingHeader(
         if (userName.isNotBlank()) "$base, $userName" else base
     }
     val dateLine = remember(locale) {
-        val day = now.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
-            .replaceFirstChar { it.uppercase(locale) }
+        // Finnish orthography: weekday and month names are lowercase in prose.
+        // English keeps its title-case convention.
+        val day = if (lang == "fi") {
+            now.dayOfWeek.getDisplayName(TextStyle.FULL, locale).lowercase(locale)
+        } else {
+            now.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase(locale) }
+        }
         val dm = if (lang == "fi")
-            "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, locale).lowercase()}"
+            "${now.dayOfMonth}. ${now.month.getDisplayName(TextStyle.FULL, locale).lowercase(locale)}"
         else
             "${now.month.getDisplayName(TextStyle.FULL, locale)} ${now.dayOfMonth}"
-        "$day · $dm"
+        "$day  ·  $dm"
     }
     Row(
         Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 4.dp),
@@ -457,16 +463,16 @@ private fun GreetingHeader(
         Column(Modifier.weight(1f)) {
             Text(
                 greeting,
-                fontSize = 28.sp,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 32.sp,
+                letterSpacing = (-0.4).sp,
             )
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     dateLine,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (!apiOk) {
@@ -487,14 +493,21 @@ private fun GreetingHeader(
                 }
             }
         }
-        // Circle logo/reload — Google Maps has an account avatar here
+        // Circle logo/reload — hairline border matches the Apple-style
+        // control pills used across the web app; no heavy elevation.
         Box(
             Modifier
                 .size(44.dp)
-                .shadow(elevation = 2.dp, shape = CircleShape, clip = false)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .clickable { onReload() },
+                .border(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    shape = CircleShape,
+                )
+                .clickable(
+                    onClickLabel = if (lang == "fi") "Päivitä" else "Reload",
+                ) { onReload() },
             contentAlignment = Alignment.Center,
         ) {
             Image(
@@ -754,17 +767,18 @@ private fun LessonStatusCard(
                     if (current.roomId.isNotBlank()) {
                         Box(
                             Modifier
-                                .size(44.dp)
-                                .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
-                                .clickable { onNavigate(current) },
+                                .clickable(
+                                    onClickLabel = if (lang == "fi") "Navigoi luokkaan" else "Navigate to room",
+                                ) { onNavigate(current) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Outlined.Navigation,
-                                if (lang == "fi") "Navigoi" else "Navigate",
-                                Modifier.size(20.dp),
+                                contentDescription = if (lang == "fi") "Navigoi" else "Navigate",
+                                modifier = Modifier.size(22.dp),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }

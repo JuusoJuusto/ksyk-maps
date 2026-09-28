@@ -97,8 +97,11 @@ fun AnnouncementsScreen() {
                         repeat(4) {
                             Card(
                                 Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                             ) {
                                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     SkeletonLine(fraction = 0.55f, heightDp = 14.dp)
@@ -174,17 +177,20 @@ private fun AnnouncementCard(a: JsonObject, isFi: Boolean = false, onClick: () -
 
     Card(
         Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(Modifier.height(IntrinsicSize.Min)) {
-            Box(Modifier.width(5.dp).fillMaxHeight().background(typeColor(type)))
+            Box(Modifier.width(4.dp).fillMaxHeight().background(typeColor(type)))
             Column(Modifier.padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         title.ifBlank { "—" },
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
                         modifier = Modifier.weight(1f),
                     )
                     TypeChip(type)
@@ -193,7 +199,7 @@ private fun AnnouncementCard(a: JsonObject, isFi: Boolean = false, onClick: () -
                     Spacer(Modifier.height(6.dp))
                     Text(
                         if (body.length > 200) body.take(200) + "…" else body,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -243,7 +249,11 @@ private fun AnnouncementDetailSheet(a: JsonObject, isFi: Boolean = false, onDism
         ) {
             TypeChip(type)
             Spacer(Modifier.height(12.dp))
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
             val range = formatRange(startDate, endDate, createdAt, isFi)
             if (range.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))

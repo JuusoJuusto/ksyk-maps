@@ -197,22 +197,6 @@ export function cleanupCanvasResources(canvas: HTMLCanvasElement): void {
   canvas.height = 0;
 }
 
-// Bundle size optimization
-export function loadFeatureModule(featureName: string): Promise<any> {
-  switch (featureName) {
-    case 'ar-finder':
-      return import('@/components/ARRoomFinder');
-    case '3d-visualization':
-      return import('@/components/Room3DVisualization');
-    case 'virtual-tours':
-      return import('@/components/VirtualRoomTours');
-    case 'environmental':
-      return import('@/components/EnvironmentalMonitoring');
-    default:
-      throw new Error(`Unknown feature: ${featureName}`);
-  }
-}
-
 // WebWorker utilities for heavy computations
 export function createWorker(workerFunction: Function): Worker {
   const blob = new Blob([`(${workerFunction.toString()})()`], { type: 'application/javascript' });

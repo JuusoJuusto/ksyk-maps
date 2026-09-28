@@ -10,6 +10,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.BakeryDining
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Cake
+import androidx.compose.material.icons.rounded.Grass
+import androidx.compose.material.icons.rounded.LocalDining
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.LunchDining
+import androidx.compose.material.icons.rounded.RestaurantMenu
+import androidx.compose.material.icons.rounded.SetMeal
+import androidx.compose.material.icons.rounded.SoupKitchen
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -132,14 +143,19 @@ fun LunchScreen() {
                         item {
                             val isToday = day.date == today
                             Column(Modifier.padding(top = 8.dp)) {
+                                val weekdayText = day.date?.dayOfWeek?.getDisplayName(TextStyle.FULL, loc)
+                                    ?.let {
+                                        // Finnish weekdays lowercase per orthography.
+                                        if (lang == "fi") it.lowercase(loc)
+                                        else it.replaceFirstChar { c -> c.titlecase(loc) }
+                                    }
+                                    ?: day.label
                                 Text(
-                                    day.date?.dayOfWeek?.getDisplayName(TextStyle.FULL, loc)
-                                        ?.replaceFirstChar { it.titlecase(loc) }
-                                        ?: day.label,
-                                    fontSize = 32.sp,
+                                    weekdayText,
+                                    style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    lineHeight = 36.sp,
+                                    letterSpacing = (-0.4).sp,
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -149,7 +165,7 @@ fun LunchScreen() {
                                                 loc,
                                             )
                                         ) ?: day.label,
-                                        fontSize = 15.sp,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = if (isToday) MaterialTheme.colorScheme.primary
                                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -474,14 +490,14 @@ private fun groupByCategory(dishes: List<Dish>): List<DishGroup> {
 
 @Composable
 private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
-    // v1.83.0: per-category emoji + tint. Makes the daily menu easier
-    // to scan at a glance ("what's the veggie option today?") without
-    // requiring an actual icon font.
-    val (emoji, tint) = categoryLook(group.category)
+    // v4.7.37: per-category rounded Material icon + tint. Replaces the
+    // previous emoji glyphs so category chips match the rest of the app's
+    // monochrome-icon aesthetic (Apple/M3 rounded).
+    val (icon, tint) = categoryLook(group.category)
 
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -495,12 +511,17 @@ private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
                             .background(tint.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(emoji, fontSize = 15.sp)
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = tint,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
                         group.category,
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = tint,
                         letterSpacing = 0.4.sp,
@@ -515,10 +536,9 @@ private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
                 }
                 Text(
                     text,
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 22.sp,
                 )
             }
         }
@@ -526,32 +546,33 @@ private fun DishGroup(group: DishGroup, lang: String, onEasterTap: () -> Unit) {
 }
 
 /**
- * Deterministic (emoji, tint color) for a menu category based on Finnish
- * keywords. Falls back to a neutral utensil icon and the primary color.
+ * Deterministic (Material icon, tint color) for a menu category based on
+ * Finnish keywords. Falls back to a neutral utensil icon and the primary
+ * colour.
  */
 @Composable
-private fun categoryLook(category: String?): Pair<String, Color> {
+private fun categoryLook(category: String?): Pair<ImageVector, Color> {
     val text = (category ?: "").lowercase()
     return when {
         text.contains("kasvis") || text.contains("vegaani") || text.contains("vege") ->
-            "🥗" to Color(0xFF10B981)   // green
+            Icons.Rounded.Grass to Color(0xFF10B981)          // green
         text.contains("kala") || text.contains("lohi") ->
-            "🐟" to Color(0xFF06B6D4)   // cyan
+            Icons.Rounded.SetMeal to Color(0xFF06B6D4)         // cyan
         text.contains("kana") || text.contains("kalkkuna") || text.contains("broiler") ->
-            "🍗" to Color(0xFFF59E0B)   // amber
+            Icons.Rounded.LunchDining to Color(0xFFF59E0B)     // amber
         text.contains("nauda") || text.contains("liha") || text.contains("pihvi") || text.contains("jauhe") ->
-            "🥩" to Color(0xFFEF4444)   // red
+            Icons.Rounded.LocalFireDepartment to Color(0xFFEF4444) // red
         text.contains("keitto") || text.contains("soppa") ->
-            "🍲" to Color(0xFFEA580C)   // orange
+            Icons.Rounded.SoupKitchen to Color(0xFFEA580C)     // orange
         text.contains("keto") || text.contains("nopea") ->
-            "⚡" to Color(0xFF8B5CF6)   // violet
+            Icons.Rounded.Bolt to Color(0xFF8B5CF6)            // violet
         text.contains("jälki") || text.contains("makea") ->
-            "🍰" to Color(0xFFEC4899)   // pink
+            Icons.Rounded.Cake to Color(0xFFEC4899)            // pink
         text.contains("salaat") ->
-            "🥬" to Color(0xFF22C55E)   // grass
+            Icons.Rounded.LocalDining to Color(0xFF22C55E)     // grass
         text.contains("leipä") || text.contains("piira") ->
-            "🥖" to Color(0xFFCA8A04)   // gold
-        else -> "🍽️" to MaterialTheme.colorScheme.primary
+            Icons.Rounded.BakeryDining to Color(0xFFCA8A04)    // gold
+        else -> Icons.Rounded.RestaurantMenu to MaterialTheme.colorScheme.primary
     }
 }
 

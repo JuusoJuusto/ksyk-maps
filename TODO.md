@@ -16,6 +16,19 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.38 · Android 1.99.0 — admin Apple redesign + Android polish + dead-code purge)
+
+- **Admin panel full Apple redesign** — colored stat-card backgrounds and icon-in-pill decorations gone, hairline-bordered neutral cards throughout, monochrome icons (`text-gray-400/500` at `h-[18px]`), pastel status/priority badges replaced with outlined chips + colored dot pattern, big drop shadows removed. Files: `AdminDashboard.tsx`, `AdminAnalyticsDashboard.tsx`, `OverviewInsightsCards.tsx`, `SecuritySettingsPanel.tsx`, `AnalyticsExternalPanel.tsx`, `TicketManager.tsx`, `AppSettingsManager.tsx`, `AppLogsManager.tsx`, `AnnouncementManager.tsx`, `PostHogReplaysPanel.tsx`, `HallwayManagement.tsx`, `admin-forgot-password.tsx`, `admin-reset-password.tsx`.
+- **Android Material 3 + Apple-quality pass** (8 Kotlin files):
+  - `MainActivity.kt` — bottom-nav swaps to `Icons.Rounded.{Home, Map, CalendarMonth, Restaurant, Settings}` on selected tab, bar 72dp → 80dp per M3 spec, icons 22dp → 24dp, labels use `typography.labelMedium`.
+  - `HomeScreen.kt` + `TimetableScreen.kt` — greeting/day headers use `typography.headlineMedium`, Finnish weekday now lowercase (`torstai`), navigate FABs 48dp with `contentDescription`, decorative shadows removed.
+  - `LunchScreen.kt` — **9 emoji category icons replaced with real Material Rounded icons** (Grass, SetMeal, LunchDining, LocalFireDepartment, SoupKitchen, Bolt, Cake, LocalDining, BakeryDining, RestaurantMenu). Dish text uses `bodyLarge`.
+  - `AnnouncementsScreen.kt`, `RoomFinderScreen.kt`, `AccountScreen.kt` — all cards flattened to `RoundedCornerShape(16dp)` + `surfaceContainerLow` + `elevation = 0.dp` — matches web hairline aesthetic.
+  - `MapScreen.kt` — `PillButton` + `GroupedPill` (right-edge Apple-Maps controls) get 0.5dp hairline border, softer 3dp shadow, 14dp corners, 46/48dp tap targets, and localized Finnish/English `contentDescription`s for zoom, my-location, refresh.
+- **Dead code purge** — deleted 11 confirmed-unused React components (no imports anywhere): `TicketSystem.tsx`, `TicketSystemNew.tsx`, `NavigationModal.tsx`, `VirtualRoomTours.tsx`, `VersionInfo.tsx`, `RoomRatingSystem.tsx`, `Room3DVisualization.tsx`, `MatterportTour.tsx`, `EnvironmentalMonitoring.tsx`, `SmartRecommendations.tsx`, `StaffDirectory.tsx`. Also removed the never-called `loadFeatureModule` helper from `client/src/utils/performance.ts`. Roughly ~4500 lines of dead code gone.
+- **2FA copy** — removed emoji warning, plain amber alert.
+- **Web bumped** `4.7.37` → `4.7.38`. **Android bumped** `1.98.0` (versionCode 100) → `1.99.0` (versionCode 101).
+
 ## ✅ Just shipped (web 4.7.37 — map chrome + 3D + settings + mobile pass)
 
 - **Map controls (Apple Maps style)** — right rail collapsed into ONE unified glass pill (Directions, Zoom+/-, 3D, Recenter) with hairline dividers and a single soft shadow. Floor selector matches the same visual family. GPS + compass float as standalone chips above the pill.

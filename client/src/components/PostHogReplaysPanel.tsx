@@ -341,18 +341,18 @@ export function PostHogReplaysPanel({ range }: { range: DateRange }) {
         )}
 
         {notConfigured && (
-          <div className="py-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-4 space-y-2">
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" /> PostHog not configured
+          <div className="py-4 rounded-xl border border-gray-200 dark:border-gray-800 px-4 space-y-2">
+            <p className="text-[13px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <AlertTriangle className="h-[18px] w-[18px] text-amber-500" strokeWidth={1.75} /> PostHog not configured
             </p>
-            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+            <p className="text-[12px] text-muted-foreground leading-relaxed">
               Set these environment variables in Vercel → Project Settings → Environment Variables:
             </p>
-            <ul className="text-xs font-mono text-amber-800 dark:text-amber-300 space-y-1 list-disc list-inside">
+            <ul className="text-[12px] font-mono text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
               <li><strong>POSTHOG_PERSONAL_API_KEY</strong> — PostHog → Settings → Personal API Keys → Create key (All access)</li>
               <li><strong>POSTHOG_PROJECT_ID</strong> — The numeric project ID from the PostHog dashboard URL</li>
             </ul>
-            <p className="text-[10px] text-amber-700 dark:text-amber-400">
+            <p className="text-[11px] text-muted-foreground">
               These are server-side only and never sent to the browser.
             </p>
           </div>

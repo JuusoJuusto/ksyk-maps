@@ -563,34 +563,30 @@ function StatCard({
   tone?: "blue" | "amber" | "red" | "emerald" | "violet";
   trend?: string;
 }) {
-  const toneClass: Record<string, { bg: string; stroke: string }> = {
-    blue:    { bg: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",       stroke: "#3b82f6" },
-    amber:   { bg: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",   stroke: "#f59e0b" },
-    red:     { bg: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",           stroke: "#ef4444" },
-    emerald: { bg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", stroke: "#10b981" },
-    violet:  { bg: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300", stroke: "#8b5cf6" },
+  // Apple-native: neutral card, one accent color on the number only.
+  const accent: Record<string, { text: string; stroke: string }> = {
+    blue:    { text: "text-blue-600 dark:text-blue-400",       stroke: "#3b82f6" },
+    amber:   { text: "text-amber-600 dark:text-amber-400",     stroke: "#f59e0b" },
+    red:     { text: "text-red-600 dark:text-red-400",         stroke: "#ef4444" },
+    emerald: { text: "text-emerald-600 dark:text-emerald-400", stroke: "#10b981" },
+    violet:  { text: "text-violet-600 dark:text-violet-400",   stroke: "#8b5cf6" },
   };
-  const t = toneClass[tone];
+  const t = accent[tone];
   const chartData = (sparkline || []).map((n, i) => ({ i, n }));
-  // v4.7.13 — apple-design pass. Rounded-xl card, tabular figures,
-  // quieter label with more tracking, sparkline sits below the value
-  // with dedicated space instead of overlapping.
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
       <div className="p-4 pb-3">
         <div className="flex items-start gap-3">
-          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${t.bg}`}>
-            <Icon className="h-4 w-4" strokeWidth={2} />
-          </div>
+          <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               {label}
             </p>
-            <p className="text-[26px] font-semibold text-slate-900 dark:text-white leading-none mt-1 tabular-nums tracking-tight">
+            <p className={cn("text-[26px] font-semibold leading-none mt-1 tabular-nums tracking-[-0.02em]", t.text)}>
               {value}
             </p>
             {trend && (
-              <p className="text-[10px] text-slate-400 mt-1">{trend}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{trend}</p>
             )}
           </div>
         </div>
@@ -718,16 +714,16 @@ function SessionsPanel({ range }: { range: Range }) {
     <div className="space-y-2 pt-3">
       <ErrorRetry query={queryResult} label="sessions" />
       {replayStatus.data && (replayStatus.data.tableExists === false || replayStatus.data.recordingEnabled === false || hasReplaySet.size === 0) && (
-        <div className="rounded-xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-          <p className="font-semibold flex items-center gap-1.5">
-            <Video className="h-3.5 w-3.5" />
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-[13px] space-y-1">
+          <p className="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <AlertTriangle className="h-[18px] w-[18px] text-amber-500" strokeWidth={1.75} />
             {replayStatus.data.tableExists === false
               ? "Session replay table missing"
               : replayStatus.data.recordingEnabled === false
                 ? "Session recording disabled"
                 : "No replays recorded yet"}
           </p>
-          <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
+          <p className="text-muted-foreground leading-relaxed">
             {replayStatus.data.tableExists === false
               ? (replayStatus.data.migrationHint ?? "Run migrations/0003_rrweb_batches.sql in the Supabase SQL Editor, or wait for the first client upload — the table auto-creates on first write.")
               : replayStatus.data.recordingEnabled === false
@@ -872,9 +868,9 @@ function SessionDrillDialog({ sessionId, onClose }: { sessionId: string | null; 
                 href={posthogReplayUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 text-[11px] font-semibold hover:bg-orange-200 dark:hover:bg-orange-950/70"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-[12px] font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
               >
-                <Play className="h-3 w-3" /> Watch replay in PostHog
+                <Play className="h-3 w-3" strokeWidth={1.75} /> Watch replay in PostHog
               </a>
             </div>
           )}
@@ -1685,14 +1681,14 @@ function EggsPanel() {
             type="button"
             onClick={handleReset}
             disabled={resetting}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-40 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/30"
+            className="h-8 px-3 rounded-lg text-[12px] font-medium border border-gray-200 dark:border-gray-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40"
           >
             {resetting ? "Resetting…" : "Reset counters"}
           </button>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">{total.toLocaleString()}</p>
-          {resetError && <p className="text-xs text-red-600 mt-1">{resetError}</p>}
+          <p className="text-[22px] font-semibold tabular-nums text-gray-900 dark:text-white">{total.toLocaleString()}</p>
+          {resetError && <p className="text-[12px] text-red-600 mt-1">{resetError}</p>}
         </CardContent>
       </Card>
       <div className="rounded-xl border bg-white dark:bg-slate-950 overflow-hidden">

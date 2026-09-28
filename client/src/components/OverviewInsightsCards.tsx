@@ -80,28 +80,25 @@ export default function OverviewInsightsCards() {
       {/* Today's counters row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "Pageviews", value: today.pageviews, Icon: Eye, bar: "bg-blue-500", iconBg: "bg-blue-500" },
-          { label: "Feature uses", value: today.featureUses, Icon: Zap, bar: "bg-amber-500", iconBg: "bg-amber-500" },
-          { label: "Searches", value: today.searches, Icon: SearchIcon, bar: "bg-emerald-500", iconBg: "bg-emerald-500" },
-        ].map(({ label, value, Icon, bar, iconBg }) => (
+          { label: "Pageviews", value: today.pageviews, Icon: Eye, accent: "text-blue-600 dark:text-blue-400" },
+          { label: "Feature uses", value: today.featureUses, Icon: Zap, accent: "text-amber-600 dark:text-amber-400" },
+          { label: "Searches", value: today.searches, Icon: SearchIcon, accent: "text-emerald-600 dark:text-emerald-400" },
+        ].map(({ label, value, Icon, accent }) => (
           <Card
             key={label}
-            className="relative overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card"
+            className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900"
           >
-            <div className={`absolute inset-x-0 top-0 h-1 ${bar}`} />
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     Today · {label}
                   </p>
-                  <p className="text-3xl font-bold mt-1 tabular-nums tracking-[-0.02em]">
+                  <p className={cn("text-[26px] font-semibold mt-1 tabular-nums tracking-[-0.02em]", accent)}>
                     {value}
                   </p>
                 </div>
-                <div className={`p-2 rounded-xl ${iconBg} text-white shrink-0`}>
-                  <Icon className="h-5 w-5" />
-                </div>
+                <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
               </div>
             </CardContent>
           </Card>
@@ -110,10 +107,10 @@ export default function OverviewInsightsCards() {
 
       {/* Top features + top searches */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card">
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Zap className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+              <Zap className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
               Top features today
             </CardTitle>
           </CardHeader>
@@ -145,10 +142,10 @@ export default function OverviewInsightsCards() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card">
+        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <SearchIcon className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+              <SearchIcon className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
               Top searches today
             </CardTitle>
           </CardHeader>
@@ -182,15 +179,15 @@ export default function OverviewInsightsCards() {
       </div>
 
       {/* Easter eggs card */}
-      <Card className="rounded-2xl ring-1 ring-black/5 dark:ring-white/5 bg-card">
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-purple-500" />
+            <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+              <Trophy className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
               Easter eggs discovered
             </CardTitle>
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] font-semibold text-muted-foreground">
+              <Sparkles className="h-3 w-3" strokeWidth={1.75} />
               {eggs.total} total
             </div>
           </div>
@@ -211,15 +208,15 @@ export default function OverviewInsightsCards() {
                   .map(([k, v]) => (
                     <div
                       key={k}
-                      className={cn(
-                        "flex flex-col gap-0.5 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50",
-                        v > 0 && "ring-1 ring-purple-200 dark:ring-purple-900/40",
-                      )}
+                      className="flex flex-col gap-0.5 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800"
                     >
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-[11px] text-muted-foreground truncate">
                         {EGG_LABELS[k] || k}
                       </span>
-                      <span className="text-lg font-black tabular-nums leading-none text-purple-600 dark:text-purple-400">
+                      <span className={cn(
+                        "text-[17px] font-semibold tabular-nums leading-none",
+                        v > 0 ? "text-purple-600 dark:text-purple-400" : "text-gray-400 dark:text-gray-600",
+                      )}>
                         {v}
                       </span>
                     </div>
@@ -227,7 +224,7 @@ export default function OverviewInsightsCards() {
               </div>
               {recentEggs.length > 0 && (
                 <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
-                  <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground mb-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                     Recent finds
                   </p>
                   <div className="space-y-1.5">

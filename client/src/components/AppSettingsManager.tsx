@@ -161,29 +161,34 @@ export default function AppSettingsManager() {
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Settings className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-[17px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <Settings className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
             App Settings
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Global configuration — changes apply to all users immediately after saving.</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">Global configuration — changes apply to all users immediately after saving.</p>
         </div>
         <div className="flex items-center gap-2">
-          {dirty && <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">Unsaved changes</Badge>}
+          {dirty && (
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Unsaved changes
+            </span>
+          )}
           <Button
             onClick={() => localSettings && saveMutation.mutate(localSettings)}
             disabled={saveMutation.isPending || !dirty}
-            className="gap-2"
+            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium gap-2"
           >
-            <Save className="h-4 w-4" />
-            {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
+            <Save className="h-4 w-4" strokeWidth={1.75} />
+            {saveMutation.isPending ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
       </div>
 
       {s.maintenanceMode && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          Maintenance mode is ON — the app is hidden from regular users.
+        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-[13px]">
+          <AlertTriangle className="h-[18px] w-[18px] text-red-500 shrink-0" strokeWidth={1.75} />
+          <span className="text-gray-700 dark:text-gray-300"><strong className="text-gray-900 dark:text-white">Maintenance mode is on</strong> — the app is hidden from regular users.</span>
         </div>
       )}
 
@@ -520,13 +525,13 @@ export default function AppSettingsManager() {
           </Card>
 
           {/* v1.82.0: Danger zone — analytics + logs bulk wipes */}
-          <Card className="border-red-300 dark:border-red-800">
+          <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
-                <AlertTriangle className="h-4 w-4" />
-                Danger zone — irreversible resets
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <AlertTriangle className="h-[18px] w-[18px] text-red-500" strokeWidth={1.75} />
+                Danger zone
               </CardTitle>
-              <CardDescription>Every button here wipes production data. There is no confirm-undo.</CardDescription>
+              <CardDescription className="text-[13px]">Every button here wipes production data. There is no confirm-undo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
@@ -534,10 +539,10 @@ export default function AppSettingsManager() {
                 { scope: 'logs',   label: 'App logs',         desc: 'Clears the server-side app_logs feed only' },
                 { scope: 'all',    label: 'ALL analytics + logs', desc: 'Combines both above (starts the analytics/logs history fresh)' },
               ].map(({ scope, label, desc }) => (
-                <div key={scope} className="flex items-center justify-between p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50/40 dark:bg-red-950/20">
+                <div key={scope} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-800">
                   <div>
-                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Reset: {label}</p>
-                    <p className="text-xs text-muted-foreground">{desc}</p>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">Reset: {label}</p>
+                    <p className="text-[12px] text-muted-foreground">{desc}</p>
                   </div>
                   <Button
                     variant="destructive"

@@ -58,9 +58,9 @@ export default function AnalyticsExternalPanel() {
     staleTime: 60_000,
   });
 
-  const providers: Array<{ key: keyof ExternalAnalyticsResponse; name: string; Icon: typeof Cloud; gradient: string }> = [
-    { key: "cloudflare", name: "Cloudflare", Icon: Cloud, gradient: "from-orange-500 to-amber-500" },
-    { key: "firestore", name: "Live (Firestore)", Icon: Zap, gradient: "from-blue-600 to-indigo-600" },
+  const providers: Array<{ key: keyof ExternalAnalyticsResponse; name: string; Icon: typeof Cloud }> = [
+    { key: "cloudflare", name: "Cloudflare", Icon: Cloud },
+    { key: "firestore", name: "Live (Firestore)", Icon: Zap },
   ];
 
   return (
@@ -74,9 +74,9 @@ export default function AnalyticsExternalPanel() {
               type="button"
               onClick={() => setRange(r)}
               className={cn(
-                "h-7 px-3 text-xs font-semibold rounded-lg transition-colors tabular-nums",
+                "h-8 px-3 text-[12px] font-medium rounded-lg transition-colors tabular-nums",
                 range === r
-                  ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+                  ? "bg-white dark:bg-gray-950 text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-600 hover:text-gray-900 dark:hover:text-gray-100",
               )}
             >
@@ -90,41 +90,38 @@ export default function AnalyticsExternalPanel() {
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="h-8 text-xs gap-1.5"
+          className="h-10 px-4 rounded-xl border-gray-200 dark:border-gray-800 text-[13px] gap-1.5"
         >
-          {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} />}
           Refresh
         </Button>
       </div>
 
       {/* Providers grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {providers.map(({ key, name, Icon, gradient }) => {
+        {providers.map(({ key, name, Icon }) => {
           const snap = data?.[key];
           return (
-            <Card key={key} className="overflow-hidden">
-              <div className={`h-1 bg-gradient-to-r ${gradient}`} />
+            <Card key={key} className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-7 w-7 rounded-lg bg-gradient-to-br ${gradient} text-white flex items-center justify-center shadow-sm`}>
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                    <CardTitle className="text-sm">{name}</CardTitle>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
+                    <CardTitle className="text-[15px] font-semibold text-gray-900 dark:text-white">{name}</CardTitle>
                   </div>
                   {!snap?.configured ? (
-                    <Badge variant="outline" className="text-[10px] gap-1 text-amber-700 border-amber-300">
-                      <Settings className="h-2.5 w-2.5" /> Not configured
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Settings className="h-3 w-3" strokeWidth={1.75} /> Not configured
+                    </span>
                   ) : snap.error ? (
-                    <Badge variant="outline" className="text-[10px] gap-1 text-red-700 border-red-300">
-                      <AlertCircle className="h-2.5 w-2.5" /> Error
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-red-600 dark:text-red-400">
+                      <AlertCircle className="h-3 w-3" strokeWidth={1.75} /> Error
+                    </span>
                   ) : (
-                    <Badge variant="secondary" className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Live
-                    </Badge>
+                    </span>
                   )}
                 </div>
               </CardHeader>
@@ -191,11 +188,11 @@ export default function AnalyticsExternalPanel() {
 
 function Metric({ label, value }: { label: string; value?: number }) {
   return (
-    <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-2.5">
-      <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-gray-400">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
-      <p className="text-xl font-bold tabular-nums mt-0.5">
+      <p className="text-[22px] font-semibold tabular-nums mt-1 text-gray-900 dark:text-white">
         {typeof value === "number" ? value.toLocaleString() : "—"}
       </p>
     </div>

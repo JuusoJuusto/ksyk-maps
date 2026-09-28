@@ -10,17 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.37";
+export const APP_VERSION = "4.7.38";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.98.0";
+export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.38",
+    date: "September 2026",
+    title: "Admin panel Apple redesign · Android Material 3 polish · dead code purge",
+    titleFi: "Admin-paneelin Apple-uudelleensuunnittelu · Android-viimeistely · kuolleen koodin siivous",
+    latest: true,
+    highlights: [
+      "Full Apple-style redesign of the admin panel: colored stat-card backgrounds and icon pills gone, hairline-bordered neutral cards, monochrome icons, colored pastel badges replaced with outlined chips + a small colored dot, header hero shadows removed. Files: AdminDashboard, AdminAnalyticsDashboard, OverviewInsightsCards, SecuritySettingsPanel, AnalyticsExternalPanel, TicketManager, AppSettingsManager, AppLogsManager, AnnouncementManager, PostHogReplaysPanel, HallwayManagement, admin-forgot-password, admin-reset-password.",
+      "Android app Material 3 + Apple-quality pass: bottom nav uses Icons.Rounded selected variant, cards flattened to 0-elevation with surfaceContainerLow, HomeScreen/TimetableScreen/LunchScreen headers use typography.headlineMedium with lowercase Finnish weekdays, LunchScreen emoji category icons replaced with real Material icons (Grass, SetMeal, LunchDining, LocalFireDepartment, SoupKitchen, Bolt, Cake, LocalDining, BakeryDining, RestaurantMenu), MapScreen right-edge pill controls got hairline borders + localized aria labels.",
+      "Deleted 11 confirmed-dead React components: TicketSystem, TicketSystemNew, NavigationModal, VirtualRoomTours, VersionInfo, RoomRatingSystem, Room3DVisualization, MatterportTour, EnvironmentalMonitoring, SmartRecommendations, StaffDirectory. Removed the never-called `loadFeatureModule` helper. ~4500 lines of dead code gone.",
+      "Android bumped 1.98.0 → 1.99.0 (versionCode 101).",
+    ],
+    highlightsFi: [
+      "Admin-paneeli uudistettu Applen tyyliin: värilliset korttitaustat ja ikonipillerit poistettu, ohuet reunat, yksivärinen ikonisto, pastellirinnukset korvattu ääriviivamerkinnöillä ja pienellä värillisellä pisteellä.",
+      "Android sai Material 3 + Apple-tason viimeistelyn: alapalkin ikonit vaihtuvat Rounded-versioon valittuna, kortit litistetty ohutrajaisiksi, koti-, aikataulu- ja ruokalistanäytöissä yhtenäinen otsikkotypografia, ruokalajien emojien tilalle oikeat Material-ikonit, karttanäkymän oikean reunan säädinpainikkeet ohuilla reunuksilla.",
+      "Poistettu 11 kuollutta React-komponenttia (~4500 riviä).",
+      "Android-versio 1.98.0 → 1.99.0.",
+    ],
+  },
   {
     version: "4.7.37",
     date: "September 2026",
     title: "Apple Maps-style map chrome · MazeMap 3D · settings polish · full mobile pass",
     titleFi: "Apple Maps -kartan ohjaimet · MazeMap-3D · asetusten viimeistely · mobiilikierros",
-    latest: true,
+    latest: false,
     highlights: [
       "Map controls consolidated into a single Apple-Maps-style unified pill on the right: Directions, Zoom+/–, 3D, and Recenter live in one glass container with hairline dividers. Floor selector matches the same visual family. GPS and compass are standalone chips above.",
       "Removed the bottom Kahvila / WC / Portaat pill bar — the map now runs full-bleed under the info sheet, which felt cluttered and duplicated navigation.",
