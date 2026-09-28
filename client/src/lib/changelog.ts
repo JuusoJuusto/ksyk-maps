@@ -10,17 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.41";
+export const APP_VERSION = "4.7.42";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.42",
+    date: "September 2026",
+    title: "Design system finish — 404 signature dropped, marketing prose typography, universal badges/prose/hero rules",
+    titleFi: "Suunnittelujärjestelmä viimeistelty — 404 siisti, markkinointisivujen typografia, yhtenäiset lomakkeet",
+    latest: true,
+    highlights: [
+      "404 page: dropped the trailing \"KSYK Maps\" signature + MapPin — the big navy 404 now stands alone with just the two CTAs.",
+      "Widened the `wilma-mazemap.css` layer with product-wide finishing rules: badge radius 4px + tighter tracking, `main` body prose 15px / 1.65 line-height, `main` anchor links tinted Wilma-navy with 2px underline offset, `<hr>` reduced to a hairline top-only rule, marketing hero `h1` capped at 700 weight with tighter tracking so no page has a 60px marketing shout heading.",
+      "Settings panel sticky header + tab bar: killed backdrop-blur-xl (universal blur kill already got most of it), forced Wilma-hairline border, active tab now filled Wilma-navy — matches the map controls' floor selector.",
+      "Emerald / amber / red button variants brought under the same Wilma discipline (6px radius) so the whole app's action language reads consistently — primary navy, secondary hairline, semantic colors squared and tight.",
+      "Ghost / outline buttons — every `border-gray-200/300` button/anchor pulls to `--ksyk-wm-hair` and 6px radius so there's no drift between marketing-page outline buttons and admin-panel outline buttons.",
+      "Content-page anchor links now Wilma-navy with a 1px underline at 2px offset (before: system-default blue). Prose paragraphs, lists, section rules cleaned up so Privacy/Terms/FAQ read like institutional docs, not marketing copy.",
+      "Card titles / descriptions typography — CardTitle tighter tracking, CardDescription in Wilma-muted so the whole shadcn card family reads consistent regardless of context.",
+      "Verified no lingering emoji-as-icon in student-facing UI. Remaining emojis are in the SmartSupportOwl bot's persona text (chat replies, not UI chrome) and hidden easter-egg routes — both intentional.",
+      "REVERT paths unchanged (any of three): remove `setAttribute` in `main.tsx`, delete `wilma-mazemap.css` + `@import`, or `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+      "Web version bumped `4.7.41` → `4.7.42`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "404-sivu: viimeinen \"KSYK Maps\" -allekirjoitus poistettu. Iso navy 404 ja kaksi nappia riittävät.",
+      "CSS-kerrokseen lisätty koko sivustoa koskevia sääntöjä: merkkien 4px kulma + tiukemmat välit, `main`-sisällön typografia 15px / 1.65, linkkien Wilma-navy sävy, marketing-hero-otsikot enintään 700-paino.",
+      "Asetusten sticky-header ja välilehtipalkki: taustan sumennus poistettu, aktiivinen välilehti navy-täytöllä — täsmää kartan kerrosvalitsimen kanssa.",
+      "Emerald/amber/red-nappien variantit tuodun saman Wilma-linjan alle (6px kulma).",
+      "Sisältösivujen linkit Wilma-navy 1px-alleviivauksella.",
+      "Palauta: poista `main.tsx`:n `setAttribute`, tai `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+    ],
+  },
+  {
     version: "4.7.41",
     date: "September 2026",
     title: "Wilma design language, product-wide — settings, admin, marketing pages, dialogs, forms all inherit",
     titleFi: "Wilma-tyylikieli koko tuotteessa — asetukset, admin, markkinointisivut, dialogit, lomakkeet",
-    latest: true,
+    latest: false,
     highlights: [
       "Widened `data-ksyk-theme=\"wilma\"` from the `.ksykmaps-app` map surface to `<html>` (via `main.tsx`), so the design layer now reaches every screen: marketing pages (/lunch, /hsl, /faq, /privacy, /support, /download, /404), the admin panel, settings, all dialogs, toasts, drawer overlays, splash, and anything that portals to `<body>`.",
       "Extended the `wilma-mazemap.css` layer with product-wide rules: universal `backdrop-blur-*` kill switch, universal `rounded-2xl/xl/[18px]` softening (10/6/6 px), navy override for every `bg-blue-600 / text-blue-600 / border-blue-500` on button + anchor elements, tighter shadow scale, Wilma-navy form focus rings, squared segmented controls, uppercase 10px meta labels in the drawer, Wilma-style admin sidebar active state, tighter table headers.",

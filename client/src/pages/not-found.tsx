@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { Home, LifeBuoy, MapPin } from "lucide-react";
+import { Home, LifeBuoy } from "lucide-react";
 
 /**
  * 404 — genuinely lovely. Big centered numeral with a subtle fade-in,
@@ -68,13 +68,6 @@ export default function NotFound() {
             </Link>
           </div>
 
-          <p
-            className="animate-fade-in mt-10 text-[13px] text-gray-500 dark:text-gray-500 inline-flex items-center gap-1.5"
-            style={{ animationDelay: "260ms" }}
-          >
-            <MapPin className="h-3.5 w-3.5" strokeWidth={2.25} />
-            KSYK Maps
-          </p>
         </div>
       </div>
     </div>

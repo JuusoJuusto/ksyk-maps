@@ -16,6 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.42 — Design system finish)
+
+- **404 signature dropped**: removed the trailing "KSYK Maps" + `MapPin` line under the buttons on `not-found.tsx`. The big navy 404 now stands alone.
+- **Marketing prose typography** — added to `wilma-mazemap.css`: `main` body 15px / 1.65 line-height, `main` anchors tinted Wilma-navy with 2px underline offset, `<hr>` reduced to a hairline top-only rule, hero h1 capped at 700 weight with `-0.02em` tracking so no page can shout with 60px marketing type.
+- **Universal component rules** — badge radius 4px + tighter tracking; `CardTitle` `-0.01em` tracking; `CardDescription` in Wilma-muted; emerald/amber/red button variants forced to 6px radius (Wilma discipline); ghost/outline buttons pull to `--ksyk-wm-hair` and 6px so admin-panel outline buttons match marketing-page outline buttons.
+- **Settings panel** — sticky header + tab bar backdrop-blur killed (in addition to the universal blur kill), Wilma-hairline bottom border, active tab now filled Wilma-navy — same treatment as the map's floor selector.
+- **Emoji audit** — verified no lingering emoji-as-UI-icon in student-facing chrome. Remaining emojis: SmartSupportOwl bot persona text (chat replies, not chrome — intentional) and hidden easter-egg routes (intentional).
+- **Files touched** — `client/src/pages/not-found.tsx`, `client/src/styles/wilma-mazemap.css` (+150 LOC), `client/src/lib/changelog.ts`.
+- **Revert paths unchanged** — remove `setAttribute` in `main.tsx`, delete `wilma-mazemap.css` + `@import`, or `git reset --hard rollback-before-wilma-mazemap-redesign`.
+- **Web version bumped** `4.7.41` → `4.7.42`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.41 — Wilma design language, product-wide)
 
 - **Layer widened from map surface to entire product.** `data-ksyk-theme="wilma"` now applied to `<html>` in `client/src/main.tsx`, so `client/src/styles/wilma-mazemap.css` reaches marketing pages (`/lunch`, `/hsl`, `/faq`, `/privacy`, `/support`, `/download`, `/404`), the admin panel, settings, all Radix / Vaul dialogs, sonner + react-toastify toasts, splash screen, and anything portaling to `<body>`.

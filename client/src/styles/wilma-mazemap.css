@@ -601,3 +601,186 @@ html[data-ksyk-theme="wilma"] body {
 [data-ksyk-theme="wilma"] .focus-visible\:outline-none:focus-visible {
   outline: none !important;
 }
+
+/* ============================================================
+ * SECONDARY BUTTON VARIANTS — emerald/amber/red primaries still
+ * work, but under a Wilma discipline (no oversized shadow, tight
+ * radius, hairline).  We only touch button/anchor elements.
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] button.bg-emerald-500,
+[data-ksyk-theme="wilma"] button.bg-emerald-600,
+[data-ksyk-theme="wilma"] a.bg-emerald-500,
+[data-ksyk-theme="wilma"] a.bg-emerald-600 {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+[data-ksyk-theme="wilma"] button.bg-amber-500,
+[data-ksyk-theme="wilma"] button.bg-amber-600,
+[data-ksyk-theme="wilma"] a.bg-amber-500 {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+[data-ksyk-theme="wilma"] button.bg-red-500,
+[data-ksyk-theme="wilma"] button.bg-red-600,
+[data-ksyk-theme="wilma"] a.bg-red-500 {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+
+/* Ghost / outline buttons — hairline border in Wilma gray */
+[data-ksyk-theme="wilma"] button.border.border-gray-200,
+[data-ksyk-theme="wilma"] button.border.border-gray-300,
+[data-ksyk-theme="wilma"] a.border.border-gray-200,
+[data-ksyk-theme="wilma"] a.border.border-gray-300 {
+  border-radius: var(--ksyk-wm-radius) !important;
+  border-color: var(--ksyk-wm-hair) !important;
+}
+
+/* ============================================================
+ * MARKETING / STANDALONE PAGE HEROES — tighter typography,
+ * institutional weight.  Marketing pages are wrapped by a <main>
+ * or a full-viewport wrapper.
+ * ============================================================ */
+
+/* Page hero h1: cap at 32px sm, 40px md — no marketing 80px monstrosities */
+[data-ksyk-theme="wilma"] main h1,
+[data-ksyk-theme="wilma"] .page-enter h1 {
+  letter-spacing: -0.02em !important;
+  font-weight: 700 !important;
+}
+[data-ksyk-theme="wilma"] main h1.text-\[24px\],
+[data-ksyk-theme="wilma"] main h1.text-\[26px\],
+[data-ksyk-theme="wilma"] main h1.text-2xl,
+[data-ksyk-theme="wilma"] main h1.text-3xl {
+  color: var(--ksyk-wm-ink) !important;
+}
+
+/* Card titles */
+[data-ksyk-theme="wilma"] [class*="CardTitle"],
+[data-ksyk-theme="wilma"] h2.text-lg,
+[data-ksyk-theme="wilma"] h2.text-xl,
+[data-ksyk-theme="wilma"] h3.text-base {
+  letter-spacing: -0.01em !important;
+}
+
+/* Card descriptions */
+[data-ksyk-theme="wilma"] [class*="CardDescription"] {
+  color: var(--ksyk-wm-muted) !important;
+}
+
+/* ============================================================
+ * COOKIE CONSENT + MAINTENANCE MODE + GET-APP POPUP + SPLASH
+ * ============================================================ */
+
+/* Maintenance mode full-page card — hairline instead of shadow-2xl */
+[data-ksyk-theme="wilma"] [role="alertdialog"] {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+
+/* SplashScreen preboot spinner */
+[data-ksyk-theme="wilma"] #preboot {
+  background: var(--ksyk-wm-surface) !important;
+}
+
+/* Get-app popup card */
+[data-ksyk-theme="wilma"] .get-app-popup {
+  border-radius: var(--ksyk-wm-radius) !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+  box-shadow: var(--ksyk-wm-shadow-2) !important;
+}
+
+/* ============================================================
+ * SETTINGS PANEL (map overlay) — sticky headers, tab bar, cards
+ * ============================================================ */
+
+/* Settings sticky header — flat surface, hairline bottom */
+[data-ksyk-theme="wilma"] .ksykmaps-app .sticky.top-0.backdrop-blur-xl {
+  background: var(--ksyk-wm-surface) !important;
+  border-bottom: 1px solid var(--ksyk-wm-hair) !important;
+}
+.dark [data-ksyk-theme="wilma"] .ksykmaps-app .sticky.top-0.backdrop-blur-xl {
+  background: var(--ksyk-wm-surface) !important;
+  border-bottom-color: var(--ksyk-wm-hair) !important;
+}
+
+/* Settings tab bar */
+[data-ksyk-theme="wilma"] nav[role="tablist"] {
+  background: var(--ksyk-wm-surface) !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+  box-shadow: none !important;
+}
+[data-ksyk-theme="wilma"] nav[role="tablist"] button[aria-selected="true"] {
+  background: var(--ksyk-wm-navy) !important;
+  color: #fff !important;
+}
+[data-ksyk-theme="wilma"] nav[role="tablist"] button[role="tab"] {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+
+/* ============================================================
+ * ANNOUNCEMENT BANNER — override any variant to Wilma-navy strip
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] [class*="announcement"],
+[data-ksyk-theme="wilma"] [data-testid*="announcement"] {
+  border-radius: 0 !important;
+}
+
+/* ============================================================
+ * SUPPORT PAGE — quietly restrained radiuses inside the card
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] form button.h-11,
+[data-ksyk-theme="wilma"] form a.h-11 {
+  border-radius: var(--ksyk-wm-radius) !important;
+}
+
+/* ============================================================
+ * BUILDER — leave alone.  Admin-only surface, dense enough.
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] body.ksyk-builder,
+[data-ksyk-theme="wilma"] .ksyk-builder * {
+  /* No-op — reserved for future builder-specific tuning. */
+}
+
+/* ============================================================
+ * BADGES — squared off, tighter typography
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] [class*="Badge"],
+[data-ksyk-theme="wilma"] .badge {
+  border-radius: var(--ksyk-wm-radius-sm) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ============================================================
+ * CONTENT PROSE — privacy, terms, docs pages
+ * ============================================================ */
+
+[data-ksyk-theme="wilma"] main p,
+[data-ksyk-theme="wilma"] main li {
+  line-height: 1.65;
+}
+[data-ksyk-theme="wilma"] main a {
+  color: var(--ksyk-wm-navy) !important;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+[data-ksyk-theme="wilma"] main a:hover {
+  color: var(--ksyk-wm-navy-hover) !important;
+}
+
+/* Body text on standalone pages */
+[data-ksyk-theme="wilma"] main {
+  font-size: 15px;
+}
+[data-ksyk-theme="wilma"] main article,
+[data-ksyk-theme="wilma"] main section {
+  color: var(--ksyk-wm-body);
+}
+
+/* Section dividers in long-form pages */
+[data-ksyk-theme="wilma"] main hr {
+  border-color: var(--ksyk-wm-hair) !important;
+  border-width: 1px 0 0 0;
+}
