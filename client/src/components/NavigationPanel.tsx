@@ -718,7 +718,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
         </div>
 
         {route && (
-          <div className="mt-2 rounded-xl bg-gradient-to-br from-blue-50/70 to-blue-100/40 dark:from-blue-500/10 dark:to-blue-500/5 border border-blue-200/60 dark:border-blue-500/30 p-3">
+          <div className="mt-2 rounded-md bg-[#e6ecf3] dark:bg-[#4a90d9]/10 border border-[#d5dae0] dark:border-[#3a4152] p-3">
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80">Distance</div>
@@ -910,7 +910,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
                      *  column so the whole list reads as a path, not an
                      *  unrelated list of items. */}
                     {!isLast && (
-                      <span className="absolute left-[19px] top-8 bottom-0 w-px bg-gradient-to-b from-blue-300/60 to-blue-200/20 dark:from-blue-500/40 dark:to-blue-500/5 pointer-events-none" />
+                      <span className="absolute left-[19px] top-8 bottom-0 w-px bg-[#d5dae0] dark:bg-[#3a4152] pointer-events-none" />
                     )}
                     <span className={cn(
                       "shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 shadow-sm",

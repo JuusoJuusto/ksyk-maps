@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MessageCircle, Send, HelpCircle, Book, Calendar, 
+import {
+  MessageCircle, Send, HelpCircle, Book, Calendar,
   Mail, User, Settings, ExternalLink, ChevronRight,
-  Clock, CheckCircle, AlertCircle, FileText, Sparkles, Loader2
+  Clock, CheckCircle, AlertCircle, FileText, Sparkles, Loader2, LifeBuoy
 } from "lucide-react";
 import { generateText, GeminiChat } from "@/lib/geminiAI";
 
@@ -922,11 +922,11 @@ export default function SmartSupportOwl() {
   };
 
   return (
-    <Card className="border-gray-200 dark:border-gray-700 h-[600px] max-h-[80vh] flex flex-col max-w-full overflow-hidden shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b flex-shrink-0 p-4">
+    <Card className="border-gray-200 dark:border-gray-700 h-[600px] max-h-[80vh] flex flex-col max-w-full overflow-hidden shadow-sm">
+      <CardHeader className="bg-[#f5f6f8] dark:bg-gray-800 border-b flex-shrink-0 p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl flex-shrink-0">
-            🦉
+          <div className="w-10 h-10 bg-[#003d82] dark:bg-[#4a90d9] rounded-md flex items-center justify-center flex-shrink-0">
+            <LifeBuoy className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
             <CardTitle className="text-base truncate">Tuki Pöllö</CardTitle>

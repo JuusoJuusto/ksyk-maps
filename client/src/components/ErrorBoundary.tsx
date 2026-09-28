@@ -167,13 +167,14 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return <>{this.props.fallback}</>;
       return (
-        <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-red-50 dark:from-red-950/40 dark:via-orange-950/30 dark:to-red-950/40 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center p-4">
           <div className="max-w-lg w-full">
-            {/* Alarm card — matches app chrome (bg-card border-border rounded-2xl)
-             *  with a red/orange gradient accent bar up top for alarm. */}
-            <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-              {/* Alarm bar — pulsing red→orange gradient */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse" />
+            {/* Alarm card — Wilma-style: single navy accent bar, hairline
+             *  border, no oversized shadow.  Reads as an institutional
+             *  error message, not a marketing crash screen. */}
+            <div className="bg-card border border-border rounded-md shadow-sm overflow-hidden">
+              {/* Red accent bar for alarm — solid, no gradient */}
+              <div className="h-1 w-full bg-red-600" />
 
               <div className="p-6 sm:p-8">
                 {/* Big alarm icon in a red ring */}

@@ -34,6 +34,17 @@ initSentry();
 // them, so the Leaflet edge can never see NaN.
 runBootCleanup();
 
+// Wilma+MazeMap redesign layer, product-wide.  The scoped stylesheet
+// (`client/src/styles/wilma-mazemap.css`) is a no-op until this attribute
+// is set — that keeps the design layer a single flip away from a full
+// visual revert.  Setting it on <html> instead of the map root so the
+// styling reaches marketing pages, the admin panel, standalone screens
+// (lunch/hsl/faq/privacy/support/download/404), and every dialog / modal
+// / toast that portals to <body>.
+if (typeof document !== "undefined") {
+  document.documentElement.setAttribute("data-ksyk-theme", "wilma");
+}
+
 // v4.7.12 — start rrweb DOM snapshot recording on public routes.
 // Skipped automatically on /admin, /builder, admin sessions, opt-out
 // storage flag, or DNT — see rrwebRecorder.shouldSkip().

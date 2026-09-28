@@ -29,7 +29,7 @@ export default function NotFound() {
             className="animate-fade-in-up mb-2 select-none"
             aria-hidden="true"
           >
-            <div className="text-[128px] sm:text-[160px] font-bold tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-600">
+            <div className="text-[128px] sm:text-[160px] font-bold tracking-tight leading-none text-[#003d82] dark:text-[#4a90d9]">
               404
             </div>
           </div>

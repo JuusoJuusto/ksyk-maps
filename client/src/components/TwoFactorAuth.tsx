@@ -140,13 +140,13 @@ export default function TwoFactorAuth() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <Card className="shadow-sm border">
+        <CardHeader className="bg-[#003d82] dark:bg-[#4a90d9]/20 text-white">
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-6 w-6" />
             Two-Factor Authentication (2FA)
           </CardTitle>
-          <CardDescription className="text-blue-100">
+          <CardDescription className="text-white/85">
             Add an extra layer of security to your account
           </CardDescription>
         </CardHeader>

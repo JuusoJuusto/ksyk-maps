@@ -10,17 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.40";
+export const APP_VERSION = "4.7.41";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.41",
+    date: "September 2026",
+    title: "Wilma design language, product-wide — settings, admin, marketing pages, dialogs, forms all inherit",
+    titleFi: "Wilma-tyylikieli koko tuotteessa — asetukset, admin, markkinointisivut, dialogit, lomakkeet",
+    latest: true,
+    highlights: [
+      "Widened `data-ksyk-theme=\"wilma\"` from the `.ksykmaps-app` map surface to `<html>` (via `main.tsx`), so the design layer now reaches every screen: marketing pages (/lunch, /hsl, /faq, /privacy, /support, /download, /404), the admin panel, settings, all dialogs, toasts, drawer overlays, splash, and anything that portals to `<body>`.",
+      "Extended the `wilma-mazemap.css` layer with product-wide rules: universal `backdrop-blur-*` kill switch, universal `rounded-2xl/xl/[18px]` softening (10/6/6 px), navy override for every `bg-blue-600 / text-blue-600 / border-blue-500` on button + anchor elements, tighter shadow scale, Wilma-navy form focus rings, squared segmented controls, uppercase 10px meta labels in the drawer, Wilma-style admin sidebar active state, tighter table headers.",
+      "Killed the last decorative gradients across student-facing chrome: `not-found.tsx` 404 numeral (was `bg-gradient-to-b from-blue-600 to-blue-400`) → flat Wilma-navy; `NavigationPanel.tsx` route summary panel (was blue gradient tint) → flat Wilma-navy tint with hairline border; `NavigationPanel.tsx` step-list connector line (was `bg-gradient-to-b`) → 1px hairline; `TwoFactorAuth.tsx` card header (was blue→purple gradient) → solid Wilma-navy header; `SmartSupportOwl.tsx` card header + owl-emoji chip (was blue→indigo gradient with a 🦉 emoji) → flat surface with a proper LifeBuoy Lucide icon.",
+      "`ErrorBoundary.tsx` (the crash page users see when something explodes) — dropped the red→orange gradient background + pulsing 1.5px gradient accent bar + rounded-2xl shadow-2xl. Now a clean white/gray-950 backdrop with a single hairline card, one solid red accent bar (1px), and no pulse. Reads as an institutional error, not a marketing crash screen.",
+      "REVERT paths (any of the three works): (1) remove the `document.documentElement.setAttribute(\"data-ksyk-theme\", \"wilma\")` line in `main.tsx` — everything snaps back at runtime, no rebuild needed; (2) delete `client/src/styles/wilma-mazemap.css` + the `@import` in `index.css`; (3) `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+      "Web version bumped `4.7.40` → `4.7.41`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Wilma-tyyli levinnyt kartalta koko sivustolle. `data-ksyk-theme=\"wilma\"` -attribuutti asetetaan nyt `<html>`-tageille, joten uusi ulkoasu kattaa myös markkinointisivut, admin-paneelin, asetukset, dialogit, ilmoitukset ja splash-näytön.",
+      "Poistettu viimeisetkin AI-slop-gradientit: 404-sivu, reittipaneelin yhteenveto, 2FA-kortti, tukipöllö-otsikko. Kaikki nyt selkeitä Wilma-navy pintoja ja hiuksenohuita reunuksia.",
+      "Virhesivu (ErrorBoundary) siivottu: punainen-oranssi gradientti pois, sykkivä palkki pois, iso varjo pois. Nyt puhdas laitosmainen virheilmoitus.",
+      "Palauta: poista `main.tsx`:n `setAttribute` -rivi, tai `git reset --hard rollback-before-wilma-mazemap-redesign`.",
+    ],
+  },
+  {
     version: "4.7.40",
     date: "September 2026",
     title: "Wilma + MazeMap redesign — practical school-map chrome, information-dense info card, sharper controls",
     titleFi: "Wilma + MazeMap -uudistus — käytännönläheinen kartta, tiiviimpi tietokortti, terävämmät kontrollit",
-    latest: true,
+    latest: false,
     highlights: [
       "New Wilma + MazeMap design layer. Introduced `client/src/styles/wilma-mazemap.css`, a scoped stylesheet applied via `data-ksyk-theme=\"wilma\"` on the app root — the entire aesthetic is a single revert away: remove the attribute and the file to snap back to the Apple-inflected chrome.",
       "Header chip → practical school top bar. Killed the floating rounded card + backdrop blur + iOS shadow. Now a clean surface with a hairline bottom border, navy `#003d82` brand title, uppercase muted \"Campus navigation\" subtitle, and a Wilma-style rectangular search input with a navy focus ring instead of the pill.",

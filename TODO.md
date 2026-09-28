@@ -16,6 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.41 — Wilma design language, product-wide)
+
+- **Layer widened from map surface to entire product.** `data-ksyk-theme="wilma"` now applied to `<html>` in `client/src/main.tsx`, so `client/src/styles/wilma-mazemap.css` reaches marketing pages (`/lunch`, `/hsl`, `/faq`, `/privacy`, `/support`, `/download`, `/404`), the admin panel, settings, all Radix / Vaul dialogs, sonner + react-toastify toasts, splash screen, and anything portaling to `<body>`.
+- **New universal rules in the CSS layer** — `backdrop-blur-*` fully disabled app-wide; `rounded-2xl/xl/[18px]` softened to 10/6/6 px; `bg-blue-600 / text-blue-600 / border-blue-500` overridden to Wilma-navy on `button` and `a` elements; global form focus ring → 3px navy `rgba(0, 61, 130, 0.15)`; shadow scale reduced (`shadow-xl`/`2xl` → soft two-layer, `shadow-md`/`shadow` → single 1px 2px); Wilma-style admin sidebar active state; navy stat-card border override; tight uppercase 11px table headers.
+- **Killed last decorative gradients in student-facing chrome** — `not-found.tsx` 404 numeral flat-Wilma-navy; `NavigationPanel.tsx` route summary tint → flat navy tint with hairline; `NavigationPanel.tsx` step-list connector line → 1px hairline; `TwoFactorAuth.tsx` card header → solid navy; `SmartSupportOwl.tsx` card header + 🦉 emoji chip → flat surface with a proper `LifeBuoy` Lucide icon (no more emoji).
+- **`ErrorBoundary.tsx`** — red/orange gradient bg + sykkivä (pulsing) 1.5px accent bar + rounded-2xl shadow-2xl removed. Now: clean white/gray-950 backdrop, single hairline card, one solid 1px red accent bar, no pulse. Institutional error message, not a marketing crash screen.
+- **Files touched** — `client/src/main.tsx` (`data-ksyk-theme="wilma"` on `<html>`), `client/src/styles/wilma-mazemap.css` (expanded from 260 → 480 LOC with product-wide rules), `client/src/pages/not-found.tsx`, `client/src/components/NavigationPanel.tsx`, `client/src/components/TwoFactorAuth.tsx`, `client/src/components/SmartSupportOwl.tsx`, `client/src/components/ErrorBoundary.tsx`, `client/src/lib/changelog.ts`.
+- **Revert (any of three)** — (1) remove the `document.documentElement.setAttribute(...)` line in `main.tsx` — everything snaps back at runtime, no rebuild; (2) delete `wilma-mazemap.css` + the `@import` in `index.css`; (3) `git reset --hard rollback-before-wilma-mazemap-redesign` (nuclear).
+- **Not changed (intentional)** — Builder (admin-only surface, already dense enough), `dev-mode.tsx` / `easter-egg.tsx` / `konami.tsx` (hidden dev routes with gradient party themes), AdminDashboard's two scroll-edge fade masks (functional, not decorative). Android app not touched — no design change there.
+- **Web version bumped** `4.7.40` → `4.7.41`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.40 — Wilma + MazeMap redesign, revertable)
 
 - **New file `client/src/styles/wilma-mazemap.css`** — scoped design layer applied via `data-ksyk-theme="wilma"` on the `.ksykmaps-app` root. Everything the layer changes is a single attribute + file removal away from a full revert. The `@import` in `client/src/index.css` is a no-op when the attribute is absent.
