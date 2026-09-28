@@ -1,19 +1,9 @@
 /**
- * rrweb DOM snapshot recorder — v4.7.12
+ * rrweb DOM snapshot recorder
  *
- * Records the DOM incrementally on public routes and batch-uploads
- * to /api/sessions/rrweb every 5 s (or 300 events, whichever comes
- * first). Uses the same `ksyk_session_id` sessionStorage key as the
- * telemetry SDK so admin sessions cross-link to their replay.
- *
- * Skipped when:
- *   - admin token present (they see admin UI which is uninteresting to record)
- *   - user has ksyk_no_replay=1 in localStorage (explicit opt-out)
- *   - the route is /admin or /builder (recorder = students-only replay)
- *
- * Sensitive text is masked via rrweb's built-in maskAllInputs +
- * maskTextClass="ksyk-mask" so any field marked with that class
- * gets ***** in the recording.
+ * Records every session unconditionally (except explicit opt-out via
+ * ksyk_no_replay=1) and batch-uploads to /api/sessions/rrweb every 5 s.
+ * Sensitive text is masked via maskAllInputs + maskTextClass="ksyk-mask".
  */
 import { record, type eventWithTime } from "rrweb";
 
@@ -30,10 +20,7 @@ function shouldSkip(): { skip: true; reason: string } | null {
   if (typeof window === "undefined") return { skip: true, reason: "ssr" };
   try {
     if (localStorage.getItem("ksyk_no_replay") === "1") return { skip: true, reason: "opt-out" };
-    if (localStorage.getItem("ksyk_admin_token")) return { skip: true, reason: "admin" };
-  } catch { /* storage denied, treat as opt-out */ return { skip: true, reason: "no-storage" }; }
-  const p = window.location.pathname || "/";
-  if (p.startsWith("/admin") || p.startsWith("/builder")) return { skip: true, reason: "admin-route" };
+  } catch { return { skip: true, reason: "no-storage" }; }
   return null;
 }
 
@@ -97,29 +84,7 @@ export function startRrwebRecording(): void {
     return;
   }
   if (stopFn) return; // already recording
-
-  // v4.7.13 — respect admin's enableSessionReplay flag from /api/settings.
-  // Fetched async; recording waits until we get the answer so we never
-  // record against the admin's will. Cached in sessionStorage on success
-  // so subsequent tabs don't re-fetch.
-  void (async () => {
-    try {
-      const cached = sessionStorage.getItem("ksyk_enable_replay");
-      if (cached === "0") { if (import.meta.env.DEV) console.info("[rrweb] disabled by admin"); return; }
-      if (cached === "1") { doStart(); return; }
-      const r = await fetch("/api/settings", { credentials: "include" });
-      if (!r.ok) { doStart(); return; } // fail-open: default to record
-      const s = await r.json().catch(() => ({} as { enableSessionReplay?: boolean }));
-      const on = s.enableSessionReplay !== false; // default true
-      try { sessionStorage.setItem("ksyk_enable_replay", on ? "1" : "0"); } catch { /* quota */ }
-      if (!on) { if (import.meta.env.DEV) console.info("[rrweb] disabled by admin"); return; }
-      doStart();
-    } catch {
-      // fail-open — if settings fetch fails, still record so we don't
-      // silently drop analytics from a transient network issue.
-      doStart();
-    }
-  })();
+  doStart();
 }
 
 function doStart(): void {

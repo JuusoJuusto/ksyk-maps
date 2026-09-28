@@ -16,6 +16,13 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.35 — session recording + admin URL fix)
+
+- **Multi-map feature removed** — `useMaps` hook, `MapSwitcherButton`, builder Maps tab, and `/api/maps` CRUD routes all deleted.
+- **Session replay: every visitor recorded** — removed all skip conditions from `rrwebRecorder.ts` except explicit `ksyk_no_replay=1` opt-out. The `enableSessionReplay` admin flag check and the `ksyk_admin_token` / route-based skips are gone. Every session now records and appears in Admin → Analytics → Sessions as a playable replay.
+- **Admin auto-logout URL fixed** — `wipeAndRedirect()` no longer appends `?redirect=...` to the URL; always redirects cleanly to `/admin`.
+- **Web version bumped** — `4.7.34` → `4.7.35`.
+
 ## ✅ Just shipped (web 4.7.34 — builder Maps tab)
 
 - **Builder Maps tab** — new first tab in the LeftSidebar ("Maps", MapPin icon). Admins can create/edit/delete named campus maps with name, description, color, and camera position (lat, lng, zoom, bearing). "Use current view" button captures the builder's live camera. "Set active" marks the map for the public switcher. Clicking a map in the builder flies the camera to it instantly.

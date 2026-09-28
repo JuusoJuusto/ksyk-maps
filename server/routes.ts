@@ -172,8 +172,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: ipAddress || req.ip || null,
       });
       
-      console.log(`[${level?.toUpperCase() || 'INFO'}] ${message}${errorReferenceId ? ` [Ref: ${errorReferenceId}]` : ''}`);
-      
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to create log:', error);
@@ -228,23 +226,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedEmail = email?.toLowerCase().trim();
       const trimmedPassword = password?.trim();
       
-      console.log('\n🔐 ========== LOGIN ATTEMPT ==========');
-      console.log('Email:', normalizedEmail);
-      console.log('Timestamp:', new Date().toISOString());
-      
       if (!normalizedEmail || !trimmedPassword) {
-        console.log('❌ Missing credentials');
         return res.status(400).json({ message: "Email and password required" });
       }
-      
+
       // SECURE OWNER CHECK - Database lookup only
       if (OWNER_EMAIL && normalizedEmail === OWNER_EMAIL) {
-        console.log('🔍 Checking owner credentials in database...');
-        
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
-        
+
         if (!ownerUser) {
-          console.log('❌ Owner user not found in database');
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
@@ -253,15 +243,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? await verifyPassword(trimmedPassword, ownerUser.password, ownerUser.id)
           : false;
         if (!ownerPwOk) {
-          console.log('❌ Invalid owner password');
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        console.log('✅ OWNER LOGIN SUCCESS');
-
         // 2FA check for owner
         if (ownerUser.twoFactorEnabled) {
-          console.log('🔐 Owner has 2FA — deferring session until code verified');
           return res.json({ requiresTwoFactor: true, userId: ownerUser.id });
         }
 
@@ -290,8 +276,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ message: "Login failed" });
           }
           posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'owner' } });
-          console.log('✅ Owner logged in');
-          console.log('=====================================\n');
           const ownerAdminToken = generateAdminToken((ownerUser as any).id || 'owner-admin-user', (ownerUser as any).role || 'owner');
           return res.json({ success: true, user: safeUser(ownerUser as Record<string, unknown>), requirePasswordChange: false, adminToken: ownerAdminToken });
         });
@@ -302,7 +286,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUserByEmail(normalizedEmail);
       
       if (!user) {
-        console.log('❌ User not found');
         posthogLogger.emit({ severityNumber: SeverityNumber.WARN, severityText: 'WARN', body: 'Login failed: user not found', attributes: { route: '/api/auth/admin-login' } });
 
         // Log failed login attempt
@@ -321,18 +304,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user has permission to login to KSYK Maps
       if (user.canLoginToKsykMaps === false) {
-        console.log('❌ User does not have permission to login to KSYK Maps');
         return res.status(403).json({ message: "You do not have permission to access KSYK Maps. Please contact support." });
       }
-      
+
       if (!user.password) {
-        console.log('❌ No password set');
         return res.status(401).json({ message: "Password not set. Please check your email for password setup link." });
       }
-      
+
       const pwOk = await verifyPassword(trimmedPassword, user.password, user.id);
       if (!pwOk) {
-        console.log('❌ Password mismatch');
         posthogLogger.emit({ severityNumber: SeverityNumber.WARN, severityText: 'WARN', body: 'Login failed: invalid password', attributes: { route: '/api/auth/admin-login' } });
 
         await storage.createAdminLoginLog({
@@ -350,7 +330,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 2FA check — defer session creation until code is verified
       if (user.twoFactorEnabled) {
-        console.log('🔐 User has 2FA — deferring session');
         return res.json({ requiresTwoFactor: true, userId: user.id });
       }
 
@@ -381,8 +360,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'user' } });
-        console.log('✅ User logged in');
-        console.log('=====================================\n');
         const userAdminToken = generateAdminToken((user as any).id, (user as any).role || 'admin');
         return res.json({
           success: true,
@@ -1479,27 +1456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If email option, send invitation email with password
       if (passwordOption === 'email') {
-        console.log(`\n📧 ========== EMAIL INVITATION ==========`);
-        console.log(`Target: ${email}`);
-        console.log(`Name: ${firstName} ${lastName}`);
-
         try {
-          const emailResult = await sendPasswordSetupEmail(email, firstName, finalPassword);
-
-          console.log(`\n📧 EMAIL RESULT:`);
-          console.log(`   Success: ${emailResult.success}`);
-          console.log(`   Mode: ${emailResult.mode}`);
-
-          if (emailResult.success) {
-            console.log(`✅ EMAIL SENT to ${email}`);
-          } else {
-            console.log(`⚠️ EMAIL NOT SENT`);
-          }
+          await sendPasswordSetupEmail(email, firstName, finalPassword);
         } catch (error: any) {
-          console.error('❌ EMAIL ERROR:', error.message);
+          console.error('[users] Failed to send invitation email:', error.message);
         }
-        
-        console.log(`==========================================\n`);
       }
 
       const { password: _pw, ...safeUser } = newUser as any;
@@ -1975,15 +1936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate ticket ID if not provided
       const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      
-      console.log('\n🎫 ========== CREATING TICKET ==========');
-      console.log('Ticket ID:', ticketId);
-      console.log('Type:', ticketData.type);
-      console.log('Title:', ticketData.title);
-      console.log('Email:', ticketData.email);
-      console.log('Name:', ticketData.name);
-      console.log('========================================\n');
-      
+
       const ticket = await storage.createTicket({
         ticketId,
         type: ticketData.type,
@@ -2000,36 +1953,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: ticketData.url || null,
       });
       
-      console.log('✅ Ticket created in database');
-      
-      // SEND EMAILS FIRST BEFORE RESPONDING
-      console.log('\n🔍 EMAIL CHECK - ticketData.email:', ticketData.email);
-      
+      // Send confirmation emails
       if (ticketData.email && ticketData.email.trim()) {
-        console.log('📧 EMAIL PROVIDED - SENDING NOW');
-        
         try {
           const ownerEmail = process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com';
-          
           const ownerEmailBody = `New Support Ticket: ${ticketId}\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nDescription:\n${ticketData.description}\n\nFrom: ${ticketData.name || 'Anonymous'}\nEmail: ${ticketData.email}`;
-          
-          console.log('📤 Sending to owner:', ownerEmail);
           await sendTicketEmail(ownerEmail, `New Ticket: ${ticketId}`, ownerEmailBody);
-          console.log('✅ Owner email sent');
-          
+
           const userEmailBody = `Thank you! Your ticket ${ticketId} has been received.\n\nType: ${ticketData.type}\nTitle: ${ticketData.title}\n\nWe'll respond soon!`;
-          
-          console.log('📤 Sending to user:', ticketData.email);
           await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody);
-          console.log('✅ User email sent');
         } catch (emailError: any) {
-          console.error('❌ EMAIL ERROR:', emailError.message);
+          console.error('[tickets] Email send failed:', emailError.message);
         }
-      } else {
-        console.log('⚠️ NO EMAIL - skipping');
       }
-      
-      console.log('\n✅ RETURNING RESPONSE');
+
       res.status(201).json({ ticketId, ...ticket });
     } catch (error) {
       console.error('❌ TICKET ERROR:', error);
@@ -2050,34 +1987,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Ticket not found' });
       }
       
-      console.log('\n🔍 ========== OLD TICKET DATA ==========');
-      console.log('Old Ticket:', JSON.stringify(oldTicket, null, 2));
-      console.log('Old Ticket Email:', oldTicket.email);
-      console.log('Old Ticket Email Type:', typeof oldTicket.email);
-      console.log('=====================================\n');
-      
       // CRITICAL: Preserve email field when updating
       // Only include email in update if it exists (don't pass undefined which would delete the field)
       const updateData: any = { ...req.body };
       if (oldTicket.email) {
         updateData.email = oldTicket.email;
       }
-      
-      console.log('\n📦 ========== UPDATE DATA ==========');
-      console.log('Update Data:', JSON.stringify(updateData, null, 2));
-      console.log('Update Data Email:', updateData.email);
-      console.log('=====================================\n');
-      
+
       const ticket = await storage.updateTicket(req.params.id, updateData);
-      
-      console.log('\n🔄 ========== TICKET UPDATE ==========');
-      console.log('Ticket ID:', ticket.ticketId);
-      console.log('Old Ticket Email:', oldTicket.email);
-      console.log('Updated Ticket Email:', ticket.email);
-      console.log('Has Response:', !!req.body.response);
-      console.log('Response Text:', req.body.response?.substring(0, 100));
-      console.log('Should Send Email:', !!(ticket.email && req.body.response));
-      console.log('=====================================\n');
       
       // BULLETPROOF EMAIL LOGIC: Try multiple sources for email
       let emailToUse = ticket.email;  // First try: updated ticket from database
@@ -2086,39 +2003,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If still no email, fetch the ticket again from database
       if (!emailToUse && req.body.response) {
-        console.log('⚠️ Email not found in any source, fetching ticket again...');
         const freshTicket = await storage.getTicket(req.params.id);
         if (freshTicket && freshTicket.email) {
           emailToUse = freshTicket.email;
-          console.log('✅ Found email in fresh fetch:', emailToUse);
         }
       }
-      
-      console.log('\n🚨 ========== EMAIL DECISION ==========');
-      console.log('ticket.email:', ticket.email);
-      console.log('oldTicket.email:', oldTicket.email);
-      console.log('updateData.email:', updateData.email);
-      console.log('emailToUse (final):', emailToUse);
-      console.log('Has response:', !!req.body.response);
-      console.log('WILL SEND EMAIL:', !!(emailToUse && req.body.response));
-      console.log('=====================================\n');
-      
+
       if (emailToUse && req.body.response) {
         try {
-          console.log('📧 ========== SENDING RESOLVE EMAIL ==========');
-          console.log('To:', emailToUse);
-          console.log('Response:', req.body.response.substring(0, 100));
-          console.log('Email User:', process.env.EMAIL_USER);
-          console.log('Email Password Set:', !!process.env.EMAIL_PASSWORD);
-          
-          const subject = ticket.status === 'resolved' 
-            ? `✅ Ticket Resolved: ${ticket.ticketId}`
-            : `📝 Ticket Update: ${ticket.ticketId}`;
-          
-          console.log('📤 Calling sendTicketEmail...');
-          
+          const subject = ticket.status === 'resolved'
+            ? `Ticket Resolved: ${ticket.ticketId}`
+            : `Ticket Update: ${ticket.ticketId}`;
+
           const emailResult = await sendTicketEmail(
-            emailToUse, 
+            emailToUse,
             subject,
             req.body.response,
             {
@@ -2128,31 +2026,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: ticket.status
             }
           );
-          
-          console.log('📧 Email result:', JSON.stringify(emailResult, null, 2));
-          
-          if (emailResult.success) {
-            console.log('✅ Email sent successfully! Message ID:', emailResult.messageId);
-          } else {
-            console.error('❌ Email failed:', emailResult.error);
+
+          if (!emailResult.success) {
+            console.error('[tickets] Response email failed:', emailResult.error);
           }
-          console.log('=====================================\n');
         } catch (emailError: any) {
-          console.error('❌ ========== EMAIL ERROR ==========');
-          console.error('Error:', emailError);
-          console.error('Message:', emailError.message);
-          console.error('Stack:', emailError.stack);
-          console.error('Code:', emailError.code);
-          console.error('=====================================\n');
+          console.error('[tickets] Response email error:', emailError.message);
         }
-      } else {
-        console.log('⚠️ No email sent - missing email or response');
-        console.log('Has email (ticket):', !!ticket.email);
-        console.log('Has email (oldTicket):', !!oldTicket.email);
-        console.log('Has email (updateData):', !!updateData.email);
-        console.log('Email to use:', emailToUse);
-        console.log('Has response:', !!req.body.response);
-        console.log('Response value:', req.body.response);
       }
       
       res.json(ticket);

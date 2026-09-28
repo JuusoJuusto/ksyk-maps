@@ -10,17 +10,32 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.34";
+export const APP_VERSION = "4.7.35";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.35",
+    date: "September 2026",
+    title: "Session replay for all visitors · admin logout URL fix",
+    titleFi: "Istunnon tallennus kaikille · admin-uloskirjautumisen URL-korjaus",
+    latest: true,
+    highlights: [
+      "Every visitor session is now recorded and playable in Admin → Analytics → Sessions. Previously, sessions were skipped if the admin feature flag was off or if an admin token was present in the browser.",
+      "Admin auto-logout no longer appends a ?redirect= query string to the URL — the login page now always redirects cleanly to /admin.",
+    ],
+    highlightsFi: [
+      "Kaikki käyttäjäistunnot tallennetaan nyt automaattisesti. Niitä voi toistaa Admin → Analytiikka → Istunnot -välilehdellä.",
+      "Admin-uloskirjautuminen ei enää lisää ?redirect= -parametria URL:iin — kirjautumissivu ohjaa aina suoraan /admin-sivulle.",
+    ],
+  },
+  {
     version: "4.7.34",
     date: "September 2026",
     title: "Builder: Maps tab — create and switch campus maps from the admin panel",
     titleFi: "Rakentaja: Kartat-välilehti — luo ja vaihda kampuskarttoja admin-paneelista",
-    latest: true,
+    latest: false,
     highlights: [
       "Admin builder now has a dedicated Maps tab (first tab in the sidebar). Create named campus maps with a name, description, color, and camera position. Fly to any map with one click or set it as active for the map switcher.",
       "\"Use current view\" button in the create/edit form captures the builder's current pan, zoom, bearing, and pitch — no need to type coordinates manually.",

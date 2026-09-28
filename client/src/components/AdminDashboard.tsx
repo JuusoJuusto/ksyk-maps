@@ -304,8 +304,13 @@ function NotificationsPanel({
         });
         setTitle(""); setBody("");
         toast({
-          title: "Sent!",
-          description: `Push delivered to ${fcmData.sent ?? 0} of ${fcmData.total ?? 0} devices.`,
+          title: `Push sent to ${fcmData.sent ?? 0} device${(fcmData.sent ?? 0) !== 1 ? "s" : ""}`,
+          description: fcmData.warning
+            ? fcmData.warning
+            : fcmData.total > 0
+              ? `${fcmData.sent} of ${fcmData.total} tokens reached.`
+              : undefined,
+          variant: fcmData.warning || (fcmData.sent === 0 && (fcmData.total ?? 0) > 0) ? "destructive" : "default",
         });
       }
     } catch (e: any) {
@@ -326,20 +331,20 @@ function NotificationsPanel({
 
       {/* FCM + announcement stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className={fcmStats?.configured ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"}>
+        <Card>
           <CardContent className="p-4">
-            <p className={`text-xs font-semibold uppercase tracking-wide ${fcmStats?.configured ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>FCM</p>
-            <p className={`text-lg font-bold ${fcmStats?.configured ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">FCM</p>
+            <p className={`text-lg font-bold mt-0.5 ${fcmStats?.configured ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
               {fcmStats === null ? "…" : fcmStats.configured ? "Ready" : "Not set up"}
             </p>
-            <p className={`text-xs mt-0.5 ${fcmStats?.configured ? "text-green-500" : "text-amber-500"}`}>Firebase Admin SDK</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Firebase Admin SDK</p>
           </CardContent>
         </Card>
-        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
+        <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Devices</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(fcmStats as any)?.totalDevices ?? "…"}</p>
-            <p className="text-xs text-blue-500 mt-0.5">registered tokens</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Devices</p>
+            <p className="text-2xl font-bold">{(fcmStats as any)?.totalDevices ?? "…"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">registered tokens</p>
           </CardContent>
         </Card>
         <Card>
@@ -350,12 +355,12 @@ function NotificationsPanel({
           </CardContent>
         </Card>
         {lastResult ? (
-          <Card className={lastResult.sent > 0 ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"}>
+          <Card>
             <CardContent className="p-4 flex items-start gap-2">
-              <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${lastResult.sent > 0 ? "text-green-600" : "text-amber-600"}`} />
+              <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${lastResult.sent > 0 ? "text-emerald-600" : "text-amber-600"}`} />
               <div className="min-w-0">
-                <p className={`text-xs font-semibold ${lastResult.sent > 0 ? "text-green-600" : "text-amber-600"}`}>Last result</p>
-                <p className={`text-xs ${lastResult.sent > 0 ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>{lastResult.sent}/{lastResult.total} delivered</p>
+                <p className="text-xs font-semibold text-muted-foreground">Last result</p>
+                <p className="text-sm font-bold">{lastResult.sent}/{lastResult.total} delivered</p>
               </div>
             </CardContent>
           </Card>
@@ -983,15 +988,7 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
       localStorage.removeItem("ksyk_admin_token");
-      // v4.7.14 — preserve the current path so the login screen can
-      // redirect the admin back to where they were after re-auth.
-      // Never sends off-origin data: window.location.pathname is
-      // whatever the browser resolved for this navigation.
-      const target = window.location.pathname + window.location.search + window.location.hash;
-      const q = target && target !== "/admin"
-        ? `?redirect=${encodeURIComponent(target)}`
-        : "";
-      window.location.replace(`/admin${q}`);
+      window.location.replace("/admin");
     };
     if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
       wipeAndRedirect();
