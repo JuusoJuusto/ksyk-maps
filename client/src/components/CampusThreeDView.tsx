@@ -1,29 +1,26 @@
 /**
- * KSYK Maps — In-browser 3D campus view.
+ * KSYK Maps — In-browser 3D campus view (MazeMap-inspired).
  *
- * Renders the entire campus as extruded coloured rectangles in Three.js
- * (loaded from a CDN script tag so we don't need a Vite/npm install).
- * Two camera modes share the scene:
+ * Renders the campus as a set of soft, opaque building shells with
+ * subtle floor plates and low-saturation room slabs. Two camera modes
+ * share the scene:
  *
- *   • Top-down  — orbit camera locked to a downward gaze; great for the
- *                 admin or a desk-bound visitor.
- *   • Walk      — first-person camera with WASD / arrow movement and
- *                 mouse-look; this is the "Street View" the user asked
- *                 for, except entirely native to our own rooms.
+ *   • Orbit — top-down / orbit camera; entry point for browsing.
+ *   • Walk  — first-person WASD camera for exploring interior corridors.
  *
- * The component is mounted from KSYKMapView when the user clicks the
- * "3D walkthrough" button. It pulls /api/rooms once and rebuilds the
- * scene; any subsequent room edits show up after the next mount.
+ * Visual language:
+ *   - Warm neutral ground + fog (no dashed grid)
+ *   - Building walls at 65% opacity in the building's brand color
+ *   - Cream floor plates, hairline separation between floors
+ *   - Muted Apple-Maps-style room palette
+ *   - Small room-number pills that fade out when the camera pulls back
+ *   - Single subtle chrome family: same border, radius, shadow everywhere
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDarkMode } from "@/contexts/DarkModeContext";
-import { Button } from "@/components/ui/button";
-import {
-  ArrowLeftRight, ArrowUpDown, Box, Eye, KeyRound, Layers,
-  Mountain, MoveVertical, RotateCw, X,
-} from "lucide-react";
+import { Eye, LocateFixed, Mountain, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Room {
@@ -38,7 +35,6 @@ interface Room {
   mapPositionY?: number;
   width?: number;
   height?: number;
-  /** Free-form metadata bag. Height knobs live under `.style`. */
   metadata?: { style?: Record<string, unknown> } | null;
 }
 
@@ -76,26 +72,29 @@ function loadThree(): Promise<any> {
 
 type CameraMode = "orbit" | "walk";
 
+/** Muted Apple-Maps / MazeMap-inspired palette. All values are lightly
+ *  desaturated so no single room screams; the building shells do the
+ *  heavy visual grouping. */
 const TYPE_COLORS: Record<string, number> = {
-  classroom:  0x3b82f6,
-  office:     0x8b5cf6,
-  lab:        0x06b6d4,
-  library:    0xf59e0b,
-  cafeteria:  0xef4444,
-  auditorium: 0xec4899,
-  gym:        0x10b981,
-  hallway:    0x94a3b8,
-  stairs:     0x64748b,
-  wc:         0xa78bfa,
-  other:      0x6b7280,
+  classroom:  0x6b8ac5,
+  office:     0x8b7bb8,
+  lab:        0x5eaab3,
+  library:    0xc99c5b,
+  cafeteria:  0xc47070,
+  auditorium: 0xb76a90,
+  gym:        0x5faa8a,
+  hallway:    0xa8b0be,
+  stairs:     0x7c8695,
+  wc:         0x9c93c4,
+  other:      0x94a3b8,
 };
 
 const STATUS_TINT: Record<string, number> = {
-  available: 0x10b981,
-  occupied:  0xef4444,
-  busy:      0xf59e0b,
-  closed:    0x6b7280,
-  unknown:   0x94a3b8,
+  available: 0x5faa8a,
+  occupied:  0xc47070,
+  busy:      0xc99c5b,
+  closed:    0x7c8695,
+  unknown:   0xa8b0be,
 };
 
 export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
@@ -105,7 +104,10 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<CameraMode>("orbit");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({ rooms: 0, fps: 0 });
+  const [showHint, setShowHint] = useState(true);
+  // Store handles set by the render effect so we can reset the camera
+  // from the top-right button without tearing the whole scene down.
+  const resetRef = useRef<(() => void) | null>(null);
 
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["rooms"],
@@ -117,8 +119,6 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     staleTime: 60_000,
   });
 
-  // Buildings — used as translucent "shells" so a room reads as sitting
-  // ON its parent building's footprint instead of floating alone.
   const { data: buildings = [] } = useQuery<Building[]>({
     queryKey: ["buildings"],
     queryFn: async () => {
@@ -129,8 +129,31 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     staleTime: 60_000,
   });
 
-  // ── Three.js scene + animation loop ───────────────────────────────
+  // Auto-hide the mode hint after 4s each time the mode changes.
+  useEffect(() => {
+    setShowHint(true);
+    const t = setTimeout(() => setShowHint(false), 4000);
+    return () => clearTimeout(t);
+  }, [mode]);
 
+  // Memoised palette so the useEffect deps stay stable.
+  const palette = useMemo(() => darkMode ? {
+    ground:      0x101623,
+    fog:         0x0f1420,
+    plate:       0x1d2739,
+    edge:        0x0b1220,
+    ambient1:    0xe8ecf5,
+    ambient2:    0x2a3448,
+  } : {
+    ground:      0xeef1f4,
+    fog:         0xe4e8ef,
+    plate:       0xf5f2ec,
+    edge:        0xd6dbe4,
+    ambient1:    0xffffff,
+    ambient2:    0xd8dee9,
+  }, [darkMode]);
+
+  // ── Three.js scene + animation loop ───────────────────────────────
   useEffect(() => {
     if (!canvasHostRef.current) return;
     let disposed = false;
@@ -147,30 +170,11 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const w = host.clientWidth, h = host.clientHeight;
 
       const scene = new THREE.Scene();
-      // Sky gradient texture — 2px tall canvas, top = sky, bottom = horizon.
-      // Way nicer than a flat colour and costs nothing per frame.
-      const skyCanvas = document.createElement("canvas");
-      skyCanvas.width = 2; skyCanvas.height = 256;
-      const skyCtx = skyCanvas.getContext("2d")!;
-      const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 256);
-      if (darkMode) {
-        skyGrad.addColorStop(0, "#0b1320");
-        skyGrad.addColorStop(0.7, "#172033");
-        skyGrad.addColorStop(1, "#1f2d4a");
-      } else {
-        skyGrad.addColorStop(0, "#7eb1ff");
-        skyGrad.addColorStop(0.5, "#b4d2ff");
-        skyGrad.addColorStop(1, "#e9f1ff");
-      }
-      skyCtx.fillStyle = skyGrad;
-      skyCtx.fillRect(0, 0, 2, 256);
-      const skyTex = new THREE.CanvasTexture(skyCanvas);
-      skyTex.mapping = THREE.EquirectangularReflectionMapping;
-      scene.background = skyTex;
-      scene.fog = new THREE.Fog(darkMode ? 0x172033 : 0xb4d2ff, 800, 3000);
+      scene.background = new THREE.Color(palette.ground);
+      scene.fog = new THREE.Fog(palette.fog, 400, 2200);
 
-      const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 5000);
-      camera.position.set(0, 600, 600);
+      const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 5000);
+      camera.position.set(0, 550, 550);
       camera.lookAt(0, 0, 0);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -180,10 +184,11 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       host.appendChild(renderer.domElement);
 
-      // Lighting — soft hemisphere + a hard sun for shadows.
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.6));
-      const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-      sun.position.set(400, 800, 200);
+      // Warm, even lighting — one soft hemisphere + a single sun casting
+      // gentle shadows. No harsh contrast.
+      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 0.75));
+      const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+      sun.position.set(300, 700, 250);
       sun.castShadow = true;
       sun.shadow.mapSize.width = 1024;
       sun.shadow.mapSize.height = 1024;
@@ -191,27 +196,22 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       sun.shadow.camera.right = 800;
       sun.shadow.camera.top = 800;
       sun.shadow.camera.bottom = -800;
+      sun.shadow.bias = -0.0005;
       scene.add(sun);
 
-      // Ground plane — large, slightly darker than the sky.
+      // Ground plane — matches the sky/fog so distant edges dissolve.
+      // No grid helper: the buildings themselves supply the reference.
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(4000, 4000),
         new THREE.MeshStandardMaterial({
-          color: darkMode ? 0x172033 : 0xcfd9e8,
-          roughness: 0.95,
+          color: palette.ground,
+          roughness: 0.98,
+          metalness: 0,
         }),
       );
       ground.rotation.x = -Math.PI / 2;
       ground.receiveShadow = true;
       scene.add(ground);
-
-      // Grid overlay
-      const grid = new THREE.GridHelper(2000, 100,
-        darkMode ? 0x223044 : 0xaab4c4,
-        darkMode ? 0x1a2235 : 0xbcc5d4);
-      (grid.material as any).opacity = 0.6;
-      (grid.material as any).transparent = true;
-      scene.add(grid);
 
       // ── Build a mesh per room ──────────────────────────────────
       const sceneCentre = (() => {
@@ -225,15 +225,11 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         };
       })();
 
-      // MazeMap-style short floors: 12 units per floor is enough to read
-      // the stacked platforms without towering over rooms. Rooms
-      // extrude an even shorter slab so they read as raised floor
-      // plates inside the building, not skyscraper cubes.
-      const FLOOR_HEIGHT = 12;       // metres per floor in the scene
-      const ROOM_SLAB = 2.5;         // room extrusion above its floor
-      const SCALE = 1;               // svg→world unit ratio
+      const FLOOR_HEIGHT = 12;
+      const ROOM_SLAB = 2.5;
+      const SCALE = 1;
 
-      // Pre-computed room rectangles for the minimap, in scene-centred coords.
+      // Pre-computed room / building rectangles for the minimap.
       const miniRooms = rooms
         .filter((r) => r.mapPositionX != null && r.mapPositionY != null)
         .map((r) => ({
@@ -244,8 +240,6 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
           floor: r.floor ?? 1,
         }));
-
-      // Pre-computed building rectangles for the minimap.
       const miniBuildings = buildings
         .filter((b) => b.mapPositionX != null && b.mapPositionY != null)
         .map((b) => ({
@@ -253,9 +247,8 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           z: (b.mapPositionY! + (b.height ?? 120) / 2) - sceneCentre.y,
           w: b.width ?? 160,
           h: b.height ?? 120,
-          color: b.colorCode ?? "#2563eb",
+          color: b.colorCode ?? "#6b8ac5",
         }));
-      // Compute mini bounds once — the minimap fits everything in.
       const miniBounds = (() => {
         if (miniRooms.length === 0) return { minX: -100, maxX: 100, minZ: -100, maxZ: 100 };
         return {
@@ -269,11 +262,13 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const roomGroup = new THREE.Group();
       scene.add(roomGroup);
 
-      // ── Buildings first — translucent hollow shells with floor
-      //    plates, so rooms visibly stack ON their building. Each
-      //    building becomes a shell (walls only) + one floor plate per
-      //    level + a roof cap, matching the MazeMap "glass box with
-      //    stacked platforms" look.
+      // Track disposables so cleanup can reach every resource.
+      const disposables: any[] = [];
+      const dispose = (obj: any) => { if (obj) disposables.push(obj); };
+
+      // ── Buildings first — opaque low-saturation shells with floor
+      //    plates and a colored cap. Matches the MazeMap "block of
+      //    stacked platforms" look at a very quiet volume.
       const buildingGroup = new THREE.Group();
       scene.add(buildingGroup);
       for (const b of buildings) {
@@ -283,22 +278,22 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const cx = (b.mapPositionX + (b.width ?? 160) / 2) - sceneCentre.x;
         const cz = (b.mapPositionY + (b.height ?? 120) / 2) - sceneCentre.y;
         const floors = Math.max(1, b.floors ?? 1);
-        // Custom heights — admin can bump a building taller/shorter via
-        // metadata.style.heightPerFloor. The Three.js scene uses world
-        // units that already correspond roughly to metres, so we can
-        // pass the same numbers through.
         const bStyle = b.metadata?.style ?? {};
         const perFloor = typeof bStyle.heightPerFloor === "number" && bStyle.heightPerFloor > 0
-          ? bStyle.heightPerFloor * 4 // scale up so the walkthrough reads chunkier
+          ? bStyle.heightPerFloor * 4
           : FLOOR_HEIGHT;
         const heightOverride = typeof bStyle.totalHeight === "number" && bStyle.totalHeight > 0
           ? bStyle.totalHeight * 4
           : null;
         const totalHeight = heightOverride ?? (floors * perFloor);
-        const shellColor = new THREE.Color(b.colorCode ?? "#2563eb");
+        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
+        // Desaturate the brand color a touch so wall opacity reads as
+        // architectural volume, not saturation.
+        const hsl = { h: 0, s: 0, l: 0 };
+        brand.getHSL(hsl);
+        brand.setHSL(hsl.h, Math.min(0.55, hsl.s * 0.8), darkMode ? 0.42 : 0.68);
 
-        // Hollow wall shell — Shape with a hole extruded up. This is
-        // the "glass wall" that surrounds every floor.
+        // Wall shell — hollow extrusion.
         const outer = new THREE.Shape([
           new THREE.Vector2(-bw / 2, -bd / 2),
           new THREE.Vector2( bw / 2, -bd / 2),
@@ -321,58 +316,51 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           depth: totalHeight,
           bevelEnabled: false,
         });
-        // ExtrudeGeometry extrudes along +Z; rotate so it stands up (+Y).
         shellGeo.rotateX(-Math.PI / 2);
         const shellMat = new THREE.MeshStandardMaterial({
-          color: shellColor,
-          roughness: 0.7,
-          metalness: 0.05,
+          color: brand,
+          roughness: 0.85,
+          metalness: 0.02,
           transparent: true,
-          opacity: 0.35,
+          opacity: 0.42,
           side: THREE.DoubleSide,
         });
         const shell = new THREE.Mesh(shellGeo, shellMat);
         shell.position.set(cx, 0, cz);
-        shell.castShadow = false;
         shell.receiveShadow = true;
         buildingGroup.add(shell);
+        dispose(shellGeo); dispose(shellMat);
 
-        // Floor plates — one thin slab per floor. Cream-colored so
-        // they read as "the deck of this floor". Stacked with the
-        // building's per-floor spacing so custom-height buildings show
-        // the correct rhythm.
+        // Floor plates — cream/near-black slabs, one per floor.
         for (let f = 0; f < floors; f++) {
-          const plateGeo = new THREE.BoxGeometry(bw - 0.3, 0.4, bd - 0.3);
+          const plateGeo = new THREE.BoxGeometry(bw - 0.4, 0.35, bd - 0.4);
           const plateMat = new THREE.MeshStandardMaterial({
-            color: darkMode ? 0x2a3448 : 0xe8edf5,
-            roughness: 0.9,
+            color: palette.plate,
+            roughness: 0.95,
             metalness: 0,
           });
           const plate = new THREE.Mesh(plateGeo, plateMat);
           plate.position.set(cx, f * perFloor, cz);
           plate.receiveShadow = true;
           buildingGroup.add(plate);
+          dispose(plateGeo); dispose(plateMat);
         }
 
-        // Roof cap — colored plate matching the building tint at the
-        // top of the shell so the building reads as enclosed.
+        // Colored roof cap — reads as the building's brand mark.
         const roofGeo = new THREE.BoxGeometry(bw, 0.4, bd);
         const roofMat = new THREE.MeshStandardMaterial({
-          color: shellColor,
-          roughness: 0.6,
-          metalness: 0.05,
+          color: brand,
+          roughness: 0.7,
+          metalness: 0.04,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.72,
         });
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.set(cx, totalHeight, cz);
-        roof.receiveShadow = false;
         buildingGroup.add(roof);
+        dispose(roofGeo); dispose(roofMat);
       }
 
-      // Build a lookup so rooms can inherit their parent building's
-      // per-floor height. Falls back to FLOOR_HEIGHT when the building
-      // isn't found (orphan room) so nothing crashes.
       const buildingHeightById = new Map<string, number>();
       for (const b of buildings) {
         const s = b.metadata?.style ?? {};
@@ -382,92 +370,93 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         buildingHeightById.set(b.id, pf);
       }
 
+      // Track sprites so we can fade them by camera distance.
+      const labelSprites: { sprite: any; center: any }[] = [];
+
       for (const r of rooms) {
         if (r.mapPositionX == null || r.mapPositionY == null) continue;
         const w = (r.width ?? 56) * SCALE;
         const d = (r.height ?? 40) * SCALE;
         const floor = r.floor ?? 1;
-        // Custom slab height override on the room, else compact default.
         const rStyle = r.metadata?.style ?? {};
         const customSlab = typeof rStyle.slabHeight === "number" && rStyle.slabHeight > 0
-          ? rStyle.slabHeight * 4 // metres → scene units
+          ? rStyle.slabHeight * 4
           : null;
-        // Rooms sit as short "platforms" on the building's floor plate.
-        // Hallways/stairs go even shorter so real rooms stand out.
         const tall = customSlab ?? (
           (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.5 : ROOM_SLAB
         );
         const baseColor = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
         const tint = STATUS_TINT[r.currentStatus ?? "unknown"] ?? STATUS_TINT.unknown;
-        // 70% type colour mixed with 30% status colour so both are legible.
-        const mixed = mixColor(baseColor, tint, 0.3);
+        const mixed = mixColor(baseColor, tint, 0.22);
 
         const geo = new THREE.BoxGeometry(w, tall, d);
         const mat = new THREE.MeshStandardMaterial({
           color: mixed,
-          roughness: 0.55,
-          metalness: 0.06,
+          roughness: 0.72,
+          metalness: 0.04,
         });
         const cube = new THREE.Mesh(geo, mat);
         cube.position.x = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
         cube.position.z = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
-        // Sit ON the correct floor plate: base = (floor-1) × parent
-        // building's per-floor height + slab thickness + half our height.
         const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_HEIGHT;
         cube.position.y = (floor - 1) * parentPerFloor + 0.4 + tall / 2;
         cube.castShadow = true;
         cube.receiveShadow = true;
         cube.userData = { room: r };
         roomGroup.add(cube);
+        dispose(geo); dispose(mat);
 
-        // Edges so the rooms read as architecture, not blobs.
-        const edges = new THREE.LineSegments(
-          new THREE.EdgesGeometry(geo),
-          new THREE.LineBasicMaterial({ color: darkMode ? 0x0b1220 : 0x1f2937, transparent: true, opacity: 0.4 }),
-        );
+        // Hairline edge — reads as architecture.
+        const edgeGeo = new THREE.EdgesGeometry(geo);
+        const edgeMat = new THREE.LineBasicMaterial({
+          color: palette.edge,
+          transparent: true,
+          opacity: darkMode ? 0.35 : 0.25,
+        });
+        const edges = new THREE.LineSegments(edgeGeo, edgeMat);
         edges.position.copy(cube.position);
         roomGroup.add(edges);
+        dispose(edgeGeo); dispose(edgeMat);
 
-        // Room number floating above each cube — a tiny canvas turned into
-        // a sprite. Keeps text crisp at every zoom and rotates to face the
-        // camera for free.
+        // Compact room-number pill. Smaller than the previous version;
+        // fades out when the camera is far so labels don't overwhelm the
+        // orbit view.
         if (r.roomNumber) {
           const labelCanvas = document.createElement("canvas");
-          labelCanvas.width = 256; labelCanvas.height = 96;
+          labelCanvas.width = 192; labelCanvas.height = 64;
           const ctx = labelCanvas.getContext("2d")!;
-          ctx.font = "bold 56px -apple-system, Segoe UI, Roboto, sans-serif";
+          ctx.font = "600 32px -apple-system, Segoe UI, Roboto, sans-serif";
           ctx.textBaseline = "middle";
           ctx.textAlign = "center";
-          // Pill background
-          ctx.fillStyle = "rgba(255,255,255,0.92)";
           const m = ctx.measureText(r.roomNumber);
-          const pillW = m.width + 36;
-          const pillH = 70;
-          const pillX = (256 - pillW) / 2;
+          const pillW = m.width + 26;
+          const pillH = 44;
+          const pillX = (192 - pillW) / 2;
+          const pillY = (64 - pillH) / 2;
+          // Soft white pill, no drop shadow.
+          ctx.fillStyle = darkMode ? "rgba(23,32,51,0.94)" : "rgba(255,255,255,0.96)";
           ctx.beginPath();
           // @ts-ignore — roundRect is available in modern Canvas
-          ctx.roundRect?.(pillX, (96 - pillH) / 2, pillW, pillH, 14);
+          ctx.roundRect?.(pillX, pillY, pillW, pillH, 10);
           ctx.fill();
-          ctx.fillStyle = "#0f172a";
-          ctx.fillText(r.roomNumber, 128, 48);
+          ctx.strokeStyle = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = darkMode ? "#f1f5f9" : "#111827";
+          ctx.fillText(r.roomNumber, 96, 33);
           const tex = new THREE.CanvasTexture(labelCanvas);
           tex.minFilter = THREE.LinearFilter;
-          const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+          const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true });
           const sprite = new THREE.Sprite(spriteMat);
-          // Float the label a bit above the room slab so pitched views
-          // still read it. Scale down proportionally to the new smaller
-          // floor height so labels aren't oversized against short slabs.
-          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 3, cube.position.z);
-          sprite.scale.set(22, 8.25, 1);
+          sprite.position.set(cube.position.x, cube.position.y + tall / 2 + 2.6, cube.position.z);
+          sprite.scale.set(16, 5.5, 1);
           roomGroup.add(sprite);
+          labelSprites.push({ sprite, center: sprite.position.clone() });
+          dispose(spriteMat); dispose(tex);
         }
       }
 
-      setStats((s) => ({ ...s, rooms: roomGroup.children.length / 2 }));
-
-      // Collidable AABBs harvested from the room cubes so the walk camera
-      // can't phase through walls. We expand each box by 6 world units so
-      // the user keeps a comfortable buffer.
+      // Collidables for walk-camera wall clipping.
       const collidables: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[] = [];
       roomGroup.traverse((o: any) => {
         if (o.isMesh && o.userData?.room) {
@@ -489,21 +478,23 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       }
 
       // ── Cameras ──────────────────────────────────────────────
-      // Orbit camera state — shorter world so start closer.
-      let yaw = -Math.PI / 4, pitch = Math.PI / 3.2, dist = 450;
-      // Walk camera state — eye height ≈ 1.7 in the shortened world
-      // means "5 or 6 units above the floor plate" reads as human eye
-      // level. Start just above the ground plane.
+      const initialYaw = -Math.PI / 4;
+      const initialPitch = Math.PI / 3.2;
+      const initialDist = 480;
+      let yaw = initialYaw, pitch = initialPitch, dist = initialDist;
       const walkPos = new THREE.Vector3(0, 5, 120);
       const walkLook = { yaw: 0, pitch: 0 };
       const keys = new Set<string>();
+      // Subtle auto-rotate on entry. Stops after the first user drag.
+      let autoRotate = true;
+      const AUTO_ROTATE_SPEED = 0.06;
 
       function updateCameraOrbit() {
         const x = dist * Math.cos(pitch) * Math.cos(yaw);
         const y = dist * Math.sin(pitch);
         const z = dist * Math.cos(pitch) * Math.sin(yaw);
         camera.position.set(x, y, z);
-        camera.lookAt(0, 50, 0);
+        camera.lookAt(0, 40, 0);
       }
       function updateCameraWalk() {
         camera.position.copy(walkPos);
@@ -518,19 +509,29 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       }
       updateCameraOrbit();
 
+      // Reset — restores initial orbit framing and returns to orbit mode.
+      resetRef.current = () => {
+        yaw = initialYaw;
+        pitch = initialPitch;
+        dist = initialDist;
+        autoRotate = true;
+        updateCameraOrbit();
+      };
+
       // ── Input ─────────────────────────────────────────────────
       let dragging = false;
       let lastX = 0, lastY = 0;
       const cv = renderer.domElement;
       cv.style.cursor = "grab";
 
-      cv.addEventListener("pointerdown", (e: PointerEvent) => {
+      const onPointerDown = (e: PointerEvent) => {
         dragging = true; lastX = e.clientX; lastY = e.clientY;
         cv.style.cursor = "grabbing";
         cv.setPointerCapture?.(e.pointerId);
-      });
-      cv.addEventListener("pointerup", () => { dragging = false; cv.style.cursor = "grab"; });
-      cv.addEventListener("pointermove", (e: PointerEvent) => {
+        autoRotate = false;
+      };
+      const onPointerUp = () => { dragging = false; cv.style.cursor = "grab"; };
+      const onPointerMove = (e: PointerEvent) => {
         if (!dragging) return;
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
@@ -542,13 +543,18 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           walkLook.yaw += dx * 0.004;
           walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch - dy * 0.004));
         }
-      });
-      cv.addEventListener("wheel", (e: WheelEvent) => {
+      };
+      const onWheel = (e: WheelEvent) => {
         e.preventDefault();
+        autoRotate = false;
         if (mode === "orbit") {
           dist = Math.max(40, Math.min(1400, dist * (1 + e.deltaY * 0.001)));
         }
-      }, { passive: false });
+      };
+      cv.addEventListener("pointerdown", onPointerDown);
+      cv.addEventListener("pointerup", onPointerUp);
+      cv.addEventListener("pointermove", onPointerMove);
+      cv.addEventListener("wheel", onWheel, { passive: false });
 
       const onKey = (down: boolean) => (e: KeyboardEvent) => {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -561,76 +567,63 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
       // ── Render loop ───────────────────────────────────────────
       let last = performance.now();
-      let frames = 0;
       const tick = () => {
         if (disposed) return;
         raf = requestAnimationFrame(tick);
         const now = performance.now();
         const dt = (now - last) / 1000;
         last = now;
-        frames++;
-        if (frames % 30 === 0) setStats((s) => ({ ...s, fps: Math.round(1 / Math.max(0.001, dt)) }));
 
-        // Minimap paint — always fresh, cheap enough per frame.
+        // Minimap paint — flat rectangles, no dashed strokes, no title.
         const mm = minimapRef.current;
         if (mm) {
           const ctx = mm.getContext("2d");
           if (ctx) {
             const W = mm.width, H = mm.height;
             ctx.clearRect(0, 0, W, H);
-            // Sky-ish background so it reads as a top-down blueprint
-            ctx.fillStyle = darkMode ? "rgba(15,25,45,0.9)" : "rgba(240,246,255,0.95)";
+            ctx.fillStyle = darkMode ? "rgba(16,22,35,0.94)" : "rgba(240,243,247,0.96)";
             ctx.fillRect(0, 0, W, H);
-            // Room boxes projected into the minimap
             const bw = miniBounds.maxX - miniBounds.minX;
             const bh = miniBounds.maxZ - miniBounds.minZ;
-            const scale = Math.min((W - 8) / Math.max(1, bw), (H - 8) / Math.max(1, bh));
+            const scale = Math.min((W - 10) / Math.max(1, bw), (H - 10) / Math.max(1, bh));
             const cx = W / 2, cy = H / 2;
             const bcx = (miniBounds.minX + miniBounds.maxX) / 2;
             const bcz = (miniBounds.minZ + miniBounds.maxZ) / 2;
-            // Building outlines first — a soft dashed rectangle around
-            // each footprint so the campus reads as clusters of
-            // buildings, not just a floating grid of rooms.
+            // Building fills — muted brand tint at low opacity, no stroke.
             for (const bl of miniBuildings) {
               const px = cx + (bl.x - bcx) * scale;
               const py = cy + (bl.z - bcz) * scale;
               const pw = bl.w * scale;
               const ph = bl.h * scale;
-              ctx.strokeStyle = bl.color;
-              ctx.setLineDash([3, 2]);
-              ctx.lineWidth = 1.5;
-              ctx.globalAlpha = 0.75;
-              ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
-              ctx.setLineDash([]);
+              ctx.fillStyle = bl.color;
+              ctx.globalAlpha = darkMode ? 0.28 : 0.20;
+              ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
               ctx.globalAlpha = 1;
             }
+            // Rooms as tiny dots — read as density.
             for (const r of miniRooms) {
               const px = cx + (r.x - bcx) * scale;
               const py = cy + (r.z - bcz) * scale;
-              const pw = r.w * scale;
-              const ph = r.h * scale;
               ctx.fillStyle = "#" + r.color.toString(16).padStart(6, "0");
-              ctx.globalAlpha = 0.75;
-              ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
+              ctx.globalAlpha = 0.85;
+              ctx.beginPath();
+              ctx.arc(px, py, 1.4, 0, Math.PI * 2);
+              ctx.fill();
               ctx.globalAlpha = 1;
-              ctx.strokeStyle = darkMode ? "rgba(15,25,45,0.5)" : "rgba(255,255,255,0.7)";
-              ctx.lineWidth = 0.5;
-              ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
             }
-            // Walker arrow (in walk mode) — position + heading
             if (mode === "walk") {
               const px = cx + (walkPos.x - bcx) * scale;
               const py = cy + (walkPos.z - bcz) * scale;
               ctx.save();
               ctx.translate(px, py);
               ctx.rotate(walkLook.yaw + Math.PI / 2);
-              ctx.fillStyle = "#3b82f6";
-              ctx.strokeStyle = "white";
+              ctx.fillStyle = "#2563eb";
+              ctx.strokeStyle = darkMode ? "#0b1220" : "#ffffff";
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.moveTo(0, -8);
-              ctx.lineTo(-5, 6);
-              ctx.lineTo(5, 6);
+              ctx.moveTo(0, -7);
+              ctx.lineTo(-4.5, 5);
+              ctx.lineTo(4.5, 5);
               ctx.closePath();
               ctx.fill();
               ctx.stroke();
@@ -639,13 +632,10 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           }
         }
 
-        if (mode === "orbit") updateCameraOrbit();
-        else {
-          // WASD / arrows movement, relative to walk yaw. Each axis is
-          // committed independently so a wall blocking forward motion
-          // doesn't also stop strafing — feels less stuck.
-          // Walking speed tuned for the shorter (12 units/floor) scene
-          // so getting between rooms feels natural rather than sprinting.
+        if (mode === "orbit") {
+          if (autoRotate) yaw -= AUTO_ROTATE_SPEED * dt;
+          updateCameraOrbit();
+        } else {
           const speed = 40 * dt * (keys.has("shift") ? 2.5 : 1);
           const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
           let dx = 0, dz = 0;
@@ -653,13 +643,26 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           if (keys.has("s") || keys.has("arrowdown"))  { dx -= cy * speed; dz -= sy * speed; }
           if (keys.has("a") || keys.has("arrowleft"))  { dx += sy * speed; dz -= cy * speed; }
           if (keys.has("d") || keys.has("arrowright")) { dx -= sy * speed; dz += cy * speed; }
-          // Try the X step alone, then the Z step alone — sliding along walls.
           if (dx !== 0 && !blocked(walkPos.x + dx, walkPos.y, walkPos.z)) walkPos.x += dx;
           if (dz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + dz)) walkPos.z += dz;
           if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed * 0.6; }
           if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(1.2, walkPos.y - speed * 0.6); }
           updateCameraWalk();
         }
+
+        // Fade the room-number pills as the camera pulls back — keeps
+        // the orbit view calm and the walk view legible.
+        const camY = camera.position.y;
+        const labelOpacity = mode === "walk"
+          ? 1
+          : Math.max(0, Math.min(1, 1 - (dist - 220) / 320));
+        for (const { sprite } of labelSprites) {
+          (sprite.material as any).opacity = labelOpacity;
+          sprite.visible = labelOpacity > 0.02;
+        }
+        // Silence lint about unused camY — reserved for future dynamic scale.
+        void camY;
+
         renderer.render(scene, camera);
       };
       tick();
@@ -679,9 +682,14 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         ro.disconnect();
         window.removeEventListener("keydown", downH);
         window.removeEventListener("keyup", upH);
+        cv.removeEventListener("pointerdown", onPointerDown);
+        cv.removeEventListener("pointerup", onPointerUp);
+        cv.removeEventListener("pointermove", onPointerMove);
+        cv.removeEventListener("wheel", onWheel);
         cancelAnimationFrame(raf);
+        for (const d of disposables) d.dispose?.();
         renderer.dispose();
-        host.removeChild(renderer.domElement);
+        try { host.removeChild(renderer.domElement); } catch { /* already gone */ }
         scene.traverse((o: any) => {
           if (o.geometry) o.geometry.dispose?.();
           if (o.material) {
@@ -689,132 +697,142 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             (Array.isArray(m) ? m : [m]).forEach((mm: any) => mm.dispose?.());
           }
         });
+        resetRef.current = null;
       };
     })();
 
     return () => { disposed = true; cleanup?.(); };
-  }, [rooms, buildings, mode, darkMode]);
+  }, [rooms, buildings, mode, darkMode, palette]);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-2 sm:p-6">
+    <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <div className={cn(
-        "relative w-full h-full rounded-xl overflow-hidden shadow-2xl border",
-        darkMode ? "bg-gray-950 border-gray-800" : "bg-white border-gray-200",
+        "relative w-full h-full rounded-2xl overflow-hidden border shadow-2xl",
+        darkMode ? "bg-gray-950 border-gray-800/70" : "bg-white border-gray-200/70",
       )}>
         {/* 3D canvas host */}
         <div ref={canvasHostRef} className="absolute inset-0" />
 
-        {/* Top-left brand + close */}
-        <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
-          <div className={cn(
-            "px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2 text-sm font-semibold",
-            darkMode ? "bg-gray-900/90 text-gray-200" : "bg-white/95 text-gray-700",
-          )}>
-            <Box className="h-4 w-4 text-blue-600" />
-            KSYK 3D campus
-            <span className="text-[10px] font-mono text-gray-400 ml-1">{stats.rooms} rooms · {stats.fps} fps</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close 3D view"
-          className={cn(
-            "absolute top-3 right-3 z-10 h-9 w-9 rounded-lg shadow-md inline-flex items-center justify-center transition-colors",
-            darkMode ? "bg-gray-900/90 text-gray-300 hover:bg-gray-800" : "bg-white/95 text-gray-700 hover:bg-gray-100",
-          )}
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* Minimap — top-right, below the close button. Always visible so
-         *  users have a fixed reference point; the walker triangle only
-         *  appears when in walk mode (in orbit the whole scene rotates). */}
+        {/* Top-right controls — Reset + Close, as a unified pill. */}
         <div className={cn(
-          "absolute top-16 right-3 z-10 p-1 rounded-lg shadow-lg backdrop-blur-md border",
-          darkMode ? "bg-gray-900/90 border-gray-700" : "bg-white/95 border-gray-200",
+          "absolute top-3 right-3 z-10 flex flex-row rounded-[14px] overflow-hidden backdrop-blur-xl",
+          "border border-black/[0.08] dark:border-white/[0.08]",
+          "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+          "divide-x divide-black/[0.06] dark:divide-white/[0.06]",
+          darkMode ? "bg-gray-900/90" : "bg-white/95",
+        )}>
+          <button
+            type="button"
+            onClick={() => resetRef.current?.()}
+            aria-label="Reset camera"
+            title="Reset camera"
+            className="h-10 w-10 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+          >
+            <LocateFixed className="h-[17px] w-[17px]" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close 3D view"
+            title="Close"
+            className="h-10 w-10 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+          >
+            <X className="h-[17px] w-[17px]" strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Minimap — clean, no title, hairline border. */}
+        <div className={cn(
+          "absolute top-3 left-3 z-10 p-1.5 rounded-[14px] backdrop-blur-xl",
+          "border border-black/[0.08] dark:border-white/[0.08]",
+          "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+          darkMode ? "bg-gray-900/90" : "bg-white/95",
         )}>
           <canvas
             ref={minimapRef}
-            width={168}
-            height={168}
-            className="rounded-md block"
+            width={160}
+            height={160}
+            className="rounded-lg block"
           />
-          <p className={cn(
-            "text-[9px] font-bold tracking-widest uppercase text-center mt-1",
-            darkMode ? "text-gray-400" : "text-gray-500",
-          )}>
-            Campus minimap
-          </p>
         </div>
 
-        {/* Mode toggle (bottom centre) */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 p-1 rounded-xl shadow-lg backdrop-blur-md bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700">
+        {/* Mode toggle — segmented control at the bottom-center. */}
+        <div className={cn(
+          "absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex flex-row rounded-full p-1 backdrop-blur-xl",
+          "border border-black/[0.08] dark:border-white/[0.08]",
+          "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+          darkMode ? "bg-gray-900/90" : "bg-white/95",
+        )}>
           <button
             type="button"
             onClick={() => setMode("orbit")}
+            aria-pressed={mode === "orbit"}
             className={cn(
-              "h-9 px-4 text-sm font-semibold rounded-lg gap-1.5 inline-flex items-center transition-colors",
+              "h-9 px-4 rounded-full text-[13px] font-semibold gap-2 inline-flex items-center transition-colors active:scale-[0.97]",
               mode === "orbit"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white",
+                ? "bg-blue-600 text-white"
+                : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
             )}
           >
-            <Mountain className="h-4 w-4" />
-            Top-down / orbit
+            <Mountain className="h-4 w-4" strokeWidth={2} />
+            Overview
           </button>
           <button
             type="button"
             onClick={() => setMode("walk")}
+            aria-pressed={mode === "walk"}
             className={cn(
-              "h-9 px-4 text-sm font-semibold rounded-lg gap-1.5 inline-flex items-center transition-colors",
+              "h-9 px-4 rounded-full text-[13px] font-semibold gap-2 inline-flex items-center transition-colors active:scale-[0.97]",
               mode === "walk"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white",
+                ? "bg-blue-600 text-white"
+                : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
             )}
           >
-            <Eye className="h-4 w-4" />
-            Street view (walk)
+            <Eye className="h-4 w-4" strokeWidth={2} />
+            Walk
           </button>
         </div>
 
-        {/* Help (bottom right) */}
-        <div className="absolute bottom-3 right-3 z-10 max-w-[280px] p-3 rounded-xl shadow-lg backdrop-blur-md bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700 text-xs">
-          <p className="font-bold text-[10px] tracking-[0.15em] text-gray-400 uppercase mb-1.5 flex items-center gap-1">
-            <KeyRound className="h-3 w-3" /> Controls
-          </p>
-          {mode === "orbit" ? (
-            <ul className="text-gray-700 dark:text-gray-300 space-y-0.5">
-              <li className="flex items-center gap-1.5"><RotateCw className="h-3 w-3" /> Drag to orbit</li>
-              <li className="flex items-center gap-1.5"><Layers className="h-3 w-3" /> Scroll to zoom</li>
-              <li className="flex items-center gap-1.5 text-gray-400">Click <strong className="text-blue-600">Street view</strong> to walk inside</li>
-            </ul>
-          ) : (
-            <ul className="text-gray-700 dark:text-gray-300 space-y-0.5">
-              <li className="flex items-center gap-1.5"><ArrowLeftRight className="h-3 w-3" /> W / A / S / D · arrows → move</li>
-              <li className="flex items-center gap-1.5"><ArrowUpDown className="h-3 w-3" /> Drag → look around</li>
-              <li className="flex items-center gap-1.5"><MoveVertical className="h-3 w-3" /> Space / Ctrl → up / down</li>
-              <li className="flex items-center gap-1.5 text-gray-400">Hold Shift → run</li>
-            </ul>
+        {/* Mode hint — fades in on mode change, fades out after 4s. */}
+        <div
+          className={cn(
+            "absolute bottom-16 left-1/2 -translate-x-1/2 z-10 px-3.5 py-2 rounded-full text-[12px] font-medium pointer-events-none transition-opacity duration-500 backdrop-blur-xl border",
+            showHint ? "opacity-100" : "opacity-0",
+            darkMode
+              ? "bg-gray-900/85 border-white/[0.08] text-gray-200"
+              : "bg-white/90 border-black/[0.08] text-gray-700",
           )}
+        >
+          {mode === "orbit"
+            ? "Drag to rotate · Scroll to zoom"
+            : "W A S D to move · Drag to look · Shift to run"}
         </div>
 
-        {/* Error / loading overlay */}
+        {/* Loading + error overlays. */}
         {(!ready && !error) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className={cn(
-              "text-sm font-semibold px-4 py-3 rounded-xl shadow-md",
-              darkMode ? "bg-gray-900/90 text-gray-200" : "bg-white/95 text-gray-700",
+              "text-[13px] font-medium px-4 py-2.5 rounded-full backdrop-blur-xl border",
+              darkMode
+                ? "bg-gray-900/85 border-white/[0.08] text-gray-200"
+                : "bg-white/90 border-black/[0.08] text-gray-700",
             )}>
-              Loading 3D scene…
+              Loading 3D view…
             </div>
           </div>
         )}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
-            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl p-4 max-w-md text-sm">
-              <p className="font-bold text-red-700 dark:text-red-300 mb-1">3D failed to load</p>
-              <p className="text-red-600 dark:text-red-400">{error}</p>
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl p-5 max-w-md text-sm">
+              <p className="font-semibold text-red-700 dark:text-red-300 mb-1">3D failed to load</p>
+              <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-sm font-semibold text-red-700 dark:text-red-300 underline"
+              >
+                Close and try again
+              </button>
             </div>
           </div>
         )}

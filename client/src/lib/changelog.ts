@@ -10,17 +10,43 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.36";
+export const APP_VERSION = "4.7.37";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.98.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.37",
+    date: "September 2026",
+    title: "Apple Maps-style map chrome · MazeMap 3D · settings polish · full mobile pass",
+    titleFi: "Apple Maps -kartan ohjaimet · MazeMap-3D · asetusten viimeistely · mobiilikierros",
+    latest: true,
+    highlights: [
+      "Map controls consolidated into a single Apple-Maps-style unified pill on the right: Directions, Zoom+/–, 3D, and Recenter live in one glass container with hairline dividers. Floor selector matches the same visual family. GPS and compass are standalone chips above.",
+      "Removed the bottom Kahvila / WC / Portaat pill bar — the map now runs full-bleed under the info sheet, which felt cluttered and duplicated navigation.",
+      "3D mode rebuilt from scratch to look like MazeMap: warm neutral ground, muted low-saturation room palette, soft glass-wall building shells with cream floor plates, hairline room edges, room-number pills that fade out as the camera pulls back, subtle auto-rotate on entry, segmented Overview/Walk toggle at the bottom.",
+      "Settings redesigned Apple-native: hairline-bordered cards, no big drop shadows, monochrome icons in the About tab (colored icon-in-pill decorations removed), simpler tab bar, unified language selector.",
+      "Privacy Policy now follows the app's language setting automatically — switching language in Settings updates the policy across tabs.",
+      "Marketing pages (Download, FAQ, Support, Privacy, HSL, Lunch, 404) got a full mobile UX pass: 44px touch targets, safe-area padding, iOS 16px input font, staggered fade-in animations respecting prefers-reduced-motion, Apple-blue primary CTAs, unified button heights, hairline card borders instead of heavy shadows.",
+      "Header search bar reworked into an Apple-Maps-style rounded pill with gray field and focus ring; mobile hamburger promoted to 44×44 touch target.",
+      "Removed the 2FA emoji warning; small copy fixes across admin.",
+    ],
+    highlightsFi: [
+      "Kartan ohjaimet yhdistetty Apple Mapsin tyyliseen yhtenäiseen pillereeseen: reittiohjeet, zoomit, 3D ja keskitys ovat yhdessä lasimaisessa säiliössä. Kerrosvalitsin näyttää samalta.",
+      "Alarivin Kahvila / WC / Portaat -painikkeet poistettu — kartta kulkee nyt täysleveänä.",
+      "3D-tila rakennettu uudelleen MazeMapin näköiseksi: lämmin neutraali maa, hillitty huonevärimaailma, pehmeät lasiseinät ja kermanvärisiä lattialevyjä, huoneen numerot haalistuvat etäisyyden mukaan.",
+      "Asetukset viimeistelty Applen tyyliin: ohuet reunat, ei raskaita varjoja, yksivärinen ikonisto Tietoja-välilehdellä.",
+      "Tietosuojaseloste seuraa nyt automaattisesti sovelluksen kielivalintaa.",
+      "Markkinointisivut (Lataus, UKK, Tuki, Tietosuoja, HSL, Ruoka, 404) saivat täyden mobiilikierroksen: 44 px kosketuskohteet, safe-area, animaatiot kunnioittavat prefers-reduced-motionia.",
+      "Ylätunnisteen haku muunnettu Apple Mapsin näköiseksi pyöreäksi kentäksi.",
+    ],
+  },
+  {
     version: "4.7.36",
     date: "September 2026",
     title: "Icon polish · CSS cleanup · server log hygiene · copy fixes",
     titleFi: "Ikoniviimistely · CSS-siivous · palvelinlokien siivous · tekstikorjaukset",
-    latest: true,
+    latest: false,
     highlights: [
       "All emoji used as interface icons replaced with consistent lucide-react icons across AnnouncementManager, ARRoomFinder, CampusEventsLayer, FMIWeatherWidget, ErrorBoundary, and SearchResultsDropdown.",
       "Removed ~850 lines of dead CSS: the legacy EduWilma design system, 30+ unused animation keyframes, duplicate global transition rules, and a background-pulsing dark mode animation.",

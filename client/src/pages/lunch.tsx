@@ -208,10 +208,13 @@ export default function Lunch() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-5 pb-24 space-y-4">
+      <div
+        className="max-w-2xl mx-auto px-4 sm:px-5 py-5 space-y-4"
+        style={{ paddingBottom: "max(6rem, env(safe-area-inset-bottom, 6rem))" }}
+      >
 
         {loading && (
-          <div className="py-20">
+          <div className="py-20 animate-fade-in">
             <LoadingSpinner fullScreen={false} message={isFi ? "Ladataan ruokalistaa..." : "Loading menu..."} />
           </div>
         )}
@@ -286,7 +289,7 @@ export default function Lunch() {
           <>
             {/* Day strip — pill buttons with date number + today dot */}
             <div
-              className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:-mx-5 sm:px-5 pb-0.5"
+              className="animate-fade-in-up flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:-mx-5 sm:px-5 pb-0.5"
               role="tablist"
               aria-label={isFi ? "Viikonpäivät" : "Weekdays"}
             >
@@ -330,12 +333,16 @@ export default function Lunch() {
             </div>
 
             {/* Menu card */}
-            <div className={cn(
-              "rounded-3xl overflow-hidden",
-              darkMode
-                ? "bg-[#1C1915] border border-white/6"
-                : "bg-white border border-black/6 shadow-[0_2px_24px_rgba(0,0,0,0.07)]",
-            )}>
+            <div
+              key={selectedIndex}
+              className={cn(
+                "animate-fade-in-up rounded-3xl overflow-hidden",
+                darkMode
+                  ? "bg-[#1C1915] border border-white/6"
+                  : "bg-white border border-black/6 shadow-sm",
+              )}
+              style={{ animationDelay: "60ms" }}
+            >
               {/* Card header */}
               <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">

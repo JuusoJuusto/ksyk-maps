@@ -83,6 +83,7 @@ export default function HSL() {
         type="button"
         onClick={() => setLocation("/")}
         aria-label="Back"
+        className="animate-fade-in-up"
         style={{
           position: "fixed",
           top: "max(1rem, env(safe-area-inset-top, 1rem))",
@@ -101,7 +102,11 @@ export default function HSL() {
           justifyContent: "center",
           cursor: "pointer",
           boxShadow: "0 10px 30px -6px rgba(0,0,0,0.5)",
+          transition: "transform 120ms ease, background 120ms ease",
         }}
+        onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
+        onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
       >
         <ChevronLeft size={22} strokeWidth={2.5} />
       </button>

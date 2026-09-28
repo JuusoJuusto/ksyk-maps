@@ -127,46 +127,51 @@ export default function Support() {
   // ── Success screen ─────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
-        <header className="border-b border-border/50 shrink-0">
+      <div
+        className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        <header className="border-b border-border/50 shrink-0 animate-fade-in">
           <div className="max-w-2xl mx-auto px-4 py-3">
-            <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/" className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to map
             </Link>
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-          <div className="w-full max-w-lg">
-            <Card className="border border-emerald-200/60 dark:border-emerald-900/40 shadow-xl">
-              <CardContent className="pt-8 pb-8 text-center">
-                <div className="mx-auto mb-5 h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/50 ring-1 ring-emerald-200 dark:ring-emerald-900/50 flex items-center justify-center">
-                  <CheckCircle className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+          <div className="w-full max-w-lg animate-fade-in-up">
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
+              <CardContent className="pt-8 pb-7 text-center">
+                <div
+                  className="animate-scale-in mx-auto mb-5 h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center"
+                >
+                  <CheckCircle className="h-7 w-7 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
                 </div>
-                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-emerald-600 dark:text-emerald-400 mb-2">
-                  Ticket received
-                </p>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  We got it. Thank you.
+                <h1 className="text-[24px] font-semibold tracking-tight text-slate-900 dark:text-white mb-2 leading-[1.15]">
+                  Ticket sent
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+                <p className="text-[15px] text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto leading-relaxed">
                   {email.trim()
-                    ? "A confirmation is on its way to your inbox. We aim to reply within 24–48 hours."
-                    : "We'll look into it. If you left an email, we'll follow up within 24–48 hours."}
+                    ? "A confirmation is on its way to your inbox. We usually reply within 24–48 hours."
+                    : "We'll look into it. Add your email next time to hear back."}
                 </p>
 
-                <div className="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 mb-6 text-left">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-4 mb-6 text-left">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                     Your ticket ID
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 break-all">
+                    <code className="flex-1 text-[14px] font-mono font-semibold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 break-all">
                       {ticketId}
                     </code>
                     <button
                       type="button"
                       onClick={copyTicketId}
-                      className="shrink-0 h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition"
+                      className="shrink-0 h-11 w-11 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60 active:scale-[0.96] transition-all"
                       title="Copy ticket ID"
                       aria-label="Copy ticket ID"
                     >
@@ -175,17 +180,24 @@ export default function Support() {
                         : <Copy className="h-4 w-4 text-slate-500" />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-2">
+                  <p className="text-[12px] text-slate-500 dark:text-slate-500 mt-2">
                     Save this if you need to follow up.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button className="flex-1 h-11 rounded-xl font-semibold" onClick={() => setLocation("/")}>
+                  <Button
+                    className="flex-1 h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98] transition-all"
+                    onClick={() => setLocation("/")}
+                  >
                     <Home className="h-4 w-4 mr-2" /> Back to map
                   </Button>
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl font-semibold" onClick={resetForm}>
-                    Submit another
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 rounded-xl font-semibold border-gray-200 dark:border-gray-800 active:scale-[0.98] transition-all"
+                    onClick={resetForm}
+                  >
+                    Send another
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
@@ -199,37 +211,43 @@ export default function Support() {
 
   // ── Form ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950">
-      <header className="border-b border-border/50 shrink-0">
+    <div
+      className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-950"
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <header className="border-b border-border/50 shrink-0 animate-fade-in">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             Back to map
           </Link>
         </div>
       </header>
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-2xl">
-          <Card className="border border-slate-200/70 dark:border-slate-800 shadow-xl">
+      <div className="flex-1 flex items-start sm:items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-2xl animate-fade-in-up">
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-200 dark:ring-blue-900/50 flex items-center justify-center">
-                  <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+                  <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">Contact support</CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardTitle className="text-[20px] font-semibold tracking-tight leading-[1.15]">Contact support</CardTitle>
+                  <CardDescription className="text-[14px] mt-0.5">
                     Report a bug, request a feature, or ask a question.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* Type — 2×2 grid, hints always visible for all screen sizes */}
                 <div>
-                  <Label className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-2 block">
+                  <Label className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 mb-2 block">
                     What kind of ticket?
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -242,15 +260,15 @@ export default function Support() {
                           type="button"
                           onClick={() => setType(key)}
                           aria-pressed={sel}
-                          className={`relative rounded-xl p-3 text-left transition ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                          className={`relative rounded-xl p-3 min-h-[68px] text-left transition-all border active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                             sel
-                              ? "text-blue-700 bg-blue-50 ring-blue-300 dark:bg-blue-950/40 dark:ring-blue-800/60 dark:text-blue-300 font-semibold shadow-sm"
-                              : "bg-white dark:bg-slate-900/50 ring-slate-200 dark:ring-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                              ? "text-blue-700 bg-blue-50 border-blue-300 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-300 font-semibold"
+                              : "bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                           }`}
                         >
-                          <Icon className={`h-4 w-4 mb-1.5 ${meta.iconTint}`} />
-                          <div className="text-xs font-semibold leading-tight">{meta.label}</div>
-                          <div className="text-[11px] mt-0.5 opacity-60 leading-snug">
+                          <Icon className={`h-4 w-4 mb-1.5 ${meta.iconTint}`} strokeWidth={2.25} />
+                          <div className="text-[13px] font-semibold leading-tight">{meta.label}</div>
+                          <div className="text-[12px] mt-0.5 opacity-60 leading-snug">
                             {meta.hint}
                           </div>
                         </button>
@@ -261,7 +279,7 @@ export default function Support() {
 
                 {/* Title */}
                 <div>
-                  <Label htmlFor="title" className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1.5 block">
+                  <Label htmlFor="title" className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
                     Title <span className="text-red-500" aria-hidden="true">*</span>
                   </Label>
                   <Input
@@ -269,18 +287,18 @@ export default function Support() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
                     placeholder="Short summary of the issue"
-                    className="h-11"
+                    className="h-11 rounded-xl text-[16px] sm:text-[15px]"
                     required
                     minLength={3}
                   />
-                  <p className="text-[11px] text-slate-400 mt-1 text-right tabular-nums" aria-live="polite">
+                  <p className="text-[12px] text-slate-400 mt-1 text-right tabular-nums" aria-live="polite">
                     {title.length}/{MAX_TITLE}
                   </p>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <Label htmlFor="description" className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1.5 block">
+                  <Label htmlFor="description" className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
                     Description <span className="text-red-500" aria-hidden="true">*</span>
                   </Label>
                   <Textarea
@@ -290,17 +308,17 @@ export default function Support() {
                     placeholder={type === "bug"
                       ? "What happened? What did you expect? Steps to reproduce?"
                       : "The more detail you share, the better we can help."}
-                    className="min-h-[160px] text-sm"
+                    className="min-h-[160px] rounded-xl text-[16px] sm:text-[15px] leading-relaxed"
                     required
                     minLength={10}
                   />
                   <div className="flex items-center justify-between mt-1">
                     {description.length > 0 && description.length < 10 && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400" aria-live="polite">
+                      <p className="text-[12px] text-amber-600 dark:text-amber-400" aria-live="polite">
                         {10 - description.length} more character{10 - description.length !== 1 ? "s" : ""} needed
                       </p>
                     )}
-                    <p className="text-[11px] text-slate-400 ml-auto tabular-nums" aria-live="polite">
+                    <p className="text-[12px] text-slate-400 ml-auto tabular-nums" aria-live="polite">
                       {description.length}/{MAX_DESCRIPTION}
                     </p>
                   </div>
@@ -309,21 +327,21 @@ export default function Support() {
                 {/* Contact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name" className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1.5 block">
-                      Name <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                    <Label htmlFor="name" className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                      Name <span className="text-slate-400 font-normal text-[12px]">(optional)</span>
                     </Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
-                      className="h-11"
+                      className="h-11 rounded-xl text-[16px] sm:text-[15px]"
                       autoComplete="name"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1.5 block">
-                      Email <span className="text-slate-400 font-normal text-xs">(for updates)</span>
+                    <Label htmlFor="email" className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 mb-1.5 block">
+                      Email <span className="text-slate-400 font-normal text-[12px]">(for updates)</span>
                     </Label>
                     <Input
                       id="email"
@@ -331,24 +349,31 @@ export default function Support() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className={`h-11 ${email && !emailValid ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                      className={`h-11 rounded-xl text-[16px] sm:text-[15px] ${email && !emailValid ? "border-red-400 focus-visible:ring-red-400" : ""}`}
                       autoComplete="email"
                     />
                     {email && !emailValid && (
-                      <p className="text-[11px] text-red-500 mt-1" role="alert">Enter a valid email address.</p>
+                      <p className="text-[12px] text-red-500 mt-1" role="alert">Enter a valid email address.</p>
                     )}
                   </div>
                 </div>
 
                 {/* Error banner */}
                 {submitMutation.isError && (
-                  <div className="rounded-xl p-3 ring-1 ring-red-200 dark:ring-red-900/50 bg-red-50 dark:bg-red-950/40 text-sm text-red-700 dark:text-red-300 flex items-start gap-2" role="alert">
+                  <div className="rounded-xl p-3.5 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-[14px] text-red-700 dark:text-red-300 flex items-start gap-2.5" role="alert">
                     <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold">Couldn't send your ticket</p>
-                      <p className="text-xs mt-0.5 opacity-80">
-                        {(submitMutation.error as Error)?.message || "Unknown error"}. Please try again.
+                      <p className="text-[13px] mt-0.5 opacity-80">
+                        {(submitMutation.error as Error)?.message || "Unknown error"}.
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => submitMutation.mutate()}
+                        className="mt-2 text-[13px] font-semibold underline underline-offset-2 hover:no-underline"
+                      >
+                        Try again
+                      </button>
                     </div>
                   </div>
                 )}
@@ -358,24 +383,24 @@ export default function Support() {
                   <Button
                     type="submit"
                     disabled={!canSubmit || submitMutation.isPending}
-                    className="flex-1 h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 h-11 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98] transition-all"
                   >
                     {submitMutation.isPending ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" /> Sending…</>
                     ) : (
-                      <><Send className="h-4 w-4 mr-2" aria-hidden="true" /> Send ticket</>
+                      <><Send className="h-4 w-4 mr-2" aria-hidden="true" /> Send message</>
                     )}
                   </Button>
                   <button
                     type="button"
                     onClick={() => setLocation("/")}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors py-2 shrink-0"
+                    className="text-[14px] font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors h-11 px-2 shrink-0"
                   >
                     Cancel
                   </button>
                 </div>
 
-                <p className="text-[11px] text-center text-slate-400 pt-1">
+                <p className="text-[12px] text-center text-slate-400 pt-1">
                   <Link href="/privacy" className="underline decoration-slate-300 hover:text-slate-500 dark:decoration-slate-700">Privacy policy</Link>
                 </p>
               </form>

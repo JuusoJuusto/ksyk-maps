@@ -173,9 +173,9 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 tabIndex={tab === id ? 0 : -1}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex items-center gap-2.5 px-3.5 py-2.5 lg:py-3 rounded-xl text-[13px] sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.97] min-h-10",
+                  "flex items-center gap-2.5 px-3.5 py-2.5 lg:py-3 rounded-xl text-[13px] sm:text-sm font-medium whitespace-nowrap transition-colors shrink-0 active:scale-[0.97] min-h-10",
                   tab === id
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                    ? "bg-blue-600 text-white"
                     : darkMode
                     ? "text-gray-400 hover:text-gray-100 hover:bg-gray-800/60"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
@@ -199,20 +199,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               <div className="space-y-4">
                 {/* Theme card — big, tap-friendly cards with icons */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <span className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center",
-                        darkMode ? "bg-blue-950/60 text-blue-300" : "bg-blue-50 text-blue-600",
-                      )}>
-                        <Sparkles className="h-4 w-4" />
-                      </span>
+                    <CardTitle className="text-[15px] font-semibold">
                       {isFi ? "Teema" : "Theme"}
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-[13px]">
                       {isFi ? "Vaalea, tumma tai järjestelmän mukaan" : "Light, dark, or follow system"}
                     </CardDescription>
                   </CardHeader>
@@ -230,11 +224,11 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                             type="button"
                             onClick={() => setTheme(id)}
                             className={cn(
-                              "flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border-2 transition-all active:scale-[0.97]",
+                              "flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border transition-colors active:scale-[0.97]",
                               selected
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 shadow-sm text-blue-700 dark:text-blue-300"
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                                 : darkMode
-                                ? "border-gray-700 hover:border-gray-600 text-gray-300"
+                                ? "border-gray-800 hover:border-gray-700 text-gray-300"
                                 : "border-gray-200 hover:border-gray-300 text-gray-700",
                             )}
                             aria-pressed={selected}
@@ -253,23 +247,23 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                 {/* Language card — pills laid out horizontally */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base sm:text-lg">
+                    <CardTitle className="text-[15px] font-semibold">
                       {isFi ? "Kieli" : "Language"}
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-[13px]">
                       {isFi ? "Sovelluksen käyttökieli" : "App display language"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {[
-                        { id: "en", label: "English", flag: "🇬🇧" },
-                        { id: "fi", label: "Suomi", flag: "🇫🇮" },
-                        ...(britishUnlocked ? [{ id: "en-GB", label: "British", flag: "🇬🇧" }] : []),
+                        { id: "en", label: "English", abbr: "EN" },
+                        { id: "fi", label: "Suomi", abbr: "FI" },
+                        ...(britishUnlocked ? [{ id: "en-GB", label: "British English", abbr: "EN-GB" }] : []),
                       ].map((lang) => {
                         const selected = currentLang === lang.id;
                         return (
@@ -278,17 +272,22 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                             type="button"
                             onClick={() => handleLanguageChange(lang.id)}
                             className={cn(
-                              "flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all active:scale-[0.97]",
+                              "flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border transition-colors active:scale-[0.97]",
                               selected
-                                ? "border-blue-500 bg-blue-600 text-white shadow-sm"
+                                ? "border-blue-600 bg-blue-600 text-white"
                                 : darkMode
-                                ? "border-gray-700 hover:border-gray-600 text-gray-300"
+                                ? "border-gray-800 hover:border-gray-700 text-gray-300"
                                 : "border-gray-200 hover:border-gray-300 text-gray-700",
                             )}
                             aria-pressed={selected}
                           >
-                            <span className="text-base">{lang.flag}</span>
-                            <span className="text-sm font-semibold">{lang.label}</span>
+                            <span className={cn(
+                              "text-[11px] font-bold tracking-widest uppercase",
+                              selected
+                                ? "text-blue-200"
+                                : darkMode ? "text-gray-500" : "text-gray-400",
+                            )}>{lang.abbr}</span>
+                            <span className="text-sm font-semibold leading-tight">{lang.label}</span>
                           </button>
                         );
                       })}
@@ -302,20 +301,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
             {tab === "accessibility" && (
               <Card className={cn(
-                "border-0 shadow-lg rounded-2xl overflow-hidden",
-                darkMode ? "bg-gray-800/80" : "bg-white/95",
+                "rounded-2xl overflow-hidden shadow-none border",
+                darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
               )}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className={cn(
-                      "h-8 w-8 rounded-lg flex items-center justify-center",
-                      darkMode ? "bg-purple-950/60 text-purple-300" : "bg-purple-50 text-purple-600",
-                    )}>
-                      <Accessibility className="h-4 w-4" />
-                    </span>
+                  <CardTitle className="text-[15px] font-semibold">
                     {isFi ? "Saavutettavuus" : "Accessibility"}
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[13px]">
                     {isFi ? "Tee sovelluksesta helppolukuisempi" : "Make the app easier to read"}
                   </CardDescription>
                 </CardHeader>
@@ -338,20 +331,14 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
             {tab === "changelog" && (
               <Card className={cn(
-                "border-0 shadow-lg rounded-2xl overflow-hidden",
-                darkMode ? "bg-gray-800/80" : "bg-white/95",
+                "rounded-2xl overflow-hidden shadow-none border",
+                darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
               )}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className={cn(
-                      "h-8 w-8 rounded-lg flex items-center justify-center",
-                      darkMode ? "bg-emerald-950/60 text-emerald-300" : "bg-emerald-50 text-emerald-600",
-                    )}>
-                      <ScrollText className="h-4 w-4" />
-                    </span>
+                  <CardTitle className="text-[15px] font-semibold">
                     {isFi ? "Versiohistoria" : "Version history"}
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[13px]">
                     {isFi
                       ? "Sovelluksen päivitykset — myös GitHubissa"
                       : "App updates — also on GitHub"}
@@ -367,8 +354,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               <div className="space-y-4">
                 {/* Identity card */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
                   <CardContent className="pt-6 pb-5">
                     <div className="flex flex-col items-center text-center gap-3">
@@ -393,38 +380,21 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                 {/* App info rows */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
-                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-800" : "divide-gray-100")}>
                     {[
-                      {
-                        icon: Globe,
-                        iconBg: "bg-blue-500",
-                        label: isFi ? "Verkkoversio" : "Web version",
-                        value: `v${APP_VERSION}`,
-                      },
-                      {
-                        icon: Smartphone,
-                        iconBg: "bg-green-500",
-                        label: isFi ? "Android-versio" : "Android version",
-                        value: `v${ANDROID_APP_VERSION}`,
-                      },
-                      {
-                        icon: School,
-                        iconBg: "bg-orange-500",
-                        label: isFi ? "Koulu" : "School",
-                        value: "Kulosaaren yhteiskoulu",
-                      },
-                    ].map(({ icon: Icon, iconBg, label, value }) => (
-                      <div key={label} className="flex items-center gap-3 px-4 py-3.5">
-                        <span className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 text-white", iconBg)}>
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
+                      { icon: Globe,      label: isFi ? "Verkkoversio" : "Web version",    value: `v${APP_VERSION}` },
+                      { icon: Smartphone, label: isFi ? "Android-versio" : "Android version", value: `v${ANDROID_APP_VERSION}` },
+                      { icon: School,     label: isFi ? "Koulu" : "School",                value: "Kulosaaren yhteiskoulu" },
+                    ].map(({ icon: Icon, label, value }) => (
+                      <div key={label} className="flex items-center gap-3.5 px-4 py-3.5">
+                        <Icon className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} strokeWidth={1.75} />
+                        <span className={cn("flex-1 text-[14px] font-medium", darkMode ? "text-gray-100" : "text-gray-900")}>
                           {label}
                         </span>
-                        <span className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                        <span className={cn("text-[14px] tabular-nums", darkMode ? "text-gray-400" : "text-gray-500")}>
                           {value}
                         </span>
                       </div>
@@ -434,8 +404,8 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                 {/* Description */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
                   <CardContent className="p-4">
                     <p className={cn("text-sm leading-relaxed", darkMode ? "text-gray-300" : "text-gray-600")}>
@@ -448,90 +418,56 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
 
                 {/* Links */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
-                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
-                    <button
-                      type="button"
-                      onClick={() => window.location.href = "/support"}
-                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
-                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
-                      )}
-                    >
-                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-purple-500 text-white">
-                        <LifeBuoy className="h-4 w-4" />
-                      </span>
-                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                        {isFi ? "Tuki ja palaute" : "Support & feedback"}
-                      </span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTab("changelog")}
-                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
-                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
-                      )}
-                    >
-                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500 text-white">
-                        <ScrollText className="h-4 w-4" />
-                      </span>
-                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                        {isFi ? "Versiohistoria" : "Version history"}
-                      </span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
-                      className={cn("w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors active:scale-[0.98]",
-                        darkMode ? "hover:bg-gray-700/30" : "hover:bg-black/[0.03]"
-                      )}
-                    >
-                      <span className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-800 text-white")}>
-                        <ExternalLink className="h-4 w-4" />
-                      </span>
-                      <span className={cn("flex-1 text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                        {isFi ? "Lähdekoodi GitHubissa" : "Source code on GitHub"}
-                      </span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} />
-                    </button>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-800" : "divide-gray-100")}>
+                    {[
+                      { icon: LifeBuoy,     label: isFi ? "Tuki ja palaute" : "Support & feedback",   onClick: () => window.location.href = "/support" },
+                      { icon: ScrollText,   label: isFi ? "Versiohistoria" : "Version history",       onClick: () => setTab("changelog") },
+                      { icon: ExternalLink, label: isFi ? "Lähdekoodi GitHubissa" : "Source on GitHub", onClick: () => window.open(KSYK_GITHUB_CHANGELOG, "_blank") },
+                    ].map(({ icon: Icon, label, onClick }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={onClick}
+                        className={cn(
+                          "w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:scale-[0.99]",
+                          darkMode ? "hover:bg-white/[0.04]" : "hover:bg-black/[0.03]",
+                        )}
+                      >
+                        <Icon className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} strokeWidth={1.75} />
+                        <span className={cn("flex-1 text-[14px] font-medium", darkMode ? "text-gray-100" : "text-gray-900")}>
+                          {label}
+                        </span>
+                        <ChevronRight className={cn("h-4 w-4 shrink-0", darkMode ? "text-gray-600" : "text-gray-300")} />
+                      </button>
+                    ))}
                   </CardContent>
                 </Card>
 
                 {/* Credits */}
                 <Card className={cn(
-                  "border-0 shadow-lg rounded-2xl overflow-hidden",
-                  darkMode ? "bg-gray-800/80" : "bg-white/95",
+                  "rounded-2xl overflow-hidden shadow-none border",
+                  darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
                 )}>
-                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-700/60" : "divide-gray-100")}>
-                    <div className="flex items-center gap-3 px-4 py-3.5">
-                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500 text-white">
-                        <Code2 className="h-4 w-4" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn("text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                          {isFi ? "Kartta" : "Map engine"}
-                        </p>
-                        <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>
-                          MapLibre GL · OpenStreetMap
-                        </p>
+                  <CardContent className={cn("p-0 divide-y", darkMode ? "divide-gray-800" : "divide-gray-100")}>
+                    {[
+                      { icon: Code2,    title: isFi ? "Kartta" : "Map engine",   sub: "MapLibre GL · OpenStreetMap" },
+                      { icon: Sparkles, title: isFi ? "Käyttöliittymä" : "Interface", sub: "React · Tailwind CSS · shadcn/ui" },
+                    ].map(({ icon: Icon, title, sub }) => (
+                      <div key={title} className="flex items-center gap-3.5 px-4 py-3.5">
+                        <Icon className={cn("h-[18px] w-[18px] shrink-0", darkMode ? "text-gray-500" : "text-gray-400")} strokeWidth={1.75} />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-[14px] font-medium", darkMode ? "text-gray-100" : "text-gray-900")}>
+                            {title}
+                          </p>
+                          <p className={cn("text-[12px] mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>
+                            {sub}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 px-4 py-3.5">
-                      <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-sky-500 text-white">
-                        <Sparkles className="h-4 w-4" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn("text-sm font-semibold", darkMode ? "text-gray-100" : "text-gray-900")}>
-                          {isFi ? "Käyttöliittymä" : "Interface"}
-                        </p>
-                        <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>
-                          React · Tailwind CSS · shadcn/ui
-                        </p>
-                      </div>
-                    </div>
+                    ))}
                   </CardContent>
                 </Card>
 

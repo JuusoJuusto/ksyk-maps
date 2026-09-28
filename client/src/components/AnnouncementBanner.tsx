@@ -132,12 +132,12 @@ export default function AnnouncementBanner() {
       {/* Outer strip — solid colored strip runs edge to edge but the
        *  inner card floats with side margin + all-corner rounding so the
        *  banner looks like a chip at every screen size (mobile → desktop). */}
-      <div className="relative z-40 pt-2 px-2 sm:px-3 md:px-4">
+      <div className="relative z-40 pt-2 px-2 sm:px-3 md:px-4 animate-fade-in">
         <div
           role="region"
           aria-label="Site announcement"
           className={cn(
-            "relative rounded-2xl shadow-lg transition-colors duration-300 cursor-pointer overflow-hidden",
+            "relative rounded-2xl shadow-md transition-colors duration-300 cursor-pointer overflow-hidden active:scale-[0.995]",
             priorityBg,
           )}
           onClick={() => {

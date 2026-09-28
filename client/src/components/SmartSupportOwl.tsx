@@ -560,7 +560,7 @@ export default function SmartSupportOwl() {
       ],
       response: 'Yksityisyys ja tietosuoja! 🦉\n\nTietosi ovat turvassa:\n\n• Tiedot salataan\n• Vain sinä ja opettajat näkevät tietosi\n• Huoltajat näkevät vain lapsensa tiedot\n• Noudatamme GDPR-säädöksiä\n• Tietoja ei jaeta kolmansille osapuolille',
       quickActions: [
-        { label: 'Tietosuojaseloste', action: 'privacy-policy', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Privacy Policy', action: 'privacy-policy', icon: <FileText className="w-4 h-4" /> },
       ]
     },
     

@@ -16,6 +16,19 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.37 — map chrome + 3D + settings + mobile pass)
+
+- **Map controls (Apple Maps style)** — right rail collapsed into ONE unified glass pill (Directions, Zoom+/-, 3D, Recenter) with hairline dividers and a single soft shadow. Floor selector matches the same visual family. GPS + compass float as standalone chips above the pill.
+- **Bottom Kahvila / WC / Portaat pill bar removed** — took up prime bottom real estate on mobile and duplicated what search already does. Also removed the associated `findNearestPOI` callback (dead code).
+- **3D mode rebuilt (MazeMap-inspired)** — `CampusThreeDView.tsx` fully rewritten. Warm neutral ground (no grid), muted Apple-Maps-style room palette (cool blues/greens/purples desaturated), 42%-opacity glass building shells, cream floor plates, hairline room edges, room-number pills that fade out as the camera pulls back, subtle auto-rotate on entry that stops on first drag, segmented Overview/Walk toggle at bottom, LocateFixed reset button top-right, minimap redesigned (no dashed lines, no title footer).
+- **Privacy Policy language sync** — `client/src/pages/privacy.tsx` now reads `ksyk_language` from localStorage and follows the app language. `storage` event listener keeps it in sync when the user switches language elsewhere.
+- **Settings redesign** — `CampusSettingsPanel.tsx`: all cards flattened to hairline borders + no shadow, colored icon-in-pill decorations removed from card headers, About-tab colored icon rows converted to monochrome (Globe/Smartphone/School/LifeBuoy/ScrollText/ExternalLink/Code2/Sparkles), theme + language selectors use single-width borders, tab bar loses shadow-md.
+- **Marketing pages / mobile UX pass** — `download.tsx`, `faq.tsx`, `support.tsx`, `privacy.tsx`, `hsl.tsx`, `lunch.tsx`, `not-found.tsx`, `Header.tsx`, `GetAppPopup.tsx`, `AnnouncementBanner.tsx`. Added `.animate-fade-in`, `.animate-fade-in-up`, `.animate-scale-in` (respecting `prefers-reduced-motion`), 44px touch targets, safe-area padding, iOS 16px input fix, Apple-blue primary CTAs, unified button heights. Header search bar reworked to Apple-Maps rounded pill.
+- **Full 404 page rebuild** — big gradient 404, staggered fade-ins, primary "Go to map" + secondary "Get help", no more header/banner clutter.
+- **2FA copy** — removed emoji warning, use amber alert with plain text.
+- **SmartSupportOwl privacy label** — "Tietosuojaseloste" → "Privacy Policy" for English mode.
+- **Version bumped** — `4.7.36` → `4.7.37`.
+
 ## ✅ Just shipped (web 4.7.36 — icon polish + CSS cleanup + copy fixes)
 
 - **Emoji icons removed** — every emoji used as a UI element replaced with lucide-react icons: `AnnouncementManager` (Calendar, Megaphone, Clock), `ARRoomFinder` (MapPin, Compass, Building2), `CampusEventsLayer` (Star, MapPin), `FMIWeatherWidget` (Droplets), `ErrorBoundary` (CheckCircle), `SearchResultsDropdown` (text abbreviations).

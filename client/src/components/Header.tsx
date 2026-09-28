@@ -185,10 +185,10 @@ export default function Header({
       {/* v4.7.21 — safe-area-inset-top on the sticky header so the
        *  chip doesn't land under an iPhone notch or Android status bar. */}
       <div
-        className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2"
+        className="sticky top-0 z-50 px-2 sm:px-3 md:px-4 pt-2 animate-fade-in"
         style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0.5rem))" }}
       >
-        <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-white/80 dark:border-gray-700/60 shadow-md shadow-black/[0.06] rounded-2xl overflow-hidden">
+        <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-white/80 dark:border-gray-700/60 shadow-sm rounded-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           {/* v3.27.5 — taller header on desktop. 14→16→20 across
            *  mobile/sm/lg so the nav reads as a proper top bar on
@@ -307,7 +307,7 @@ export default function Header({
             <div className={homeMinimal ? "hidden" : "md:hidden"}>
               <button
                 onClick={() => setShowMobileMenu(true)}
-                className="p-3 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="h-11 w-11 flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 aria-label="Open menu"
                 aria-expanded={showMobileMenu}
                 aria-controls="mobile-drawer"
@@ -337,9 +337,11 @@ export default function Header({
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (currentLang === "fi" ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
-                  "h-11 w-full pl-10 pr-16 text-sm rounded-2xl border shadow-sm transition-all",
-                  "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/60 focus-visible:shadow-md focus-visible:shadow-blue-500/10",
-                  darkMode ? "bg-gray-800/90 border-gray-700 text-white placeholder:text-gray-500" : "bg-white border-gray-200"
+                  "h-11 w-full pl-10 pr-16 text-[16px] sm:text-[14px] rounded-full border transition-all",
+                  "focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/50",
+                  darkMode
+                    ? "bg-gray-800/80 border-gray-700/60 text-white placeholder:text-gray-500"
+                    : "bg-gray-100/80 border-transparent hover:bg-gray-100 focus-visible:bg-white",
                 )}
                 aria-label={currentLang === "fi" ? "Etsi tiloja tai rakennuksia" : "Search rooms or buildings"}
                 // Combobox pattern — pairs with the KSYKMapView results

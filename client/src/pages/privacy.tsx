@@ -82,8 +82,14 @@ Support tickets are handled by the KSYK Maps team. Your data is not shared with 
 
 export default function Privacy() {
   const { darkMode } = useDarkMode();
+  // Follow the app's language setting. Default to Finnish only when no
+  // preference is stored yet; anything starting with "en" is English.
   const [lang, setLang] = useState<"fi" | "en">(() => {
-    try { return (localStorage.getItem("ksyk_language") || "fi").startsWith("en") ? "en" : "fi"; } catch { return "fi"; }
+    try {
+      const stored = localStorage.getItem("ksyk_language");
+      if (!stored) return "fi";
+      return stored.toLowerCase().startsWith("en") ? "en" : "fi";
+    } catch { return "fi"; }
   });
   const isFi = lang === "fi";
 
@@ -92,18 +98,35 @@ export default function Privacy() {
     return () => { document.title = "KSYK Maps"; };
   }, [isFi]);
 
+  // Sync when language changes elsewhere (Settings › Language).
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "ksyk_language" && typeof e.newValue === "string") {
+        setLang(e.newValue.toLowerCase().startsWith("en") ? "en" : "fi");
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   return (
-    <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
-      <header className="border-b border-border/50 shrink-0">
+    <div
+      className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <header className="border-b border-border/50 shrink-0 animate-fade-in">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             {isFi ? "Takaisin kartalle" : "Back to map"}
           </Link>
           <button
             onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
             className={cn(
-              "text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+              "text-[13px] font-semibold h-9 px-3 rounded-lg transition-colors",
               darkMode
                 ? "bg-gray-800 hover:bg-gray-700 text-gray-300"
                 : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-200",
@@ -114,24 +137,28 @@ export default function Privacy() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8 page-enter">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold tracking-tight">
-            {isFi ? "Tietosuojaseloste" : "Privacy Policy"}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8">
+        <div className="mb-8 animate-fade-in-up">
+          <h1 className="text-[26px] sm:text-[28px] font-semibold tracking-tight leading-[1.15]">
+            {isFi ? "Tietosuojaseloste" : "Privacy policy"}
           </h1>
-          <p className={cn("text-sm mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+          <p className={cn("text-[15px] mt-1.5", darkMode ? "text-gray-400" : "text-gray-500")}>
             {isFi ? "Päivitetty syyskuu 2026" : "Updated September 2026"}
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {SECTIONS.map((s, i) => (
-            <section key={i}>
-              <h2 className={cn("text-[15px] font-semibold mb-2", darkMode ? "text-gray-100" : "text-gray-900")}>
+            <section
+              key={i}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${80 + i * 40}ms` }}
+            >
+              <h2 className={cn("text-[17px] font-semibold tracking-tight mb-2", darkMode ? "text-gray-100" : "text-gray-900")}>
                 {isFi ? s.heading : s.headingEn}
               </h2>
               <div className={cn(
-                "text-[14px] leading-relaxed space-y-3",
+                "text-[15px] leading-relaxed space-y-3",
                 darkMode ? "text-gray-300" : "text-gray-600",
               )}>
                 {(isFi ? s.body : s.bodyEn).split("\n\n").map((para, j) => (
@@ -142,9 +169,15 @@ export default function Privacy() {
           ))}
         </div>
 
-        <div className={cn("text-center py-8 text-xs", darkMode ? "text-gray-500" : "text-gray-400")}>
+        <div
+          className={cn(
+            "animate-fade-in text-center py-8 text-[13px]",
+            darkMode ? "text-gray-500" : "text-gray-400",
+          )}
+          style={{ animationDelay: "500ms" }}
+        >
           {isFi ? "Kysyttävää? " : "Questions? "}
-          <Link href="/support" className="text-blue-500 hover:text-blue-400 underline">
+          <Link href="/support" className="text-blue-500 hover:text-blue-400 underline underline-offset-2">
             {isFi ? "Ota yhteyttä" : "Contact us"}
           </Link>
         </div>

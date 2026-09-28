@@ -3,9 +3,8 @@
  *
  * Chrome around the CampusMap:
  *   - Floor selector (top-right)
- *   - Zoom in/out stack (bottom-right, above 3D/Center)
- *   - 3D toggle + Center button (bottom-right, above zoom)
- *   - North reset (only shows when map is rotated off north)
+ *   - Right-side control rail: Compass, Directions, Zoom in/out, 3D toggle, Center
+ *   - North/compass chip (only shows when map is rotated off north)
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
@@ -21,7 +20,7 @@ import { loadAppSettings } from "@/lib/appSettings";
 import { useAccessDecision } from "@/hooks/useAccessDecision";
 import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { isFeatureAllowed } from "@/lib/accessControl";
-import { LocateFixed, Plus, Minus, Navigation2, Layers, Navigation } from "lucide-react";
+import { LocateFixed, Plus, Minus, Navigation2, Navigation } from "lucide-react";
 import type { ClickedFeature } from "@/components/FeatureInfoSheet";
 import FeatureHighlight from "@/components/FeatureHighlight";
 import CompassChip from "@/components/CompassChip";
@@ -384,50 +383,6 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const _savedLang = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
   const fi = _savedLang ? _savedLang === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
 
-  // ── Quick POI finder ─────────────────────────────────────────────────
-  // Finds the nearest POI of the given kind to the current map center on
-  // the active floor and flies there. Floor-aware: stairs/elevators serve
-  // all floors, generic POIs filter to the current floor when floor is set.
-  const findNearestPOI = useCallback((kind: string) => {
-    const h = handleRef.current;
-    if (!h) return;
-    const center = h.map.getCenter();
-    type Pt = { lat: number; lng: number };
-    const near = (c: Pt) => {
-      const dx = c.lng - center.lng; const dy = c.lat - center.lat;
-      return dx * dx + dy * dy;
-    };
-    let best: Pt | null = null;
-    let bestD = Infinity;
-    const check = (c: Pt) => { const d = near(c); if (d < bestD) { bestD = d; best = c; } };
-
-    if (kind === "stairs") {
-      campus.stairs.forEach(s => { if (s.position?.lat && s.position?.lng) check(s.position); });
-      // Also rooms typed as stairs
-      campus.rooms.filter(r => r.type === "stairs" && r.points?.length).forEach(r => {
-        const c = polygonCentroid(r.points!); if (c) check(c);
-      });
-    } else if (kind === "elevator") {
-      campus.elevators.forEach(e => { if (e.position?.lat && e.position?.lng) check(e.position); });
-      campus.rooms.filter(r => r.type === "elevator" && r.points?.length).forEach(r => {
-        const c = polygonCentroid(r.points!); if (c) check(c);
-      });
-    } else if (kind === "bathroom") {
-      campus.pois.filter(p => (p.kind === "bathroom" || p.kind === "restroom" || p.kind === "restroom_m" || p.kind === "restroom_f" || p.kind === "restroom_a") && (p.floor == null || p.floor === selectedFloor)).forEach(p => {
-        if (p.position?.lat && p.position?.lng) check(p.position);
-      });
-      campus.rooms.filter(r => r.type === "bathroom" && r.points?.length && (r.floor == null || r.floor === selectedFloor)).forEach(r => {
-        const c = polygonCentroid(r.points!); if (c) check(c);
-      });
-    } else {
-      campus.pois.filter(p => p.kind === kind && (p.floor == null || p.floor === selectedFloor)).forEach(p => {
-        if (p.position?.lat && p.position?.lng) check(p.position);
-      });
-    }
-
-    if (!best) return;
-    h.map.flyTo({ center: [(best as Pt).lng, (best as Pt).lat], zoom: Math.max(h.map.getZoom(), 18.5), duration: 700, essential: true });
-  }, [campus, selectedFloor]);
 
   // Floor list — union of every building's declared floor range.
   // Buildings can span -1..3 while a neighbour is 2..4, so the selector
@@ -706,24 +661,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  mobile without scrolling. */}
       {floorList.length > 1 && (
         <div
-          className="absolute right-3 z-30 flex flex-col p-1 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg shadow-black/10"
+          className={cn(
+            "absolute right-3 z-30 flex flex-col p-1 rounded-[18px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl",
+            "border border-black/[0.08] dark:border-white/[0.08]",
+            "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+          )}
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
-          {/* v3.25.9 — icon replaces the "FL" text label. Chrome's
-           *  auto-translate was rewriting "FL" to "Florida" in some
-           *  locales; even with the global translate="no" we don't want
-           *  a two-letter abbreviation whose language-neutrality is
-           *  fragile. The layers icon reads as "floors" universally. */}
-          <div
-            className="flex items-center justify-center py-1 text-muted-foreground"
-            translate="no"
-            aria-label="Floors"
-            title="Floors"
-          >
-            <Layers className="h-3 w-3" strokeWidth={2.25} />
-          </div>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col">
             {floorList.map((floor) => (
               <button
                 key={floor}
@@ -735,162 +681,152 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
                   setSelectedFloor(floor);
                 }}
                 className={cn(
-                  "min-w-[38px] h-9 px-2 rounded-xl text-sm font-bold transition-all leading-none tabular-nums flex flex-col items-center justify-center gap-0.5",
+                  "min-w-[36px] h-9 px-1.5 rounded-xl text-[13px] font-semibold transition-colors leading-none tabular-nums flex items-center justify-center active:scale-[0.94]",
                   selectedFloor === floor
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 scale-[1.02]"
-                    : "text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300",
+                    ? "bg-blue-600 text-white"
+                    : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
                 )}
               >
-                <span>{floor}</span>
-                {(roomsPerFloor.get(floor) ?? 0) > 0 && (
-                  <span className={cn(
-                    "text-[8px] font-semibold tabular-nums leading-none",
-                    selectedFloor === floor ? "text-blue-200" : "text-muted-foreground",
-                  )}>
-                    {roomsPerFloor.get(floor)}
-                  </span>
-                )}
+                {floor}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Right-side control rail — single vertical column with consistent
-       *  spacing so buttons can't overlap the way they did when each stack
-       *  had its own hardcoded `bottom` offset. Groups stay visually
-       *  distinct via the border between them; flex-col gap-3 handles
-       *  the between-group breathing room. */}
+      {/* Right-side control rail — Apple-Maps-style unified pill.
+       *  One rounded container, hairline dividers between actions, single
+       *  soft shadow. Reads as one instrument, not five buttons. Order
+       *  bottom-up: Directions, Zoom+, Zoom-, 3D, Locate. Compass and GPS
+       *  float above as standalone chips because they auto-show/hide. */}
       <div
         className="absolute right-3 z-30 flex flex-col-reverse gap-2 items-end max-h-[calc(100%-3rem)] overflow-hidden"
-        style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom, 0.5rem))" }}
+        style={{ bottom: "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))" }}
       >
-        {/* 3D toggle + Center */}
-        <div className="flex flex-col gap-1.5">
-          {canUse3D && (
-          <button
-            type="button"
-            aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
-            aria-pressed={is3D}
-            onClick={toggle3D}
-            title={is3D ? "2D flat" : "3D view"}
-            className={cn(
-              "w-10 h-10 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
-              is3D
-                ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
-                : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
-            )}
-          >
-            <span className="text-[11px] font-bold tabular-nums">
-              {is3D ? "3D" : "2D"}
-            </span>
-          </button>
+        {/* Main pill — Directions, zoom, 3D, locate stacked as one. */}
+        <div
+          className={cn(
+            "flex flex-col rounded-[18px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl overflow-hidden",
+            "border border-black/[0.08] dark:border-white/[0.08]",
+            "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+            "divide-y divide-black/[0.06] dark:divide-white/[0.06]",
           )}
-
-          <button
-            type="button"
-            aria-label="Reset view to campus defaults"
-            onClick={recenter}
-            title="Reset view — recenter, zoom, rotate to defaults"
-            className="w-10 h-10 rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-foreground shadow-md shadow-black/10 flex items-center justify-center transition-colors active:scale-[0.97] hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-          >
-            <LocateFixed className="h-4 w-4" strokeWidth={2.25} />
-          </button>
-          {/* GPS button — admin campus-map tab only */}
-          {showGpsLocation && (
+        >
+          {canUseRouting && (
             <button
               type="button"
-              title={
-                gpsError ? gpsError :
-                gpsPosition ? `GPS: ${gpsPosition.lat.toFixed(5)}, ${gpsPosition.lng.toFixed(5)} (±${Math.round(gpsPosition.accuracy)}m)` :
-                "Paikannus käynnissä…"
-              }
               onClick={() => {
-                if (gpsPosition && mapInstance) {
-                  mapInstance.flyTo({
-                    center: [gpsPosition.lng, gpsPosition.lat],
-                    zoom: Math.max(mapInstance.getZoom(), 19),
-                    duration: 900,
-                    essential: true,
-                  });
-                  setGpsFollowing((v) => { gpsFollowingRef.current = !v; return !v; });
-                }
+                if (!showNav) posthog.capture("directions_opened", { entry_point: "map_controls" });
+                setShowNav((v) => !v);
               }}
+              aria-label={showNav ? "Close directions" : "Get directions"}
+              aria-pressed={showNav}
+              title="Directions"
               className={cn(
-                "w-10 h-10 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
-                gpsError
-                  ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/30 dark:border-red-800"
-                  : gpsPosition
-                    ? gpsFollowing
-                      ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
-                      : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                    : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground animate-pulse",
+                "w-11 h-11 flex items-center justify-center transition-colors active:scale-[0.94]",
+                showNav
+                  ? "bg-blue-600 text-white"
+                  : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
               )}
             >
-              <Navigation className="h-4 w-4" strokeWidth={2.25} />
+              <Navigation2 className="h-[18px] w-[18px]" strokeWidth={2} />
             </button>
           )}
-        </div>
 
-        {/* Zoom in / out — attached pair, one rounded chip. */}
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-white/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md shadow-black/10">
           <button
             type="button"
             onClick={() => {
               handleRef.current?.zoomIn();
-              // Announce for the Zoom Lord easter egg watcher (see
-              // useKsykEasterEggs). Custom event keeps the hook
-              // decoupled from MapLibre.
               window.dispatchEvent(new CustomEvent("ksyk:zoomin"));
             }}
             aria-label="Zoom in"
             title="Zoom in"
-            className="w-10 h-10 flex items-center justify-center text-foreground border-b border-border transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
           >
-            <Plus className="h-4 w-4" strokeWidth={2.25} />
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => handleRef.current?.zoomOut()}
             aria-label="Zoom out"
             title="Zoom out"
-            className="w-10 h-10 flex items-center justify-center text-foreground transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 active:scale-[0.97]"
+            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
           >
-            <Minus className="h-4 w-4" strokeWidth={2.25} />
+            <Minus className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          </button>
+
+          {canUse3D && (
+            <button
+              type="button"
+              aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
+              aria-pressed={is3D}
+              onClick={toggle3D}
+              title={is3D ? "2D flat" : "3D view"}
+              className={cn(
+                "w-11 h-11 flex items-center justify-center transition-colors active:scale-[0.94]",
+                is3D
+                  ? "bg-blue-600 text-white"
+                  : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
+              )}
+            >
+              <span className="text-[11px] font-bold tabular-nums tracking-tight">
+                {is3D ? "3D" : "2D"}
+              </span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            aria-label="Recenter map"
+            onClick={recenter}
+            title="Recenter"
+            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+          >
+            <LocateFixed className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
         </div>
 
-        {/* Directions — opens the NavigationPanel top-left. Toggle button
-         *  so users can retract it. Hidden for restricted users when routing
-         *  is disabled in security settings. */}
-        {canUseRouting && (
-        <button
-          type="button"
-          onClick={() => {
-            if (!showNav) posthog.capture("directions_opened", { entry_point: "map_controls" });
-            setShowNav((v) => !v);
-          }}
-          aria-label={showNav ? "Close directions" : "Get directions"}
-          aria-pressed={showNav}
-          title="Directions"
-          className={cn(
-            "w-10 h-10 rounded-2xl border shadow-md flex items-center justify-center transition-colors active:scale-[0.97]",
-            showNav
-              ? "bg-blue-600 text-white border-blue-700/40 shadow-blue-600/30"
-              : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-white/80 dark:border-gray-700/80 text-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300 shadow-black/10",
-          )}
-        >
-          <Navigation2 className="h-4 w-4" strokeWidth={2.25} />
-        </button>
+        {/* GPS chip — admin campus-map tab only. Standalone above the pill
+         *  because it auto-appears/disappears based on permission state. */}
+        {showGpsLocation && (
+          <button
+            type="button"
+            title={
+              gpsError ? gpsError :
+              gpsPosition ? `GPS: ${gpsPosition.lat.toFixed(5)}, ${gpsPosition.lng.toFixed(5)} (±${Math.round(gpsPosition.accuracy)}m)` :
+              "Locating…"
+            }
+            onClick={() => {
+              if (gpsPosition && mapInstance) {
+                mapInstance.flyTo({
+                  center: [gpsPosition.lng, gpsPosition.lat],
+                  zoom: Math.max(mapInstance.getZoom(), 19),
+                  duration: 900,
+                  essential: true,
+                });
+                setGpsFollowing((v) => { gpsFollowingRef.current = !v; return !v; });
+              }
+            }}
+            className={cn(
+              "w-11 h-11 rounded-full border flex items-center justify-center transition-colors active:scale-[0.94]",
+              "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+              gpsError
+                ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/40 dark:border-red-900/50"
+                : gpsPosition
+                  ? gpsFollowing
+                    ? "bg-blue-600 text-white border-transparent"
+                    : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-black/[0.08] dark:border-white/[0.08] text-blue-600 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                  : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-black/[0.08] dark:border-white/[0.08] text-foreground animate-pulse",
+            )}
+          >
+            <Navigation className="h-[18px] w-[18px]" strokeWidth={2} />
+          </button>
         )}
 
-        {/* Compass — MazeMap-style rotation chip. Auto-hides when the
-         *  map is at the admin's default bearing/pitch; taps to reset.
-         *  The N arrow rotates with the map so users always know
-         *  which way north is even when the map is spun. */}
+        {/* Compass — auto-hides when the map is at the admin's default
+         *  bearing/pitch; tap to reset. Standalone above the pill so it
+         *  reads as ambient info, not a permanent control. */}
         <CompassChip map={mapInstance} />
-
-        {/* LayersToggle temporarily removed — available in builder only. */}
       </div>
 
       {showNav && (
@@ -934,34 +870,6 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         </div>
       )}
 
-      {/* Quick POI finder — MazeMap-style pill bar to jump to the nearest
-       *  WC / Stairs / Elevator / Info / Cafe. Hidden when the info sheet
-       *  is open (it would be covered) or nav panel is open. */}
-      {!clickedFeature && !showNav && campus.isReady && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg shadow-black/10 select-none"
-          style={{ bottom: "max(1.25rem, calc(0.75rem + env(safe-area-inset-bottom)))" }}
-        >
-          {([
-            { kind: "bathroom",  glyph: "WC", label: "WC",                        fg: "text-pink-600 dark:text-pink-400" },
-            { kind: "stairs",    glyph: "⊿",  label: fi ? "Portaat" : "Stairs",    fg: "text-amber-600 dark:text-amber-400" },
-            { kind: "elevator",  glyph: "↕",  label: fi ? "Hissi" : "Lift",        fg: "text-blue-600 dark:text-blue-400" },
-            { kind: "info",      glyph: "ⓘ",  label: "Info",                       fg: "text-sky-600 dark:text-sky-400" },
-            { kind: "cafe",      glyph: "☕",  label: fi ? "Kahvila" : "Cafe",      fg: "text-amber-700 dark:text-amber-500" },
-          ] as const).map(({ kind, glyph, label, fg }) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => findNearestPOI(kind)}
-              title={fi ? `Löydä lähin: ${label}` : `Find nearest: ${label}`}
-              className="flex flex-col items-center gap-0.5 px-2.5 py-1 rounded-xl hover:bg-black/6 dark:hover:bg-white/6 active:scale-[0.95] transition-all"
-            >
-              <span className={cn("text-[13px] font-bold leading-none", fg)}>{glyph}</span>
-              <span className="text-[8.5px] font-semibold text-muted-foreground leading-none tracking-tight">{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Feature info sheet — click a room/building on the map to
        *  inspect it and get one-tap directions there. */}

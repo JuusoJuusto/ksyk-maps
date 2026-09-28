@@ -345,9 +345,9 @@ export default function TwoFactorAuth() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <Alert className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
-              <AlertDescription className="text-red-800 dark:text-red-300">
-                ⚠️ Feature coming soon: Backup codes will be generated when you enable 2FA.
+            <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50">
+              <AlertDescription className="text-amber-800 dark:text-amber-300 text-sm">
+                Backup codes will be generated when you enable 2FA.
               </AlertDescription>
             </Alert>
           </CardContent>

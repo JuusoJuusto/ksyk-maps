@@ -65,12 +65,18 @@ export default function FAQ() {
   }, [isFi]);
 
   return (
-    <div className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}>
-      <header className="border-b border-border/50 shrink-0">
+    <div
+      className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <header className="border-b border-border/50 shrink-0 animate-fade-in">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             {isFi ? "Takaisin kartalle" : "Back to map"}
@@ -78,7 +84,7 @@ export default function FAQ() {
           <button
             onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
             className={cn(
-              "text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+              "text-[13px] font-semibold h-9 px-3 rounded-lg transition-colors",
               darkMode
                 ? "bg-gray-800 hover:bg-gray-700 text-gray-300"
                 : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-200",
@@ -89,12 +95,12 @@ export default function FAQ() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8 page-enter">
-        <div className="mb-7">
-          <h1 className="text-xl font-bold tracking-tight">
-            {isFi ? "Usein kysytyt kysymykset" : "Frequently Asked Questions"}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-8">
+        <div className="mb-6 animate-fade-in-up">
+          <h1 className="text-[26px] sm:text-[28px] font-semibold tracking-tight leading-[1.15]">
+            {isFi ? "Usein kysytyt kysymykset" : "Frequently asked questions"}
           </h1>
-          <p className={cn("text-sm mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>
+          <p className={cn("text-[15px] mt-1.5", darkMode ? "text-gray-400" : "text-gray-500")}>
             {isFi ? `${QUESTIONS.length} kysymystä` : `${QUESTIONS.length} questions`}
           </p>
         </div>
@@ -108,7 +114,7 @@ export default function FAQ() {
               <div
                 key={i}
                 className={cn(
-                  "rounded-2xl border overflow-hidden transition-colors duration-150",
+                  "animate-fade-in-up rounded-2xl border overflow-hidden transition-colors duration-150",
                   darkMode
                     ? open
                       ? "bg-gray-900 border-gray-700"
@@ -117,10 +123,11 @@ export default function FAQ() {
                       ? "bg-white border-gray-200 shadow-sm"
                       : "bg-white/70 border-gray-100 hover:bg-white hover:border-gray-200",
                 )}
+                style={{ animationDelay: `${60 + i * 40}ms` }}
               >
                 <button
                   onClick={() => setOpenIdx(open ? null : i)}
-                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4 min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset rounded-2xl"
+                  className="w-full flex items-center justify-between gap-3 text-left px-5 py-4 min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset rounded-2xl active:scale-[0.995] transition-transform"
                   aria-expanded={open}
                 >
                   <span className={cn("font-medium text-[15px] leading-snug", darkMode ? "text-gray-100" : "text-gray-900")}>
@@ -155,16 +162,22 @@ export default function FAQ() {
           })}
         </div>
 
-        <div className={cn("text-center py-8 text-xs space-y-2", darkMode ? "text-gray-500" : "text-gray-400")}>
+        <div
+          className={cn(
+            "animate-fade-in text-center py-8 text-[13px] space-y-2",
+            darkMode ? "text-gray-500" : "text-gray-400",
+          )}
+          style={{ animationDelay: "400ms" }}
+        >
           <div>
-            {isFi ? "Kysyttävää joka ei löytynyt? " : "Question not answered? "}
+            {isFi ? "Ei löytynyt vastausta? " : "Didn't find your answer? "}
             <Link href="/support" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
-              {isFi ? "Anna palautetta" : "Send feedback"}
+              {isFi ? "Ota yhteyttä" : "Contact us"}
             </Link>
           </div>
           <div>
             <Link href="/privacy" className="text-blue-500 hover:text-blue-400 underline underline-offset-2 transition-colors">
-              {isFi ? "Tietosuojaseloste" : "Privacy Policy"}
+              {isFi ? "Tietosuojaseloste" : "Privacy policy"}
             </Link>
           </div>
         </div>
