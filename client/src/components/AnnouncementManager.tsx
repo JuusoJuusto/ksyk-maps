@@ -151,11 +151,33 @@ export default function AnnouncementManager() {
     const storedUser = localStorage.getItem('ksyk_admin_user');
     const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
-    const dataToSubmit = {
-      ...formData,
+    // v4.7.45 — clean payload before sending.  The server's Zod schema
+    // is `createInsertSchema(announcements)` — it doesn't know about the
+    // `publishedAt` field (announcements table has no such column) and
+    // it rejects empty strings for the timestamp `expiresAt` because
+    // drizzle-zod maps `timestamp` to `z.date().nullable()`.  Coerce
+    // empty strings to null, drop the phantom `publishedAt`, and only
+    // include optional locale fields when non-empty.
+    const {
+      publishedAt: _publishedAt,
+      expiresAt,
+      titleEn,
+      titleFi,
+      contentEn,
+      contentFi,
+      ...rest
+    } = formData;
+
+    const dataToSubmit: Record<string, unknown> = {
+      ...rest,
       authorId: currentUser?.id || 'owner-admin-user',
-      isActive: true
+      isActive: true,
+      expiresAt: expiresAt && expiresAt.trim() ? new Date(expiresAt).toISOString() : null,
     };
+    if (titleEn && titleEn.trim())     dataToSubmit.titleEn   = titleEn.trim();
+    if (titleFi && titleFi.trim())     dataToSubmit.titleFi   = titleFi.trim();
+    if (contentEn && contentEn.trim()) dataToSubmit.contentEn = contentEn.trim();
+    if (contentFi && contentFi.trim()) dataToSubmit.contentFi = contentFi.trim();
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: dataToSubmit });

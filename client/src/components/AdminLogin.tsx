@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, ArrowRight, Lock } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ArrowRight, Lock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
 import posthog from '@/lib/posthog';
 
 /**
- * KSYK Admin Login — flipped split:
- *   left  → narrow white sign-in column (38%)
- *   right → full-bleed wilma-bg.jpg (62%), no overlay, no marketing copy.
+ * KSYK admin login — v4.7.45 Wilma document rewrite.
+ *
+ * Was a split-screen photo + card design.  Now uses the same
+ * institutional document masthead as FAQ / Privacy / Support / Settings:
+ * hairline top-header + uppercase masthead + big navy H1 + hairline
+ * form + Wilma-navy CTA.
  */
 
 interface AdminLoginProps {
@@ -37,8 +39,6 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        // Belt-and-suspenders: lowercase again on submit so a paste
-        // that bypasses the onChange handler still normalises.
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       if (response.ok) {
@@ -53,7 +53,7 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             role: typeof data.user.role === 'string' ? data.user.role : undefined,
           });
         }
-        posthog.capture("admin_login_succeeded", { auth_method: "password" });
+        posthog.capture('admin_login_succeeded', { auth_method: 'password' });
         toast({ title: 'Signed in', description: 'Welcome back.' });
         onLoginSuccess();
       } else {
@@ -68,280 +68,191 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* ── LEFT · big photo, no overlay, no copy ──────────────── */}
-      <div className="hidden lg:block relative flex-1 bg-gray-900 overflow-hidden">
-        <img
-          src="/wilma-bg.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
-      </div>
-
-      {/* ── RIGHT · narrow sign-in column ───────────────────────── */}
-      <div className={cn(
-        "relative flex flex-col w-full lg:w-[38%] xl:w-[34%] px-6 sm:px-10 lg:px-12 py-10 lg:py-14 shrink-0",
-        darkMode ? "bg-gray-950" : "bg-white",
-      )}>
-        {/* Top brand */}
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/favicon-128.png"
-            alt="KSYK Maps"
-            width={36}
-            height={36}
-            className="h-9 w-9 object-contain"
-          />
-          <div>
-            <p className={cn(
-              "text-[9px] font-bold tracking-[0.42em] uppercase",
-              darkMode ? "text-gray-500" : "text-gray-400",
-            )}>
-              KSYK Maps
-            </p>
-            <p className={cn(
-              "text-xs font-semibold",
-              darkMode ? "text-white" : "text-gray-900",
-            )}>
-              Admin
-            </p>
-          </div>
+    <div className={cn(
+      'min-h-screen flex flex-col',
+      darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900',
+    )}
+    style={{
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
+      {/* ── Document header — matches FAQ / Privacy / Support / Settings */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
           <a
             href="/"
-            className={cn(
-              "ml-auto text-xs transition-colors",
-              darkMode ? "text-gray-500 hover:text-white" : "text-gray-500 hover:text-gray-900",
-            )}
+            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            ← Map
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            Map
           </a>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+            <Lock className="h-3 w-3" strokeWidth={2.5} />
+            Protected
+          </span>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-md w-full mx-auto px-4 sm:px-5 py-6 sm:py-10">
+        {/* Document title block */}
+        <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+            Admin
+          </p>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+            Sign in
+          </h1>
+          <p className="text-[13px] mt-1 text-gray-500 dark:text-gray-400">
+            Continue to the KSYK Maps administration panel.
+          </p>
         </div>
 
-        {/* Form column — vertically centred between the header and footer */}
-        <div className="flex-1 flex flex-col justify-center py-10 max-w-sm w-full mx-auto lg:mx-0">
-          <div className="space-y-2 mb-7">
-            <h2 className={cn(
-              "text-2xl font-semibold tracking-tight",
-              darkMode ? "text-white" : "text-gray-900",
-            )}>
-              Sign in
-            </h2>
-            <p className={cn(
-              "text-sm",
-              darkMode ? "text-gray-400" : "text-gray-500",
-            )}>
-              Continue to the KSYK admin panel.
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div
+              className="rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 flex items-start gap-2.5"
+              role="alert"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" strokeWidth={2.25} />
+              <p className="text-[13px] font-semibold text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-[12px] font-bold tracking-[0.06em] uppercase text-gray-600 dark:text-gray-400">
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value.toLowerCase())}
+              placeholder="you@ksyk.fi"
+              required
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoFocus
+              className="h-11 rounded-[6px] text-[15px] border-[#d5dae0] dark:border-[#2a3040] focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/20"
+              data-testid="admin-email-input"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive" className="rounded-lg text-sm">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className={cn(
-                "text-xs font-medium",
-                darkMode ? "text-gray-300" : "text-gray-700",
-              )}>
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                // Normalise the input to lowercase on the way in so users
-                // can type "User@KSYK.fi" or "USER@KSYK.FI" and still
-                // match the record on file — auth matching is
-                // case-insensitive on the domain, but we normalise here
-                // so the value round-trips cleanly through validation.
-                onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                placeholder="you@ksyk.fi"
-                required
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoFocus
-                className={cn(
-                  "h-10 rounded-lg text-sm",
-                  darkMode
-                    ? "bg-gray-900 border-gray-800 text-white"
-                    : "bg-white border-gray-300 text-gray-900",
-                )}
-                data-testid="admin-email-input"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className={cn(
-                "text-xs font-medium",
-                darkMode ? "text-gray-300" : "text-gray-700",
-              )}>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-[12px] font-bold tracking-[0.06em] uppercase text-gray-600 dark:text-gray-400">
                 Password
               </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  className={cn(
-                    "h-10 pr-10 rounded-lg text-sm",
-                    darkMode
-                      ? "bg-gray-900 border-gray-800 text-white"
-                      : "bg-white border-gray-300 text-gray-900",
-                  )}
-                  data-testid="admin-password-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={cn(
-                    "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors",
-                    darkMode
-                      ? "text-gray-500 hover:text-white hover:bg-white/10"
-                      : "text-gray-400 hover:text-gray-700 hover:bg-gray-100",
-                  )}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-10 font-semibold rounded-lg gap-2 text-sm mt-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
-              disabled={isLoading}
-              data-testid="admin-login-submit"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                  Signing in…
-                </>
-              ) : (
-                <>
-                  Sign in
-                  <ArrowRight className="w-3.5 h-3.5 opacity-80" />
-                </>
-              )}
-            </Button>
-
-            {/* Forgot password — routes to the standalone reset flow. */}
-            <div className="text-right">
               <a
                 href="/admin/forgot-password"
-                className={cn(
-                  "inline-block text-[11px] font-medium transition-colors",
-                  darkMode
-                    ? "text-blue-400 hover:text-blue-300"
-                    : "text-blue-600 hover:text-blue-700",
-                )}
+                className="text-[12px] font-semibold text-[#003d82] dark:text-[#4a90d9] hover:underline underline-offset-2"
                 data-testid="forgot-password-link"
               >
                 Forgot password?
               </a>
             </div>
-          </form>
-
-          {/* Alt providers */}
-          <div className="mt-6 space-y-2">
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className={cn(
-                  "w-full border-t",
-                  darkMode ? "border-gray-800" : "border-gray-200",
-                )} />
-              </div>
-              <div className="relative flex justify-center">
-                <span className={cn(
-                  "px-2 text-[10px] font-medium uppercase tracking-wider",
-                  darkMode ? "bg-gray-950 text-gray-500" : "bg-white text-gray-400",
-                )}>
-                  or
-                </span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => (window.location.href = '/api/auth/microsoft/start')}
-              className={cn(
-                "w-full h-10 rounded-lg gap-2 font-medium text-sm",
-                darkMode
-                  ? "bg-transparent border-gray-800 text-gray-200 hover:bg-white/5"
-                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50",
-              )}
-              data-testid="microsoft-auth-button"
-            >
-              <MicrosoftLogo />
-              Microsoft · @ksyk.fi
-            </Button>
-
-            {process.env.NODE_ENV === 'development' && (
-              <Button
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                className="h-11 pr-11 rounded-[6px] text-[15px] border-[#d5dae0] dark:border-[#2a3040] focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/20"
+                data-testid="admin-password-input"
+              />
+              <button
                 type="button"
-                variant="ghost"
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/auth/dev-login', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                    });
-                    if (response.ok) {
-                      localStorage.setItem('ksyk_admin_logged_in', 'true');
-                      localStorage.setItem('ksyk_admin_login_at', String(Date.now()));
-                      onLoginSuccess();
-                    }
-                  } catch (err) {
-                    console.error('Dev login failed:', err);
-                  }
-                }}
-                className={cn(
-                  "w-full h-8 text-[11px]",
-                  darkMode ? "text-amber-400 hover:text-amber-300" : "text-amber-600 hover:text-amber-700",
-                )}
-                data-testid="dev-login-button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
               >
-                Dev quick access
-              </Button>
+                {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={2} /> : <Eye className="h-4 w-4" strokeWidth={2} />}
+              </button>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-11 rounded-[6px] text-[14px] font-bold gap-2 bg-[#003d82] hover:bg-[#002d5f] text-white"
+            disabled={isLoading}
+            data-testid="admin-login-submit"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                Signing in…
+              </>
+            ) : (
+              <>
+                Sign in
+                <ArrowRight className="w-4 h-4" strokeWidth={2.25} />
+              </>
             )}
+          </Button>
+        </form>
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#d5dae0] dark:border-[#2a3040]" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className={cn(
+              'px-3 text-[10px] font-bold uppercase tracking-[0.08em]',
+              darkMode ? 'bg-gray-950 text-gray-500' : 'bg-gray-50 text-gray-500',
+            )}>
+              Or
+            </span>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className={cn(
-          "flex items-center justify-between text-[11px]",
-          darkMode ? "text-gray-500" : "text-gray-400",
-        )}>
-          <span className="flex items-center gap-1.5">
-            <Lock className="h-3 w-3" />
-            Protected · KSYK
-          </span>
-          <a
-            href="/"
-            className={cn(
-              "transition-colors",
-              darkMode ? "hover:text-white" : "hover:text-gray-900",
-            )}
-          >
-            Back to map →
-          </a>
-        </div>
-      </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => (window.location.href = '/api/auth/microsoft/start')}
+          className="w-full h-11 rounded-[6px] text-[14px] font-semibold gap-2.5 border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-900 dark:text-gray-100"
+          data-testid="microsoft-auth-button"
+        >
+          <MicrosoftLogo />
+          Continue with Microsoft
+          <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400">@ksyk.fi</span>
+        </Button>
 
+        {process.env.NODE_ENV === 'development' && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/auth/dev-login', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                });
+                if (response.ok) {
+                  localStorage.setItem('ksyk_admin_logged_in', 'true');
+                  localStorage.setItem('ksyk_admin_login_at', String(Date.now()));
+                  onLoginSuccess();
+                }
+              } catch (err) {
+                console.error('Dev login failed:', err);
+              }
+            }}
+            className="w-full h-9 mt-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+            data-testid="dev-login-button"
+          >
+            Dev quick access
+          </Button>
+        )}
+
+        <p className="mt-8 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] text-[11px] text-center text-gray-500 dark:text-gray-500">
+          © {new Date().getFullYear()} KSYK Maps · Admin
+        </p>
+      </main>
     </div>
   );
 }
@@ -349,9 +260,9 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 function MicrosoftLogo() {
   return (
     <svg width="14" height="14" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="1"  y="1"  width="10" height="10" fill="#F25022" />
-      <rect x="12" y="1"  width="10" height="10" fill="#7FBA00" />
-      <rect x="1"  y="12" width="10" height="10" fill="#00A4EF" />
+      <rect x="1" y="1" width="10" height="10" fill="#F25022" />
+      <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
+      <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
       <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
     </svg>
   );

@@ -526,12 +526,12 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
   return (
     <div
       className={cn(
-        "fixed z-40 bg-card overflow-hidden flex flex-col",
-        // Mobile: bottom sheet — only covers bottom portion, map stays usable above.
+        "fixed z-40 bg-white dark:bg-gray-950 overflow-hidden flex flex-col",
+        // Mobile: bottom sheet with navy top accent — matches FeatureInfoSheet
         isSmall
-          ? "left-0 right-0 rounded-t-[28px] shadow-[0_-4px_32px_rgba(15,23,42,0.22)] border-t border-border"
-          // Desktop: top-left floating card (unchanged).
-          : "left-2 right-2 sm:left-3 sm:right-auto sm:rounded-2xl sm:border sm:border-border sm:shadow-xl sm:w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)]",
+          ? "left-0 right-0 rounded-t-[8px] border-t-[3px] border-t-[#003d82] shadow-[0_-4px_20px_rgba(15,23,42,0.14)]"
+          // Desktop: top-left floating card, hairline border, Wilma shadow
+          : "left-3 sm:left-4 rounded-[8px] border border-[#d5dae0] dark:border-[#2a3040] shadow-[0_4px_16px_rgba(15,23,42,0.12)] w-[min(92vw,28rem)] lg:w-[min(92vw,32rem)] border-t-[3px] border-t-[#003d82]",
       )}
       style={isSmall ? {
         bottom: 0,
@@ -571,7 +571,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
           className="flex justify-center pt-3 pb-1 w-full touch-none select-none shrink-0"
           aria-label={mobileSnap === "peek" ? "Expand navigation" : "Collapse navigation"}
         >
-          <span className="h-[5px] w-10 rounded-full bg-black/15 dark:bg-white/20" />
+          <span className="h-[3px] w-9 rounded-full bg-gray-300 dark:bg-gray-700" />
         </button>
       )}
 
@@ -618,30 +618,36 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
         </div>
       ) : (
         <>
-      <header className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border shrink-0">
-        <Navigation2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <p className="text-[14px] font-bold text-foreground flex-1">Directions</p>
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] leading-none">
+            Route
+          </p>
+          <p className="text-[16px] font-bold tracking-tight text-gray-900 dark:text-white leading-tight mt-1">
+            Directions
+          </p>
+        </div>
         {isSmall && (
           <button
             type="button"
             onClick={() => setMobileSnap(s => s === "full" ? "half" : "full")}
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label={mobileSnap === "full" ? "Collapse" : "Expand"}
           >
             {mobileSnap === "full"
-              ? <ChevronsDown className="h-4 w-4" />
-              : <ChevronsUp className="h-4 w-4" />}
+              ? <ChevronsDown className="h-4 w-4" strokeWidth={2.25} />
+              : <ChevronsUp className="h-4 w-4" strokeWidth={2.25} />}
           </button>
         )}
         <button
           type="button"
           onClick={onClose}
-          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+          className="h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Close directions"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" strokeWidth={2.25} />
         </button>
-      </header>
+      </div>
 
       <div className="p-3 space-y-2.5 overflow-y-auto">
         <EndpointField

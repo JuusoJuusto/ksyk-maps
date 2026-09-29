@@ -179,8 +179,10 @@ export default function Header({
        *   Institutional Wilma-style top bar: no floating chip, no glass.
        *   Hairline bottom border.  56 px on mobile, 60 px on desktop —
        *   a hair taller than the v4.7.43 pass for better breathing room
-       *   at every viewport. */}
-      <div
+       *   at every viewport.  <header> tag matters — SearchResultsDropdown
+       *   measures `document.querySelector('header')` to position itself
+       *   under the input. */}
+      <header
         className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -348,7 +350,7 @@ export default function Header({
             </div>
           </div>
         )}
-      </div>
+      </header>
 
       {/* ── Mobile drawer — full-height navigation panel ─────────────────
        *   Not a floating card.  A proper application drawer that slides in

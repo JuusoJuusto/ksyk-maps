@@ -16,6 +16,17 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.45 — Announcement fix + AdminLogin/NavPanel/SearchDropdown rewrites)
+
+- **Fixed `/api/announcements` 400 error.** Client was sending `expiresAt: ""` — drizzle-zod's `timestamp → z.date().nullable()` rejects empty strings. Client now converts empty → `null`, drops the phantom `publishedAt` (not a column), and only sends optional locale fields when non-empty. Server route now uses `safeParse` and returns real per-field Zod issues on 400 so future validation errors are debuggable.
+- **Search dropdown overlap fixed.** The v4.7.43 Header rewrite had dropped the `<header>` HTML tag; `SearchResultsDropdown` uses `document.querySelector('header')` to compute its top offset, so with no element it fell back to a 128 px hardcoded position — landing inside the new 168-172 px header + banner stack. Restored the `<header>` tag.
+- **AdminLogin fully rewritten.** Photo-left / narrow-card-right split gone. Now the same institutional document masthead as FAQ / Privacy / Support / Settings: `← Map` + `Protected` in the top bar, uppercase `ADMIN` masthead, big navy H1, hairline `EMAIL` + `PASSWORD` labels, 44 px Wilma-navy CTA, hairline Microsoft SSO outline button.
+- **NavigationPanel chrome pass.** Both mobile bottom sheet + desktop card get a 3 px `#003d82` top accent (matches `FeatureInfoSheet`). Radius 28 px / 16 px → 8 px. `shadow-xl` gone. Header switched to Wilma masthead: uppercase `ROUTE` + big `Directions` H2. Close/expand buttons squared 6 px.
+- **SearchResultsDropdown restyled.** Container: 2xl radius + backdrop-blur + shadow-lg → 8 px radius + hairline + tighter shadow. Filter chips: `rounded-full` marketing pills → 4 px Wilma tags with uppercase tracked labels. Type chips (K / GYM / LAB / etc.): perfect-circle 32×32 → squared 4 px `min-w-[36px]` rectangles. Hover tint moved from generic blue-50 to Wilma navy tint.
+- **Rollback point** — `git tag rollback-before-4-7-45` at commit `fd5010c`. Revert: `git reset --hard rollback-before-4-7-45 && git push --force-with-lease origin main`.
+- **Files** — `server/routes.ts`, `AnnouncementManager.tsx`, `Header.tsx` (restore `<header>`), `AdminLogin.tsx` (full rewrite), `NavigationPanel.tsx` (chrome), `SearchResultsDropdown.tsx`.
+- **Web version bumped** `4.7.44` → `4.7.45`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.44 — Settings + Lunch rewrites, bigger top bar)
 
 - **`CampusSettingsPanel.tsx` fully rewritten.** Killed the four-Cards-per-tab stack. Document masthead + compact left rail on desktop / horizontal segmented control on mobile. Hairline-divided `Section` blocks with reusable `RowList` / `SettingRow` / `MetaRow` / `LinkRow` building blocks. Wilma-navy active tab. Language picker now a segmented control with FI first. About tab: identity card + big drop-shadow logo dropped for a compact meta row list.

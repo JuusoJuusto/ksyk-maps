@@ -1824,8 +1824,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const validatedData = insertAnnouncementSchema.parse(req.body);
-      const announcement = await storage.createAnnouncement(validatedData);
+      const parsed = insertAnnouncementSchema.safeParse(req.body);
+      if (!parsed.success) {
+        // Surface Zod's per-field errors so admins can fix bad input
+        // instead of a generic 500.  v4.7.45 — user reported empty
+        // `expiresAt` strings + a phantom `publishedAt` triggering
+        // opaque failures.
+        await logError(parsed.error, 'POST /api/announcements (validation)', { announcementData: req.body });
+        return res.status(400).json({
+          message: "Invalid announcement data",
+          issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+        });
+      }
+      const announcement = await storage.createAnnouncement(parsed.data);
       res.status(201).json(announcement);
     } catch (error) {
       await logError(error, 'POST /api/announcements', { announcementData: req.body });

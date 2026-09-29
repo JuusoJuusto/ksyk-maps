@@ -10,17 +10,43 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.44";
+export const APP_VERSION = "4.7.45";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.45",
+    date: "September 2026",
+    title: "Announcement fix, AdminLogin + NavigationPanel + SearchDropdown rewrites, search overlap gone",
+    titleFi: "Ilmoitusten korjaus, kirjautumissivu ja reittipaneeli uusiksi, hakukentän päällekkäisyys pois",
+    latest: true,
+    highlights: [
+      "**Fixed `/api/announcements` 400 error.** Client was sending `expiresAt: \"\"` (empty string) — drizzle-zod maps the timestamp column to `z.date().nullable()`, which rejects empty strings. Also stripping the phantom `publishedAt` (not a column) and only sending optional locale fields when non-empty. Server route now uses `safeParse` and returns actual per-field Zod issues on 400 so future validation errors are debuggable instead of opaque.",
+      "**Search dropdown overlap fixed.** Root cause: the v4.7.43 Header rewrite dropped the `<header>` HTML element in favor of a plain `<div>`. `SearchResultsDropdown` measures `document.querySelector('header')` to position itself under the input, so with no `<header>` it fell back to a hardcoded 128 px offset — landing inside the new 168–172 px top bar + search row + announcement stack. Restored the `<header>` tag.",
+      "**AdminLogin fully rewritten.** Was a photo-left / narrow-card-right split. Now uses the same institutional document masthead as FAQ / Privacy / Support / Settings: hairline top bar with `← Map` + `Protected` badge, uppercase `ADMIN` masthead, big navy H1 `Sign in`, hairline `EMAIL` + `PASSWORD` labels, 44 px Wilma-navy CTA, `Forgot password?` inline with the label. Microsoft SSO button is now a hairline outline button. Zero glass, zero split-screen photo.",
+      "**NavigationPanel restyled.** Mobile bottom sheet + desktop floating card both get a 3 px `#003d82` top-accent bar (matches `FeatureInfoSheet`), 8 px corners (was 28 px / 16 px), hairline `#d5dae0` borders, and no more `shadow-xl`. Header row switched to Wilma masthead pattern: uppercase `ROUTE` label above the big `Directions` H2. Close + expand buttons squared to 6 px radius.",
+      "**SearchResultsDropdown restyled.** Container: 2xl radius + `backdrop-blur` + `shadow-lg` → 8 px radius + hairline `#d5dae0` + tighter shadow. Filter chips: `rounded-full` marketing pills → 4 px Wilma tags with uppercase tracked labels. Type chips (K/GYM/LAB/etc.): perfect-circle 32 × 32 → squared 4 px radius rectangle with `min-w-[36px]` for wider glyphs. Row hover tint moved from generic blue-50 to Wilma navy tint.",
+      "**Announcement detail dialog** — already rewritten in v4.7.44; this pass confirms the surface matches the search dropdown + FeatureInfoSheet (all use `border-t-[3px] border-t-[#003d82]` + hairline + 8 px + no blur).",
+      "**Files touched** — `server/routes.ts` (400 fix), `client/src/components/AnnouncementManager.tsx` (payload cleanup), `client/src/components/Header.tsx` (restore `<header>` tag), `client/src/components/AdminLogin.tsx` (full rewrite), `client/src/components/NavigationPanel.tsx` (chrome pass), `client/src/components/SearchResultsDropdown.tsx` (container + chips + rows).",
+      "**Rollback** — `git tag rollback-before-4-7-45` at `fd5010c`. Revert: `git reset --hard rollback-before-4-7-45 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.44` → `4.7.45`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Ilmoituksen luonnin 400-virhe korjattu. Tyhjä `expiresAt: \"\"` konvertoidaan `null`iksi, phantom `publishedAt` poistettu, ja palvelin palauttaa nyt kenttätason Zod-virheet 400:lla generic 500:n sijaan.",
+      "Hakukentän päällekkäisyys korjattu — v4.7.43-uudistus poisti `<header>`-elementin ja SearchResultsDropdown ei enää löytänyt sitä mitatakseen sijainnin. Palautettu.",
+      "AdminLogin kirjoitettu uusiksi — sama Wilma-asiakirjapohja kuin FAQ / Tietosuoja / Tuki / Asetukset. Ei enää kuvaa vasemmalla + kapea kortti oikealla.",
+      "NavigationPanel viimeistelty: 3px navy-korostuspalkki, 8px kulmat, hiuslinja-reunat, masthead-otsikko.",
+      "Hakupudotusvalikko: pyöreät pilleri-suodattimet → nelikulmaiset 4px Wilma-merkit; type-merkit (K/GYM/LAB) neliskulmaisia.",
+      "Palauta: `git reset --hard rollback-before-4-7-45`.",
+    ],
+  },
+  {
     version: "4.7.44",
     date: "September 2026",
     title: "Settings + Lunch rewrites, bigger top bar, matching map controls + announcement dialog",
     titleFi: "Asetukset ja Ruokalista uusiksi, isompi ylätunniste, yhtenäiset kartan kontrollit + ilmoitusdialogi",
-    latest: true,
+    latest: false,
     highlights: [
       "**Settings panel (`CampusSettingsPanel.tsx`) fully rewritten** — killed the four-card-per-tab stack. Now a document masthead + compact left rail on desktop / horizontal segmented control on mobile, hairline-divided `Section` blocks with `RowList` / `SettingRow` / `MetaRow` / `LinkRow` building blocks. Wilma-navy active tab. Language picker is a proper segmented control with FI first (Suomi is the primary language). About tab: identity card + big drop-shadow logo dropped; replaced with a compact meta row list.",
       "**Lunch page (`lunch.tsx`) modernized while keeping warmth**. Killed the `#FEFBF3` cream background — now uses the same `bg-gray-50 dark:bg-gray-950` chrome as every other page so the app feels like one product. Day strip changed from amber shadow-pill boxes to an evenly-divided Wilma-navy segmented control (`grid-template-columns: repeat(N, 1fr)`); today gets a small amber dot under the selected date. Menu card lost its `rounded-3xl shadow-sm` — now a `rounded-[6px]` bordered container with hairline dividers between dishes. Dish rows: colored 2×2 px square accent (was a round dot), tighter typography.",

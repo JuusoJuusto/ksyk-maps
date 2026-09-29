@@ -209,30 +209,26 @@ export default function SearchResultsDropdown({
       role="listbox"
       aria-label={`${hits.length} search results`}
       className={cn(
-        // Full-width on mobile with side gutters, capped at 42rem on
-        // larger viewports. Stretches to available viewport height so
-        // long result lists scroll INSIDE the panel instead of pushing
-        // off-screen.
-        // v3.26.5 — z bumped to 55, above the sticky Header (z-50), so
-        // the dropdown NEVER visually clips under the top bar even if
-        // the two touch (e.g. mid-scroll, small viewport where the
-        // announcement banner briefly overlaps).
-        "fixed left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[55] sm:w-[min(92vw,42rem)] rounded-2xl border shadow-lg overflow-hidden",
+        // Full-width on mobile with side gutters, capped at 42 rem on
+        // larger viewports. Wilma-style: hairline border, 8 px radius,
+        // no backdrop blur, tighter shadow.
+        "fixed left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[55] sm:w-[min(92vw,42rem)] rounded-[8px] border overflow-hidden",
         darkMode
-          ? "bg-gray-900/95 border-gray-800 text-gray-100 backdrop-blur"
-          : "bg-white border-gray-200 text-gray-900",
+          ? "bg-gray-950 border-[#2a3040] text-gray-100 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+          : "bg-white border-[#d5dae0] text-gray-900 shadow-[0_10px_30px_rgba(15,23,42,0.18)]",
       )}
       style={{
         top: effectiveOffset,
-        // Never taller than the space between the header and the
-        // bottom of the viewport (minus safe-area).
         maxHeight: `calc(100dvh - ${effectiveOffset}px - env(safe-area-inset-bottom, 0px) - 12px)`,
       }}
     >
       {/* Filter chips — hidden when only "All" would show, since a
        *  single chip is just noise. */}
       {filterChips.length > 1 && (
-        <div className={cn("flex gap-1.5 overflow-x-auto px-3 py-2 border-b", darkMode ? "border-gray-800 bg-gray-900/70" : "border-gray-100 bg-slate-50/60")}>
+        <div className={cn(
+          "flex gap-1 overflow-x-auto px-3 py-2 border-b",
+          darkMode ? "border-[#2a3040] bg-[#12161f]" : "border-[#d5dae0] bg-[#f5f6f8]",
+        )}>
           {filterChips.map((chip) => {
             const active = activeFilter === chip.id;
             return (
@@ -241,18 +237,18 @@ export default function SearchResultsDropdown({
                 type="button"
                 onClick={() => setActiveFilter(chip.id)}
                 className={cn(
-                  "shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors flex items-center gap-1.5",
+                  "shrink-0 text-[11px] font-bold uppercase tracking-[0.04em] px-2 h-7 rounded-[4px] transition-colors inline-flex items-center gap-1.5",
                   active
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-[#003d82] text-white"
                     : darkMode
-                      ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      : "bg-white text-gray-700 hover:bg-gray-100 ring-1 ring-gray-200",
+                      ? "bg-gray-950 text-gray-300 hover:bg-gray-900 border border-[#2a3040]"
+                      : "bg-white text-gray-700 hover:bg-gray-100 border border-[#d5dae0]",
                 )}
               >
                 {chip.label}
                 <span className={cn(
-                  "text-[10px] tabular-nums opacity-70",
-                  active ? "text-white" : darkMode ? "text-gray-500" : "text-gray-500",
+                  "text-[10px] tabular-nums font-bold",
+                  active ? "text-white/80" : darkMode ? "text-gray-500" : "text-gray-500",
                 )}>{chip.count}</span>
               </button>
             );
@@ -297,8 +293,8 @@ export default function SearchResultsDropdown({
                   aria-selected="false"
                   onClick={() => handleSelect(pick)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors",
-                    darkMode ? "hover:bg-blue-500/10" : "hover:bg-blue-50",
+                    "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors",
+                    darkMode ? "hover:bg-[#4a90d9]/10" : "hover:bg-[#e6ecf3]",
                   )}
                 >
                   <TypeChip pick={pick} darkMode={darkMode} />
@@ -415,11 +411,10 @@ function TypeChip({ pick, darkMode }: { pick: SearchPick; darkMode: boolean }) {
   const cfg = pickChip(pick);
   return (
     <span
-      className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+      className="h-8 min-w-[36px] px-1.5 rounded-[4px] flex items-center justify-center text-[11px] font-bold shrink-0 tracking-tight"
       style={{
-        background: darkMode ? `${cfg.bg}55` : cfg.bg,
+        background: darkMode ? `${cfg.bg}33` : cfg.bg,
         color: cfg.fg,
-        outline: `1px solid ${cfg.fg}55`,
       }}
       aria-hidden="true"
     >
