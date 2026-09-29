@@ -16,6 +16,18 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.51 — brute-force login protection active)
+
+- **Per-account login lockout wired.** `checkRateLimit` / `recordLoginAttempt` in `server/rateLimiter.ts` were implemented but never called. Now called from `server/routes.ts` admin-login handler: `checkRateLimit` runs before any DB lookup and returns 429 if locked; `recordLoginAttempt(false)` fires on every failed attempt (user not found, wrong password); `recordLoginAttempt(true)` fires on success (resets counter). Both the owner and regular-user paths are covered.
+- **Web bumped** `4.7.50` → `4.7.51`.
+
+---
+
+## ✅ Just shipped (web 4.7.50 — 3D loads on production, CSP-safe Three.js bundle)
+
+- **Three.js bundled with the app.** v4.7.49's CDN loader (`https://unpkg.com/three@0.160.0/build/three.min.js`) was blocked by the production Content Security Policy (`script-src-elem 'self' 'unsafe-inline' blob: data: https://*.posthog.com https://www.googletagmanager.com`). Installed `three@0.160.0` + `@types/three@0.160.0` as real deps, replaced the async `loadThree()` promise with a static `import * as THREE from "three"` at module top. The lazy chunk for `CampusThreeDView` now includes Three; no runtime network fetch, no CSP surprise. Also simplified the render effect (no more IIFE await).
+- **Web bumped** `4.7.49` → `4.7.50`.
+
 ## ✅ Just shipped (web 4.7.49 — 3D actually works, rebuilt on polygon points)
 
 - **3D view completely rebuilt.** Every previous 3D attempt used `mapPositionX/Y` + `width/height` (rectangles) to place rooms — but real rooms are stored as `points: {lat, lng}[]` polygons drawn in the builder. That's why 3D was empty. New scene reads polygon geometry and builds `THREE.Shape` + `ExtrudeGeometry` per feature.
@@ -41,13 +53,13 @@ Also on GitHub at `main/TODO.md`.
   - `shared/schema.ts`: added 10+ DB indexes — `users.passwordResetToken`, `rooms.buildingId/isActive`, `floors.buildingId`, `hallways.buildingId/floorId`, `adminLoginLogs.email/createdAt`, `appLogs.createdAt/level+createdAt`, `pageViews.createdAt`, `searchAnalytics.createdAt`.
 - **Web bumped** `4.7.47` → `4.7.48`. `tsc` clean.
 
-## ⏳ Pending (apply schema indexes to DB)
+## ❌ Blocked (apply schema indexes to DB)
 
-- **Run `npm run db:push`** (or `drizzle-kit push`) to apply the 10+ new indexes from `shared/schema.ts` to the live database. The schema changes are code-only until pushed.
+- **Run `npm run db:push`** to apply the 10+ new indexes from `shared/schema.ts` to the live database. Blocked: `POSTGRES_URL` in `.env.local` is empty. Fill it in from Vercel/Neon dashboard, then run the command.
 
-## ⏳ Pending (dead Firestore rate limiting)
+## ✅ Done (Firestore per-account rate limiting wired)
 
-- **`checkRateLimit` / `recordLoginAttempt`** in `server/rateLimiter.ts` are exported but never called — the per-account lockout after 5 failed login attempts is not actually active. Either wire them into the login handler in `server/routes.ts`, or remove them and update the misleading comment.
+- **`checkRateLimit` / `recordLoginAttempt`** now called in `server/routes.ts` admin login handler. Before any credential check: `checkRateLimit(email, ip)` — returns 429 with Finnish lockout message if account is locked. After each failed attempt (user not found, wrong password): `recordLoginAttempt(email, false, ip)`. After successful login: `recordLoginAttempt(email, true, ip)` (resets counter). Owner and regular-user paths both covered.
 
 ---
 

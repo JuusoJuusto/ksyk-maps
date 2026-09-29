@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, signChallenge, verifyChallenge } from "./simpleAuth";
 import { insertBuildingSchema, insertFloorSchema, insertHallwaySchema, insertRoomSchema, insertStaffSchema, insertEventSchema, insertAnnouncementSchema } from "../shared/schema.js";
 import { sendPasswordSetupEmail, sendTicketEmail, generateTempPassword } from "./emailService";
-import { rateLimiters } from "./rateLimiter";
+import { rateLimiters, checkRateLimit, recordLoginAttempt } from "./rateLimiter";
 import {
   kvGet, kvSet, kvMerge,
   createPoi, getPoisByKind, getAllPois, deletePoi,
@@ -227,6 +227,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password required" });
       }
 
+      // Per-account brute-force guard (Firestore-backed, across IPs)
+      const rateCheck = await checkRateLimit(normalizedEmail, req.ip);
+      if (!rateCheck.allowed) {
+        return res.status(429).json({ message: rateCheck.message || "Too many failed attempts. Try again later." });
+      }
+
       // SECURE OWNER CHECK - Database lookup only
       if (OWNER_EMAIL && normalizedEmail === OWNER_EMAIL) {
         let ownerUser = await storage.getUserByEmail(normalizedEmail);
@@ -240,6 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? await verifyPassword(trimmedPassword, ownerUser.password, ownerUser.id)
           : false;
         if (!ownerPwOk) {
+          await recordLoginAttempt(normalizedEmail, false, req.ip);
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
@@ -258,6 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'success',
           sessionId: null
         });
+        await recordLoginAttempt(normalizedEmail, true, req.ip);
 
         req.login({
           claims: {
@@ -295,6 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'failed',
           failureReason: 'User not found'
         });
+        await recordLoginAttempt(normalizedEmail, false, req.ip);
 
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -321,6 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'failed',
           failureReason: 'Invalid password'
         });
+        await recordLoginAttempt(normalizedEmail, false, req.ip);
 
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -355,7 +365,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginStatus: 'success',
           sessionId: null
         });
-        
+        await recordLoginAttempt(normalizedEmail, true, req.ip);
+
         posthogLogger.emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: 'Login success', attributes: { route: '/api/auth/admin-login', role: 'user' } });
         const userAdminToken = generateAdminToken((user as any).id, (user as any).role || 'admin');
         return res.json({

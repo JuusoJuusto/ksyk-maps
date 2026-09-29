@@ -10,17 +10,43 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.49";
+export const APP_VERSION = "4.7.52";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.51",
+    date: "September 2026",
+    title: "Brute-force login protection now active",
+    titleFi: "Kirjautumisen brute-force-suojaus nyt aktiivinen",
+    latest: true,
+    highlights: [
+      "**Per-account login lockout is now wired.** After 5 failed login attempts the account is locked for 15 minutes regardless of which IP the attempts came from. Previously the Firestore-backed lockout was implemented but never called. Now checked before every credential lookup, and reset automatically on a successful login.",
+    ],
+    highlightsFi: [
+      "Tilikohtainen kirjautumislukitus on nyt aktiivinen. 5 epäonnistuneen yrityksen jälkeen tili lukitaan 15 minuutiksi.",
+    ],
+  },
+  {
+    version: "4.7.50",
+    date: "September 2026",
+    title: "3D loads on production — Three.js bundled, no more CSP block",
+    titleFi: "3D latautuu tuotannossa — Three.js pakattu bundleen, ei CSP-estoa",
+    latest: false,
+    highlights: [
+      "**Three.js is now bundled with the app.** The v4.7.49 rewrite loaded three.min.js from `unpkg.com` at runtime, which our Content Security Policy `script-src-elem` allowlist correctly refused: only 'self', posthog.com, and googletagmanager.com are allowed for scripts in production. The CDN loader is gone; `three@0.160.0` is now a real npm dependency and imported via a normal ESM `import * as THREE from \"three\"`. First 3D-view open now works instantly (no network round-trip) and can't fail due to CSP.",
+    ],
+    highlightsFi: [
+      "Three.js pakattu sovelluksen bundleen. Aiemmin ladattiin CDN:stä, mikä esti CSP-käytäntö. Nyt oikeana npm-riippuvuutena.",
+    ],
+  },
+  {
     version: "4.7.49",
     date: "September 2026",
     title: "3D actually works — rebuilt on polygon points, not fake rectangles",
     titleFi: "3D toimii viimein — käyttää oikeita polygoneja, ei kuvitteellisia suorakulmioita",
-    latest: true,
+    latest: false,
     highlights: [
       "**3D view completely rebuilt.** Every previous 3D attempt used `mapPositionX/Y` + `width/height` (rectangles) to place rooms — but real rooms are stored as `points: {lat, lng}[]` polygons drawn in the builder. That's why the 3D view was empty or looked broken. The new scene reads the actual polygon geometry, projects lat/lng to metres via an equirectangular scale centred on the campus, and builds proper `THREE.Shape` + `ExtrudeGeometry` for every building and room.",
       "**Real-world proportions.** Floor height is 3.6 m (not 14 arbitrary units), room slabs are 1 m tall, camera field of view and distances scale to the actual campus extent so the view auto-fits every time regardless of school size.",
