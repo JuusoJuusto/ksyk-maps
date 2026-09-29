@@ -257,20 +257,29 @@ export default function SearchResultsDropdown({
       )}
       {!trimmed && shouldShowRecents ? (
         <div>
-          <div className={cn("flex items-center gap-2 px-3 py-2 border-b", darkMode ? "border-gray-800 bg-gray-900/70" : "border-gray-100 bg-slate-50/60")}>
-            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground flex-1">
+          {/* v4.7.49 — recent-searches header uses the same styling as
+           *  the filter-chips band above so the dropdown feels like one
+           *  coherent surface regardless of state. */}
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-2 border-b",
+            darkMode ? "border-[#2a3040] bg-[#12161f]" : "border-[#d5dae0] bg-[#f5f6f8]",
+          )}>
+            <Clock className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" strokeWidth={2.25} />
+            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 flex-1">
               Recent
             </p>
             <button
               type="button"
               onClick={() => { clearRecents(); setRecents([]); }}
-              className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-300"
+              className="text-[10px] font-bold uppercase tracking-[0.04em] text-[#003d82] dark:text-[#4a90d9] hover:underline"
             >
               Clear
             </button>
           </div>
-          <ul className="divide-y divide-inherit">
+          <ul className={cn(
+            "divide-y",
+            darkMode ? "divide-[#2a3040]" : "divide-[#d5dae0]",
+          )}>
             {recents.map((r) => {
               // Resolve back to a live entity so the pick fly-to has
               // fresh coordinates. If the entity was deleted since
@@ -312,14 +321,14 @@ export default function SearchResultsDropdown({
           </ul>
         </div>
       ) : hits.length === 0 ? (
-        <div className="px-6 py-8 text-center">
+        <div className="px-6 py-10 text-center">
           <div className={cn(
-            "mx-auto h-11 w-11 rounded-2xl flex items-center justify-center mb-3",
-            darkMode ? "bg-gray-800 text-gray-500" : "bg-slate-100 text-gray-400",
+            "mx-auto h-10 w-10 rounded-[6px] flex items-center justify-center mb-3 border",
+            darkMode ? "bg-gray-900 border-[#2a3040] text-gray-500" : "bg-[#f5f6f8] border-[#d5dae0] text-gray-500",
           )}>
-            <Search className="h-5 w-5" />
+            <Search className="h-4 w-4" strokeWidth={2.25} />
           </div>
-          <p className={cn("text-sm font-semibold", darkMode ? "text-gray-200" : "text-gray-800")}>
+          <p className={cn("text-[13px] font-bold", darkMode ? "text-gray-200" : "text-gray-900")}>
             No matches for &quot;{trimmed}&quot;
           </p>
           <p className={cn("text-[11px] mt-1", darkMode ? "text-gray-400" : "text-gray-500")}>

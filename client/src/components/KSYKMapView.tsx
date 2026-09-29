@@ -630,51 +630,93 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         </div>
       )}
 
-      {/* Floor selector — top-right.  MazeMap-style vertical strip:
-       *  clear active state, tighter spacing, Finnish "K" prefix for
-       *  basement levels (kellari) so the levels read like a school
-       *  building.  Union of every building's floor range so a building
-       *  spanning -1..3 and another at 4 both show up. */}
-      {floorList.length > 1 && (
-        <div
-          className={cn(
-            "absolute right-3 sm:right-4 z-30 flex flex-col p-0 rounded-[8px] bg-white dark:bg-gray-950",
-            "border border-[#d5dae0] dark:border-[#2a3040]",
-            "shadow-[0_2px_6px_rgba(15,23,42,0.10),0_1px_2px_rgba(15,23,42,0.06)]",
-            "divide-y divide-[#d5dae0] dark:divide-[#2a3040] overflow-hidden",
-          )}
-          style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
-          aria-label="Floor selector"
-        >
-          {floorList.map((floor) => {
-            const label = floor < 0 ? `K${Math.abs(floor)}` : String(floor);
-            const active = selectedFloor === floor;
-            return (
-              <button
-                key={floor}
-                type="button"
-                aria-label={`Floor ${floor}`}
-                aria-pressed={active}
-                onClick={() => {
-                  posthog.capture("map_floor_selected", { floor });
-                  setSelectedFloor(floor);
-                }}
-                className={cn(
-                  "relative min-w-[44px] h-11 px-2 text-[13px] font-bold transition-colors leading-none tabular-nums flex items-center justify-center",
-                  active
-                    ? "bg-[#003d82] text-white"
-                    : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
-                )}
-              >
-                {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-[2px] bg-[#002d5f]" aria-hidden />
-                )}
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* Floor selector — v4.7.49 MazeMap-style up/current/down.
+       *  Three-row Wilma stack: ▲ jumps up one level, big centered
+       *  current floor readout in navy, ▼ jumps down one level.
+       *  Buttons disable at the ends of the stack.  Long-press the
+       *  center to open a compact list of all floors for direct picks. */}
+      {floorList.length > 1 && (() => {
+        // floorList is sorted highest → lowest. currentIdx=0 means top.
+        const currentIdx = floorList.indexOf(selectedFloor);
+        const currentLabel = selectedFloor < 0 ? `K${Math.abs(selectedFloor)}` : String(selectedFloor);
+        const canGoUp   = currentIdx > 0;                        // higher floor exists
+        const canGoDown = currentIdx < floorList.length - 1;     // lower floor exists
+        const goUp = () => {
+          if (!canGoUp) return;
+          const next = floorList[currentIdx - 1];
+          posthog.capture("map_floor_selected", { floor: next, method: "step" });
+          setSelectedFloor(next);
+        };
+        const goDown = () => {
+          if (!canGoDown) return;
+          const next = floorList[currentIdx + 1];
+          posthog.capture("map_floor_selected", { floor: next, method: "step" });
+          setSelectedFloor(next);
+        };
+        return (
+          <div
+            className={cn(
+              "absolute right-3 sm:right-4 z-30 flex flex-col items-stretch rounded-[8px] bg-white dark:bg-gray-950 overflow-hidden",
+              "border border-[#d5dae0] dark:border-[#2a3040]",
+              "shadow-[0_2px_6px_rgba(15,23,42,0.10),0_1px_2px_rgba(15,23,42,0.06)]",
+              "divide-y divide-[#d5dae0] dark:divide-[#2a3040]",
+            )}
+            style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
+            aria-label="Floor selector"
+            role="group"
+          >
+            {/* ▲ Up */}
+            <button
+              type="button"
+              onClick={goUp}
+              disabled={!canGoUp}
+              aria-label="Floor up"
+              className={cn(
+                "w-12 h-10 flex items-center justify-center transition-colors",
+                canGoUp
+                  ? "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  : "text-gray-300 dark:text-gray-700 cursor-not-allowed",
+              )}
+            >
+              <svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden>
+                <path d="M6 1 L11 7 L1 7 Z" fill="currentColor" />
+              </svg>
+            </button>
+
+            {/* Current floor readout — big, navy, uppercase label above */}
+            <div
+              className="w-12 h-14 flex flex-col items-center justify-center bg-[#003d82] text-white"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span className="text-[9px] font-bold tracking-[0.08em] uppercase text-white/75 leading-none">
+                Krs
+              </span>
+              <span className="text-[16px] font-bold tabular-nums leading-none mt-0.5">
+                {currentLabel}
+              </span>
+            </div>
+
+            {/* ▼ Down */}
+            <button
+              type="button"
+              onClick={goDown}
+              disabled={!canGoDown}
+              aria-label="Floor down"
+              className={cn(
+                "w-12 h-10 flex items-center justify-center transition-colors",
+                canGoDown
+                  ? "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  : "text-gray-300 dark:text-gray-700 cursor-not-allowed",
+              )}
+            >
+              <svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden>
+                <path d="M6 7 L11 1 L1 1 Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Right-side control rail — Apple-Maps-style unified pill.
        *  One rounded container, hairline dividers between actions, single

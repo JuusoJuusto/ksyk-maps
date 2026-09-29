@@ -1883,17 +1883,12 @@ export default function AdminAnalyticsDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* v4.7.13 apple-design header — tighter type scale, calmer
-       *  meta line, sticky with translucent backdrop.
-       *  v4.7.17 — flex-wrap for narrow viewports so the range
-       *  picker drops below the title instead of overflowing. */}
-      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+      {/* v4.7.49 — AdminDashboard renders the section masthead above
+       *  every panel, so no duplicate H2 here.  Just a compact meta
+       *  strip with live indicator + range picker. */}
+      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040] flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h2 className="text-[17px] font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <BarChart3 className="h-[18px] w-[18px] text-slate-500 dark:text-slate-400" strokeWidth={2} />
-            Analytics
-          </h2>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap font-semibold">
             <span className="inline-flex items-center gap-1">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live

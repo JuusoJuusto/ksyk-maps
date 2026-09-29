@@ -10,17 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.52";
+export const APP_VERSION = "4.7.53";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.53",
+    date: "September 2026",
+    title: "StudentLoginGate + MazeMap floor switcher + admin overview + profile dialog",
+    titleFi: "Sisäänkirjautuminen + MazeMap-kerrosvalitsin + admin-yleiskatsaus + profiilidialogi",
+    latest: true,
+    highlights: [
+      "**StudentLoginGate rewrite** — the first-visit welcome modal now uses the Wilma document pattern. Masthead header (`SIGN IN` label + navy KSYK Maps wordmark + close button) → big `Welcome` H1 → subtitle → primary Microsoft button (navy) + secondary guest button (hairline outline with `User` icon) → hairline footer with @ksyk.fi disclosure. 3 px navy top-accent border.",
+      "**Floor switcher — MazeMap up/current/down pattern.** Replaced the long vertical list of every floor with a compact 3-cell stack: ▲ up chevron / big centered current-floor readout (uppercase `KRS` label + big navy number) / ▼ down chevron. End buttons disable at the top / bottom of the stack. K-prefix preserved for basement levels.",
+      "**Search dropdown unified.** Recent-searches header now uses the same `bg-[#f5f6f8]` + hairline styling as the filter-chips band above hits — the container looks like one coherent surface regardless of state. Empty-state icon squared 6 px, `No matches for` text tightened.",
+      "**Admin overview Wilma pass.** Stat cards: rounded-2xl shadow-Card → 6 px hairline surfaces with navy-on-hover border. Campus occupancy: `Card` → Wilma document card with masthead + status legend as tight `border` chips instead of shadow-cards. Quick actions grid: 6 px hairline buttons with navy icon + hover navy border.",
+      "**Killed double H2s** in admin sub-panels. `AppSettingsManager` `App Settings` H2 and `AdminAnalyticsDashboard` `Analytics` H2 removed — `AdminDashboard` already renders a masthead + H2 above every panel, so the per-panel headings were duplicating. Only the meta strip (Live indicator + range picker) stays. `Save changes` button converted to Wilma navy rectangle.",
+      "**Profile settings dialog.** New `AdminProfileDialog` component. Sidebar user chip → clickable button that opens a Wilma document dialog with display-name, email, current-password, and new-password fields. Server-side `/api/auth/profile` endpoint isn't wired yet — dialog gracefully falls back to local storage for name/email edits and shows a clear \"saved locally\" toast; password changes surface a friendly \"not available yet\" error. Also wires in the mobile top strip user info as a clickable button.",
+      "**Files touched** — `client/src/components/StudentLoginGate.tsx` (rewrite), `client/src/components/KSYKMapView.tsx` (floor switcher), `client/src/components/SearchResultsDropdown.tsx` (chrome unification), `client/src/components/AdminDashboard.tsx` (overview + user chip + dialog mount), `client/src/components/AppSettingsManager.tsx` (kill duplicate H2), `client/src/components/AdminAnalyticsDashboard.tsx` (kill duplicate H2), `client/src/components/AnnouncementBanner.tsx` (bigger dialog), `client/src/components/AdminProfileDialog.tsx` (new).",
+      "**Rollback** — `git tag rollback-before-4-7-53` at `757580b`. Revert: `git reset --hard rollback-before-4-7-53 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.52` → `4.7.53`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Sisäänkirjautumisdialogi uusiksi Wilma-tyyliin: masthead + iso Tervetuloa-otsikko + navy Microsoft-nappi + reunustettu Vieraana-nappi.",
+      "Kerrosvalitsin MazeMap-tyyliin: ▲ ylös / iso keskellä oleva aktiivinen kerros / ▼ alas. Ei enää pitkää listaa.",
+      "Hakupudotusvalikko yhtenäistetty — sama pinta hakutuloksille ja viimeaikaisille hauille.",
+      "Admin-yleiskatsaus: tilastokortit hiuslinja-pinnoiksi, kampuksen käyttöaste Wilma-asiakirjakortiksi.",
+      "Poistettu tuplaotsikot admin-alipaneleista.",
+      "Uusi profiiliasetusdialogi: sivupalkin käyttäjätunnus klikattava, avaa dialogin nimen / sähköpostin / salasanan muutokselle.",
+      "Palauta: `git reset --hard rollback-before-4-7-53`.",
+    ],
+  },
+  {
     version: "4.7.52",
     date: "September 2026",
     title: "3D view unblocked — Three.js bundled locally to satisfy CSP",
     titleFi: "3D-näkymä toimii — Three.js paikallisena riippuvuutena CSP-lohkoa vastaan",
-    latest: true,
+    latest: false,
     highlights: [
       "**3D campus view was blocked by CSP in production.** `CampusThreeDView` loaded `https://unpkg.com/three@0.160.0/build/three.min.js` at runtime, which violated our `script-src-elem` directive (only `'self'`, PostHog, and Google Tag Manager are allowed). The browser refused the script and the 3D modal stayed empty.",
       "**Three.js is now a real npm dependency (`three@^0.160.0`)** imported via ES modules and bundled by Vite. No more CDN roundtrip, no CSP violation, faster first-load, and the code is finally tree-shakeable.",

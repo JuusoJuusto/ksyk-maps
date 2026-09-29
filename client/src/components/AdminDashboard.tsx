@@ -6,6 +6,7 @@ import posthog from "@/lib/posthog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import AnnouncementManager from "@/components/AnnouncementManager";
+import AdminProfileDialog from "@/components/AdminProfileDialog";
 // Builder components (ImprovedKSYKBuilder, Builder3D) removed — the
 // Builder is now a top-level /builder route with its own admin gate.
 // Admin sidebar links out to /builder instead of embedding the editor.
@@ -887,6 +888,8 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
 
   const initialTab = resolveTab(section);
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+  // v4.7.49 — profile dialog opens when the sidebar user chip is tapped
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   // Sync with URL when the browser navigates back/forward or the section prop changes
   useEffect(() => {
@@ -1274,10 +1277,17 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           })}
         </nav>
 
-        {/* User chip — squared, navy accent */}
+        {/* User chip — squared, navy accent.  v4.7.49: clicking the chip
+         *  opens the profile dialog instead of a plain logout button. */}
         {currentUser && (
-          <div className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] p-3">
-            <div className="flex items-center gap-2.5">
+          <div className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] p-2">
+            <button
+              type="button"
+              onClick={() => setProfileDialogOpen(true)}
+              className="w-full flex items-center gap-2.5 p-2 rounded-[6px] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+              title="Profile settings"
+              aria-label="Open profile settings"
+            >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[12px] font-bold">
                 {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
               </span>
@@ -1289,16 +1299,8 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </p>
               </div>
-              <button
-                type="button"
-                className="h-8 w-8 flex items-center justify-center rounded-[6px] text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
-                onClick={logoutFn}
-                title="Sign out"
-                aria-label="Sign out"
-              >
-                <LogOut className="h-4 w-4" strokeWidth={2} />
-              </button>
-            </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" strokeWidth={2} />
+            </button>
           </div>
         )}
       </aside>
@@ -1313,15 +1315,16 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
          *  label above the user name. */}
         <div className="lg:hidden shrink-0 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040]">
           {currentUser && (
-            <div className="flex items-center justify-between px-4 h-12">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src="/favicon-128.png"
-                  alt="KSYK Maps"
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain shrink-0"
-                />
+            <div className="flex items-center justify-between px-3 h-12">
+              <button
+                type="button"
+                onClick={() => setProfileDialogOpen(true)}
+                className="flex items-center gap-2.5 min-w-0 flex-1 px-2 -mx-2 h-9 rounded-[6px] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+                aria-label="Open profile settings"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[11px] font-bold">
+                  {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
+                </span>
                 <div className="flex flex-col min-w-0 leading-none">
                   <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
                     Admin · {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
@@ -1330,8 +1333,8 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                     {currentUser.name || currentUser.email}
                   </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
+              </button>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
                 <a
                   href="/"
                   className="inline-flex items-center justify-center h-9 w-9 rounded-[6px] text-gray-500 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
@@ -1339,14 +1342,6 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                 >
                   <Home className="h-4 w-4" strokeWidth={2} />
                 </a>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-[6px] text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                  onClick={logoutFn}
-                  title="Sign out"
-                >
-                  <LogOut className="h-4 w-4" strokeWidth={2} />
-                </button>
               </div>
             </div>
           )}
@@ -1454,60 +1449,60 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                       onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
                       className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-2xl active:scale-[0.98] transition-transform"
                       aria-label={`Go to ${label} tab`}>
-                      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-colors cursor-pointer">
-                        <CardContent className="p-4 md:p-5">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-                              {isLoadingOverview
-                                ? <div className="h-8 w-16 mt-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 animate-pulse" />
-                                : <p className="text-[26px] font-semibold mt-1 tabular-nums tracking-[-0.02em] text-gray-900 dark:text-white">{value}</p>
-                              }
-                              {sub && !isLoadingOverview && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
-                            </div>
-                            <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-0.5" strokeWidth={1.75} />
+                      <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 hover:border-[#003d82] dark:hover:border-[#4a90d9] transition-colors cursor-pointer p-4 md:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">{label}</p>
+                            {isLoadingOverview
+                              ? <div className="h-8 w-16 mt-2 rounded-[4px] bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                              : <p className="text-[26px] font-bold mt-1 tabular-nums tracking-tight text-gray-900 dark:text-white">{value}</p>
+                            }
+                            {sub && !isLoadingOverview && <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{sub}</p>}
                           </div>
-                        </CardContent>
-                      </Card>
+                          <Icon className="h-4 w-4 text-gray-400 dark:text-gray-500 shrink-0 mt-0.5" strokeWidth={2} />
+                        </div>
+                      </div>
                     </button>
                   ))}
                 </div>
 
-                {/* Campus occupancy card */}
+                {/* Campus occupancy — Wilma document card */}
                 {total > 0 && (
-                  <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
-                    <CardHeader className="pb-3">
+                  <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 overflow-hidden">
+                    <div className="border-b border-[#d5dae0] dark:border-[#2a3040] px-5 py-3 bg-[#f5f6f8] dark:bg-[#12161f]">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-                          <MapPin className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
-                          Campus Occupancy
-                        </CardTitle>
+                        <div>
+                          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">Live</p>
+                          <p className="text-[15px] font-bold tracking-tight text-gray-900 dark:text-white leading-tight mt-0.5">
+                            Campus occupancy
+                          </p>
+                        </div>
                         <div className="flex items-center gap-3">
-                          <span className={`text-[22px] font-semibold tabular-nums ${utilColor}`}>{utilPct}%</span>
-                          <span className="text-[13px] text-muted-foreground">in use</span>
-                          <span className="h-4 w-px bg-gray-200 dark:bg-gray-800" />
-                          <span className="text-[22px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{availPct}%</span>
-                          <span className="text-[13px] text-muted-foreground">free</span>
+                          <span className={`text-[22px] font-bold tabular-nums ${utilColor}`}>{utilPct}%</span>
+                          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500">in use</span>
+                          <span className="h-4 w-px bg-[#d5dae0] dark:bg-[#2a3040]" />
+                          <span className="text-[22px] font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{availPct}%</span>
+                          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500">free</span>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="pt-0 space-y-3">
-                      <div className="flex h-2.5 rounded-full overflow-hidden gap-0.5">
+                    </div>
+                    <div className="p-5 space-y-3">
+                      <div className="flex h-2 rounded-[2px] overflow-hidden gap-0.5">
                         {statusDefs.map(({ key, bg, count }) => {
                           const pct = total > 0 ? (count / total) * 100 : 0;
                           if (pct === 0) return null;
-                          return <div key={key} className={`${bg} transition-all first:rounded-l-full last:rounded-r-full`} style={{ width: `${pct}%` }} title={`${key}: ${count}`} />;
+                          return <div key={key} className={`${bg} transition-all`} style={{ width: `${pct}%` }} title={`${key}: ${count}`} />;
                         })}
                       </div>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {statusDefs.map(({ key, label, color, count }) => (
-                          <div key={key} className="flex flex-col gap-0.5 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800">
+                          <div key={key} className="flex flex-col gap-1 p-2.5 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040]">
                             <div className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                              <span className="text-[11px] text-muted-foreground">{label}</span>
+                              <span className="w-1.5 h-1.5 rounded-[1px] shrink-0" style={{ backgroundColor: color }} />
+                              <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{label}</span>
                             </div>
-                            <span className="text-[17px] font-semibold tabular-nums leading-none" style={{ color }}>{count}</span>
-                            <span className="text-[10px] text-muted-foreground">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
+                            <span className="text-[17px] font-bold tabular-nums leading-none" style={{ color }}>{count}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-500">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
                           </div>
                         ))}
                       </div>
@@ -1539,32 +1534,32 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                           </div>
                         );
                       })()}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
               </>
             );
           })()}
 
-          {/* Quick actions */}
+          {/* Quick actions — Wilma masthead + hairline grid */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2 px-1">Quick actions</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 mb-2 px-1">Quick actions</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { label: "New Announcement", desc: "Post a notice to all users", icon: Megaphone, tab: "announcements" },
-                { label: "Manage Staff", desc: "Update the staff directory", icon: Users, tab: "staff" },
-                { label: "Open Builder", desc: "Edit rooms and floors", icon: Box, tab: "__builder" },
-                { label: "Campus Map", desc: "Preview the live map", icon: MapPin, tab: "campus-map" },
-                { label: "View Tickets", desc: "Check open support requests", icon: Ticket, tab: "tickets" },
-                { label: "App Logs", desc: "Server activity & errors", icon: ScrollText, tab: "insights" },
+                { label: "New announcement", desc: "Post a notice", icon: Megaphone, tab: "announcements" },
+                { label: "Manage staff", desc: "Directory entries", icon: Users, tab: "staff" },
+                { label: "Open builder", desc: "Edit map + floors", icon: Box, tab: "__builder" },
+                { label: "Campus map", desc: "Preview the live map", icon: MapPin, tab: "campus-map" },
+                { label: "View tickets", desc: "Open support items", icon: Ticket, tab: "tickets" },
+                { label: "App logs", desc: "Server + errors", icon: ScrollText, tab: "insights" },
               ].map(({ label, desc, icon: Icon, tab }) => (
                 <button key={label} type="button"
                   onClick={() => tab === "__builder" ? setLocation("/builder") : navigate(tab)}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-left transition-colors hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/70">
-                  <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
+                  className="flex items-center gap-3 p-3 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-left transition-colors hover:border-[#003d82] dark:hover:border-[#4a90d9] hover:bg-[#f5f6f8] dark:hover:bg-[#12161f]">
+                  <Icon className="h-4 w-4 text-[#003d82] dark:text-[#4a90d9] shrink-0" strokeWidth={2} />
                   <div className="min-w-0">
-                    <p className="text-[14px] font-medium leading-tight text-gray-900 dark:text-white">{label}</p>
-                    <p className="text-[12px] text-muted-foreground truncate mt-0.5">{desc}</p>
+                    <p className="text-[13px] font-bold leading-tight text-gray-900 dark:text-white">{label}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{desc}</p>
                   </div>
                 </button>
               ))}
@@ -2463,6 +2458,14 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           </div>
         </div>
       </Tabs>
+
+      {/* v4.7.49 — profile settings dialog, mounted at the dashboard root */}
+      <AdminProfileDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        currentUser={currentUser as { id?: string; email?: string | null; name?: string | null; role?: string | null } | null}
+        onLogout={() => { setProfileDialogOpen(false); logoutFn(); }}
+      />
     </div>
   );
 }

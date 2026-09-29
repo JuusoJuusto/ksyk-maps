@@ -157,38 +157,32 @@ export default function AppSettingsManager() {
   const s = localSettings;
 
   return (
-    <div className="space-y-4">
-      {/* Header bar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-[17px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-            <Settings className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
-            App Settings
-          </h2>
-          <p className="text-[13px] text-muted-foreground mt-0.5">Global configuration — changes apply to all users immediately after saving.</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="space-y-5">
+      {/* v4.7.49 — AdminDashboard already renders a section masthead
+       *  above every panel.  We only render an action row here, no
+       *  duplicate H2. */}
+      <div className="flex items-center justify-end gap-3">
           {dirty && (
-            <span className="inline-flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-amber-600 dark:text-amber-400">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-              Unsaved changes
+              Unsaved
             </span>
           )}
-          <Button
+          <button
+            type="button"
             onClick={() => localSettings && saveMutation.mutate(localSettings)}
             disabled={saveMutation.isPending || !dirty}
-            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium gap-2"
+            className="h-10 px-3.5 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors"
           >
-            <Save className="h-4 w-4" strokeWidth={1.75} />
+            <Save className="h-4 w-4" strokeWidth={2} />
             {saveMutation.isPending ? 'Saving…' : 'Save changes'}
-          </Button>
-        </div>
+          </button>
       </div>
 
       {s.maintenanceMode && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-[13px]">
-          <AlertTriangle className="h-[18px] w-[18px] text-red-500 shrink-0" strokeWidth={1.75} />
-          <span className="text-gray-700 dark:text-gray-300"><strong className="text-gray-900 dark:text-white">Maintenance mode is on</strong> — the app is hidden from regular users.</span>
+        <div className="flex items-center gap-2.5 px-4 py-3 rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 text-[13px]">
+          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" strokeWidth={2.25} />
+          <span className="text-red-800 dark:text-red-200"><strong>Maintenance mode is on</strong> — the app is hidden from regular users.</span>
         </div>
       )}
 
