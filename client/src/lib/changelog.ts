@@ -10,17 +10,45 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.43";
+export const APP_VERSION = "4.7.44";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.44",
+    date: "September 2026",
+    title: "Settings + Lunch rewrites, bigger top bar, matching map controls + announcement dialog",
+    titleFi: "Asetukset ja Ruokalista uusiksi, isompi ylätunniste, yhtenäiset kartan kontrollit + ilmoitusdialogi",
+    latest: true,
+    highlights: [
+      "**Settings panel (`CampusSettingsPanel.tsx`) fully rewritten** — killed the four-card-per-tab stack. Now a document masthead + compact left rail on desktop / horizontal segmented control on mobile, hairline-divided `Section` blocks with `RowList` / `SettingRow` / `MetaRow` / `LinkRow` building blocks. Wilma-navy active tab. Language picker is a proper segmented control with FI first (Suomi is the primary language). About tab: identity card + big drop-shadow logo dropped; replaced with a compact meta row list.",
+      "**Lunch page (`lunch.tsx`) modernized while keeping warmth**. Killed the `#FEFBF3` cream background — now uses the same `bg-gray-50 dark:bg-gray-950` chrome as every other page so the app feels like one product. Day strip changed from amber shadow-pill boxes to an evenly-divided Wilma-navy segmented control (`grid-template-columns: repeat(N, 1fr)`); today gets a small amber dot under the selected date. Menu card lost its `rounded-3xl shadow-sm` — now a `rounded-[6px]` bordered container with hairline dividers between dishes. Dish rows: colored 2×2 px square accent (was a round dot), tighter typography.",
+      "**Top bar bigger + reordered per user request**. Header height 48/56 → 56/60 px. Logo scaled down slightly for a more modern balance against the taller bar. Wordmark 15/16 → 16/17 px. Search bar 40 → 44 px with `rounded-[8px]` corners. Desktop right side reordered as requested: **Settings → EN/FI → theme** (was Settings → theme → EN/FI). Mobile hamburger bumped to 44×44 px touch target.",
+      "**Announcement strip bigger + text bigger**. Height 32 → 40/44 px. Title text 12/13 → 13/14 px. Icon 14 → 16 px. Carousel controls 24 → 28 px. More breathing gap between title + description on desktop.",
+      "**Announcement detail dialog completely redesigned** to match the Wilma document style. Killed the colored gradient header + negative-margin white-body lift (that overhead-projector 2018 SaaS look). Now: 3 px navy/amber/red top accent, solid Wilma surface, Wilma-tag priority chip (4 px radius, no more `rounded-full` pill), 18/22 px H1 in gray-900 (not white-on-gradient), hairline-divided body sections, Wilma-style pagination footer.",
+      "**Sidebar drawer footer dropped** — the `KSYK Maps · Campus navigation` line under the drawer scroll is gone per user request. The drawer now ends at the last section.",
+      "**Map controls redesigned to match**. Floor selector + right-side rail restructured from `rounded-[18px]` + `backdrop-blur-xl` + `divide-black/[0.06]` glass pill to `rounded-[8px]` + hairline Wilma border + hairline dividers + no backdrop-blur. Buttons bumped from 44 × 44 to 48 × 48 to visually balance the bigger top bar. Icons 18 → 20 px. Active floor now uses a 3 px `#002d5f` inset-left accent bar (matches the sidebar active row).",
+      "**Files touched** — `client/src/components/Header.tsx`, `client/src/components/AnnouncementBanner.tsx`, `client/src/components/CampusSettingsPanel.tsx` (full rewrite), `client/src/components/KSYKMapView.tsx` (floor selector + control rail), `client/src/pages/lunch.tsx` (full rewrite), `client/src/styles/wilma-mazemap.css` (mobile spacing pass), `client/src/lib/changelog.ts`.",
+      "**Rollback point** — `git tag rollback-before-4-7-44` at commit `8e0522e`. To revert: `git reset --hard rollback-before-4-7-44 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.43` → `4.7.44`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Asetuspaneeli kirjoitettu uusiksi — neljä-korttia-per-välilehti pino korvattu asiakirjatyylin mastheadilla, tiiviillä sivupalkilla työpöydällä ja vaakasegmenttikontrollilla mobiilissa. Kaikki asetusrivit yhden hiuslinjajakaman listan sisällä.",
+      "Ruokalista modernisoitu, lämpö säilytetty. Kermanvaalea `#FEFBF3` -tausta poistettu; nyt sama harmaa/valkoinen kuin muillakin sivuilla. Päiväpalkki: amber-varjopillerit korvattu Wilma-navy segmenttikontrollilla.",
+      "Ylätunniste isompi ja uudessa järjestyksessä: Asetukset → EN/FI → tila. Logo hieman pienempi. Hakupalkki 44px, pyöreys 8px.",
+      "Ilmoituspalkki isompi (40/44px) ja isompi teksti. Ilmoitusdialogi uusittu vastaamaan Wilma-asiakirja-tyyliä — värillinen gradientti pois, 3px navy-korostuspalkki + kiinteä pinta.",
+      "Sivupalkin alaosan \"KSYK Maps · Campus navigation\" -teksti poistettu.",
+      "Kartan kontrollit yhtenäistetty: pyöreys 18 → 8px, ei sumennuksia, hiuslinja-jakajat, napit 48×48.",
+      "Palauta: `git reset --hard rollback-before-4-7-44`.",
+    ],
+  },
+  {
     version: "4.7.43",
     date: "September 2026",
     title: "Component-level rewrites — Header, AnnouncementBanner, FAQ, Privacy, Support",
     titleFi: "Komponenttitason uudistus — ylätunniste, ilmoituspalkki, UKK, tietosuoja, tuki",
-    latest: true,
+    latest: false,
     highlights: [
       "**Header rewritten from scratch (~450 LOC → new institutional shell).** No more floating chip with backdrop-blur — a proper Wilma-style top bar sits on a hairline bottom border. Desktop shows inline navigation links (Lunch / Transport) with a Wilma-navy active pill background; a Wilma-navy `KSYK Maps` wordmark and an uppercase `Campus navigation` subtitle. The mobile hamburger opens a full-height side drawer, not a floating card — hairline section separators, `PRIMARY_ROUTES` and `SECONDARY_ROUTES` typed constants, active-route detection with a 3px navy left-edge marker on the active row.",
       "**Hamburger drawer restructured** with proper section labels (`NAVIGATE`, `INFORMATION`, `APPEARANCE`, `LANGUAGE`, `ADMIN` where relevant). Every nav row uses a Lucide icon (MapPin, UtensilsCrossed, Bus, HelpCircle, LifeBuoy, Download, Shield, Settings) — no colored icon squares, no emojis, no gradient accents. New `SegRow` component for theme/language: a single bordered rectangular strip with navy-filled active state — matches the map's floor selector visually.",

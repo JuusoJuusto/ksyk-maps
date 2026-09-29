@@ -16,6 +16,20 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.44 — Settings + Lunch rewrites, bigger top bar)
+
+- **`CampusSettingsPanel.tsx` fully rewritten.** Killed the four-Cards-per-tab stack. Document masthead + compact left rail on desktop / horizontal segmented control on mobile. Hairline-divided `Section` blocks with reusable `RowList` / `SettingRow` / `MetaRow` / `LinkRow` building blocks. Wilma-navy active tab. Language picker now a segmented control with FI first. About tab: identity card + big drop-shadow logo dropped for a compact meta row list.
+- **`lunch.tsx` modernized.** Killed the `#FEFBF3` cream background — now uses standard chrome so the page reads as one product with the map. Day strip changed from amber shadow-pill boxes to an evenly-divided Wilma-navy segmented control; today gets an amber dot under the selected date. Menu card lost `rounded-3xl shadow-sm` → hairline-bordered `rounded-[6px]` container with divided dish rows.
+- **Top bar bigger + right-side reordered.** Header 48/56 → 56/60 px. Logo scaled `scale-90` for modern balance against the taller bar. Search bar 40 → 44 px, radius 6 → 8 px. Desktop right side reordered per request: **Settings → EN/FI → theme** (was Settings → theme → EN/FI).
+- **Announcement strip bigger + text bigger.** Height 32 → 40/44 px. Title 12/13 → 13/14 px. Icon 14 → 16 px. Controls 24 → 28 px.
+- **Announcement detail dialog fully redesigned.** Colored gradient header + negative-margin white-body lift replaced with a 3 px navy/amber/red top accent + solid Wilma surface. Priority chip is a squared Wilma tag (was rounded-full pill). H1 in gray-900 (not white-on-gradient).
+- **Sidebar drawer footer dropped.** `KSYK Maps · Campus navigation` line under the drawer scroll removed per user request.
+- **Map controls redesigned.** Floor selector + right rail: `rounded-[18px]` + `backdrop-blur-xl` glass pill → `rounded-[8px]` + hairline border + no blur. Buttons 44 → 48 px, icons 18 → 20 px. Active floor uses a 3 px `#002d5f` inset-left accent bar (matches sidebar active row).
+- **CSS layer mobile spacing pass.** More breathing on masthead blocks at ≤640 px; `scroll-margin-top: 4rem` on `main article > section` so ToC jumps in Privacy land past the sticky header.
+- **Rollback point** — `git tag rollback-before-4-7-44` at commit `8e0522e`. Revert: `git reset --hard rollback-before-4-7-44 && git push --force-with-lease origin main`.
+- **Files** — `Header.tsx`, `AnnouncementBanner.tsx`, `CampusSettingsPanel.tsx` (full rewrite), `KSYKMapView.tsx`, `lunch.tsx` (full rewrite), `wilma-mazemap.css`, `changelog.ts`.
+- **Web version bumped** `4.7.43` → `4.7.44`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.43 — Component-level rewrites)
 
 **Not restyling — actual component rewrites.**

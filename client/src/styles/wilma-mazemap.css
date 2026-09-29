@@ -784,3 +784,49 @@ html[data-ksyk-theme="wilma"] body {
   border-color: var(--ksyk-wm-hair) !important;
   border-width: 1px 0 0 0;
 }
+
+/* ============================================================
+ * v4.7.44 mobile spacing pass — modern spacing on small screens
+ * without cramping.  Adds breathing room on mobile document pages
+ * where the shrunken h-12 header + h-11 announcement banner + tighter
+ * cards were feeling stacked.
+ * ============================================================ */
+
+@media (max-width: 640px) {
+  /* Document masthead blocks — a bit more breathing */
+  [data-ksyk-theme="wilma"] main > div.mb-6.pb-4,
+  [data-ksyk-theme="wilma"] main > div.mb-5.pb-4 {
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Section stacks in Settings + long-form docs */
+  [data-ksyk-theme="wilma"] main article > section {
+    scroll-margin-top: 4rem;
+  }
+}
+
+/* v4.7.44 — search-input inside the header search row should not
+ * inherit the universal `input` focus overlay from earlier.  Its own
+ * rules already win via `[role="combobox"]`. */
+[data-ksyk-theme="wilma"] input[role="combobox"]:focus,
+[data-ksyk-theme="wilma"] input[role="combobox"]:focus-visible {
+  outline: none !important;
+}
+
+/* v4.7.44 — Toaster / react-hot-toast + shadcn toaster:  narrower
+ * radius, hairline border, no gradient decoration. */
+[data-ksyk-theme="wilma"] [data-sonner-toaster] > * {
+  border-radius: var(--ksyk-wm-radius) !important;
+  border: 1px solid var(--ksyk-wm-hair) !important;
+}
+
+/* v4.7.44 — Map controls sizing pass so the right rail visually
+ * balances the taller top bar (h-14 → h-15) + h-11 announcement strip.
+ * The base component already uses w-12/h-12 buttons; here we just
+ * make sure the rail stays crisp under the layer. */
+[data-ksyk-theme="wilma"] [aria-label="Floor selector"],
+[data-ksyk-theme="wilma"] .absolute.right-3.z-30 > .flex.flex-col.rounded-\[8px\],
+[data-ksyk-theme="wilma"] .absolute.right-4.z-30 > .flex.flex-col.rounded-\[8px\] {
+  border-radius: 8px !important;
+}

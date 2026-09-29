@@ -661,38 +661,41 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       {floorList.length > 1 && (
         <div
           className={cn(
-            "absolute right-3 z-30 flex flex-col p-1 rounded-[18px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl",
-            "border border-black/[0.08] dark:border-white/[0.08]",
-            "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
+            "absolute right-3 sm:right-4 z-30 flex flex-col p-0 rounded-[8px] bg-white dark:bg-gray-950",
+            "border border-[#d5dae0] dark:border-[#2a3040]",
+            "shadow-[0_2px_6px_rgba(15,23,42,0.10),0_1px_2px_rgba(15,23,42,0.06)]",
+            "divide-y divide-[#d5dae0] dark:divide-[#2a3040] overflow-hidden",
           )}
           style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
           aria-label="Floor selector"
         >
-          <div className="flex flex-col">
-            {floorList.map((floor) => {
-              const label = floor < 0 ? `K${Math.abs(floor)}` : String(floor);
-              return (
-                <button
-                  key={floor}
-                  type="button"
-                  aria-label={`Floor ${floor}`}
-                  aria-pressed={selectedFloor === floor}
-                  onClick={() => {
-                    posthog.capture("map_floor_selected", { floor });
-                    setSelectedFloor(floor);
-                  }}
-                  className={cn(
-                    "min-w-[40px] h-10 px-1.5 rounded-xl text-[13px] font-semibold transition-colors leading-none tabular-nums flex items-center justify-center active:scale-[0.94]",
-                    selectedFloor === floor
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25"
-                      : "text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.07]",
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          {floorList.map((floor) => {
+            const label = floor < 0 ? `K${Math.abs(floor)}` : String(floor);
+            const active = selectedFloor === floor;
+            return (
+              <button
+                key={floor}
+                type="button"
+                aria-label={`Floor ${floor}`}
+                aria-pressed={active}
+                onClick={() => {
+                  posthog.capture("map_floor_selected", { floor });
+                  setSelectedFloor(floor);
+                }}
+                className={cn(
+                  "relative min-w-[44px] h-11 px-2 text-[13px] font-bold transition-colors leading-none tabular-nums flex items-center justify-center",
+                  active
+                    ? "bg-[#003d82] text-white"
+                    : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
+                )}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-[2px] bg-[#002d5f]" aria-hidden />
+                )}
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -702,16 +705,17 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  bottom-up: Directions, Zoom+, Zoom-, 3D, Locate. Compass and GPS
        *  float above as standalone chips because they auto-show/hide. */}
       <div
-        className="absolute right-3 z-30 flex flex-col-reverse gap-2 items-end max-h-[calc(100%-3rem)] overflow-hidden"
+        className="absolute right-3 sm:right-4 z-30 flex flex-col-reverse gap-2 items-end max-h-[calc(100%-3rem)] overflow-hidden"
         style={{ bottom: "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))" }}
       >
-        {/* Main pill — Directions, zoom, 3D, locate stacked as one. */}
+        {/* Main rail — Directions, zoom, 3D, locate stacked.  Wilma-style:
+         *  hairline border, sharp 8px corners, no blur, hairline dividers. */}
         <div
           className={cn(
-            "flex flex-col rounded-[18px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl overflow-hidden",
-            "border border-black/[0.08] dark:border-white/[0.08]",
-            "shadow-[0_2px_10px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.06)]",
-            "divide-y divide-black/[0.06] dark:divide-white/[0.06]",
+            "flex flex-col rounded-[8px] bg-white dark:bg-gray-950 overflow-hidden",
+            "border border-[#d5dae0] dark:border-[#2a3040]",
+            "shadow-[0_2px_6px_rgba(15,23,42,0.10),0_1px_2px_rgba(15,23,42,0.06)]",
+            "divide-y divide-[#d5dae0] dark:divide-[#2a3040]",
           )}
         >
           {canUseRouting && (
@@ -725,13 +729,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               aria-pressed={showNav}
               title="Directions"
               className={cn(
-                "w-11 h-11 flex items-center justify-center transition-colors active:scale-[0.94]",
+                "w-12 h-12 flex items-center justify-center transition-colors",
                 showNav
-                  ? "bg-blue-600 text-white"
-                  : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
+                  ? "bg-[#003d82] text-white"
+                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
               )}
             >
-              <Navigation2 className="h-[18px] w-[18px]" strokeWidth={2} />
+              <Navigation2 className="h-5 w-5" strokeWidth={2} />
             </button>
           )}
 
@@ -743,18 +747,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             }}
             aria-label="Zoom in"
             title="Zoom in"
-            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <Plus className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            <Plus className="h-5 w-5" strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => handleRef.current?.zoomOut()}
             aria-label="Zoom out"
             title="Zoom out"
-            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <Minus className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            <Minus className="h-5 w-5" strokeWidth={2.25} />
           </button>
 
           {canUse3D && (
@@ -765,13 +769,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               onClick={toggle3D}
               title={is3D ? "2D flat" : "3D view"}
               className={cn(
-                "w-11 h-11 flex items-center justify-center transition-colors active:scale-[0.94]",
+                "w-12 h-12 flex items-center justify-center transition-colors",
                 is3D
-                  ? "bg-blue-600 text-white"
-                  : "text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
+                  ? "bg-[#003d82] text-white"
+                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
               )}
             >
-              <span className="text-[11px] font-bold tabular-nums tracking-tight">
+              <span className="text-[12px] font-bold tabular-nums tracking-tight">
                 {is3D ? "3D" : "2D"}
               </span>
             </button>
@@ -782,9 +786,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             aria-label="Recenter map"
             onClick={recenter}
             title="Recenter"
-            className="w-11 h-11 flex items-center justify-center text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors active:scale-[0.94]"
+            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <LocateFixed className="h-[18px] w-[18px]" strokeWidth={2} />
+            <LocateFixed className="h-5 w-5" strokeWidth={2} />
           </button>
         </div>
 

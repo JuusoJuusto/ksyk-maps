@@ -177,21 +177,28 @@ export default function Header({
     <>
       {/* ── Top bar ─────────────────────────────────────────────────────
        *   Institutional Wilma-style top bar: no floating chip, no glass.
-       *   Hairline bottom border, 48px height on mobile, 56px on desktop. */}
+       *   Hairline bottom border.  56 px on mobile, 60 px on desktop —
+       *   a hair taller than the v4.7.43 pass for better breathing room
+       *   at every viewport. */}
       <div
         className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="flex items-center gap-3 h-12 sm:h-14">
-            {/* Wordmark — Wilma navy title + practical uppercase tagline */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-5">
+          <div className="flex items-center gap-3 h-14 sm:h-[60px]">
+            {/* Wordmark — logo slightly smaller than v4.7.43 for a more
+             *  modern balance against the taller bar.  KSYKLogo has no
+             *  "xs" size; we scale down via a wrapper so the type stays
+             *  the primary weight, not the logo. */}
             <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group" data-testid="link-home">
-              <KSYKLogo size={largeLogo ? "lg" : "md"} priority={largeLogo} />
+              <span className="inline-flex items-center justify-center scale-90 origin-left">
+                <KSYKLogo size={largeLogo ? "md" : "sm"} priority={largeLogo} />
+              </span>
               <div className="flex flex-col leading-none">
-                <span className="text-[15px] sm:text-[16px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
+                <span className="text-[16px] sm:text-[17px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
                   KSYK Maps
                 </span>
-                <span className="hidden sm:block mt-0.5 text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+                <span className="hidden sm:block mt-1 text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
                   Campus navigation
                 </span>
               </div>
@@ -199,7 +206,7 @@ export default function Header({
 
             {/* Desktop primary nav — inline text links, no colored pills */}
             {!homeMinimal && !isInAdminPanel && (
-              <nav className="hidden md:flex items-center gap-1 ml-4">
+              <nav className="hidden md:flex items-center gap-1 ml-5">
                 {PRIMARY_ROUTES.filter((r) => r.href !== "/").map((r) => {
                   const active = routeIsActive(r.href);
                   return (
@@ -207,7 +214,7 @@ export default function Header({
                       key={r.href}
                       href={r.href}
                       className={cn(
-                        "h-9 px-3 rounded-[6px] text-sm font-semibold inline-flex items-center gap-1.5 transition-colors",
+                        "h-10 px-3.5 rounded-[6px] text-sm font-semibold inline-flex items-center gap-2 transition-colors",
                         active
                           ? "text-[#003d82] dark:text-[#4a90d9] bg-[#e6ecf3] dark:bg-[#4a90d9]/10"
                           : "text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900",
@@ -223,34 +230,28 @@ export default function Header({
 
             <div className="flex-1" />
 
-            {/* Desktop right side — theme + language + settings */}
+            {/* Desktop right side — ORDER: Settings → EN/FI → theme
+             *  Per user's v4.7.44 request: "settings and then the en/fi
+             *  and then the dark or light". */}
             {!homeMinimal && (
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-1.5">
                 {onOpenSettings && !isInAdminPanel && (
                   <button
                     onClick={onOpenSettings}
                     data-testid="button-settings"
-                    className="h-9 px-3 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 inline-flex items-center gap-1.5 transition-colors"
+                    className="h-10 px-3.5 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 inline-flex items-center gap-2 transition-colors"
                   >
                     <Settings className="h-4 w-4" strokeWidth={2} />
                     <span className="hidden xl:inline">{fi ? "Asetukset" : "Settings"}</span>
                   </button>
                 )}
-                <button
-                  onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
-                  className="h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  aria-label={theme === "dark"
-                    ? (fi ? "Vaihda vaaleaan tilaan" : "Switch to light mode")
-                    : (fi ? "Vaihda tummaan tilaan" : "Switch to dark mode")}
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </button>
-                <div className="ml-1 flex items-center border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] overflow-hidden">
+                {/* Language toggle — second per user request */}
+                <div className="flex items-center border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] overflow-hidden">
                   {["fi", "en"].map((lang) => (
                     <button
                       key={lang}
                       className={cn(
-                        "px-2.5 h-8 text-xs font-bold tabular-nums transition-colors",
+                        "px-3 h-9 text-[12px] font-bold tabular-nums transition-colors",
                         currentLang === lang
                           ? "bg-[#003d82] text-white"
                           : "bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
@@ -262,10 +263,20 @@ export default function Header({
                     </button>
                   ))}
                 </div>
+                {/* Theme toggle — third per user request */}
+                <button
+                  onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
+                  className="h-10 w-10 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  aria-label={theme === "dark"
+                    ? (fi ? "Vaihda vaaleaan tilaan" : "Switch to light mode")
+                    : (fi ? "Vaihda tummaan tilaan" : "Switch to dark mode")}
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
                 {isInAdminPanel && (
                   <button
                     onClick={handleLogout}
-                    className="ml-1 h-9 px-3 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center gap-1.5 transition-colors"
+                    className="h-10 px-3.5 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center gap-2 transition-colors"
                   >
                     <LogOut className="h-4 w-4" strokeWidth={2} />
                     <span className="hidden xl:inline">{fi ? "Kirjaudu ulos" : "Log out"}</span>
@@ -274,11 +285,11 @@ export default function Header({
               </div>
             )}
 
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger — sized for the taller bar */}
             {!homeMinimal && (
               <button
                 onClick={() => setDrawerOpen(true)}
-                className="md:hidden h-10 w-10 flex items-center justify-center rounded-[6px] text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-all"
+                className="md:hidden h-11 w-11 flex items-center justify-center rounded-[6px] text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-all"
                 aria-label={fi ? "Avaa valikko" : "Open menu"}
                 aria-expanded={drawerOpen}
                 aria-controls="mobile-drawer"
@@ -289,12 +300,14 @@ export default function Header({
           </div>
         </div>
 
-        {/* Search row — inline, tight, integrated into the header surface */}
+        {/* Search row — a hair taller (44 px input, more page breathing)
+         *  per v4.7.44 feedback ("make the whole top bar and search bar
+         *  and announcements a bit bigger"). */}
         {onSearchChange && (
           <div className="border-t border-[#d5dae0] dark:border-[#2a3040] bg-[#f5f6f8] dark:bg-[#12161f]">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 relative">
+            <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 sm:py-3 relative">
               <Search className={cn(
-                "absolute left-6 sm:left-7 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
+                "absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 h-[18px] w-[18px] pointer-events-none z-10 transition-colors",
                 (searchQuery && searchQuery.trim()) ? "text-[#003d82] dark:text-[#4a90d9]" : "text-gray-400",
               )} strokeWidth={2.25} />
               <Input
@@ -304,7 +317,7 @@ export default function Header({
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (fi ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
-                  "h-10 w-full pl-10 pr-16 text-[16px] sm:text-[14px] rounded-[6px] border font-medium transition-all",
+                  "h-11 w-full pl-11 pr-16 text-[16px] sm:text-[15px] rounded-[8px] border font-medium transition-all",
                   "bg-white dark:bg-gray-950 border-[#d5dae0] dark:border-[#2a3040]",
                   "focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/25",
                 )}
@@ -322,13 +335,13 @@ export default function Header({
                 <button
                   type="button"
                   onClick={() => { setDraftSearch(""); onSearchChange?.(""); }}
-                  className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 h-7 w-7 rounded-[4px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={fi ? "Tyhjennä haku" : "Clear search"}
                 >
-                  <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  <X className="h-4 w-4" strokeWidth={2.5} />
                 </button>
               ) : (
-                <kbd className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-500 pointer-events-none select-none">
+                <kbd className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-bold px-1.5 py-1 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-500 pointer-events-none select-none">
                   {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
                 </kbd>
               )}
@@ -510,12 +523,6 @@ export default function Header({
           )}
         </div>
 
-        {/* Drawer footer — attribution */}
-        <div className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-4 py-3">
-          <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
-            KSYK Maps · Campus navigation
-          </p>
-        </div>
       </div>
     </>
   );

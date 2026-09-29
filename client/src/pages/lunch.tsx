@@ -157,86 +157,72 @@ export default function Lunch() {
 
   return (
     <div
-      className={cn("min-h-screen", darkMode ? "bg-[#151310] text-gray-100" : "bg-[#FEFBF3] text-gray-900")}
+      className={cn("min-h-screen", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <AnnouncementBanner />
       <Header />
 
-      {/* Sticky header — v4.7.24: dropped backdrop-blur-xl to plain
-       *  backdrop-blur-md. The site already sits on flat bg colors,
-       *  so xl-blur was doing nothing but tanking scroll perf on low-
-       *  end laptops. */}
-      <div
-        className={cn(
-          "sticky top-0 z-20 backdrop-blur-md border-b",
-          darkMode ? "bg-[#151310]/92 border-white/10" : "bg-[#FEFBF3]/92 border-black/10",
-        )}
-      >
-        <div className="max-w-2xl mx-auto flex items-center gap-2 px-3 sm:px-5 py-2.5">
+      {/* Document header — Wilma masthead, matches FAQ / Privacy / Support */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setLocation("/")}
-            className={cn(
-              "shrink-0 h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90",
-              darkMode ? "text-gray-300 hover:text-white hover:bg-white/8" : "text-gray-600 hover:text-gray-900 hover:bg-black/6",
-            )}
+            className="shrink-0 h-9 w-9 -ml-2 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             aria-label={isFi ? "Takaisin" : "Back"}
           >
-            <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+            <ChevronLeft className="h-5 w-5" strokeWidth={2.25} />
           </button>
-          <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-black tracking-[0.22em] uppercase text-amber-500 dark:text-amber-400 leading-none">
-              Amica · Kulis
-            </p>
-            <h1 className="text-[21px] font-bold tracking-[-0.02em] leading-tight mt-0.5">
-              {isFi ? "Ruokalista" : "Lunch menu"}
-            </h1>
-          </div>
+          <span className="flex-1 text-[13px] font-semibold text-gray-700 dark:text-gray-300">
+            {isFi ? "Kartta" : "Map"}
+          </span>
           <button
             type="button"
             onClick={fetchMenu}
             disabled={loading}
-            className={cn(
-              "shrink-0 h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-40",
-              darkMode ? "text-gray-400 hover:text-gray-100 hover:bg-white/8" : "text-gray-500 hover:text-gray-800 hover:bg-black/6",
-            )}
+            className="shrink-0 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-40"
             aria-label={isFi ? "Päivitä" : "Refresh"}
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} strokeWidth={2.25} />
           </button>
         </div>
-      </div>
+      </header>
 
-      <div
-        className="max-w-2xl mx-auto px-4 sm:px-5 py-5 space-y-4"
+      <main className="max-w-2xl mx-auto px-4 sm:px-5 pt-5 sm:pt-6 pb-24"
         style={{ paddingBottom: "max(6rem, env(safe-area-inset-bottom, 6rem))" }}
       >
+        {/* Title block */}
+        <div className="mb-5 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-amber-600 dark:text-amber-400 mb-1">
+            Amica · Kulis
+          </p>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+            {isFi ? "Ruokalista" : "Lunch menu"}
+          </h1>
+          <p className="text-[13px] mt-1 text-gray-500 dark:text-gray-400">
+            {isFi ? "Kulosaaren yhteiskoulun päivittäinen lounas" : "Daily lunch at Kulosaaren yhteiskoulu"}
+          </p>
+        </div>
 
         {loading && (
-          <div className="py-20 animate-fade-in">
+          <div className="py-16">
             <LoadingSpinner fullScreen={false} message={isFi ? "Ladataan ruokalistaa..." : "Loading menu..."} />
           </div>
         )}
 
         {error && !loading && (
           <div
-            className={cn(
-              "rounded-2xl p-4 flex items-start gap-3",
-              darkMode ? "bg-red-950/40 border border-red-900/40 text-red-200" : "bg-red-50 border border-red-100 text-red-800",
-            )}
+            className="rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 flex items-start gap-3"
             role="alert"
           >
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={2.25} />
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" strokeWidth={2.25} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">{error}</p>
+              <p className="text-[13px] font-semibold text-red-800 dark:text-red-200">{error}</p>
               <button
                 type="button"
                 onClick={fetchMenu}
-                className={cn(
-                  "mt-2 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors active:scale-95",
-                  darkMode ? "bg-red-900/50 hover:bg-red-900/70 text-red-100" : "bg-white hover:bg-red-50 text-red-700 border border-red-200",
-                )}
+                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-[6px] px-2.5 py-1.5 bg-white dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-950/70 transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
                 {isFi ? "Yritä uudelleen" : "Try again"}
@@ -246,40 +232,24 @@ export default function Lunch() {
         )}
 
         {isWeekend && !loading && !error && (
-          <div className={cn(
-            "rounded-2xl p-8 text-center",
-            darkMode ? "bg-white/4 border border-white/6" : "bg-white border border-black/6 shadow-sm",
-          )}>
-            <div className={cn(
-              "mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-4",
-              darkMode ? "bg-amber-500/15 text-amber-300" : "bg-amber-50 text-amber-600",
-            )}>
-              <Calendar className="h-7 w-7" strokeWidth={2} />
-            </div>
-            <p className="text-base font-bold tracking-tight">
+          <div className="rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 p-6 sm:p-8 text-center">
+            <Calendar className="mx-auto h-8 w-8 text-amber-500 mb-3" strokeWidth={2} />
+            <p className="text-[15px] font-bold tracking-tight">
               {isFi ? "Ravintola on suljettu viikonloppuisin" : "Closed on weekends"}
             </p>
-            <p className={cn("text-sm mt-2", darkMode ? "text-gray-400" : "text-gray-500")}>
+            <p className="text-[13px] mt-1.5 text-gray-500 dark:text-gray-400">
               {isFi ? "Ruokalista on saatavilla ma – pe." : "Menu available Monday – Friday."}
             </p>
           </div>
         )}
 
         {!loading && !error && !isWeekend && menuItems.length === 0 && (
-          <div className={cn(
-            "rounded-2xl p-8 text-center",
-            darkMode ? "bg-white/4 border border-white/6" : "bg-white border border-black/6 shadow-sm",
-          )}>
-            <div className={cn(
-              "mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-4",
-              darkMode ? "bg-white/8 text-gray-400" : "bg-slate-100 text-gray-500",
-            )}>
-              <UtensilsCrossed className="h-7 w-7" strokeWidth={2} />
-            </div>
-            <p className="text-base font-bold tracking-tight">
+          <div className="rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 p-6 sm:p-8 text-center">
+            <UtensilsCrossed className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3" strokeWidth={2} />
+            <p className="text-[15px] font-bold tracking-tight">
               {isFi ? "Ruokalistaa ei ole vielä julkaistu" : "No menu published yet"}
             </p>
-            <p className={cn("text-sm mt-2", darkMode ? "text-gray-400" : "text-gray-500")}>
+            <p className="text-[13px] mt-1.5 text-gray-500 dark:text-gray-400">
               {isFi ? "Kokeile päivittää hetken kuluttua." : "Try refreshing in a moment."}
             </p>
           </div>
@@ -287,9 +257,10 @@ export default function Lunch() {
 
         {!loading && !error && !isWeekend && menuItems.length > 0 && selected && (
           <>
-            {/* Day strip — pill buttons with date number + today dot */}
+            {/* Day strip — Wilma-style segmented control, evenly divided */}
             <div
-              className="animate-fade-in-up flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:-mx-5 sm:px-5 pb-0.5"
+              className="grid gap-0 border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] overflow-hidden mb-4 bg-white dark:bg-gray-950"
+              style={{ gridTemplateColumns: `repeat(${menuItems.length}, minmax(0, 1fr))` }}
               role="tablist"
               aria-label={isFi ? "Viikonpäivät" : "Weekdays"}
             >
@@ -306,24 +277,28 @@ export default function Lunch() {
                     aria-selected={isSel}
                     onClick={() => setSelectedIndex(index)}
                     className={cn(
-                      "flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-2.5 rounded-2xl transition-all active:scale-[0.96]",
+                      "relative flex flex-col items-center justify-center gap-0.5 h-16 sm:h-[68px] transition-colors",
+                      index > 0 && "border-l border-[#d5dae0] dark:border-[#2a3040]",
                       isSel
-                        ? "bg-amber-500 text-white shadow-md shadow-amber-500/30"
+                        ? "bg-[#003d82] text-white"
                         : darkMode
-                          ? "bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/8"
-                          : "bg-black/5 text-gray-500 hover:text-gray-800 hover:bg-black/8",
+                          ? "bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-900"
+                          : "bg-white text-gray-700 hover:text-[#003d82] hover:bg-gray-50",
                     )}
                   >
-                    <span className="text-[9px] font-black tracking-[0.16em] uppercase leading-none">
+                    <span className={cn(
+                      "text-[10px] font-bold tracking-[0.08em] uppercase leading-none",
+                      isSel ? "text-white/85" : "text-gray-500 dark:text-gray-400",
+                    )}>
                       {shortDay(item.dayName)}
                     </span>
                     {dayNum != null && (
-                      <span className="text-[22px] font-bold leading-none tabular-nums">{dayNum}</span>
+                      <span className="text-[19px] font-bold leading-none tabular-nums mt-1">{dayNum}</span>
                     )}
                     {isToday && (
                       <span
-                        className="h-1 w-1 rounded-full"
-                        style={{ background: isSel ? "rgba(255,255,255,0.65)" : "#F59E0B" }}
+                        className="absolute bottom-1.5 h-1 w-1 rounded-full"
+                        style={{ background: isSel ? "rgba(255,255,255,0.75)" : "#F59E0B" }}
                         aria-hidden
                       />
                     )}
@@ -332,42 +307,40 @@ export default function Lunch() {
               })}
             </div>
 
-            {/* Menu card */}
+            {/* Menu container */}
             <div
               key={selectedIndex}
-              className={cn(
-                "animate-fade-in-up rounded-3xl overflow-hidden",
-                darkMode
-                  ? "bg-[#1C1915] border border-white/6"
-                  : "bg-white border border-black/6 shadow-sm",
-              )}
-              style={{ animationDelay: "60ms" }}
+              className="rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 overflow-hidden"
             >
-              {/* Card header */}
-              <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black tracking-[0.22em] uppercase text-amber-500 dark:text-amber-400 leading-none">
-                    {selectedIndex === todayIndex
-                      ? isFi ? "Tänään" : "Today"
-                      : dateText || (isFi ? "Ruokalista" : "Menu")}
-                  </p>
-                  <h2 className="text-[26px] font-bold tracking-[-0.02em] leading-tight mt-1 capitalize">
-                    {selected.dayName}
-                  </h2>
-                  {selectedIndex === todayIndex && dateText && (
-                    <p className={cn("text-xs mt-0.5", darkMode ? "text-gray-500" : "text-gray-400")}>{dateText}</p>
+              {/* Menu header — masthead style */}
+              <div className="px-5 pt-4 pb-3 border-b border-[#d5dae0] dark:border-[#2a3040]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-amber-600 dark:text-amber-400 leading-none">
+                      {selectedIndex === todayIndex
+                        ? isFi ? "Tänään" : "Today"
+                        : (isFi ? "Ruokalista" : "Menu")}
+                    </p>
+                    <h2 className="text-[19px] sm:text-[21px] font-bold tracking-tight leading-tight mt-1 capitalize">
+                      {selected.dayName}
+                      {dateText && (
+                        <span className="ml-2 text-[13px] font-medium text-gray-500 dark:text-gray-400">
+                          {dateText}
+                        </span>
+                      )}
+                    </h2>
+                  </div>
+                  {selectedIndex === todayIndex && (
+                    <span className="shrink-0 inline-flex items-center gap-1.5 bg-amber-600 dark:bg-amber-500 text-white text-[10px] font-bold tracking-[0.06em] uppercase px-2 py-1 rounded-[4px]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white/85" aria-hidden />
+                      {isFi ? "Tänään" : "Today"}
+                    </span>
                   )}
                 </div>
-                {selectedIndex === todayIndex && (
-                  <span className="shrink-0 inline-flex items-center gap-1.5 bg-amber-500 text-white text-[10px] font-black tracking-[0.12em] uppercase px-3 py-1.5 rounded-full shadow-sm shadow-amber-500/25 mt-0.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white/70" aria-hidden />
-                    {isFi ? "Tänään" : "Today"}
-                  </span>
-                )}
               </div>
 
               {/* Dish rows */}
-              <div className={cn("border-t", darkMode ? "border-white/6" : "border-black/6")}>
+              <div className="divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
                 <DishRow
                   label={isFi ? "Lounas" : "Main"}
                   value={selected.regular}
@@ -395,14 +368,14 @@ export default function Lunch() {
             </div>
 
             {/* Attribution */}
-            <p className={cn("text-[11px] text-center", darkMode ? "text-gray-600" : "text-gray-400")}>
+            <p className="mt-5 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] text-[11px] text-center text-gray-500 dark:text-gray-500">
               Amica / Compass Group Finland
-              <span className="mx-2">·</span>
+              <span className="mx-2 text-gray-300 dark:text-gray-700">·</span>
               {isFi ? "Voi muuttua ilman ennakkoilmoitusta" : "Subject to change without notice"}
             </p>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }
@@ -422,24 +395,21 @@ function DishRow({
 }) {
   const isEmpty = !value || value === "Ei saatavilla" || value === emptyLabel;
   return (
-    <div className={cn(
-      "px-5 py-4 border-b last:border-0 transition-colors",
-      darkMode ? "border-white/5 hover:bg-white/[0.02]" : "border-black/5 hover:bg-black/[0.015]",
-    )}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="w-2 h-2 rounded-full shrink-0 opacity-90" style={{ background: accentColor }} />
+    <div className="px-5 py-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/60">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="h-2 w-2 rounded-[2px] shrink-0" style={{ background: accentColor }} />
         <span className={cn(
-          "text-[9px] font-black tracking-[0.2em] uppercase",
-          darkMode ? "text-gray-500" : "text-gray-400",
+          "text-[10px] font-bold tracking-[0.08em] uppercase",
+          darkMode ? "text-gray-500" : "text-gray-500",
         )}>
           {label}
         </span>
       </div>
       <p className={cn(
-        "text-[16px] leading-snug pl-4",
+        "text-[15px] sm:text-[16px] leading-snug pl-4",
         isEmpty
-          ? darkMode ? "text-gray-600 italic" : "text-gray-400 italic"
-          : darkMode ? "text-gray-100 font-medium" : "text-gray-800 font-medium",
+          ? "text-gray-400 dark:text-gray-600 italic"
+          : darkMode ? "text-gray-100 font-medium" : "text-gray-900 font-medium",
       )}>
         {isEmpty ? emptyLabel : value}
       </p>

@@ -107,9 +107,9 @@ export default function AnnouncementBanner() {
 
   const getPriorityIcon = (priority: string) => {
     if (priority === "urgent" || priority === "high") {
-      return <AlertTriangle className="h-3.5 w-3.5 text-white shrink-0" strokeWidth={2.5} />;
+      return <AlertTriangle className="h-4 w-4 text-white shrink-0" strokeWidth={2.5} />;
     }
-    return <Megaphone className="h-3.5 w-3.5 text-white shrink-0" strokeWidth={2.5} />;
+    return <Megaphone className="h-4 w-4 text-white shrink-0" strokeWidth={2.5} />;
   };
 
   const nextAnnouncement = () => {
@@ -149,7 +149,7 @@ export default function AnnouncementBanner() {
           setIsDialogOpen(true);
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center gap-2 px-3 sm:px-4 h-8">
+        <div className="max-w-7xl mx-auto flex items-center gap-2.5 px-3 sm:px-5 h-10 sm:h-11">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAnnouncement.id}
@@ -157,10 +157,10 @@ export default function AnnouncementBanner() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.28 }}
-              className="flex items-center gap-2 flex-1 min-w-0"
+              className="flex items-center gap-2.5 flex-1 min-w-0"
             >
               {getPriorityIcon(currentAnnouncement.priority)}
-              <p className="text-white text-[12px] sm:text-[13px] font-semibold truncate">
+              <p className="text-white text-[13px] sm:text-[14px] font-semibold truncate">
                 {getLocalizedTitle(currentAnnouncement)}
                 <span className="hidden sm:inline text-white/75 font-normal ml-2">
                   · {getLocalizedContent(currentAnnouncement)}
@@ -175,21 +175,21 @@ export default function AnnouncementBanner() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIsPaused(!isPaused); }}
-                  className="h-6 w-6 rounded-[4px] hidden sm:inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  className="h-7 w-7 rounded-[4px] hidden sm:inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
                   aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
                 >
-                  {isPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                  {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
                 </button>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
-                  className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  className="h-7 w-7 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
                   aria-label="Previous announcement"
                 >
-                  <ChevronLeft className="h-3 w-3" />
+                  <ChevronLeft className="h-3.5 w-3.5" />
                 </button>
                 <span
-                  className="hidden min-[360px]:inline px-1.5 h-5 inline-flex items-center text-[10px] font-bold tabular-nums text-white/85"
+                  className="hidden min-[360px]:inline-flex px-1.5 h-6 items-center text-[11px] font-bold tabular-nums text-white/85"
                   role="status"
                   aria-live="polite"
                   aria-atomic="true"
@@ -199,171 +199,181 @@ export default function AnnouncementBanner() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
-                  className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                  className="h-7 w-7 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
                   aria-label="Next announcement"
                 >
-                  <ChevronRight className="h-3 w-3" />
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </>
             )}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}
-              className="h-6 w-6 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+              className="h-7 w-7 rounded-[4px] inline-flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors"
               aria-label="Dismiss announcement"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Announcement Detail Dialog — premium Apple/MazeMap card style. */}
+      {/* Announcement detail dialog — Wilma document style.
+       *   v4.7.44: colored gradient header + negative-margin lift replaced
+       *   with a solid Wilma surface + 3px navy top accent (or amber/red
+       *   for high/urgent).  Priority chip becomes a Wilma-style tag with
+       *   4 px radius.  Reads like a school notice, not a marketing card. */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className={cn(
-            "p-0 gap-0 border-0 shadow-[0_32px_80px_-12px_rgba(15,23,42,0.45)]",
-            // Mobile: full-width bottom sheet (overrides shadcn's default centering)
-            "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0 rounded-t-[28px]",
-            "max-h-[88dvh] w-full max-w-full",
-            // Desktop: restore shadcn's default centered-fixed positioning with custom width
+            "p-0 gap-0 border-0",
+            // Mobile: bottom sheet
+            "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
+            "max-h-[88dvh] w-full max-w-full rounded-t-[8px]",
+            // Desktop: centered dialog
             "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:max-w-[min(90vw,34rem)] sm:w-full sm:max-h-[85dvh]",
+            "sm:max-w-[min(90vw,36rem)] sm:w-full sm:max-h-[85dvh]",
+            "sm:rounded-[8px]",
             "[&>button:first-of-type]:hidden",
-            "sm:rounded-3xl",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
-            "ksyk-bottom-sheet",
+            "shadow-[0_20px_50px_-12px_rgba(15,23,42,0.35)]",
           )}
         >
-          {/* Priority accent gradient header */}
+          {/* Priority accent — 3 px navy/amber/red top bar */}
           <div
-            className={cn("shrink-0 rounded-t-[28px] sm:rounded-t-3xl relative overflow-hidden", priorityBg)}
-            style={{ paddingBottom: "2.5rem" }}
-          >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setIsDialogOpen(false)}
-              className="absolute top-3.5 right-3.5 h-8 w-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Mobile grab handle */}
-            <div className="sm:hidden flex justify-center pt-3 pb-1">
-              <span className="h-[5px] w-10 rounded-full bg-white/30" />
-            </div>
-
-            <div className="px-5 sm:px-6 pt-3 sm:pt-5 pb-1">
-              {/* Priority chip + time */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full bg-white/20 text-white">
-                  {getPriorityIcon(currentAnnouncement.priority)}
-                  {i18n.language === "fi"
-                    ? currentAnnouncement.priority === "urgent" ? "Kiireellinen"
-                    : currentAnnouncement.priority === "high" ? "Tärkeä"
-                    : "Tiedote"
-                    : currentAnnouncement.priority === "urgent" ? "Urgent"
-                    : currentAnnouncement.priority === "high" ? "Important"
-                    : "Announcement"}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] text-white/70">
-                  <Clock className="h-3 w-3" />
-                  {(() => {
-                    try {
-                      const ts = currentAnnouncement.createdAt;
-                      if (!ts) return i18n.language === "fi" ? "Äskettäin" : "Recently";
-                      const d = typeof ts === "object" && (ts as { _seconds?: number })._seconds
-                        ? new Date((ts as { _seconds: number })._seconds * 1000)
-                        : new Date(ts);
-                      if (isNaN(d.getTime())) return i18n.language === "fi" ? "Äskettäin" : "Recently";
-                      return formatDistanceToNow(d, { addSuffix: true });
-                    } catch { return i18n.language === "fi" ? "Äskettäin" : "Recently"; }
-                  })()}
-                </span>
-              </div>
-
-              <DialogTitle className="text-[22px] sm:text-[26px] font-bold text-white leading-tight tracking-tight line-clamp-3">
-                {getLocalizedTitle(currentAnnouncement)}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                {getLocalizedContent(currentAnnouncement).slice(0, 120)}
-              </DialogDescription>
-            </div>
-          </div>
-
-          {/* White body lifts over gradient via negative top margin */}
-          <div
-            className="flex-1 min-h-0 flex flex-col bg-white dark:bg-gray-950 rounded-t-3xl overflow-hidden"
-            style={{ marginTop: "-1.5rem" }}
-          >
-            {/* Scrollable content — h-0 + flex-1 is the most reliable cross-browser
-                approach for a scrollable flex child; min-h-0 alone fails in Safari */}
-            <div className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 pt-5"
-              style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
-            >
-              <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
-                {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
-                  if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
-                    return (
-                      <div key={idx} className="flex items-start mb-2.5">
-                        <span
-                          className={cn("font-bold mr-2.5 mt-0.5 shrink-0", priorityBg.replace(/\s+hover:[^\s]+/g, ""), "bg-clip-text")}
-                          style={{ color: currentAnnouncement.priority === "urgent" ? "#dc2626" : currentAnnouncement.priority === "high" ? "#ea580c" : "#2563eb" }}
-                        >•</span>
-                        <span>{line.trim().replace(/^[•-]\s*/, "")}</span>
-                      </div>
-                    );
-                  }
-                  if (line.trim().endsWith(":") && line.trim().length < 60 && !line.includes("http")) {
-                    return (
-                      <div key={idx} className={cn("font-bold mt-5 mb-2 text-[13px] tracking-[0.06em] uppercase", darkMode ? "text-gray-200" : "text-gray-900")}>
-                        {line.trim()}
-                      </div>
-                    );
-                  }
-                  if (line.trim().startsWith("---") || line.trim().startsWith("━━━")) {
-                    return <hr key={idx} className="my-4 border-gray-100 dark:border-gray-800" />;
-                  }
-                  if (line.trim() === "") return <div key={idx} className="h-3" />;
-                  return <p key={idx} className="mb-2">{line}</p>;
-                })}
-              </div>
-            </div>
-
-            {/* Footer — pagination only (no close button; header X handles closing) */}
-            {activeAnnouncements.length > 1 && (
-              <div
-                className={cn(
-                  "shrink-0 flex items-center justify-center gap-1 px-5 sm:px-6 py-3 border-t",
-                  darkMode ? "border-gray-800/60" : "border-gray-100",
-                )}
-                style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
-                  className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                  aria-label="Previous"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className={cn("text-[11px] font-semibold tabular-nums px-2", darkMode ? "text-gray-500" : "text-gray-400")}>
-                  {currentIndex + 1} / {activeAnnouncements.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
-                  className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                  aria-label="Next"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+            className={cn(
+              "shrink-0 h-[3px]",
+              currentAnnouncement.priority === "urgent" ? "bg-red-700"
+                : currentAnnouncement.priority === "high" ? "bg-amber-600"
+                : "bg-[#003d82]",
             )}
+          />
+
+          {/* Mobile grab handle */}
+          <div className="sm:hidden flex justify-center pt-3 pb-1 border-b border-[#d5dae0] dark:border-[#2a3040]">
+            <span className="h-[3px] w-9 rounded-full bg-gray-300 dark:bg-gray-700" />
           </div>
+
+          {/* Document header — masthead + title + close */}
+          <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                {/* Masthead: priority + timestamp */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded-[4px]",
+                      currentAnnouncement.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300"
+                        : currentAnnouncement.priority === "high" ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                        : "bg-[#e6ecf3] text-[#003d82] dark:bg-[#4a90d9]/15 dark:text-[#4a90d9]",
+                    )}
+                  >
+                    {(() => {
+                      const Icon = currentAnnouncement.priority === "urgent" || currentAnnouncement.priority === "high" ? AlertTriangle : Megaphone;
+                      return <Icon className="h-3 w-3" strokeWidth={2.5} />;
+                    })()}
+                    {i18n.language === "fi"
+                      ? currentAnnouncement.priority === "urgent" ? "Kiireellinen"
+                      : currentAnnouncement.priority === "high" ? "Tärkeä"
+                      : "Tiedote"
+                      : currentAnnouncement.priority === "urgent" ? "Urgent"
+                      : currentAnnouncement.priority === "high" ? "Important"
+                      : "Announcement"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    <Clock className="h-3 w-3" strokeWidth={2.25} />
+                    {(() => {
+                      try {
+                        const ts = currentAnnouncement.createdAt;
+                        if (!ts) return i18n.language === "fi" ? "Äskettäin" : "Recently";
+                        const d = typeof ts === "object" && (ts as { _seconds?: number })._seconds
+                          ? new Date((ts as { _seconds: number })._seconds * 1000)
+                          : new Date(ts);
+                        if (isNaN(d.getTime())) return i18n.language === "fi" ? "Äskettäin" : "Recently";
+                        return formatDistanceToNow(d, { addSuffix: true });
+                      } catch { return i18n.language === "fi" ? "Äskettäin" : "Recently"; }
+                    })()}
+                  </span>
+                </div>
+
+                <DialogTitle className="text-[18px] sm:text-[22px] font-bold text-gray-900 dark:text-white leading-tight tracking-tight line-clamp-3">
+                  {getLocalizedTitle(currentAnnouncement)}
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {getLocalizedContent(currentAnnouncement).slice(0, 120)}
+                </DialogDescription>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(false)}
+                className="shrink-0 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div
+            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5"
+            style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))" }}
+          >
+            <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
+              {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
+                if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
+                  return (
+                    <div key={idx} className="flex items-start mb-2.5">
+                      <span className="font-bold mr-2.5 mt-0.5 shrink-0 text-[#003d82] dark:text-[#4a90d9]">•</span>
+                      <span>{line.trim().replace(/^[•-]\s*/, "")}</span>
+                    </div>
+                  );
+                }
+                if (line.trim().endsWith(":") && line.trim().length < 60 && !line.includes("http")) {
+                  return (
+                    <div key={idx} className={cn("font-bold mt-5 mb-2 text-[11px] tracking-[0.08em] uppercase", darkMode ? "text-gray-400" : "text-gray-600")}>
+                      {line.trim().replace(/:$/, "")}
+                    </div>
+                  );
+                }
+                if (line.trim().startsWith("---") || line.trim().startsWith("━━━")) {
+                  return <hr key={idx} className="my-4 border-[#d5dae0] dark:border-[#2a3040]" />;
+                }
+                if (line.trim() === "") return <div key={idx} className="h-3" />;
+                return <p key={idx} className="mb-2">{line}</p>;
+              })}
+            </div>
+          </div>
+
+          {/* Footer — pagination */}
+          {activeAnnouncements.length > 1 && (
+            <div
+              className="shrink-0 flex items-center justify-center gap-1 px-5 sm:px-6 py-3 border-t border-[#d5dae0] dark:border-[#2a3040]"
+              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+            >
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); prevAnnouncement(); }}
+                className="h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+              <span className="text-[11px] font-bold tabular-nums px-3 text-gray-500 dark:text-gray-400">
+                {currentIndex + 1} / {activeAnnouncements.length}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); nextAnnouncement(); }}
+                className="h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
