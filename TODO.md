@@ -16,6 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.52 — 3D unblocked, Three.js bundled locally)
+
+- **CSP was blocking the 3D script.** In production, `script-src-elem` allows only `'self'`, `https://*.posthog.com`, `https://www.googletagmanager.com`. The old `loadThree()` helper appended `<script src="https://unpkg.com/three@0.160.0/build/three.min.js">` and the browser refused it. The 3D modal opened but rendered nothing.
+- **Fix — Three.js as a local npm dependency.** Added `"three": "^0.160.0"` to `package.json`. Replaced `loadThree()` with `import * as THREE_MODULE from "three"`. Vite bundles it, so no external script is needed at runtime — no CSP violation.
+- **The polygon rebuild from v4.7.49 finally runs in production.** Buildings, floor plates, room slabs, colored roof caps, and room-number pills all render.
+- **Files** — `client/src/components/CampusThreeDView.tsx`, `package.json`, `package-lock.json`, `changelog.ts`.
+- **Web bumped** `4.7.51` → `4.7.52`.
+
 ## ✅ Just shipped (web 4.7.51 — brute-force login protection active)
 
 - **Per-account login lockout wired.** `checkRateLimit` / `recordLoginAttempt` in `server/rateLimiter.ts` were implemented but never called. Now called from `server/routes.ts` admin-login handler: `checkRateLimit` runs before any DB lookup and returns 429 if locked; `recordLoginAttempt(false)` fires on every failed attempt (user not found, wrong password); `recordLoginAttempt(true)` fires on success (resets counter). Both the owner and regular-user paths are covered.

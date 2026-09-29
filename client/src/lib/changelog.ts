@@ -16,11 +16,28 @@ export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.52",
+    date: "September 2026",
+    title: "3D view unblocked — Three.js bundled locally to satisfy CSP",
+    titleFi: "3D-näkymä toimii — Three.js paikallisena riippuvuutena CSP-lohkoa vastaan",
+    latest: true,
+    highlights: [
+      "**3D campus view was blocked by CSP in production.** `CampusThreeDView` loaded `https://unpkg.com/three@0.160.0/build/three.min.js` at runtime, which violated our `script-src-elem` directive (only `'self'`, PostHog, and Google Tag Manager are allowed). The browser refused the script and the 3D modal stayed empty.",
+      "**Three.js is now a real npm dependency (`three@^0.160.0`)** imported via ES modules and bundled by Vite. No more CDN roundtrip, no CSP violation, faster first-load, and the code is finally tree-shakeable.",
+      "The polygon-based scene rebuild from v4.7.49 now actually runs — buildings, floor plates, room slabs, colored roof caps, and room-number pills all render as designed.",
+    ],
+    highlightsFi: [
+      "3D-näkymä esti CSP tuotannossa — Three.js ladattiin CDN:stä ja selain torjui skriptin.",
+      "Three.js on nyt paikallinen npm-riippuvuus, jonka Vite paketoi. Ei enää CDN-hakua eikä CSP-rikkomuksia.",
+      "v4.7.49:n polygonipohjainen 3D-scene toimii viimein oikeasti.",
+    ],
+  },
+  {
     version: "4.7.51",
     date: "September 2026",
     title: "Brute-force login protection now active",
     titleFi: "Kirjautumisen brute-force-suojaus nyt aktiivinen",
-    latest: true,
+    latest: false,
     highlights: [
       "**Per-account login lockout is now wired.** After 5 failed login attempts the account is locked for 15 minutes regardless of which IP the attempts came from. Previously the Firestore-backed lockout was implemented but never called. Now checked before every credential lookup, and reset automatically on a successful login.",
     ],

@@ -24,6 +24,11 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Eye, LocateFixed, Mountain, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// v4.7.50 — Three.js is now a real npm dependency and imported at build
+// time. The old CDN loader tripped our CSP script-src-elem allowlist and
+// was refused by the browser in production.
+import * as THREE_MODULE from "three";
+
 interface LatLng { lat: number; lng: number }
 
 interface Room {
@@ -46,24 +51,8 @@ interface Building {
   metadata?: { style?: Record<string, unknown> } | null;
 }
 
-/** Load three.js once from a CDN. */
-let threeReady: Promise<any> | null = null;
-function loadThree(): Promise<any> {
-  if (threeReady) return threeReady;
-  threeReady = new Promise((resolve, reject) => {
-    const w = window as any;
-    if (w.THREE) { resolve(w.THREE); return; }
-    const tag = document.createElement("script");
-    tag.src = "https://unpkg.com/three@0.160.0/build/three.min.js";
-    tag.onload = () => {
-      if (w.THREE) resolve(w.THREE);
-      else reject(new Error("three.js loaded but window.THREE is empty"));
-    };
-    tag.onerror = () => reject(new Error("Failed to load three.js from CDN"));
-    document.head.appendChild(tag);
-  });
-  return threeReady;
-}
+/** Local, ESM-bundled Three.js — no CDN, no CSP surprises. */
+const THREE: any = THREE_MODULE;
 
 type CameraMode = "orbit" | "walk";
 
@@ -173,10 +162,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     let raf = 0;
     let cleanup: (() => void) | null = null;
 
-    (async () => {
-      let THREE: any;
-      try { THREE = await loadThree(); }
-      catch (e) { setError((e as Error).message); return; }
+    (() => {
       if (disposed) return;
 
       const host = canvasHostRef.current!;
