@@ -16,6 +16,41 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.49 — 3D actually works, rebuilt on polygon points)
+
+- **3D view completely rebuilt.** Every previous 3D attempt used `mapPositionX/Y` + `width/height` (rectangles) to place rooms — but real rooms are stored as `points: {lat, lng}[]` polygons drawn in the builder. That's why 3D was empty. New scene reads polygon geometry and builds `THREE.Shape` + `ExtrudeGeometry` per feature.
+- **Equirectangular projection** — `project(latlng, centre)` converts each vertex to metres. `dx = Δlng · cos(centre.lat) · R`, `dz = -Δlat · R`. Accurate at campus scale, no external mapping library needed.
+- **Real-world proportions** — floor height 3.6 m, room slab 1 m, camera FOV 50°, camera distance = `max(60, extentR × 1.8)`. Every campus autoscales.
+- **Per-floor plates** for the full building height, hairline edges, colored roof cap — the campus reads as clusters of clearly stacked buildings.
+- **Rooms sit on the right floor** using their parent building's `metadata.style.heightPerFloor` when set.
+- **Room labels scale with campus extent** — `labelScale = clamp(4, extentR × 0.04, 16)`.
+- **Clear empty state** if no geometry: "No campus geometry — ask an admin to add rooms in the builder."
+- **Data query error handling** — sets error state on failed `/api/rooms` or `/api/buildings`.
+- **Web bumped** `4.7.48` → `4.7.49`.
+
+## ✅ Just shipped (web 4.7.48 — announcement 400 root-cause fix, admin Wilma pass, security hardening)
+
+- **Announcement 400 — root cause found.** Production uses Vercel serverless functions from `api/index.ts`, not `server/routes.ts`. v4.7.46's fix was in the wrong file. `api/index.ts` was passing `expiresAt` as an ISO string directly into Drizzle, which expects a `Date` object for `timestamp` columns → coerce on the server side; drop empty-string optional locale fields so the DB doesn't store useless rows.
+- **Admin panel Wilma pass.** Sidebar active state: gray → Wilma navy tint (`#e6ecf3`) with 3 px `#003d82` inset-left accent. Group labels uppercase 10 px. Brand strip: uppercase `ADMIN` masthead + navy wordmark. User chip: circular avatar → 4 px squared navy tile. Mobile: floating `rounded-2xl` card → flat hairline top bar. Section header: full Wilma masthead pattern.
+- **AnnouncementManager form.** Card wrappers + blue "Current Time" banner removed. Wilma document cards for create/edit form and list. "New announcement" button → Wilma navy `rounded-[6px]`.
+- **Announcement dialog bigger.** Max width 44 rem → 52 rem, fixed `92dvh` height with 44 rem reading cap. Mobile `h-[96dvh]`. Title 22/28 → 24/32 px.
+- **Security hardening** (pre-deployment audit):
+  - `server/index.ts`: removed `throw err` from Express error handler — was causing uncaught exception after every 500 response.
+  - `server/routes.ts`: fixed owner role lockout (20+ routes checked `!== 'admin'` without `'owner'`); fixed password reset O(n) user scan → direct indexed query via `getUserByResetToken`; added 200-char search query length cap; removed duplicate `setupAuth` call; removed dead duplicate `/api/lunch-menu` route; fixed `error.message` leak in cleanup-all error response.
+  - `server/storage.ts` + `server/postgresStorage.ts`: added `getUserByResetToken(token)` to `IStorage` interface and Postgres implementation; added no-op stub to `MemStorage`.
+  - `shared/schema.ts`: added 10+ DB indexes — `users.passwordResetToken`, `rooms.buildingId/isActive`, `floors.buildingId`, `hallways.buildingId/floorId`, `adminLoginLogs.email/createdAt`, `appLogs.createdAt/level+createdAt`, `pageViews.createdAt`, `searchAnalytics.createdAt`.
+- **Web bumped** `4.7.47` → `4.7.48`. `tsc` clean.
+
+## ⏳ Pending (apply schema indexes to DB)
+
+- **Run `npm run db:push`** (or `drizzle-kit push`) to apply the 10+ new indexes from `shared/schema.ts` to the live database. The schema changes are code-only until pushed.
+
+## ⏳ Pending (dead Firestore rate limiting)
+
+- **`checkRateLimit` / `recordLoginAttempt`** in `server/rateLimiter.ts` are exported but never called — the per-account lockout after 5 failed login attempts is not actually active. Either wire them into the login handler in `server/routes.ts`, or remove them and update the misleading comment.
+
+---
+
 ## ✅ Just shipped (web 4.7.47 — 3D button wired, privacy English default, offline banner, get-the-app admin-only)
 
 - **3D button in map controls opens the Three.js scene.** Previously `toggle3D` just tilted MapLibre (shadowy, glitchy). Now the button lazy-loads and renders `CampusThreeDView` as a fullscreen modal with the rewritten scene (rooms, floors, roof caps, no shadows). Command palette `ksyk:cmd:toggle-3d` also goes to the modal. Removed the leftover pitch-nudge-on-floor-change effect.

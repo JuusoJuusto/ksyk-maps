@@ -1,19 +1,21 @@
 /**
  * KSYK Maps — In-browser 3D campus view.
  *
- * Fully rewritten for visibility and Apple-Maps / MazeMap aesthetics:
+ * v4.7.49 — uses POLYGON POINTS (lat/lng), which is how real rooms and
+ * buildings are stored. The previous versions relied on
+ * mapPositionX/Y + width/height (an old rectangle-based layout) that
+ * modern rooms don't have, so nothing showed up.
  *
- *   - NO wall shells (the old glass boxes hid the rooms). Buildings are
- *     represented by a soft floor plate per floor + a colored roof cap
- *     ONLY on the top floor. Rooms are the primary visual element.
- *   - Rooms are chunky slabs (5 units tall) so they read clearly at
- *     any camera angle. Colored by type, muted palette.
- *   - Room-number pills are always visible in orbit mode; scale
- *     smoothly with distance.
- *   - NO shadows. Flat, soft, even lighting.
- *   - Warm neutral ground (no fog occluding rooms).
- *   - Camera framing auto-fits every mount so the whole campus is
- *     visible on load.
+ * How it works:
+ *   - Every building and room has a `points: {lat, lng}[]` polygon
+ *   - We compute a bounding box, pick a centre, then project every
+ *     lat/lng to metres via a local equirectangular scale
+ *     (dx = Δlng·cos(centre.lat)·R, dz = -Δlat·R)
+ *   - Each polygon becomes a THREE.Shape → ExtrudeGeometry
+ *   - Buildings extrude to (floors × floorHeight); rooms extrude a
+ *     small slab that sits on the correct floor plate
+ *   - No shadows, flat soft lighting, camera auto-fits everything
+ *   - Orbit + walk modes with subtle auto-rotate on entry
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +24,8 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 import { Eye, LocateFixed, Mountain, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface LatLng { lat: number; lng: number }
+
 interface Room {
   id: string;
   buildingId?: string;
@@ -29,11 +33,7 @@ interface Room {
   name?: string;
   floor: number;
   type?: string;
-  currentStatus?: string;
-  mapPositionX?: number;
-  mapPositionY?: number;
-  width?: number;
-  height?: number;
+  points?: LatLng[] | null;
   metadata?: { style?: Record<string, unknown> } | null;
 }
 
@@ -42,14 +42,11 @@ interface Building {
   name?: string;
   floors?: number | null;
   colorCode?: string | null;
-  mapPositionX?: number;
-  mapPositionY?: number;
-  width?: number;
-  height?: number;
+  points?: LatLng[] | null;
   metadata?: { style?: Record<string, unknown> } | null;
 }
 
-/** Loads three.js once from a CDN. */
+/** Load three.js once from a CDN. */
 let threeReady: Promise<any> | null = null;
 function loadThree(): Promise<any> {
   if (threeReady) return threeReady;
@@ -70,8 +67,7 @@ function loadThree(): Promise<any> {
 
 type CameraMode = "orbit" | "walk";
 
-/** Muted palette — reads clean at low saturation, still colorful enough
- *  to distinguish room types at a glance. */
+/** Muted Apple-Maps-inspired palette. */
 const TYPE_COLORS: Record<string, number> = {
   classroom:  0x6b8ac5,
   office:     0x8b7bb8,
@@ -83,8 +79,30 @@ const TYPE_COLORS: Record<string, number> = {
   hallway:    0xbcc4d0,
   stairs:     0x8994a3,
   wc:         0xa89bc8,
+  bathroom:   0xa89bc8,
+  lobby:      0xd4a15e,
   other:      0x9ba5b5,
 };
+
+const EARTH_R = 6371000; // metres
+
+/** Convert a lat/lng to metres relative to a centre point. Simple
+ *  equirectangular scale — accurate at campus scale. */
+function project(p: LatLng, centre: LatLng): { x: number; z: number } {
+  const dLng = (p.lng - centre.lng) * Math.PI / 180;
+  const dLat = (p.lat - centre.lat) * Math.PI / 180;
+  return {
+    x: dLng * Math.cos(centre.lat * Math.PI / 180) * EARTH_R,
+    z: -dLat * EARTH_R, // negate so north is -Z (screen-up-ish)
+  };
+}
+
+/** Polygon centroid in lat/lng. */
+function centroid(points: LatLng[]): LatLng {
+  let lat = 0, lng = 0;
+  for (const p of points) { lat += p.lat; lng += p.lng; }
+  return { lat: lat / points.length, lng: lng / points.length };
+}
 
 export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   const { darkMode } = useDarkMode();
@@ -94,23 +112,24 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<{ rooms: number; buildings: number }>({ rooms: 0, buildings: 0 });
   const resetRef = useRef<(() => void) | null>(null);
 
-  const { data: rooms = [] } = useQuery<Room[]>({
+  const { data: rooms = [], isError: roomsError } = useQuery<Room[]>({
     queryKey: ["rooms"],
     queryFn: async () => {
       const r = await fetch("/api/rooms");
-      if (!r.ok) return [];
+      if (!r.ok) throw new Error("rooms " + r.status);
       return r.json();
     },
     staleTime: 60_000,
   });
 
-  const { data: buildings = [] } = useQuery<Building[]>({
+  const { data: buildings = [], isError: buildingsError } = useQuery<Building[]>({
     queryKey: ["buildings"],
     queryFn: async () => {
       const r = await fetch("/api/buildings");
-      if (!r.ok) return [];
+      if (!r.ok) throw new Error("buildings " + r.status);
       return r.json();
     },
     staleTime: 60_000,
@@ -122,11 +141,17 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, [mode]);
 
+  useEffect(() => {
+    if (roomsError || buildingsError) {
+      setError("Couldn't load campus data. Check your connection and try again.");
+    }
+  }, [roomsError, buildingsError]);
+
   const palette = useMemo(() => darkMode ? {
     ground:      0x0f1420,
     plate:       0x1a2334,
     edge:        0x0a0f18,
-    ambient1:    0xe8ecf5,
+    ambient1:    0xeef2ff,
     ambient2:    0x2a3448,
     label:       "rgba(15,20,30,0.94)",
     labelText:   "#f1f5f9",
@@ -136,7 +161,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     plate:       0xffffff,
     edge:        0xc9d0dc,
     ambient1:    0xffffff,
-    ambient2:    0xe0e4ec,
+    ambient2:    0xe4e9f2,
     label:       "rgba(255,255,255,0.98)",
     labelText:   "#111827",
     labelBorder: "rgba(0,0,0,0.10)",
@@ -157,287 +182,324 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       const host = canvasHostRef.current!;
       const w = host.clientWidth, h = host.clientHeight;
 
+      // ── Data prep ────────────────────────────────────────────────
+      const validBuildings = buildings.filter(
+        (b) => Array.isArray(b.points) && b.points!.length >= 3,
+      );
+      const validRooms = rooms.filter(
+        (r) => Array.isArray(r.points) && r.points!.length >= 3,
+      );
+
+      if (validBuildings.length === 0 && validRooms.length === 0) {
+        setError("No campus geometry to render. Ask an admin to add rooms in the builder.");
+        setReady(true);
+        return;
+      }
+
+      // Pick a projection centre. Prefer the average building centroid;
+      // fall back to rooms if no buildings.
+      const centreSource = validBuildings.length > 0 ? validBuildings : validRooms;
+      const centreLatLng = (() => {
+        let lat = 0, lng = 0, n = 0;
+        for (const b of centreSource) {
+          const c = centroid(b.points!);
+          lat += c.lat; lng += c.lng; n++;
+        }
+        return { lat: lat / n, lng: lng / n };
+      })();
+
+      // Project + compute scene extent for auto-fit.
+      const projectRing = (pts: LatLng[]) => pts.map((p) => project(p, centreLatLng));
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const b of validBuildings) {
+        for (const p of projectRing(b.points!)) {
+          if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+          if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+        }
+      }
+      if (!isFinite(minX)) {
+        for (const r of validRooms) {
+          for (const p of projectRing(r.points!)) {
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+          }
+        }
+      }
+
+      const extentW = Math.max(20, maxX - minX);
+      const extentD = Math.max(20, maxZ - minZ);
+      const extentR = Math.max(extentW, extentD) * 0.75;
+      const camDist = Math.max(60, extentR * 1.8);
+
+      setDebugInfo({ rooms: validRooms.length, buildings: validBuildings.length });
+
+      // ── Scene setup ─────────────────────────────────────────────
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(palette.ground);
-      // Very light fog for depth cues; kicks in far away so nothing
-      // useful gets occluded.
-      scene.fog = new THREE.Fog(palette.ground, 900, 3000);
+      // Fog kicks in past 2× extent so nothing useful is occluded.
+      scene.fog = new THREE.Fog(palette.ground, extentR * 2, extentR * 6);
 
-      const camera = new THREE.PerspectiveCamera(50, w / h, 1, 8000);
+      const camera = new THREE.PerspectiveCamera(50, w / h, 0.5, extentR * 20);
 
-      // NO shadows. Flat, soft, even lighting: bright hemisphere + weak
-      // sun so extrusions still get a subtle facing gradient.
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       renderer.setSize(w, h);
       renderer.shadowMap.enabled = false;
       host.appendChild(renderer.domElement);
 
-      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 1.0));
+      // Soft flat lighting — no shadows anywhere.
+      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 1.15));
       const sun = new THREE.DirectionalLight(0xffffff, 0.35);
-      sun.position.set(300, 800, 300);
+      sun.position.set(extentR, extentR * 1.5, extentR * 0.6);
       scene.add(sun);
 
-      // Ground plane — matches sky. No grid.
-      const groundGeo = new THREE.PlaneGeometry(6000, 6000);
-      const groundMat = new THREE.MeshStandardMaterial({
-        color: palette.ground,
-        roughness: 1,
-        metalness: 0,
-      });
+      // Ground plane.
+      const groundSize = Math.max(2000, extentR * 8);
+      const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize);
+      const groundMat = new THREE.MeshBasicMaterial({ color: palette.ground });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -0.05;
       scene.add(ground);
 
-      // Scene centre — average of all placed rooms so the camera looks
-      // at the middle of what actually exists.
-      const placed = rooms.filter((r) => r.mapPositionX != null && r.mapPositionY != null);
-      const sceneCentre = (() => {
-        if (placed.length === 0) return { x: 0, y: 0 };
-        const xs = placed.map((r) => (r.mapPositionX ?? 0) + (r.width ?? 56) / 2);
-        const ys = placed.map((r) => (r.mapPositionY ?? 0) + (r.height ?? 40) / 2);
-        return {
-          x: (Math.min(...xs) + Math.max(...xs)) / 2,
-          y: (Math.min(...ys) + Math.max(...ys)) / 2,
-        };
-      })();
+      // Constants tuned to metric units. Real buildings are ~4m per
+      // floor; a school block is ~3–4 floors. Rooms sit on top of the
+      // building's floor plates.
+      const FLOOR_H = 3.6;
+      const ROOM_SLAB = 1.0;
 
-      const FLOOR_HEIGHT = 14;   // per-floor world units
-      const ROOM_SLAB    = 5.5;  // room extrusion — chunky, visible from any angle
-      const SCALE = 1;
-
-      // Scene-space extent so we can auto-fit the camera.
-      let extentMin = { x: Infinity, z: Infinity };
-      let extentMax = { x: -Infinity, z: -Infinity };
-      const bumpExtent = (cx: number, cz: number, w: number, d: number) => {
-        extentMin.x = Math.min(extentMin.x, cx - w / 2);
-        extentMin.z = Math.min(extentMin.z, cz - d / 2);
-        extentMax.x = Math.max(extentMax.x, cx + w / 2);
-        extentMax.z = Math.max(extentMax.z, cz + d / 2);
-      };
-
-      // ── Buildings — floor plates + optional roof cap. NO WALLS.
-      //   Rooms sit ON these plates and are fully visible from any
-      //   viewing angle because nothing occludes them.
-      const buildingGroup = new THREE.Group();
-      scene.add(buildingGroup);
       const buildingHeightById = new Map<string, number>();
 
-      for (const b of buildings) {
-        if (b.mapPositionX == null || b.mapPositionY == null) continue;
-        const bw = (b.width ?? 160) * SCALE;
-        const bd = (b.height ?? 120) * SCALE;
-        const cx = (b.mapPositionX + (b.width ?? 160) / 2) - sceneCentre.x;
-        const cz = (b.mapPositionY + (b.height ?? 120) / 2) - sceneCentre.y;
+      // ── Build buildings ────────────────────────────────────────
+      const buildingGroup = new THREE.Group();
+      scene.add(buildingGroup);
+
+      const makeShape = (pts: LatLng[]) => {
+        const projected = projectRing(pts);
+        const shape = new THREE.Shape();
+        projected.forEach((p, i) => {
+          if (i === 0) shape.moveTo(p.x, p.z);
+          else shape.lineTo(p.x, p.z);
+        });
+        shape.closePath();
+        return shape;
+      };
+
+      for (const b of validBuildings) {
         const floors = Math.max(1, b.floors ?? 1);
-        const bStyle = b.metadata?.style ?? {};
-        const perFloor = typeof bStyle.heightPerFloor === "number" && bStyle.heightPerFloor > 0
-          ? bStyle.heightPerFloor * 4
-          : FLOOR_HEIGHT;
+        const style = (b.metadata?.style ?? {}) as Record<string, unknown>;
+        const perFloor = typeof style.heightPerFloor === "number" && style.heightPerFloor > 0
+          ? Number(style.heightPerFloor)
+          : FLOOR_H;
+        const total = floors * perFloor;
         buildingHeightById.set(b.id, perFloor);
-        bumpExtent(cx, cz, bw, bd);
 
-        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
+        const shape = makeShape(b.points!);
 
-        // One thin plate per floor. Very subtle — reads as "this is
-        // where floor N sits".
+        // Floor plate per floor — very light cream, subtle. Uses tiny
+        // extrusion so it reads as a slab, not a line.
         for (let f = 0; f < floors; f++) {
-          const plateGeo = new THREE.BoxGeometry(bw, 0.6, bd);
+          const plateGeo = new THREE.ExtrudeGeometry(shape, {
+            depth: 0.25,
+            bevelEnabled: false,
+          });
+          plateGeo.rotateX(-Math.PI / 2);
           const plateMat = new THREE.MeshStandardMaterial({
             color: palette.plate,
             roughness: 0.98,
             metalness: 0,
           });
           const plate = new THREE.Mesh(plateGeo, plateMat);
-          plate.position.set(cx, f * perFloor, cz);
+          plate.position.y = f * perFloor;
           buildingGroup.add(plate);
-          // Hairline plate edge so floors don't melt into their rooms.
-          const plateEdgeGeo = new THREE.EdgesGeometry(plateGeo);
-          const plateEdgeMat = new THREE.LineBasicMaterial({
+
+          // Hairline edge.
+          const edgeGeo = new THREE.EdgesGeometry(plateGeo);
+          const edgeMat = new THREE.LineBasicMaterial({
             color: palette.edge,
             transparent: true,
-            opacity: 0.5,
+            opacity: darkMode ? 0.5 : 0.35,
           });
-          const plateEdges = new THREE.LineSegments(plateEdgeGeo, plateEdgeMat);
-          plateEdges.position.copy(plate.position);
-          buildingGroup.add(plateEdges);
+          const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+          edges.position.y = f * perFloor;
+          buildingGroup.add(edges);
         }
 
-        // Roof cap — colored (brand) at the very top so the campus
-        // reads as clusters of colored buildings from far away.
-        const roofGeo = new THREE.BoxGeometry(bw, 0.7, bd);
+        // Roof cap — colored (building brand).
+        const roofGeo = new THREE.ExtrudeGeometry(shape, {
+          depth: 0.4,
+          bevelEnabled: false,
+        });
+        roofGeo.rotateX(-Math.PI / 2);
+        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
         const roofMat = new THREE.MeshStandardMaterial({
           color: brand,
           roughness: 0.7,
-          metalness: 0.03,
+          metalness: 0.04,
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.9,
         });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.set(cx, floors * perFloor, cz);
+        roof.position.y = total;
         buildingGroup.add(roof);
       }
 
-      // ── Rooms — chunky slabs, fully visible.
+      // ── Build rooms ────────────────────────────────────────────
       const roomGroup = new THREE.Group();
       scene.add(roomGroup);
       const labelSprites: any[] = [];
 
-      for (const r of rooms) {
-        if (r.mapPositionX == null || r.mapPositionY == null) continue;
-        const w = (r.width ?? 56) * SCALE;
-        const d = (r.height ?? 40) * SCALE;
+      for (const r of validRooms) {
         const floor = r.floor ?? 1;
-        const rStyle = r.metadata?.style ?? {};
-        const customSlab = typeof rStyle.slabHeight === "number" && rStyle.slabHeight > 0
-          ? rStyle.slabHeight * 4
+        const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_H;
+        const baseY = (floor - 1) * parentPerFloor + 0.3;
+
+        const style = (r.metadata?.style ?? {}) as Record<string, unknown>;
+        const customSlab = typeof style.slabHeight === "number" && style.slabHeight > 0
+          ? Number(style.slabHeight)
           : null;
-        // Rooms are chunky. Hallways/stairs a bit shorter so they read
-        // as circulation vs. actual rooms.
-        const tall = customSlab ?? (
+        const slabH = customSlab ?? (
           (r.type === "hallway" || r.type === "stairs") ? ROOM_SLAB * 0.4 : ROOM_SLAB
         );
-        const base = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
 
-        const cx = (r.mapPositionX + (r.width ?? 56) / 2) - sceneCentre.x;
-        const cz = (r.mapPositionY + (r.height ?? 40) / 2) - sceneCentre.y;
-        bumpExtent(cx, cz, w, d);
-
-        const parentPerFloor = (r.buildingId && buildingHeightById.get(r.buildingId)) || FLOOR_HEIGHT;
-        const cy = (floor - 1) * parentPerFloor + 0.6 + tall / 2;
-
-        const geo = new THREE.BoxGeometry(w, tall, d);
-        const mat = new THREE.MeshStandardMaterial({
-          color: base,
-          roughness: 0.7,
-          metalness: 0.02,
+        const color = TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other;
+        const shape = makeShape(r.points!);
+        const geo = new THREE.ExtrudeGeometry(shape, {
+          depth: slabH,
+          bevelEnabled: false,
         });
-        const cube = new THREE.Mesh(geo, mat);
-        cube.position.set(cx, cy, cz);
-        cube.userData = { room: r };
-        roomGroup.add(cube);
+        geo.rotateX(-Math.PI / 2);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: 0.7,
+          metalness: 0.03,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.y = baseY;
+        mesh.userData = { room: r };
+        roomGroup.add(mesh);
 
         const edgeGeo = new THREE.EdgesGeometry(geo);
         const edgeMat = new THREE.LineBasicMaterial({
           color: palette.edge,
           transparent: true,
-          opacity: darkMode ? 0.55 : 0.42,
+          opacity: darkMode ? 0.6 : 0.45,
         });
         const edges = new THREE.LineSegments(edgeGeo, edgeMat);
-        edges.position.copy(cube.position);
+        edges.position.copy(mesh.position);
         roomGroup.add(edges);
 
-        // Room-number pill — draw canvas, wrap in a sprite. Always
-        // rendered on top by disabling depth test.
+        // Room label — canvas sprite. Positioned above the slab centre.
         if (r.roomNumber) {
-          const labelCanvas = document.createElement("canvas");
-          labelCanvas.width = 192; labelCanvas.height = 64;
-          const ctx = labelCanvas.getContext("2d")!;
-          ctx.font = "600 34px -apple-system, Segoe UI, Roboto, sans-serif";
+          const c = centroid(r.points!);
+          const p = project(c, centreLatLng);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = 192; canvas.height = 64;
+          const ctx = canvas.getContext("2d")!;
+          ctx.font = "600 32px -apple-system, Segoe UI, Roboto, sans-serif";
           ctx.textBaseline = "middle";
           ctx.textAlign = "center";
           const m = ctx.measureText(r.roomNumber);
-          const pillW = m.width + 30;
-          const pillH = 48;
+          const pillW = m.width + 26;
+          const pillH = 44;
           const pillX = (192 - pillW) / 2;
           const pillY = (64 - pillH) / 2;
           ctx.fillStyle = palette.label;
           ctx.beginPath();
-          // @ts-ignore roundRect is fine in modern browsers
-          ctx.roundRect?.(pillX, pillY, pillW, pillH, 12);
+          // @ts-ignore roundRect exists on modern canvas
+          ctx.roundRect?.(pillX, pillY, pillW, pillH, 11);
           ctx.fill();
           ctx.strokeStyle = palette.labelBorder;
           ctx.lineWidth = 1;
           ctx.stroke();
           ctx.fillStyle = palette.labelText;
-          ctx.fillText(r.roomNumber, 96, 34);
+          ctx.fillText(r.roomNumber, 96, 32);
 
-          const tex = new THREE.CanvasTexture(labelCanvas);
+          const tex = new THREE.CanvasTexture(canvas);
           tex.minFilter = THREE.LinearFilter;
           const spriteMat = new THREE.SpriteMaterial({
             map: tex,
             transparent: true,
-            depthTest: false,       // always on top
+            depthTest: false,
             depthWrite: false,
           });
           const sprite = new THREE.Sprite(spriteMat);
-          sprite.position.set(cx, cy + tall / 2 + 3.2, cz);
-          sprite.scale.set(15, 5, 1);
+          const labelScale = Math.max(4, Math.min(16, extentR * 0.04));
+          sprite.scale.set(labelScale, labelScale * 0.33, 1);
+          sprite.position.set(p.x, baseY + slabH + labelScale * 0.35, p.z);
           sprite.renderOrder = 999;
           roomGroup.add(sprite);
           labelSprites.push(sprite);
         }
       }
 
-      // Auto-fit camera on load so everything is visible.
-      const extentW = Math.max(80, extentMax.x - extentMin.x);
-      const extentD = Math.max(80, extentMax.z - extentMin.z);
-      const extentR = Math.max(extentW, extentD) * 0.75;
+      // ── Camera ─────────────────────────────────────────────────
       const initialYaw = -Math.PI / 4;
       const initialPitch = Math.PI / 4;
-      const initialDist = Math.max(220, extentR * 1.6);
-      let yaw = initialYaw, pitch = initialPitch, dist = initialDist;
+      let yaw = initialYaw, pitch = initialPitch, dist = camDist;
 
-      const walkStart = placed.length > 0 ? {
-        x: 0, y: 4, z: extentD * 0.35,
-      } : { x: 0, y: 4, z: 120 };
-      const walkPos = new THREE.Vector3(walkStart.x, walkStart.y, walkStart.z);
+      // Aim at the middle of the extent (relative to our centre).
+      const target = new THREE.Vector3(
+        (minX + maxX) / 2,
+        Math.max(6, extentR * 0.05),
+        (minZ + maxZ) / 2,
+      );
+
+      const walkPos = new THREE.Vector3(target.x, 4, target.z + extentD * 0.35);
       const walkLook = { yaw: 0, pitch: 0 };
       const keys = new Set<string>();
       let autoRotate = true;
-      const AUTO_ROTATE_SPEED = 0.05;
+      const AUTO_ROTATE_SPEED = 0.08;
 
-      function updateCameraOrbit() {
-        const x = dist * Math.cos(pitch) * Math.cos(yaw);
-        const y = dist * Math.sin(pitch);
-        const z = dist * Math.cos(pitch) * Math.sin(yaw);
-        camera.position.set(x, y, z);
-        camera.lookAt(0, 40, 0);
+      function updateOrbit() {
+        camera.position.set(
+          target.x + dist * Math.cos(pitch) * Math.cos(yaw),
+          target.y + dist * Math.sin(pitch),
+          target.z + dist * Math.cos(pitch) * Math.sin(yaw),
+        );
+        camera.lookAt(target);
       }
-      function updateCameraWalk() {
+      function updateWalk() {
         camera.position.copy(walkPos);
         const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
         const cp = Math.cos(walkLook.pitch), sp = Math.sin(walkLook.pitch);
-        const target = new THREE.Vector3(
+        camera.lookAt(
           walkPos.x + cy * cp,
           walkPos.y + sp,
           walkPos.z + sy * cp,
         );
-        camera.lookAt(target);
       }
-      updateCameraOrbit();
+      updateOrbit();
 
       resetRef.current = () => {
         yaw = initialYaw;
         pitch = initialPitch;
-        dist = initialDist;
+        dist = camDist;
         autoRotate = true;
-        updateCameraOrbit();
+        updateOrbit();
       };
 
-      // Walk collidables — rooms as AABBs, expanded a bit so the camera
-      // slides along walls smoothly.
+      // Collidables for walk mode.
       const collidables: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[] = [];
       roomGroup.traverse((o: any) => {
         if (o.isMesh && o.userData?.room) {
           const box = new THREE.Box3().setFromObject(o);
           collidables.push({
-            minX: box.min.x - 4, maxX: box.max.x + 4,
-            minY: box.min.y,     maxY: box.max.y,
-            minZ: box.min.z - 4, maxZ: box.max.z + 4,
+            minX: box.min.x - 0.5, maxX: box.max.x + 0.5,
+            minY: box.min.y,       maxY: box.max.y,
+            minZ: box.min.z - 0.5, maxZ: box.max.z + 0.5,
           });
         }
       });
       const blocked = (nx: number, ny: number, nz: number) => {
         for (const b of collidables) {
-          if (nx >= b.minX && nx <= b.maxX && ny >= b.minY && ny <= b.maxY && nz >= b.minZ && nz <= b.maxZ) {
-            return true;
-          }
+          if (nx >= b.minX && nx <= b.maxX && ny >= b.minY && ny <= b.maxY && nz >= b.minZ && nz <= b.maxZ) return true;
         }
         return false;
       };
 
-      // Input handlers.
+      // Input.
       let dragging = false;
       let lastX = 0, lastY = 0;
       const cv = renderer.domElement;
@@ -467,7 +529,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         e.preventDefault();
         autoRotate = false;
         if (mode === "orbit") {
-          dist = Math.max(50, Math.min(2200, dist * (1 + e.deltaY * 0.001)));
+          dist = Math.max(camDist * 0.15, Math.min(camDist * 4, dist * (1 + e.deltaY * 0.001)));
         }
       };
       cv.addEventListener("pointerdown", onPointerDown);
@@ -484,38 +546,26 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       window.addEventListener("keydown", downH);
       window.addEventListener("keyup", upH);
 
-      // Minimap paint.
-      const miniRooms = placed.map((r) => ({
-        x: (r.mapPositionX! + (r.width ?? 56) / 2) - sceneCentre.x,
-        z: (r.mapPositionY! + (r.height ?? 40) / 2) - sceneCentre.y,
-        w: r.width ?? 56,
-        h: r.height ?? 40,
-        color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other,
-      }));
-      const miniBuildings = buildings
-        .filter((b) => b.mapPositionX != null && b.mapPositionY != null)
-        .map((b) => ({
-          x: (b.mapPositionX! + (b.width ?? 160) / 2) - sceneCentre.x,
-          z: (b.mapPositionY! + (b.height ?? 120) / 2) - sceneCentre.y,
-          w: b.width ?? 160,
-          h: b.height ?? 120,
-          color: b.colorCode ?? "#6b8ac5",
-        }));
-      const miniBounds = (() => {
-        if (miniRooms.length === 0) return { minX: -100, maxX: 100, minZ: -100, maxZ: 100 };
-        return {
-          minX: Math.min(...miniRooms.map(r => r.x - r.w / 2)),
-          maxX: Math.max(...miniRooms.map(r => r.x + r.w / 2)),
-          minZ: Math.min(...miniRooms.map(r => r.z - r.h / 2)),
-          maxZ: Math.max(...miniRooms.map(r => r.z + r.h / 2)),
-        };
-      })();
+      // Minimap.
+      const minRooms = validRooms.map((r) => {
+        const c = centroid(r.points!);
+        return { p: project(c, centreLatLng), color: TYPE_COLORS[r.type ?? "other"] ?? TYPE_COLORS.other };
+      });
+      const minBuildings = validBuildings.map((b) => {
+        const projected = projectRing(b.points!);
+        return { points: projected, color: b.colorCode ?? "#6b8ac5" };
+      });
 
+      // Render loop.
+      let lastTs = performance.now();
       const tick = () => {
         if (disposed) return;
         raf = requestAnimationFrame(tick);
-        const dt = 1 / 60;
+        const now = performance.now();
+        const dt = (now - lastTs) / 1000;
+        lastTs = now;
 
+        // Paint minimap.
         const mm = minimapRef.current;
         if (mm) {
           const ctx = mm.getContext("2d");
@@ -524,29 +574,33 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             ctx.clearRect(0, 0, W, H);
             ctx.fillStyle = darkMode ? "rgba(15,20,30,0.95)" : "rgba(240,243,247,0.96)";
             ctx.fillRect(0, 0, W, H);
-            const bw = miniBounds.maxX - miniBounds.minX;
-            const bh = miniBounds.maxZ - miniBounds.minZ;
+            const bw = maxX - minX;
+            const bh = maxZ - minZ;
             const scale = Math.min((W - 10) / Math.max(1, bw), (H - 10) / Math.max(1, bh));
             const cx = W / 2, cy = H / 2;
-            const bcx = (miniBounds.minX + miniBounds.maxX) / 2;
-            const bcz = (miniBounds.minZ + miniBounds.maxZ) / 2;
-            for (const bl of miniBuildings) {
-              const px = cx + (bl.x - bcx) * scale;
-              const py = cy + (bl.z - bcz) * scale;
-              const pw = bl.w * scale;
-              const ph = bl.h * scale;
+            const bcx = (minX + maxX) / 2;
+            const bcz = (minZ + maxZ) / 2;
+            for (const bl of minBuildings) {
               ctx.fillStyle = bl.color;
               ctx.globalAlpha = darkMode ? 0.28 : 0.18;
-              ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
+              ctx.beginPath();
+              bl.points.forEach((p, i) => {
+                const px = cx + (p.x - bcx) * scale;
+                const py = cy + (p.z - bcz) * scale;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              });
+              ctx.closePath();
+              ctx.fill();
               ctx.globalAlpha = 1;
             }
-            for (const r of miniRooms) {
-              const px = cx + (r.x - bcx) * scale;
-              const py = cy + (r.z - bcz) * scale;
+            for (const r of minRooms) {
+              const px = cx + (r.p.x - bcx) * scale;
+              const py = cy + (r.p.z - bcz) * scale;
               ctx.fillStyle = "#" + r.color.toString(16).padStart(6, "0");
               ctx.globalAlpha = 0.85;
               ctx.beginPath();
-              ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+              ctx.arc(px, py, 1.2, 0, Math.PI * 2);
               ctx.fill();
               ctx.globalAlpha = 1;
             }
@@ -573,34 +627,33 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
         if (mode === "orbit") {
           if (autoRotate) yaw -= AUTO_ROTATE_SPEED * dt;
-          updateCameraOrbit();
+          updateOrbit();
         } else {
-          const speed = 45 * dt * (keys.has("shift") ? 2.5 : 1);
+          const speed = 8 * dt * (keys.has("shift") ? 3 : 1);
           const cy = Math.cos(walkLook.yaw), sy = Math.sin(walkLook.yaw);
-          let dx = 0, dz = 0;
-          if (keys.has("w") || keys.has("arrowup"))    { dx += cy * speed; dz += sy * speed; }
-          if (keys.has("s") || keys.has("arrowdown"))  { dx -= cy * speed; dz -= sy * speed; }
-          if (keys.has("a") || keys.has("arrowleft"))  { dx += sy * speed; dz -= cy * speed; }
-          if (keys.has("d") || keys.has("arrowright")) { dx -= sy * speed; dz += cy * speed; }
-          if (dx !== 0 && !blocked(walkPos.x + dx, walkPos.y, walkPos.z)) walkPos.x += dx;
-          if (dz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + dz)) walkPos.z += dz;
-          if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed * 0.6; }
-          if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(1.2, walkPos.y - speed * 0.6); }
-          updateCameraWalk();
+          let ddx = 0, ddz = 0;
+          if (keys.has("w") || keys.has("arrowup"))    { ddx += cy * speed; ddz += sy * speed; }
+          if (keys.has("s") || keys.has("arrowdown"))  { ddx -= cy * speed; ddz -= sy * speed; }
+          if (keys.has("a") || keys.has("arrowleft"))  { ddx += sy * speed; ddz -= cy * speed; }
+          if (keys.has("d") || keys.has("arrowright")) { ddx -= sy * speed; ddz += cy * speed; }
+          if (ddx !== 0 && !blocked(walkPos.x + ddx, walkPos.y, walkPos.z)) walkPos.x += ddx;
+          if (ddz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + ddz)) walkPos.z += ddz;
+          if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed * 0.5; }
+          if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(1.2, walkPos.y - speed * 0.5); }
+          updateWalk();
         }
 
-        // Fade labels smoothly with camera distance in orbit mode; in
-        // walk mode keep them fully visible up close, invisible far.
+        // Fade room labels with camera distance.
         if (mode === "orbit") {
-          const labelOpacity = Math.max(0, Math.min(1, 1.15 - (dist - 200) / (initialDist * 1.2)));
-          for (const sprite of labelSprites) {
-            (sprite.material as any).opacity = labelOpacity;
-            sprite.visible = labelOpacity > 0.02;
+          const labelOpacity = Math.max(0, Math.min(1, 1.4 - dist / (camDist * 1.5)));
+          for (const s of labelSprites) {
+            (s.material as any).opacity = labelOpacity;
+            s.visible = labelOpacity > 0.02;
           }
         } else {
-          for (const sprite of labelSprites) {
-            (sprite.material as any).opacity = 1;
-            sprite.visible = true;
+          for (const s of labelSprites) {
+            (s.material as any).opacity = 1;
+            s.visible = true;
           }
         }
 
@@ -654,7 +707,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       )}>
         <div ref={canvasHostRef} className="absolute inset-0" />
 
-        {/* Top-right: Reset + Close as a unified pill. */}
+        {/* Top-right: Reset + Close. */}
         <div className={cn(
           "absolute top-3 right-3 z-10 flex flex-row rounded-[14px] overflow-hidden backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -682,7 +735,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Minimap — top-left, clean. */}
+        {/* Top-left: minimap + stats. */}
         <div className={cn(
           "absolute top-3 left-3 z-10 p-1.5 rounded-[14px] backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -695,9 +748,15 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             height={160}
             className="rounded-lg block"
           />
+          <p className={cn(
+            "text-[10px] font-medium text-center mt-1 tabular-nums",
+            darkMode ? "text-gray-400" : "text-gray-500",
+          )}>
+            {debugInfo.rooms} rooms · {debugInfo.buildings} buildings
+          </p>
         </div>
 
-        {/* Segmented mode toggle — bottom centre. */}
+        {/* Bottom-centre: mode toggle. */}
         <div className={cn(
           "absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex flex-row rounded-full p-1 backdrop-blur-xl",
           "border border-black/[0.08] dark:border-white/[0.08]",
@@ -734,7 +793,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Mode hint — fades in on change, out after 4s. */}
+        {/* Hint. */}
         <div
           className={cn(
             "absolute bottom-16 left-1/2 -translate-x-1/2 z-10 px-3.5 py-2 rounded-full text-[12px] font-medium pointer-events-none transition-opacity duration-500 backdrop-blur-xl border",
@@ -764,15 +823,18 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         )}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
-            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl p-5 max-w-md text-sm">
-              <p className="font-semibold text-red-700 dark:text-red-300 mb-1">3D failed to load</p>
-              <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
+            <div className={cn(
+              "rounded-2xl border p-6 max-w-md text-center",
+              darkMode ? "bg-gray-900 border-gray-800 text-gray-200" : "bg-white border-gray-200 text-gray-800",
+            )}>
+              <p className="font-semibold text-[15px] mb-2">3D view unavailable</p>
+              <p className="text-[13px] text-muted-foreground mb-4">{error}</p>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-sm font-semibold text-red-700 dark:text-red-300 underline"
+                className="h-9 px-4 rounded-xl text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.97] transition-all"
               >
-                Close and try again
+                Close
               </button>
             </div>
           </div>

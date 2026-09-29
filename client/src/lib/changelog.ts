@@ -10,17 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.48";
+export const APP_VERSION = "4.7.49";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.49",
+    date: "September 2026",
+    title: "3D actually works — rebuilt on polygon points, not fake rectangles",
+    titleFi: "3D toimii viimein — käyttää oikeita polygoneja, ei kuvitteellisia suorakulmioita",
+    latest: true,
+    highlights: [
+      "**3D view completely rebuilt.** Every previous 3D attempt used `mapPositionX/Y` + `width/height` (rectangles) to place rooms — but real rooms are stored as `points: {lat, lng}[]` polygons drawn in the builder. That's why the 3D view was empty or looked broken. The new scene reads the actual polygon geometry, projects lat/lng to metres via an equirectangular scale centred on the campus, and builds proper `THREE.Shape` + `ExtrudeGeometry` for every building and room.",
+      "**Real-world proportions.** Floor height is 3.6 m (not 14 arbitrary units), room slabs are 1 m tall, camera field of view and distances scale to the actual campus extent so the view auto-fits every time regardless of school size.",
+      "**Buildings finally read as buildings.** Per-floor plates for the full building height, hairline edges at each level, colored roof cap at the top — you can see the campus wings clearly instead of a formless blob.",
+      "**Rooms sit on the right floor.** Each room uses its parent building's `heightPerFloor` (if set in the builder) or the default 3.6 m, so a mixed-height campus stacks correctly.",
+      "**Room labels scale with campus size.** Pill sizes and heights above the room slabs are derived from the auto-fit extent, so labels are readable on a small school and on a large campus.",
+      "**Better empty-state.** If neither buildings nor rooms have `points`, the scene now shows a clear \"No campus geometry — ask an admin to add rooms in the builder\" message instead of an empty grey box.",
+    ],
+    highlightsFi: [
+      "3D-näkymä rakennettu kokonaan uudelleen — käyttää nyt oikeita rakennusten ja huoneiden polygoneja.",
+      "Realistiset mittasuhteet: kerroskorkeus 3,6 m, huoneen paksuus 1 m, kamera säätyy kampuksen kokoon.",
+      "Rakennukset näkyvät nyt selkeästi: kerroslevyt, ohut ääriviiva ja värillinen kattolevy.",
+      "Huoneet asettuvat oikealle kerrokselle.",
+      "Huoneiden numerolaatat skaalautuvat kampuksen koon mukaan.",
+      "Parempi tyhjä tila: kirkas viesti jos rakennusgeometriaa ei ole.",
+    ],
+  },
+  {
     version: "4.7.48",
     date: "September 2026",
     title: "Announcement 400 REALLY fixed (Vercel serverless), admin panel Wilma pass, bigger dialog",
     titleFi: "Ilmoitusten 400 todella korjattu (Vercel serverless), admin-paneeli Wilma-ilmeeseen, isompi dialogi",
-    latest: true,
+    latest: false,
     highlights: [
       "**Announcement 400 — actual root cause found and fixed.** v4.7.46 fixed the wrong file: production runs on Vercel serverless functions in `api/index.ts`, not `server/routes.ts`. The api file was still passing `expiresAt` as an ISO string straight into Drizzle, which expects a real `Date` object for `timestamp` columns and throws `value.toISOString is not a function`. Also updated the filter to skip empty-string optional locale fields.",
       "**Admin panel Wilma pass.** Sidebar: gray active state → Wilma navy tint (`#e6ecf3`) with a 3 px navy inset-left accent bar. Brand strip: uppercase `ADMIN` masthead + navy `KSYK Maps` wordmark. User chip: circular → 4 px squared navy tile. Mobile chrome: floating rounded-2xl card gone — flat top bar with hairline bottom border matching the main app header.",
