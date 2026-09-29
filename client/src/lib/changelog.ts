@@ -10,17 +10,62 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.46";
+export const APP_VERSION = "4.7.48";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.48",
+    date: "September 2026",
+    title: "Announcement 400 REALLY fixed (Vercel serverless), admin panel Wilma pass, bigger dialog",
+    titleFi: "Ilmoitusten 400 todella korjattu (Vercel serverless), admin-paneeli Wilma-ilmeeseen, isompi dialogi",
+    latest: true,
+    highlights: [
+      "**Announcement 400 — actual root cause found and fixed.** v4.7.46 fixed the wrong file: production runs on Vercel serverless functions in `api/index.ts`, not `server/routes.ts`. The api file was still passing `expiresAt` as an ISO string straight into Drizzle, which expects a real `Date` object for `timestamp` columns and throws `value.toISOString is not a function`. Also updated the filter to skip empty-string optional locale fields.",
+      "**Admin panel Wilma pass.** Sidebar: gray active state → Wilma navy tint (`#e6ecf3`) with a 3 px navy inset-left accent bar. Brand strip: uppercase `ADMIN` masthead + navy `KSYK Maps` wordmark. User chip: circular → 4 px squared navy tile. Mobile chrome: floating rounded-2xl card gone — flat top bar with hairline bottom border matching the main app header.",
+      "**Section header restyled** to the Wilma masthead pattern: uppercase active-tab label + 22-26 px navy H1 + 13 px muted description on a hairline divider.",
+      "**AnnouncementManager form.** Card wrappers gone, `Current Time` blue banner gone. Wilma document cards for the create/edit form and the list. \"New announcement\" button is now a Wilma navy 6 px rectangle (was Apple-blue pill).",
+      "**Announcement dialog even bigger.** Desktop max width 44 rem → 52 rem, fixed 92 dvh height with a 44 rem inner reading-measure cap. Mobile now `h-[96dvh]`. Title 22/28 → 24/32 px.",
+      "**MemStorage stub** added for `getUserByResetToken` so `tsc` stays clean.",
+      "**Rollback** — `git tag rollback-before-4-7-48` at `ead33ca`. Revert: `git reset --hard rollback-before-4-7-48 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.47` → `4.7.48`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Ilmoituksen 400-virhe todella korjattu. Vercel-tuotanto ajaa `api/index.ts`-tiedostoa, ei `server/routes.ts`:iä. ISO-päivämäärä muunnetaan nyt oikeasti Dateksi ennen Drizzleen syöttöä.",
+      "Admin-paneeli Wilma-ilmeeseen: aktiivinen rivi navy-korostuksella, mobiili-yläpalkki litteä.",
+      "Ilmoitusdialogi vielä isompi: 44rem → 52rem työpöydällä, 96dvh mobiilissa. Otsikko 24-32px.",
+      "Palauta: `git reset --hard rollback-before-4-7-48`.",
+    ],
+  },
+  {
+    version: "4.7.47",
+    date: "September 2026",
+    title: "3D button opens the real 3D · privacy defaults English · offline banner · get-the-app admin-only",
+    titleFi: "3D-nappi avaa oikean 3D-näkymän · tietosuoja englanniksi · offline-palkki · Lataa-popup vain adminille",
+    latest: false,
+    highlights: [
+      "The 3D button in the map controls now opens the full Three.js campus scene (rooms, floors, roof caps, no shadows, no glitches) instead of the shadowy pitched-MapLibre view. `CampusThreeDView` is lazy-loaded so the initial bundle isn't affected.",
+      "Privacy page now defaults to English when no language preference is saved (was: default Finnish, which surprised first-time English visitors).",
+      "Duplicate close button on the desktop search bar is gone — the input's `type=\"search\"` native X was fighting the custom clear button. Switched to `type=\"text\"` with `inputMode=\"search\"` so the native X disappears and only the custom X remains.",
+      "\"Get the app\" popup: user-facing toggle removed from Settings (it belongs in the admin panel, not user Settings). Admin default is now explicitly off — the popup only appears when an admin turns it on in `/admin` › App Settings › Get the App popup.",
+      "New OfflineBanner component in the main app — detects `navigator.onLine`, shows an amber warning strip when offline and a brief green \"Back online\" confirmation when the connection returns. Bilingual, respects `ksyk_language`.",
+      "Removed the leftover pitch-based 3D nudge on floor change — legacy from the old MapLibre-tilt 3D mode.",
+    ],
+    highlightsFi: [
+      "Kartan 3D-nappi avaa nyt oikean Three.js-3D-näkymän (huoneet, kerrokset, katot, ei varjoja, ei glitchejä) MapLibren käännetyn kartan sijaan.",
+      "Tietosuojasivu on nyt oletuksena englanniksi, jos kielivalintaa ei ole tallennettu.",
+      "Työpöytäversion hakukentän tuplasulkeutumisnappi poistettu.",
+      "\"Lataa sovellus\" -popup: käyttäjäasetus poistettu, hallinta vain admin-paneelissa. Oletus: pois päältä.",
+      "Uusi OfflineBanner — havaitsee offline-tilan, näyttää keltaisen palkin ja \"Yhteys palautui\" -vihreän vahvistuksen.",
+    ],
+  },
+  {
     version: "4.7.46",
     date: "September 2026",
     title: "Announcement 400 actually fixed, admin photo restored, bigger announcement dialog",
     titleFi: "Ilmoitusten 400-virhe todella korjattu, admin-kuva palautettu, isompi ilmoitusdialogi",
-    latest: true,
+    latest: false,
     highlights: [
       "**Announcement creation 400 — real fix.** v4.7.45's client-side cleanup wasn't enough. Root cause on the server: drizzle-zod maps `timestamp` columns to `z.date().nullable()` which rejects ISO strings; `authorId` had a FK to `staff.id` so an owner/admin account whose id doesn't exist in `staff` tripped a Postgres FK violation on insert. Added `normalizeAnnouncementBody()` server-side helper that: drops fields not in the schema, coerces `expiresAt` ISO string → real `Date` (or null on invalid), and drops `authorId` entirely (the column is nullable, so this is fine — announcements just don't reference a staff row). PUT route gets the same treatment. Owner role now accepted for POST (previously only admin).",
       "**Client surfaces real error.** Toast now prints the server's per-field Zod issues instead of `Failed to create announcement`, so if a 400 still shows up you'll see exactly which field failed.",

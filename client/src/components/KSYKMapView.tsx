@@ -29,6 +29,8 @@ import CompassChip from "@/components/CompassChip";
 // NavigationPanel and FeatureInfoSheet out of the initial map bundle.
 const NavigationPanel = lazy(() => import("@/components/NavigationPanel"));
 const FeatureInfoSheet = lazy(() => import("@/components/FeatureInfoSheet"));
+// Three.js scene — only loaded when the 3D button is pressed.
+const CampusThreeDView = lazy(() => import("@/components/CampusThreeDView"));
 import type { LatLng } from "@ksyk/shared";
 import { cn } from "@/lib/utils";
 import { polygonCentroid } from "@ksyk/shared";
@@ -111,31 +113,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     } catch { /* history API missing — non-fatal */ }
   }, [selectedFloor]);
 
-  // v3.32.0 — camera nudge on floor change when 3D is on. Briefly
-  // eases pitch up then back so users see the "we switched floors"
-  // motion cue in 3D. In 2D top-down, no nudge — the change is
-  // instantly visible.
-  const previousFloorRef = useRef<number>(selectedFloor);
-  useEffect(() => {
-    if (previousFloorRef.current === selectedFloor) return;
-    previousFloorRef.current = selectedFloor;
-    if (!is3D || !mapInstance) return;
-    const originalPitch = mapInstance.getPitch();
-    mapInstance.easeTo({
-      pitch: Math.min(60, originalPitch + 8),
-      duration: 240,
-      essential: true,
-    });
-    window.setTimeout(() => {
-      try {
-        mapInstance.easeTo({
-          pitch: originalPitch,
-          duration: 260,
-          essential: true,
-        });
-      } catch { /* map might've unmounted */ }
-    }, 280);
-  }, [selectedFloor, is3D, mapInstance]);
+  // v4.7.40 — the pitch-based 3D nudge on floor change was removed
+  // along with the pitched-map 3D toggle. Floor changes are already
+  // legible via the floor-change toast + floor-pill highlight.
   // Floor-change toast — brief direction indicator when the user switches
   // floors so the transition is legible in both 2D and 3D.
   const [floorToast, setFloorToast] = useState<string | null>(null);
@@ -322,12 +302,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   // instance live here; global ones (like switch page) fire directly.
   useEffect(() => {
     const on3D = () => {
-      const h = handleRef.current;
-      if (!h) return;
-      const next = is3D ? 0 : 45;
-      setIs3D(!is3D);
-      h.setPitch(next);
-      update("osmPitchDeg", next);
+      // v4.7.40 — command palette now opens the Three.js scene modal
+      // to match the map-controls "3D" button. No more pitch toggle.
+      setShow3DScene(true);
     };
     const onRecenter = () => { handleRef.current?.recenter(); };
     const onResetBearing = () => { handleRef.current?.setBearing(0); };
@@ -378,7 +355,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       window.removeEventListener("ksyk:cmd:open-directions", onOpenDirections);
       window.removeEventListener("ksyk:cmd:fly-to", onFlyTo);
     };
-  }, [is3D, update]);
+  }, []);
 
   const _savedLang = typeof window !== "undefined" ? localStorage.getItem('ksyk_language') : null;
   const fi = _savedLang ? _savedLang === 'fi' : (typeof navigator !== "undefined" && navigator.language.startsWith("fi"));
@@ -460,22 +437,22 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
     setClickedFeature(null);
   }, []);
 
-  const toggle3D = useCallback(() => {
-    const next = is3D ? 0 : 45;
-    posthog.capture("map_view_mode_changed", { view_mode: next > 0 ? "3d" : "2d" });
-    setIs3D(!is3D);
-    handleRef.current?.setPitch(next);
-    update("osmPitchDeg", next);
-  }, [is3D, update]);
+  // v4.7.40 — the "3D" button now opens the fullscreen Three.js scene
+  // instead of just pitching the MapLibre map. The pitched-map look was
+  // shadowy and glitched at building edges; the Three.js scene shows
+  // rooms, floors, and roof caps clearly with no shadows.
+  const [show3DScene, setShow3DScene] = useState(false);
+  const open3DScene = useCallback(() => {
+    posthog.capture("map_view_mode_changed", { view_mode: "3d_scene" });
+    setShow3DScene(true);
+  }, []);
 
-  // When persisted is3D says "on" but the map loaded flat (fresh
-  // mount, no user gesture yet), lift the pitch so 3D extrusions
-  // become visible. Only fires once per mount.
+  // Keep the persisted is3D flag as the "3D scene modal open" indicator
+  // for legacy UI (Command Palette etc.). Sync it whenever the modal
+  // opens/closes so the map controls button reflects reality.
   useEffect(() => {
-    if (!mapInstance || !is3D) return;
-    if (mapInstance.getPitch() < 5) mapInstance.setPitch(45);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapInstance]);
+    setIs3D(show3DScene);
+  }, [show3DScene, setIs3D]);
 
   // Fire map_loaded once when the GL instance AND campus data are both ready.
   const mapLoadedFiredRef = useRef(false);
@@ -617,7 +594,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           map={mapInstance}
           activeFloor={selectedFloor}
           onFeatureClick={onFeatureClick}
-          is3D={is3D}
+          is3D={false}
         />
       </ErrorBoundary>
 
@@ -764,19 +741,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
           {canUse3D && (
             <button
               type="button"
-              aria-label={is3D ? "Switch to flat 2D" : "Switch to 3D view"}
-              aria-pressed={is3D}
-              onClick={toggle3D}
-              title={is3D ? "2D flat" : "3D view"}
-              className={cn(
-                "w-12 h-12 flex items-center justify-center transition-colors",
-                is3D
-                  ? "bg-[#003d82] text-white"
-                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
-              )}
+              aria-label="Open 3D campus view"
+              onClick={open3DScene}
+              title="3D view"
+              className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             >
               <span className="text-[12px] font-bold tabular-nums tracking-tight">
-                {is3D ? "3D" : "2D"}
+                3D
               </span>
             </button>
           )}
@@ -918,6 +889,20 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  from /api/events/map, renders as amber star pins, and shows
        *  a popover with title/time/description on click. */}
       <CampusEventsLayer map={mapInstance} lang="fi" />
+
+      {/* v4.7.40 — Fullscreen 3D campus view. Opened by the "3D" button
+       *  in the map control pill; renders as a modal over the map. */}
+      {show3DScene && (
+        <Suspense fallback={
+          <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <div className="text-white text-sm font-medium px-4 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/20">
+              Loading 3D view…
+            </div>
+          </div>
+        }>
+          <CampusThreeDView onClose={() => setShow3DScene(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

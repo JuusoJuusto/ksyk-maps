@@ -50,6 +50,11 @@ export class DatabaseStorage implements Partial<IStorage> {
     return user;
   }
 
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.passwordResetToken, token));
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     // Storage-boundary hashing â€” mirrors FirebaseStorage. Idempotent
     // so re-inserts don't double-hash.

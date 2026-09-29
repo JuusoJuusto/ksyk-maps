@@ -46,9 +46,11 @@ export const users = pgTable("users", {
   passwordResetExpiry: timestamp("password_reset_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_users_password_reset_token").on(table.passwordResetToken),
+]);
 
-// Buildings table
+// Buildings table — no extra indexes needed (queried by PK only on writes)
 export const buildings = pgTable("buildings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
@@ -137,7 +139,10 @@ export const rooms = pgTable("rooms", {
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_rooms_building_id").on(table.buildingId),
+  index("IDX_rooms_is_active").on(table.isActive),
+]);
 
 // Staff table
 export const staff = pgTable("staff", {
@@ -198,7 +203,9 @@ export const floors = pgTable("floors", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_floors_building_id").on(table.buildingId),
+]);
 
 // Hallways table  
 export const hallways = pgTable("hallways", {
@@ -231,7 +238,10 @@ export const hallways = pgTable("hallways", {
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_hallways_building_id").on(table.buildingId),
+  index("IDX_hallways_floor_id").on(table.floorId),
+]);
 
 // Announcements table
 export const announcements = pgTable("announcements", {
@@ -285,7 +295,10 @@ export const adminLoginLogs = pgTable("admin_login_logs", {
   failureReason: varchar("failure_reason"),
   sessionId: varchar("session_id"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_admin_login_logs_email").on(table.email),
+  index("IDX_admin_login_logs_created_at").on(table.createdAt),
+]);
 
 // App Logs table for error tracking
 export const appLogs = pgTable("app_logs", {
@@ -300,7 +313,10 @@ export const appLogs = pgTable("app_logs", {
   userId: varchar("user_id").references(() => users.id),
   ipAddress: varchar("ip_address"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_app_logs_created_at").on(table.createdAt),
+  index("IDX_app_logs_level_created_at").on(table.level, table.createdAt),
+]);
 
 
 // Analytics tables
@@ -324,7 +340,9 @@ export const pageViews = pgTable("page_views", {
   duration: integer("duration"), // in seconds
   isBounce: boolean("is_bounce").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_page_views_created_at").on(table.createdAt),
+]);
 
 export const searchAnalytics = pgTable("search_analytics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -340,7 +358,9 @@ export const searchAnalytics = pgTable("search_analytics", {
   country: varchar("country"),
   city: varchar("city"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("IDX_search_analytics_created_at").on(table.createdAt),
+]);
 
 export const navigationAnalytics = pgTable("navigation_analytics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

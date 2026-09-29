@@ -227,20 +227,21 @@ export default function AnnouncementBanner() {
         <DialogContent
           className={cn(
             "p-0 gap-0 border-0",
-            // Mobile: bottom sheet — near-full-height so long announcements
-            // aren't cut off; v4.7.46 user asked for more room.
+            // Mobile: near-full-screen sheet
             "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-            "h-[92dvh] max-h-[92dvh] w-full max-w-full rounded-t-[8px]",
-            // Desktop: bigger centered dialog — 44 rem cap, 88 dvh tall,
-            // so long news posts breathe instead of scrolling in a
-            // 36 rem × 85 dvh porthole.
+            "h-[96dvh] max-h-[96dvh] w-full max-w-full rounded-t-[8px]",
+            // Desktop: bigger, taller, narrower-column reading width
+            // 52 rem so long news posts have real breathing room; 92 dvh
+            // tall so the body doesn't scroll in a porthole.  v4.7.47 —
+            // user asked for larger + fits more content text.
             "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:h-auto sm:max-w-[min(94vw,44rem)] sm:w-full sm:max-h-[88dvh]",
+            "sm:h-[min(92dvh,58rem)] sm:max-w-[min(94vw,52rem)] sm:w-full sm:max-h-[92dvh]",
             "sm:rounded-[8px]",
             "[&>button:first-of-type]:hidden",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
             "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
+            "border border-[#d5dae0] dark:border-[#2a3040]",
           )}
         >
           {/* Priority accent — 3 px navy/amber/red top bar */}
@@ -300,7 +301,7 @@ export default function AnnouncementBanner() {
                   </span>
                 </div>
 
-                <DialogTitle className="text-[22px] sm:text-[28px] font-bold text-gray-900 dark:text-white leading-[1.15] tracking-tight">
+                <DialogTitle className="text-[24px] sm:text-[32px] font-bold text-gray-900 dark:text-white leading-[1.1] tracking-tight">
                   {getLocalizedTitle(currentAnnouncement)}
                 </DialogTitle>
                 <DialogDescription className="sr-only">
@@ -319,12 +320,17 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* Body — bigger, more breathable prose */}
+          {/* Body — bigger, more breathable prose.  v4.7.47 pushed the
+           *  max-width to 44 rem inner so lines don't stretch past a
+           *  comfortable reading measure while the dialog itself is 52 rem. */}
           <div
-            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 sm:py-7"
+            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-8 py-6 sm:py-8"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))" }}
           >
-            <div className={cn("text-[15px] sm:text-[16px] leading-[1.7]", darkMode ? "text-gray-300" : "text-gray-700")}>
+            <div className={cn(
+              "text-[15px] sm:text-[16px] leading-[1.7] max-w-[44rem]",
+              darkMode ? "text-gray-300" : "text-gray-800",
+            )}>
               {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
                 if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
                   return (

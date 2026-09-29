@@ -67,10 +67,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   const [currentLang, setCurrentLang] = useState(
     () => localStorage.getItem("ksyk_language") || i18n.language
   );
-  const [getAppEnabled, setGetAppEnabled] = useState<boolean>(() => {
-    try { return localStorage.getItem("ksyk_get_app_enabled_v1") !== "0"; }
-    catch { return true; }
-  });
   const britishUnlocked = localStorage.getItem("ksyk_british_unlocked") === "true";
   const isFi = currentLang === "fi";
 
@@ -249,26 +245,6 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                   </div>
                 </Section>
 
-                {/* Notifications */}
-                <Section
-                  label={isFi ? "Ilmoitukset" : "Notifications"}
-                  description={isFi ? "Ohjaa mitä sovellus näyttää sinulle" : "Control what the app shows you"}
-                >
-                  <RowList>
-                    <SettingRow
-                      label={isFi ? '"Lataa sovellus" -popup' : '"Get the app" popup'}
-                      description={isFi ? "Näytä muistutus ladata Android-sovellus" : "Show the reminder to install the Android app"}
-                    >
-                      <Switch
-                        checked={getAppEnabled}
-                        onCheckedChange={(v) => {
-                          try { localStorage.setItem("ksyk_get_app_enabled_v1", v ? "1" : "0"); } catch { /* ignore */ }
-                          setGetAppEnabled(v);
-                        }}
-                      />
-                    </SettingRow>
-                  </RowList>
-                </Section>
               </div>
             )}
 

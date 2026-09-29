@@ -1770,14 +1770,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'content', 'contentEn', 'contentFi',
         'priority', 'authorId', 'expiresAt', 'isActive',
       ]);
+      /**
+       * v4.7.47 — real fix for the announcement 400.  Two things were
+       * still tripping Drizzle:
+       *   1. `expiresAt` was passed as an ISO string; drizzle-orm expects
+       *      a `Date` object for `timestamp` columns and throws
+       *      "value.toISOString is not a function".
+       *   2. Empty-string optional locale fields (`titleEn: ""`) hit a
+       *      varchar column that accepts them but produces useless rows.
+       * Also drop empty strings entirely so we don't clutter the DB.
+       */
       const filterAnnouncement = (raw: any): any => {
         const body = (raw ?? {}) as Record<string, unknown>;
         const out: Record<string, unknown> = {};
         for (const k of Object.keys(body)) {
           if (!ANNOUNCEMENT_COLUMNS.has(k)) continue;
           const v = body[k];
-          // Empty string timestamps break Drizzle; force null.
-          if ((k === 'expiresAt') && (v === '' || v === undefined)) continue;
+          if (k === 'expiresAt') {
+            if (v === '' || v === undefined || v === null) continue;
+            // Convert ISO string → Date; drop if unparseable.
+            if (v instanceof Date) {
+              out.expiresAt = v;
+            } else if (typeof v === 'string') {
+              const d = new Date(v);
+              if (!isNaN(d.getTime())) out.expiresAt = d;
+            }
+            continue;
+          }
+          // Skip empty optional strings — they'd land in the DB as ""
+          // which is worse than null when the app later checks `if (fi)`.
+          if (typeof v === 'string' && v.trim() === '' &&
+              (k === 'titleEn' || k === 'titleFi' || k === 'contentEn' || k === 'contentFi')) {
+            continue;
+          }
           out[k] = v;
         }
         // authorId references staff(id). A dummy string like

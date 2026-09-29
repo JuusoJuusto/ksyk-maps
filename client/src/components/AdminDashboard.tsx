@@ -1198,10 +1198,14 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-white dark:bg-gray-900">
 
-      {/* ── Desktop sidebar ──────────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        {/* Brand strip — KSYK Maps logo, calm */}
-        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-gray-200 dark:border-gray-800 shrink-0 bg-white dark:bg-gray-950">
+      {/* ── Desktop sidebar — Wilma-style ─────────────────────────────
+       *   Same visual language as the main header + settings panel:
+       *   hairline #d5dae0 borders, uppercase 10 px group labels, navy
+       *   #003d82 active row with a 3 px inset-left accent bar, squared
+       *   4 px avatar chip. */}
+      <aside className="hidden lg:flex flex-col w-56 xl:w-64 shrink-0 border-r border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950">
+        {/* Brand strip */}
+        <div className="flex items-center gap-2.5 px-4 h-14 border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
           <img
             src="/favicon-128.png"
             alt="KSYK Maps"
@@ -1209,37 +1213,34 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             height={28}
             className="h-7 w-7 object-contain shrink-0"
           />
-          <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-bold tracking-[0.32em] text-gray-400 dark:text-gray-500 uppercase leading-none">
-              KSYK Maps
-            </p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mt-0.5">
+          <div className="flex-1 min-w-0 leading-none">
+            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
               Admin
+            </p>
+            <p className="text-[15px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9] mt-1">
+              KSYK Maps
             </p>
           </div>
           <a
             href="/"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-            title="Back to Map"
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] text-gray-500 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            title="Back to map"
           >
-            <Home className="h-3.5 w-3.5" />
+            <Home className="h-4 w-4" strokeWidth={2} />
           </a>
         </div>
-        {/* Nav items — grouped by purpose. Each group has a tiny caps
-         *  header; renders nothing for empty groups. Owner group only
-         *  appears for the owner role. */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+
+        {/* Nav items — grouped, hairline dividers between groups */}
+        <nav className="flex-1 overflow-y-auto py-2 divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
           {NAV_GROUPS.map((group) => {
-            const items = group.values
-              .map((v) => navByValue[v])
-              .filter(Boolean);
+            const items = group.values.map((v) => navByValue[v]).filter(Boolean);
             if (items.length === 0) return null;
             return (
-              <div key={group.label}>
-                <p className="px-3 pb-1 text-[10px] uppercase tracking-[0.18em] font-semibold text-gray-400 dark:text-gray-500">
+              <div key={group.label} className="py-2">
+                <p className="px-4 pb-2 pt-1 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
                   {group.label}
                 </p>
-                <div className="space-y-0.5">
+                <div>
                   {items.map((item) => {
                     const { value, label, Icon } = item;
                     const href = (item as { href?: string }).href;
@@ -1252,29 +1253,17 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                         onClick={onClick}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
-                          "relative w-full flex items-center gap-3 pl-3 pr-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-100",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+                          "relative w-full flex items-center gap-3 pl-4 pr-3 h-10 text-[13px] font-semibold transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#003d82]/30",
                           isActive
-                            ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100",
+                            ? "bg-[#e6ecf3] dark:bg-[#4a90d9]/10 text-[#003d82] dark:text-[#4a90d9]"
+                            : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900",
                         )}
                       >
-                        {/* v4.7.17 sidebar audit — replaced the flashy
-                         *  ring + shadow active state with a subtle blue
-                         *  accent bar on the left (Apple Settings pattern).
-                         *  Quiet, obvious, no visual noise. */}
                         {isActive && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-600 dark:bg-blue-400"
-                          />
+                          <span aria-hidden="true" className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-[2px] bg-[#003d82] dark:bg-[#4a90d9]" />
                         )}
-                        <Icon className={cn(
-                          "h-[15px] w-[15px] shrink-0",
-                          isActive
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-gray-400 dark:text-gray-500",
-                        )} />
+                        <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                         <span className="truncate flex-1 text-left">{label}</span>
                       </button>
                     );
@@ -1284,30 +1273,31 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
             );
           })}
         </nav>
-        {/* User chip */}
+
+        {/* User chip — squared, navy accent */}
         {currentUser && (
-          <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-3">
+          <div className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] p-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-semibold">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[12px] font-bold">
                 {(currentUser.email || currentUser.name || "?").slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold truncate text-gray-900 dark:text-white">
+                <p className="text-[12px] font-bold truncate text-gray-900 dark:text-white">
                   {currentUser.name || currentUser.email}
                 </p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 mt-0.5">
                   {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg shrink-0"
+              <button
+                type="button"
+                className="h-8 w-8 flex items-center justify-center rounded-[6px] text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
                 onClick={logoutFn}
                 title="Sign out"
+                aria-label="Sign out"
               >
-                <LogOut className="h-3.5 w-3.5" />
-              </Button>
+                <LogOut className="h-4 w-4" strokeWidth={2} />
+              </button>
             </div>
           </div>
         )}
@@ -1318,11 +1308,13 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
         {/* Mobile: account chip + horizontal scrolling tab bar (hidden lg+).
          *  Wraps the mobile chrome in a padded container + rounded-2xl card
          *  so it matches the floating banner + header used on the main app. */}
-        <div className="lg:hidden shrink-0 px-2 sm:px-3 pt-2 pb-1">
-          <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900">
+        {/* Mobile chrome — flat top bar (no floating chip), matches main
+         *  app header pattern.  Wilma hairline bottom, uppercase Admin
+         *  label above the user name. */}
+        <div className="lg:hidden shrink-0 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040]">
           {currentUser && (
-            <div className="flex items-center justify-between px-4 h-12 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center justify-between px-4 h-12">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <img
                   src="/favicon-128.png"
                   alt="KSYK Maps"
@@ -1330,59 +1322,50 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
                   height={24}
                   className="h-6 w-6 object-contain shrink-0"
                 />
-                <div className="flex flex-col min-w-0 leading-tight">
-                  <span className="text-[9px] font-bold tracking-[0.28em] text-gray-400 dark:text-gray-500 uppercase leading-none">
-                    KSYK Admin
+                <div className="flex flex-col min-w-0 leading-none">
+                  <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+                    Admin · {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
                   </span>
-                  <span className="text-xs font-semibold truncate text-gray-900 dark:text-white mt-0.5">
+                  <span className="text-[13px] font-bold truncate text-[#003d82] dark:text-[#4a90d9] mt-0.5">
                     {currentUser.name || currentUser.email}
                   </span>
                 </div>
-                <span className={cn(
-                  "hidden xs:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ml-1",
-                  "border border-gray-200 text-gray-600",
-                  "dark:border-gray-800 dark:text-gray-400",
-                )}>
-                  {isOwner ? "Owner" : isAdmin ? "Admin" : "Staff"}
-                </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <a
                   href="/"
-                  className="inline-flex items-center justify-center h-9 min-w-9 px-2 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors active:scale-[0.98]"
-                  title="Back to Map"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-[6px] text-gray-500 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  title="Back to map"
                 >
-                  <Home className="h-4 w-4" />
+                  <Home className="h-4 w-4" strokeWidth={2} />
                 </a>
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center h-9 min-w-9 px-2 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors active:scale-[0.98]"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-[6px] text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                   onClick={logoutFn}
                   title="Sign out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" strokeWidth={2} />
                 </button>
               </div>
             </div>
           )}
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden border-t border-[#d5dae0] dark:border-[#2a3040] bg-[#f5f6f8] dark:bg-[#12161f]">
             <div className="overflow-x-auto scrollbar-none px-3 py-2">
-              <TabsList className="inline-flex w-max gap-1 p-1 bg-gray-100 dark:bg-gray-900/70 rounded-xl h-auto">
+              <TabsList className="inline-flex w-max gap-1 p-0 bg-transparent h-auto">
                 {NAV_ITEMS.map(({ value, label, Icon }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-3.5 min-h-[38px] text-xs font-medium gap-1.5 inline-flex items-center transition-colors whitespace-nowrap"
+                    className="data-[state=active]:bg-[#003d82] data-[state=active]:text-white data-[state=inactive]:bg-white dark:data-[state=inactive]:bg-gray-950 data-[state=inactive]:border data-[state=inactive]:border-[#d5dae0] dark:data-[state=inactive]:border-[#2a3040] rounded-[6px] px-3 h-9 text-[12px] font-bold gap-1.5 inline-flex items-center transition-colors whitespace-nowrap"
                   >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
                     <span>{label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white dark:from-gray-900 to-transparent" />
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white dark:from-gray-900 to-transparent" />
-          </div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-[#f5f6f8] dark:from-[#12161f] to-transparent" />
           </div>
         </div>
 
@@ -1413,15 +1396,20 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
           if (!meta || activeTab === "campus-map") return null;
           const Icon = meta.Icon;
           return (
-            <div className="flex items-start gap-3 mb-5 pb-4 border-b border-gray-100 dark:border-gray-800">
-              <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.01em] leading-tight text-gray-900 dark:text-white">
-                  {meta.title}
-                </h2>
-                <p className="mt-1 text-[13px] text-muted-foreground leading-snug">
-                  {meta.description}
-                </p>
+            <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+                {activeTab.replace(/-/g, " ")}
+              </p>
+              <div className="flex items-start gap-2.5">
+                <Icon className="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0 mt-1" strokeWidth={2} />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+                    {meta.title}
+                  </h2>
+                  <p className="mt-1 text-[13px] text-gray-500 dark:text-gray-400 leading-snug">
+                    {meta.description}
+                  </p>
+                </div>
               </div>
             </div>
           );

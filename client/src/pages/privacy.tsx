@@ -82,14 +82,16 @@ Support tickets are handled by the KSYK Maps team. Your data is not shared with 
 
 export default function Privacy() {
   const { darkMode } = useDarkMode();
-  // Follow the app's language setting. Default to Finnish only when no
-  // preference is stored yet; anything starting with "en" is English.
+  // Follow the app's language setting. Default to English when no
+  // preference is stored yet — English is the neutral / more accessible
+  // baseline for the widest audience. Users who have explicitly picked
+  // Finnish elsewhere will see Finnish; brand-new visitors get English.
   const [lang, setLang] = useState<"fi" | "en">(() => {
     try {
       const stored = localStorage.getItem("ksyk_language");
-      if (!stored) return "fi";
+      if (!stored) return "en";
       return stored.toLowerCase().startsWith("en") ? "en" : "fi";
-    } catch { return "fi"; }
+    } catch { return "en"; }
   });
   const isFi = lang === "fi";
 

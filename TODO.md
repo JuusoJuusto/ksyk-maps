@@ -16,6 +16,15 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.47 — 3D button wired, privacy English default, offline banner, get-the-app admin-only)
+
+- **3D button in map controls opens the Three.js scene.** Previously `toggle3D` just tilted MapLibre (shadowy, glitchy). Now the button lazy-loads and renders `CampusThreeDView` as a fullscreen modal with the rewritten scene (rooms, floors, roof caps, no shadows). Command palette `ksyk:cmd:toggle-3d` also goes to the modal. Removed the leftover pitch-nudge-on-floor-change effect.
+- **Privacy page defaults to English.** First-time visitors with no `ksyk_language` in localStorage now see English (was Finnish). Users who explicitly picked Finnish still see Finnish.
+- **Duplicate close button on desktop search bar removed.** Was `type="search"` (native X) + custom clear button. Switched to `type="text"` with `inputMode="search"` / `enterKeyHint="search"` — no native X, keeps mobile "Go" key.
+- **"Get the app" popup toggle removed from user Settings; admin-only.** Removed the "Notifications" section and `getAppEnabled` state from `CampusSettingsPanel.tsx`. Removed the per-user kill-switch (`ksyk_get_app_enabled_v1`) from `GetAppPopup.tsx`. Admin default is `false` (`AppSettingsManager.tsx` line 69). Popup now checks `s?.showGetAppPopup === true` explicitly — undefined/missing = off.
+- **New `OfflineBanner` component** mounted in `ksykmaps-home.tsx` above `AnnouncementBanner`. Detects `navigator.onLine`, shows amber "You're offline" strip when offline, brief green "Back online" strip for 2s when connection returns. Bilingual (respects `ksyk_language`).
+- **Web bumped** `4.7.46` → `4.7.47`.
+
 ## ✅ Just shipped (web 4.7.46 — Real announcement fix, photo back on AdminLogin, bigger dialog)
 
 - **Announcement 400 — actual fix.** v4.7.45's client-side cleanup wasn't enough. Server-side `normalizeAnnouncementBody()` helper now: drops fields not in the schema, coerces `expiresAt` ISO string → real `Date` (or null), drops `authorId` entirely (nullable column, prevents FK-to-`staff.id` violation for owner accounts). PUT route uses same normalization. **Owner role now accepted** for POST/PUT (was admin-only).

@@ -196,9 +196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth middleware
-  await setupAuth(app);
-
   // Apply session timeout to all routes
   app.use(sessionTimeoutMiddleware);
 
@@ -767,9 +764,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
       
-      // Find user by reset token
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.passwordResetToken === token);
+      // Find user by reset token — direct indexed lookup, no full-table scan
+      const user = await storage.getUserByResetToken(token);
       
       if (!user) {
         return res.status(400).json({ message: "Invalid or expired reset token" });
@@ -853,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/buildings', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -869,7 +865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -888,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const validatedData = insertBuildingSchema.partial().parse(req.body);
@@ -903,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/buildings/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -943,7 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/floors', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -959,7 +955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/floors/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -975,7 +971,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/floors/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1308,7 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post(`/api/${kind}`, isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
       try {
         const user = await storage.getUser(req.user.claims.sub);
-        if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+        if (!user || (user.role !== 'admin' && user.role !== 'owner')) return res.status(403).json({ message: "Admin access required" });
         const body = req.body ?? {};
         const lat = typeof body.position?.lat === "number" ? body.position.lat
                   : typeof body.mapPositionY === "number" ? body.mapPositionY
@@ -1329,7 +1325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.delete(`/api/${kind}/:id`, isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
       try {
         const user = await storage.getUser(req.user.claims.sub);
-        if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+        if (!user || (user.role !== 'admin' && user.role !== 'owner')) return res.status(403).json({ message: "Admin access required" });
         await deletePoi(req.params.id);
         res.status(204).send();
       } catch (error) {
@@ -1356,7 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/pois', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) return res.status(403).json({ message: "Admin access required" });
       const body = req.body ?? {};
       if (typeof body.kind !== 'string' || !body.kind) return res.status(400).json({ message: 'Missing kind' });
       const lat = typeof body.position?.lat === 'number' ? body.position.lat
@@ -1378,7 +1374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/pois/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) return res.status(403).json({ message: "Admin access required" });
       await deletePoi(req.params.id);
       res.status(204).send();
     } catch (error) {
@@ -1391,7 +1387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1408,7 +1404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/users', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1470,7 +1466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/users/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1518,7 +1514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/users/:id', isAuthenticated, rateLimiters.mutation, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1547,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin-login-logs', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1590,7 +1586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/staff', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1606,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/staff/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1622,7 +1618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/staff/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1753,7 +1749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/events', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1907,7 +1903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/announcements/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1927,9 +1923,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search endpoint for global search
   app.get('/api/search', async (req, res) => {
     try {
-      const query = req.query.q as string;
+      const query = (req.query.q as string) ?? '';
       if (!query) {
         return res.status(400).json({ message: "Search query required" });
+      }
+      if (query.length > 200) {
+        return res.status(400).json({ message: "Search query too long" });
       }
 
       const [rooms, staff] = await Promise.all([
@@ -1952,7 +1951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/tickets', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -2094,7 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/tickets/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3047,7 +3046,7 @@ https://ksykmaps.fi
   app.get('/api/analytics/events', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3078,7 +3077,7 @@ https://ksykmaps.fi
   app.get('/api/analytics/summary', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3111,7 +3110,7 @@ https://ksykmaps.fi
   app.get('/api/analytics/searches', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3133,7 +3132,7 @@ https://ksykmaps.fi
   app.get('/api/analytics/rooms', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3155,7 +3154,7 @@ https://ksykmaps.fi
   app.get('/api/analytics/visitors', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3260,39 +3259,11 @@ https://ksykmaps.fi
       res.status(500).json({
         success: false,
         message: 'Failed to delete all data',
-        error: error.message
+        ...(process.env.NODE_ENV !== 'production' && { error: error.message }),
       });
     }
   });
 
-  // ============================================
-  // LUNCH MENU PROXY (CORS FIX)
-  // ============================================
-  
-  // Proxy lunch menu API to avoid CORS issues
-  app.get('/api/lunch-menu', async (req, res) => {
-    try {
-      const response = await fetch('https://www.compass-group.fi/menuapi/feed/json?costNumber=3026&language=fi');
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch menu: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // Set CORS headers
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-      
-      res.json(data);
-    } catch (error) {
-      await logError(error, 'GET /api/lunch-menu');
-      res.status(500).json({ 
-        message: 'Failed to fetch lunch menu',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
 
   // ==================== SIMPLE ANALYTICS ENDPOINTS ====================
   // Track page view — delegates to the richer handler above (storage.createPageView)

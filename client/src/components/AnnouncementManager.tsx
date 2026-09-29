@@ -237,69 +237,52 @@ export default function AnnouncementManager() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-[17px] font-semibold text-gray-900 dark:text-white">Announcement Management</h2>
-          <p className="text-[13px] text-muted-foreground mt-0.5">Create and manage campus announcements</p>
+    <div className="space-y-5">
+      {/* Wilma masthead + primary action */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+            Content
+          </p>
+          <h2 className="text-[18px] font-bold tracking-tight text-gray-900 dark:text-white mt-0.5">
+            Announcements
+          </h2>
         </div>
         {!isCreating && (
-          <Button
+          <button
+            type="button"
             onClick={() => setIsCreating(true)}
-            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-medium"
+            className="h-10 px-3.5 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[13px] font-bold inline-flex items-center gap-1.5 transition-colors"
           >
-            <Plus className="h-4 w-4 mr-2" strokeWidth={1.75} />
-            New Announcement
-          </Button>
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
+            New announcement
+          </button>
         )}
       </div>
 
-      {/* Create/Edit Form */}
+      {/* Create/Edit form — Wilma document card */}
       {isCreating && (
-        <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
-            <CardTitle className="flex items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-white">
-              <span className="flex items-center gap-2">
-                <Megaphone className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
+        <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 overflow-hidden">
+          <div className="border-b border-[#d5dae0] dark:border-[#2a3040] px-5 py-3 flex items-center justify-between bg-[#f5f6f8] dark:bg-[#12161f]">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
+                {editingId ? "Editing" : "New"}
+              </p>
+              <p className="text-[15px] font-bold tracking-tight text-gray-900 dark:text-white leading-tight mt-0.5">
                 {editingId ? "Edit announcement" : "New announcement"}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetForm}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+          </div>
+          <div className="p-5">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Current Time Display */}
-              <div className={cn(
-                "rounded-lg p-3 flex items-center justify-between border",
-                darkMode
-                  ? "bg-blue-950/30 border-blue-800"
-                  : "bg-blue-50 border-blue-200"
-              )}>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                  <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">Current Time:</span>
-                  <span className="text-sm text-blue-700 dark:text-blue-300">
-                    {new Date().toLocaleString('en-US', {
-                      weekday: 'short',
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })}
-                  </span>
-                </div>
-                <Badge className="bg-blue-600 text-white">Live</Badge>
-              </div>
 
               <div>
                 <Label htmlFor="title" className="text-gray-700 dark:text-gray-300">Title (Default) *</Label>
@@ -500,24 +483,28 @@ export default function AnnouncementManager() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Announcements List */}
-      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-800">
-          <CardTitle className="flex items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-white">
-            <span className="flex items-center gap-2">
-              <Megaphone className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
-              All announcements
+      {/* Announcements list — Wilma document card */}
+      <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 overflow-hidden">
+        <div className="border-b border-[#d5dae0] dark:border-[#2a3040] px-5 py-3 bg-[#f5f6f8] dark:bg-[#12161f]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+                List
+              </p>
+              <p className="text-[15px] font-bold tracking-tight text-gray-900 dark:text-white leading-tight mt-0.5">
+                All announcements
+              </p>
+            </div>
+            <span className="inline-flex items-center h-6 px-2 rounded-[4px] text-[11px] font-bold tabular-nums border border-[#d5dae0] dark:border-[#2a3040] text-gray-700 dark:text-gray-300">
+              {announcements.length}
             </span>
-            <Badge variant="outline" className="rounded-full text-[11px] border-gray-200 dark:border-gray-800">
-              {announcements.length} Total
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
+          </div>
+        </div>
+        <div className="p-5">
           {isLoadingAnnouncements ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -651,8 +638,8 @@ export default function AnnouncementManager() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

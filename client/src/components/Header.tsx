@@ -314,7 +314,9 @@ export default function Header({
               )} strokeWidth={2.25} />
               <Input
                 ref={searchInputRef}
-                type="search"
+                type="text"
+                inputMode="search"
+                enterKeyHint="search"
                 value={draftSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (fi ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}

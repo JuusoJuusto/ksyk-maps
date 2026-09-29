@@ -28,6 +28,7 @@ export interface IStorage {
   // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(limit?: number, offset?: number): Promise<User[]>;
   deleteUser(id: string): Promise<void>;
@@ -174,8 +175,14 @@ class MemStorage implements IStorage {
     return this.mockUsers.find(u => u.id === id);
   }
   
-  async getUserByEmail(email: string): Promise<User | undefined> { 
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return this.mockUsers.find(u => u.email === email);
+  }
+
+  async getUserByResetToken(_token: string): Promise<User | undefined> {
+    // MemStorage doesn't persist reset tokens.  Password reset only works
+    // against the real Postgres store, so return undefined here.
+    return undefined;
   }
   
   async upsertUser(userData: UpsertUser): Promise<User> { 

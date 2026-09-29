@@ -1,15 +1,11 @@
 /**
  * "Get the app" popup — nudges web visitors to install the Android app.
- * Feature-flagged via /api/settings.showGetAppPopup (admin). Also
- * respects a per-visitor localStorage kill switch so the user can turn
- * it off permanently via Settings.
+ * Feature-flagged via /api/settings.showGetAppPopup (admin only) and
+ * defaults to OFF. Shows once per session; the user can dismiss it for
+ * the tab. There is no user-facing kill switch — admins control this.
  *
- * Shows once per session (sessionStorage flag) as long as neither the
- * admin flag nor the per-user switch is off.
- *
- * Sits above map with a small semi-transparent card in the bottom-right
- * on desktop, full-width bottom sheet on mobile. Follows Apple HIG
- * "Onboarding" pattern — a soft prompt, not a blocking modal.
+ * Sits above the map with a small semi-transparent card in the
+ * bottom-right on desktop, full-width bottom sheet on mobile.
  */
 import { useEffect, useState } from "react";
 import { Smartphone, X, Download } from "lucide-react";
@@ -17,10 +13,6 @@ import { Smartphone, X, Download } from "lucide-react";
 interface Settings { showGetAppPopup?: boolean; getAppUrl?: string; }
 
 const DISMISSED_KEY = "ksyk_get_app_dismissed_v1";
-/** Per-user permanent kill switch. Set to "0" via Settings → "Get the
- *  app" popup to disable across all sessions. Default (missing key) is
- *  ON — the popup falls back to the admin's server-side setting. */
-export const GET_APP_USER_ENABLED_KEY = "ksyk_get_app_enabled_v1";
 
 export default function GetAppPopup() {
   const [visible, setVisible] = useState(false);
@@ -30,10 +22,6 @@ export default function GetAppPopup() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Per-user kill switch takes precedence over the admin toggle.
-    try {
-      if (localStorage.getItem(GET_APP_USER_ENABLED_KEY) === "0") return;
-    } catch { /* ignore */ }
     // Skip if dismissed this session.
     try { if (sessionStorage.getItem(DISMISSED_KEY) === "1") return; } catch { /* ignore */ }
 
@@ -42,7 +30,8 @@ export default function GetAppPopup() {
       .then(r => r.json())
       .then((s: Settings) => {
         if (cancelled) return;
-        if (!s?.showGetAppPopup) return;
+        // Default off: only show when the admin has explicitly enabled it.
+        if (s?.showGetAppPopup !== true) return;
         if (s.getAppUrl) setHref(s.getAppUrl);
         setTimeout(() => !cancelled && setVisible(true), 3000);
       })
