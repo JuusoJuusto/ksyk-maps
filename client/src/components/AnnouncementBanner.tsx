@@ -227,17 +227,20 @@ export default function AnnouncementBanner() {
         <DialogContent
           className={cn(
             "p-0 gap-0 border-0",
-            // Mobile: bottom sheet
+            // Mobile: bottom sheet — near-full-height so long announcements
+            // aren't cut off; v4.7.46 user asked for more room.
             "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-            "max-h-[88dvh] w-full max-w-full rounded-t-[8px]",
-            // Desktop: centered dialog
+            "h-[92dvh] max-h-[92dvh] w-full max-w-full rounded-t-[8px]",
+            // Desktop: bigger centered dialog — 44 rem cap, 88 dvh tall,
+            // so long news posts breathe instead of scrolling in a
+            // 36 rem × 85 dvh porthole.
             "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:max-w-[min(90vw,36rem)] sm:w-full sm:max-h-[85dvh]",
+            "sm:h-auto sm:max-w-[min(94vw,44rem)] sm:w-full sm:max-h-[88dvh]",
             "sm:rounded-[8px]",
             "[&>button:first-of-type]:hidden",
             "flex flex-col overflow-hidden",
             "bg-white dark:bg-gray-950",
-            "shadow-[0_20px_50px_-12px_rgba(15,23,42,0.35)]",
+            "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
           )}
         >
           {/* Priority accent — 3 px navy/amber/red top bar */}
@@ -256,14 +259,14 @@ export default function AnnouncementBanner() {
           </div>
 
           {/* Document header — masthead + title + close */}
-          <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4">
+          <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-5 sm:py-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 {/* Masthead: priority + timestamp */}
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded-[4px]",
+                      "inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded-[4px]",
                       currentAnnouncement.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300"
                         : currentAnnouncement.priority === "high" ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
                         : "bg-[#e6ecf3] text-[#003d82] dark:bg-[#4a90d9]/15 dark:text-[#4a90d9]",
@@ -271,7 +274,7 @@ export default function AnnouncementBanner() {
                   >
                     {(() => {
                       const Icon = currentAnnouncement.priority === "urgent" || currentAnnouncement.priority === "high" ? AlertTriangle : Megaphone;
-                      return <Icon className="h-3 w-3" strokeWidth={2.5} />;
+                      return <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />;
                     })()}
                     {i18n.language === "fi"
                       ? currentAnnouncement.priority === "urgent" ? "Kiireellinen"
@@ -281,8 +284,8 @@ export default function AnnouncementBanner() {
                       : currentAnnouncement.priority === "high" ? "Important"
                       : "Announcement"}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                    <Clock className="h-3 w-3" strokeWidth={2.25} />
+                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-gray-500 dark:text-gray-400">
+                    <Clock className="h-3.5 w-3.5" strokeWidth={2.25} />
                     {(() => {
                       try {
                         const ts = currentAnnouncement.createdAt;
@@ -297,7 +300,7 @@ export default function AnnouncementBanner() {
                   </span>
                 </div>
 
-                <DialogTitle className="text-[18px] sm:text-[22px] font-bold text-gray-900 dark:text-white leading-tight tracking-tight line-clamp-3">
+                <DialogTitle className="text-[22px] sm:text-[28px] font-bold text-gray-900 dark:text-white leading-[1.15] tracking-tight">
                   {getLocalizedTitle(currentAnnouncement)}
                 </DialogTitle>
                 <DialogDescription className="sr-only">
@@ -316,33 +319,33 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* Body */}
+          {/* Body — bigger, more breathable prose */}
           <div
-            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5"
-            style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))" }}
+            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 sm:py-7"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))" }}
           >
-            <div className={cn("text-[15px] leading-[1.65]", darkMode ? "text-gray-300" : "text-gray-700")}>
+            <div className={cn("text-[15px] sm:text-[16px] leading-[1.7]", darkMode ? "text-gray-300" : "text-gray-700")}>
               {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {
                 if (line.trim().startsWith("•") || line.trim().startsWith("-")) {
                   return (
-                    <div key={idx} className="flex items-start mb-2.5">
-                      <span className="font-bold mr-2.5 mt-0.5 shrink-0 text-[#003d82] dark:text-[#4a90d9]">•</span>
+                    <div key={idx} className="flex items-start mb-3">
+                      <span className="font-bold mr-3 mt-0.5 shrink-0 text-[#003d82] dark:text-[#4a90d9]">•</span>
                       <span>{line.trim().replace(/^[•-]\s*/, "")}</span>
                     </div>
                   );
                 }
                 if (line.trim().endsWith(":") && line.trim().length < 60 && !line.includes("http")) {
                   return (
-                    <div key={idx} className={cn("font-bold mt-5 mb-2 text-[11px] tracking-[0.08em] uppercase", darkMode ? "text-gray-400" : "text-gray-600")}>
+                    <div key={idx} className={cn("font-bold mt-6 mb-2 text-[11px] tracking-[0.08em] uppercase", darkMode ? "text-gray-400" : "text-gray-600")}>
                       {line.trim().replace(/:$/, "")}
                     </div>
                   );
                 }
                 if (line.trim().startsWith("---") || line.trim().startsWith("━━━")) {
-                  return <hr key={idx} className="my-4 border-[#d5dae0] dark:border-[#2a3040]" />;
+                  return <hr key={idx} className="my-5 border-[#d5dae0] dark:border-[#2a3040]" />;
                 }
                 if (line.trim() === "") return <div key={idx} className="h-3" />;
-                return <p key={idx} className="mb-2">{line}</p>;
+                return <p key={idx} className="mb-3">{line}</p>;
               })}
             </div>
           </div>

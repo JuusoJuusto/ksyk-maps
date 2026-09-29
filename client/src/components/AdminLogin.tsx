@@ -69,31 +69,51 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
   return (
     <div className={cn(
-      'min-h-screen flex flex-col',
+      'min-h-screen flex',
       darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900',
     )}
     style={{
       paddingTop: 'env(safe-area-inset-top, 0px)',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      {/* ── Document header — matches FAQ / Privacy / Support / Settings */}
-      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
-        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
-          <a
-            href="/"
-            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
-            Map
-          </a>
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
-            <Lock className="h-3 w-3" strokeWidth={2.5} />
-            Protected
-          </span>
-        </div>
-      </header>
+      {/* ── LEFT · full-bleed campus photo (desktop only).  Kept per
+       *   user request: the photo stays, but the right side wears the
+       *   new Wilma document look.  Hairline vertical border seals the
+       *   split cleanly. */}
+      <div className="hidden lg:block relative flex-1 bg-gray-900 overflow-hidden border-r border-[#d5dae0] dark:border-[#2a3040]">
+        <img
+          src="/wilma-bg.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+        />
+      </div>
 
-      <main className="flex-1 max-w-md w-full mx-auto px-4 sm:px-5 py-6 sm:py-10">
+      {/* ── RIGHT · Wilma document sign-in column */}
+      <div className={cn(
+        'flex flex-col w-full lg:w-[420px] xl:w-[460px] shrink-0',
+        darkMode ? 'bg-gray-950' : 'bg-gray-50',
+      )}>
+        {/* Document header — matches FAQ / Privacy / Support / Settings */}
+        <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+          <div className="px-4 h-12 flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+              Map
+            </a>
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+              <Lock className="h-3 w-3" strokeWidth={2.5} />
+              Protected
+            </span>
+          </div>
+        </header>
+
+        <main className="flex-1 w-full px-5 sm:px-6 py-6 sm:py-10 flex flex-col justify-center max-w-md mx-auto lg:mx-0">
         {/* Document title block */}
         <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
           <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
@@ -249,10 +269,11 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           </Button>
         )}
 
-        <p className="mt-8 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] text-[11px] text-center text-gray-500 dark:text-gray-500">
-          © {new Date().getFullYear()} KSYK Maps · Admin
-        </p>
-      </main>
+          <p className="mt-8 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] text-[11px] text-center text-gray-500 dark:text-gray-500">
+            © {new Date().getFullYear()} KSYK Maps · Admin
+          </p>
+        </main>
+      </div>
     </div>
   );
 }

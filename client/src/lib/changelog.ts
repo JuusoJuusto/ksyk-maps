@@ -10,17 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.45";
+export const APP_VERSION = "4.7.46";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.46",
+    date: "September 2026",
+    title: "Announcement 400 actually fixed, admin photo restored, bigger announcement dialog",
+    titleFi: "Ilmoitusten 400-virhe todella korjattu, admin-kuva palautettu, isompi ilmoitusdialogi",
+    latest: true,
+    highlights: [
+      "**Announcement creation 400 — real fix.** v4.7.45's client-side cleanup wasn't enough. Root cause on the server: drizzle-zod maps `timestamp` columns to `z.date().nullable()` which rejects ISO strings; `authorId` had a FK to `staff.id` so an owner/admin account whose id doesn't exist in `staff` tripped a Postgres FK violation on insert. Added `normalizeAnnouncementBody()` server-side helper that: drops fields not in the schema, coerces `expiresAt` ISO string → real `Date` (or null on invalid), and drops `authorId` entirely (the column is nullable, so this is fine — announcements just don't reference a staff row). PUT route gets the same treatment. Owner role now accepted for POST (previously only admin).",
+      "**Client surfaces real error.** Toast now prints the server's per-field Zod issues instead of `Failed to create announcement`, so if a 400 still shows up you'll see exactly which field failed.",
+      "**AdminLogin — photo restored.** Rewinding the v4.7.45 kill: the campus photo pane is back on the left (desktop only, `lg:` up), sealed with a hairline vertical border. The right side keeps the new Wilma document look: uppercase `ADMIN` masthead, navy H1, hairline form, 44 px navy CTA. Column width tightened from 38 %/34 % to a fixed 420 px / 460 px to give the photo more breathing room.",
+      "**Announcement detail dialog bigger + fits more text.** Was `max-w-[min(90vw,36rem)]` × `max-h-[85dvh]`. Now `max-w-[min(94vw,44rem)]` × `max-h-[88dvh]` desktop; `h-[92dvh]` on mobile (was auto-sizing). Header padding 4/5 → 5-6/7. Priority chip 10 px / py-1 → 11 px / py-1.5 with a 3.5×3.5 icon. Title 18/22 → 22/28 px, removed `line-clamp-3` so long titles show fully. Body prose 15 / 1.65 → 15-16 / 1.7 with 3 px paragraph spacing. Section labels 5 → 6 mt.",
+      "**Files touched** — `server/routes.ts` (normalizeAnnouncementBody + owner role), `client/src/components/AnnouncementManager.tsx` (real error propagation), `client/src/components/AdminLogin.tsx` (photo pane back), `client/src/components/AnnouncementBanner.tsx` (bigger dialog), `client/src/lib/changelog.ts`.",
+      "**Rollback** — `git tag rollback-before-4-7-46` at `18dc1c9`. Revert: `git reset --hard rollback-before-4-7-46 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.45` → `4.7.46`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Ilmoituksen luonnin 400-virhe todella korjattu. Palvelin normalisoi nyt payloadin: ISO-päivämäärä muunnetaan Dateksi, `authorId` pudotetaan (FK-viittaus staff-tauluun oli ongelma), owner-rooli hyväksytään admin-roolin lisäksi.",
+      "Toast näyttää nyt oikeat Zod-virheet, ei geneeristä \"Failed to create announcement\"-viestiä.",
+      "Admin-kirjautumissivun kuva palautettu vasemmalle. Oikea puoli säilyttää uuden Wilma-ilmeen.",
+      "Ilmoitusdialogi isompi: 36rem → 44rem leveys, 88dvh korkeus, 92dvh mobiilissa. Otsikon typografia isompi.",
+      "Palauta: `git reset --hard rollback-before-4-7-46`.",
+    ],
+  },
+  {
     version: "4.7.45",
     date: "September 2026",
     title: "Announcement fix, AdminLogin + NavigationPanel + SearchDropdown rewrites, search overlap gone",
     titleFi: "Ilmoitusten korjaus, kirjautumissivu ja reittipaneeli uusiksi, hakukentän päällekkäisyys pois",
-    latest: true,
+    latest: false,
     highlights: [
       "**Fixed `/api/announcements` 400 error.** Client was sending `expiresAt: \"\"` (empty string) — drizzle-zod maps the timestamp column to `z.date().nullable()`, which rejects empty strings. Also stripping the phantom `publishedAt` (not a column) and only sending optional locale fields when non-empty. Server route now uses `safeParse` and returns actual per-field Zod issues on 400 so future validation errors are debuggable instead of opaque.",
       "**Search dropdown overlap fixed.** Root cause: the v4.7.43 Header rewrite dropped the `<header>` HTML element in favor of a plain `<div>`. `SearchResultsDropdown` measures `document.querySelector('header')` to position itself under the input, so with no `<header>` it fell back to a hardcoded 128 px offset — landing inside the new 168–172 px top bar + search row + announcement stack. Restored the `<header>` tag.",

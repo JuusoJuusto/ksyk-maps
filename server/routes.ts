@@ -1817,20 +1817,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * Normalize an announcement payload from the admin form.  Drops fields
+   * that aren't part of the schema, coerces ISO date strings to Date
+   * objects, and turns falsy `authorId` / `expiresAt` into null so the
+   * insert doesn't blow up on FK or timestamp validation.
+   *
+   * v4.7.46 — root cause of the 400: drizzle-zod maps `timestamp` to
+   * `z.date().nullable()` which rejects ISO strings, and `authorId` had
+   * a FK to `staff.id` — a non-staff owner user was tripping FK inserts.
+   */
+  function normalizeAnnouncementBody(body: any): any {
+    const clean: Record<string, unknown> = {};
+    const src = body ?? {};
+    const strFields = ["title", "titleEn", "titleFi", "content", "contentEn", "contentFi", "priority"] as const;
+    for (const k of strFields) {
+      if (typeof src[k] === "string" && src[k].trim()) clean[k] = src[k];
+    }
+    if (typeof src.isActive === "boolean") clean.isActive = src.isActive;
+    // Coerce expiresAt: accept Date, ISO string, or null.  Empty / invalid → null.
+    if (src.expiresAt instanceof Date) clean.expiresAt = src.expiresAt;
+    else if (typeof src.expiresAt === "string" && src.expiresAt.trim()) {
+      const d = new Date(src.expiresAt);
+      clean.expiresAt = isNaN(d.getTime()) ? null : d;
+    } else {
+      clean.expiresAt = null;
+    }
+    // Skip `authorId` from client payload — server sets it from the
+    // authenticated user below only if that user exists in the staff
+    // table.  Sending an arbitrary admin/owner id here would trigger
+    // a FK violation on insert.
+    return clean;
+  }
+
   app.post('/api/announcements', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const parsed = insertAnnouncementSchema.safeParse(req.body);
+      const normalized = normalizeAnnouncementBody(req.body);
+      const parsed = insertAnnouncementSchema.safeParse(normalized);
       if (!parsed.success) {
-        // Surface Zod's per-field errors so admins can fix bad input
-        // instead of a generic 500.  v4.7.45 — user reported empty
-        // `expiresAt` strings + a phantom `publishedAt` triggering
-        // opaque failures.
-        await logError(parsed.error, 'POST /api/announcements (validation)', { announcementData: req.body });
+        await logError(parsed.error, 'POST /api/announcements (validation)', { announcementData: normalized });
         return res.status(400).json({
           message: "Invalid announcement data",
           issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
@@ -1840,7 +1870,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(announcement);
     } catch (error) {
       await logError(error, 'POST /api/announcements', { announcementData: req.body });
-      res.status(500).json({ message: "Failed to create announcement" });
+      res.status(500).json({
+        message: "Failed to create announcement",
+        error: process.env.NODE_ENV !== 'production' ? String((error as Error)?.message ?? error) : undefined,
+      });
     }
   });
 
@@ -1851,12 +1884,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const validatedData = insertAnnouncementSchema.partial().parse(req.body);
-      const announcement = await storage.updateAnnouncement(req.params.id, validatedData);
+      const normalized = normalizeAnnouncementBody(req.body);
+      const parsed = insertAnnouncementSchema.partial().safeParse(normalized);
+      if (!parsed.success) {
+        await logError(parsed.error, 'PUT /api/announcements (validation)', { announcementId: req.params.id, announcementData: normalized });
+        return res.status(400).json({
+          message: "Invalid announcement data",
+          issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+        });
+      }
+      const announcement = await storage.updateAnnouncement(req.params.id, parsed.data);
       res.json(announcement);
     } catch (error) {
       await logError(error, 'PUT /api/announcements/:id', { announcementId: req.params.id });
-      res.status(500).json({ message: "Failed to update announcement" });
+      res.status(500).json({
+        message: "Failed to update announcement",
+        error: process.env.NODE_ENV !== 'production' ? String((error as Error)?.message ?? error) : undefined,
+      });
     }
   });
 

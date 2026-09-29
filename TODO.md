@@ -16,6 +16,16 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.46 — Real announcement fix, photo back on AdminLogin, bigger dialog)
+
+- **Announcement 400 — actual fix.** v4.7.45's client-side cleanup wasn't enough. Server-side `normalizeAnnouncementBody()` helper now: drops fields not in the schema, coerces `expiresAt` ISO string → real `Date` (or null), drops `authorId` entirely (nullable column, prevents FK-to-`staff.id` violation for owner accounts). PUT route uses same normalization. **Owner role now accepted** for POST/PUT (was admin-only).
+- **Client toast surfaces real errors.** No more `Failed to create announcement` generic. Zod issues are printed field-by-field.
+- **AdminLogin — photo restored per request.** Campus photo pane back on the left (desktop `lg:` up, hairline vertical border seal). Right side keeps the Wilma document look: uppercase `ADMIN` masthead, navy H1, hairline form, 44 px navy CTA. Column width tightened to a fixed 420/460 px so the photo gets more real estate.
+- **Announcement dialog bigger + fits more text.** Was `max-w-[min(90vw,36rem)]` × `max-h-[85dvh]`. Now `max-w-[min(94vw,44rem)]` × `max-h-[88dvh]` on desktop; `h-[92dvh]` on mobile. Header padding y-4/6 → y-5/6-7. Priority chip 10px → 11px. Title 18/22 → 22/28 px, removed line-clamp-3. Body prose 15 → 15-16 with 1.7 line-height. Section spacing bumped.
+- **Rollback** — `git tag rollback-before-4-7-46` at `18dc1c9`. Revert: `git reset --hard rollback-before-4-7-46 && git push --force-with-lease origin main`.
+- **Files** — `server/routes.ts`, `AnnouncementManager.tsx`, `AdminLogin.tsx`, `AnnouncementBanner.tsx`, `changelog.ts`.
+- **Web version bumped** `4.7.45` → `4.7.46`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.45 — Announcement fix + AdminLogin/NavPanel/SearchDropdown rewrites)
 
 - **Fixed `/api/announcements` 400 error.** Client was sending `expiresAt: ""` — drizzle-zod's `timestamp → z.date().nullable()` rejects empty strings. Client now converts empty → `null`, drops the phantom `publishedAt` (not a column), and only sends optional locale fields when non-empty. Server route now uses `safeParse` and returns real per-field Zod issues on 400 so future validation errors are debuggable.

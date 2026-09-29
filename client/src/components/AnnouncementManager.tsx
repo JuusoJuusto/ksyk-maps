@@ -72,7 +72,15 @@ export default function AnnouncementManager() {
         headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create announcement");
+      if (!response.ok) {
+        // v4.7.46 — surface real server error to the toast instead of a
+        // generic message, since the server now returns Zod issues on 400.
+        const err = await response.json().catch(() => ({}));
+        const issues = Array.isArray(err?.issues)
+          ? err.issues.map((i: { path: string; message: string }) => `${i.path}: ${i.message}`).join("; ")
+          : "";
+        throw new Error(err?.message ? `${err.message}${issues ? ` — ${issues}` : ""}` : "Failed to create announcement");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -93,7 +101,13 @@ export default function AnnouncementManager() {
         headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to update announcement");
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        const issues = Array.isArray(err?.issues)
+          ? err.issues.map((i: { path: string; message: string }) => `${i.path}: ${i.message}`).join("; ")
+          : "";
+        throw new Error(err?.message ? `${err.message}${issues ? ` — ${issues}` : ""}` : "Failed to update announcement");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -148,36 +162,21 @@ export default function AnnouncementManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const storedUser = localStorage.getItem('ksyk_admin_user');
-    const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-    // v4.7.45 — clean payload before sending.  The server's Zod schema
-    // is `createInsertSchema(announcements)` — it doesn't know about the
-    // `publishedAt` field (announcements table has no such column) and
-    // it rejects empty strings for the timestamp `expiresAt` because
-    // drizzle-zod maps `timestamp` to `z.date().nullable()`.  Coerce
-    // empty strings to null, drop the phantom `publishedAt`, and only
-    // include optional locale fields when non-empty.
-    const {
-      publishedAt: _publishedAt,
-      expiresAt,
-      titleEn,
-      titleFi,
-      contentEn,
-      contentFi,
-      ...rest
-    } = formData;
-
-    const dataToSubmit: Record<string, unknown> = {
-      ...rest,
-      authorId: currentUser?.id || 'owner-admin-user',
-      isActive: true,
-      expiresAt: expiresAt && expiresAt.trim() ? new Date(expiresAt).toISOString() : null,
+    // v4.7.46 — server does the heavy lifting via `normalizeAnnouncementBody`:
+    // strips phantom fields, coerces `expiresAt` ISO string → Date, drops
+    // `authorId` (was tripping the FK to `staff.id` for owner accounts).
+    // The client just sends the form state as-is.
+    const dataToSubmit = {
+      title: formData.title,
+      titleEn: formData.titleEn,
+      titleFi: formData.titleFi,
+      content: formData.content,
+      contentEn: formData.contentEn,
+      contentFi: formData.contentFi,
+      priority: formData.priority,
+      isActive: formData.isActive,
+      expiresAt: formData.expiresAt,
     };
-    if (titleEn && titleEn.trim())     dataToSubmit.titleEn   = titleEn.trim();
-    if (titleFi && titleFi.trim())     dataToSubmit.titleFi   = titleFi.trim();
-    if (contentEn && contentEn.trim()) dataToSubmit.contentEn = contentEn.trim();
-    if (contentFi && contentFi.trim()) dataToSubmit.contentFi = contentFi.trim();
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: dataToSubmit });
