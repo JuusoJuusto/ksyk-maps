@@ -2306,6 +2306,10 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         'enableAccessibilityMode', 'enableKeyboardShortcuts', 'enableAdvancedSearch',
         'enableRoomBooking', 'enableQRCodeScanning', 'enableARMode', 'enable3DView',
         'enableVoiceCommands', 'enableMultiLanguage', 'enableExportData',
+        // v4.7.54 — admin-controlled "Get the app" popup.  Missing from the
+        // whitelist meant the toggle in AppSettingsManager silently threw
+        // its value away on save.  Now persists.
+        'showGetAppPopup', 'getAppUrl',
       ]);
       const DEFAULT_SETTINGS = {
         id: 'default',

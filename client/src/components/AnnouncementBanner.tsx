@@ -149,7 +149,7 @@ export default function AnnouncementBanner() {
           setIsDialogOpen(true);
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center gap-2.5 px-3 sm:px-5 h-10 sm:h-11">
+        <div className="max-w-7xl mx-auto flex items-center gap-2.5 px-3 sm:px-5 h-9 sm:h-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAnnouncement.id}
@@ -227,15 +227,12 @@ export default function AnnouncementBanner() {
         <DialogContent
           className={cn(
             "p-0 gap-0 border-0",
-            // Mobile: near-full-screen sheet
+            // Mobile: full-screen sheet, safe-area-aware
             "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-            "h-[96dvh] max-h-[96dvh] w-full max-w-full rounded-t-[8px]",
-            // Desktop: bigger, taller, narrower-column reading width
-            // 52 rem so long news posts have real breathing room; 92 dvh
-            // tall so the body doesn't scroll in a porthole.  v4.7.47 —
-            // user asked for larger + fits more content text.
+            "h-[100dvh] max-h-[100dvh] w-full max-w-full rounded-none",
+            // Desktop: comfortable reading width, tall enough for long notices
             "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:h-[min(92dvh,58rem)] sm:max-w-[min(94vw,52rem)] sm:w-full sm:max-h-[92dvh]",
+            "sm:h-[min(90dvh,52rem)] sm:max-w-[min(94vw,44rem)] sm:w-full sm:max-h-[90dvh]",
             "sm:rounded-[8px]",
             "[&>button:first-of-type]:hidden",
             "flex flex-col overflow-hidden",
@@ -254,20 +251,19 @@ export default function AnnouncementBanner() {
             )}
           />
 
-          {/* Mobile grab handle */}
-          <div className="sm:hidden flex justify-center pt-3 pb-1 border-b border-[#d5dae0] dark:border-[#2a3040]">
-            <span className="h-[3px] w-9 rounded-full bg-gray-300 dark:bg-gray-700" />
-          </div>
-
-          {/* Document header — masthead + title + close */}
-          <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-5 sm:py-6">
+          {/* Document header — masthead + title + close.  Sticky on mobile
+           *  so long content scrolls under it and users can always close. */}
+          <div
+            className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-4 sm:py-5"
+            style={{ paddingTop: "max(1rem, env(safe-area-inset-top, 1rem))" }}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                {/* Masthead: priority + timestamp */}
-                <div className="flex items-center gap-2 mb-3">
+                {/* Masthead: priority tag + timestamp */}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded-[4px]",
+                      "inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded-[4px]",
                       currentAnnouncement.priority === "urgent" ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300"
                         : currentAnnouncement.priority === "high" ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
                         : "bg-[#e6ecf3] text-[#003d82] dark:bg-[#4a90d9]/15 dark:text-[#4a90d9]",
@@ -275,7 +271,7 @@ export default function AnnouncementBanner() {
                   >
                     {(() => {
                       const Icon = currentAnnouncement.priority === "urgent" || currentAnnouncement.priority === "high" ? AlertTriangle : Megaphone;
-                      return <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />;
+                      return <Icon className="h-3 w-3" strokeWidth={2.5} />;
                     })()}
                     {i18n.language === "fi"
                       ? currentAnnouncement.priority === "urgent" ? "Kiireellinen"
@@ -285,8 +281,8 @@ export default function AnnouncementBanner() {
                       : currentAnnouncement.priority === "high" ? "Important"
                       : "Announcement"}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-gray-500 dark:text-gray-400">
-                    <Clock className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    <Clock className="h-3 w-3" strokeWidth={2.25} />
                     {(() => {
                       try {
                         const ts = currentAnnouncement.createdAt;
@@ -301,7 +297,7 @@ export default function AnnouncementBanner() {
                   </span>
                 </div>
 
-                <DialogTitle className="text-[24px] sm:text-[32px] font-bold text-gray-900 dark:text-white leading-[1.1] tracking-tight">
+                <DialogTitle className="text-[20px] sm:text-[24px] font-bold text-gray-900 dark:text-white leading-[1.15] tracking-tight break-words">
                   {getLocalizedTitle(currentAnnouncement)}
                 </DialogTitle>
                 <DialogDescription className="sr-only">
@@ -320,15 +316,15 @@ export default function AnnouncementBanner() {
             </div>
           </div>
 
-          {/* Body — bigger, more breathable prose.  v4.7.47 pushed the
-           *  max-width to 44 rem inner so lines don't stretch past a
-           *  comfortable reading measure while the dialog itself is 52 rem. */}
+          {/* Body — scrollable prose column.  min-h-0 + overflow-y-auto is
+           *  the reliable cross-browser pattern for scrollable flex kids;
+           *  long announcements now scroll cleanly instead of clipping. */}
           <div
-            className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-8 py-6 sm:py-8"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 sm:py-6"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 1.5rem))" }}
           >
             <div className={cn(
-              "text-[15px] sm:text-[16px] leading-[1.7] max-w-[44rem]",
+              "text-[15px] leading-[1.7]",
               darkMode ? "text-gray-300" : "text-gray-800",
             )}>
               {getLocalizedContent(currentAnnouncement).split("\n").map((line, idx) => {

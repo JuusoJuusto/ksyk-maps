@@ -641,6 +641,16 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         const currentLabel = selectedFloor < 0 ? `K${Math.abs(selectedFloor)}` : String(selectedFloor);
         const canGoUp   = currentIdx > 0;                        // higher floor exists
         const canGoDown = currentIdx < floorList.length - 1;     // lower floor exists
+        // Localized "floor" label — Krs in Finnish, Floor in English.
+        // v4.7.54: user reported the label read "Krs" in English mode too.
+        const floorLabel = (() => {
+          try {
+            const stored = typeof window !== "undefined" ? localStorage.getItem("ksyk_language") : null;
+            const nav = typeof navigator !== "undefined" ? navigator.language : "";
+            const isFinnish = stored === "fi" || (!stored && nav.startsWith("fi"));
+            return isFinnish ? "Krs" : "Floor";
+          } catch { return "Floor"; }
+        })();
         const goUp = () => {
           if (!canGoUp) return;
           const next = floorList[currentIdx - 1];
@@ -656,43 +666,43 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
         return (
           <div
             className={cn(
-              "absolute right-3 sm:right-4 z-30 flex flex-col items-stretch rounded-[8px] bg-white dark:bg-gray-950 overflow-hidden",
+              "absolute right-3 sm:right-4 z-30 flex flex-col items-stretch rounded-[6px] bg-white dark:bg-gray-950 overflow-hidden",
               "border border-[#d5dae0] dark:border-[#2a3040]",
               "shadow-[0_2px_6px_rgba(15,23,42,0.10),0_1px_2px_rgba(15,23,42,0.06)]",
               "divide-y divide-[#d5dae0] dark:divide-[#2a3040]",
             )}
-            style={{ top: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
+            style={{ top: "max(0.5rem, calc(0.5rem + env(safe-area-inset-top)))" }}
             aria-label="Floor selector"
             role="group"
           >
-            {/* ▲ Up */}
+            {/* ▲ Up — v4.7.54: smaller for 150% zoom users */}
             <button
               type="button"
               onClick={goUp}
               disabled={!canGoUp}
               aria-label="Floor up"
               className={cn(
-                "w-12 h-10 flex items-center justify-center transition-colors",
+                "w-10 h-8 flex items-center justify-center transition-colors",
                 canGoUp
                   ? "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
                   : "text-gray-300 dark:text-gray-700 cursor-not-allowed",
               )}
             >
-              <svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden>
+              <svg viewBox="0 0 12 8" width="10" height="7" fill="none" aria-hidden>
                 <path d="M6 1 L11 7 L1 7 Z" fill="currentColor" />
               </svg>
             </button>
 
-            {/* Current floor readout — big, navy, uppercase label above */}
+            {/* Current floor readout — navy, localized label above */}
             <div
-              className="w-12 h-14 flex flex-col items-center justify-center bg-[#003d82] text-white"
+              className="w-10 h-11 flex flex-col items-center justify-center bg-[#003d82] text-white"
               aria-live="polite"
               aria-atomic="true"
             >
-              <span className="text-[9px] font-bold tracking-[0.08em] uppercase text-white/75 leading-none">
-                Krs
+              <span className="text-[8px] font-bold tracking-[0.08em] uppercase text-white/75 leading-none">
+                {floorLabel}
               </span>
-              <span className="text-[16px] font-bold tabular-nums leading-none mt-0.5">
+              <span className="text-[14px] font-bold tabular-nums leading-none mt-0.5">
                 {currentLabel}
               </span>
             </div>
@@ -704,13 +714,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               disabled={!canGoDown}
               aria-label="Floor down"
               className={cn(
-                "w-12 h-10 flex items-center justify-center transition-colors",
+                "w-10 h-8 flex items-center justify-center transition-colors",
                 canGoDown
                   ? "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
                   : "text-gray-300 dark:text-gray-700 cursor-not-allowed",
               )}
             >
-              <svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden>
+              <svg viewBox="0 0 12 8" width="10" height="7" fill="none" aria-hidden>
                 <path d="M6 7 L11 1 L1 1 Z" fill="currentColor" />
               </svg>
             </button>
@@ -748,13 +758,13 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               aria-pressed={showNav}
               title="Directions"
               className={cn(
-                "w-12 h-12 flex items-center justify-center transition-colors",
+                "w-10 h-10 flex items-center justify-center transition-colors",
                 showNav
                   ? "bg-[#003d82] text-white"
                   : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
               )}
             >
-              <Navigation2 className="h-5 w-5" strokeWidth={2} />
+              <Navigation2 className="h-4 w-4" strokeWidth={2} />
             </button>
           )}
 
@@ -766,18 +776,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             }}
             aria-label="Zoom in"
             title="Zoom in"
-            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <Plus className="h-5 w-5" strokeWidth={2.25} />
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
           </button>
           <button
             type="button"
             onClick={() => handleRef.current?.zoomOut()}
             aria-label="Zoom out"
             title="Zoom out"
-            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <Minus className="h-5 w-5" strokeWidth={2.25} />
+            <Minus className="h-4 w-4" strokeWidth={2.25} />
           </button>
 
           {canUse3D && (
@@ -786,7 +796,7 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
               aria-label="Open 3D campus view"
               onClick={open3DScene}
               title="3D view"
-              className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+              className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             >
               <span className="text-[12px] font-bold tabular-nums tracking-tight">
                 3D
@@ -799,9 +809,9 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             aria-label="Recenter map"
             onClick={recenter}
             title="Recenter"
-            className="w-12 h-12 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <LocateFixed className="h-5 w-5" strokeWidth={2} />
+            <LocateFixed className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
 

@@ -1,24 +1,17 @@
 /**
- * KSYK Maps — Access Lockout (full page).
- *
- * Whole-page minimal layout for blocked visitors. Replaces the prior
- * card-in-the-middle treatment with a proper page: top status ticker,
- * hero "why you're locked out", schedule preview if a time window
- * applies, sign-in CTA, request-access form below the fold.
- *
- * Used by KSYKMapView when the access engine returns tier="blocked".
- * Time-window rules apply to logged-in students too — the check fires
- * before the login-tier check — so after-school hours mean lockout for
- * everyone except admins.
+ * KSYK Maps — Access Lockout (full page).  v4.7.54 Wilma document
+ * rewrite — same shell as FAQ / Privacy / AdminLogin / StudentLoginGate:
+ * hairline top bar → uppercase masthead → big navy H1 → hairline
+ * sections → primary CTA → hairline footer.  No animated pulse dot,
+ * no rounded-full pills, no ring-* boxes.
  */
 
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Clock, Wifi, Mail, AlertTriangle, Send, ArrowRight, Calendar,
-  Shield, ExternalLink,
+  Shield, ExternalLink, ArrowLeft,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -96,292 +89,219 @@ export default function AccessLockoutScreen({ decision }: Props) {
   return (
     <div className={cn(
       "min-h-screen w-full flex flex-col",
-      darkMode ? "bg-gray-950 text-gray-100" : "bg-white text-gray-900",
-    )}>
-      {/* ── Top status ticker ───────────────────────────────────────── */}
-      <header className={cn(
-        "shrink-0 px-5 sm:px-10 py-3 flex items-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.28em] border-b",
-        darkMode
-          ? "border-gray-900 text-gray-400"
-          : "border-gray-100 text-gray-500",
-      )}>
-        <span className="inline-flex items-center gap-2">
-          <span className={cn(
-            "h-1.5 w-1.5 rounded-full animate-pulse",
-            decision.reasonCode === "outside-hours" || decision.reasonCode === "holiday"
-              ? "bg-amber-500"
-              : "bg-red-500",
-          )} />
-          {isFi ? "Pääsy rajoitettu" : "Access restricted"}
-        </span>
-        <span className="ml-auto opacity-50">KSYK Maps</span>
+      darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900",
+    )}
+    style={{
+      paddingTop: "env(safe-area-inset-top, 0px)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    }}>
+      {/* ── Document header — matches every other Wilma page ────────── */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
+          <a
+            href="/"
+            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            {isFi ? "Kartta" : "Map"}
+          </a>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-red-700 dark:text-red-400">
+            <span className="h-1.5 w-1.5 rounded-[1px] bg-red-600 dark:bg-red-400" />
+            {isFi ? "Rajoitettu" : "Restricted"}
+          </span>
+        </div>
       </header>
 
-      {/* ── Body ────────────────────────────────────────────────────── */}
-      {/* v4.7.21 apple-design pass — dropped: redundant "Access restricted"
-       *  badge (header already says it), tiny caps "KSYK Maps" label
-       *  (also in header). Heading shrunk 3xl/5xl → 2xl/3xl so it sits
-       *  where the reader's eye actually lands. Logo trimmed 80px → 56px
-       *  and given proper alt="" since decorative here. */}
-      <main className="flex-1 flex flex-col items-center justify-center px-5 sm:px-10 py-12">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center text-center mb-10">
-            <img
-              src="/favicon-128.png"
-              alt=""
-              width={56}
-              height={56}
-              className="h-14 w-14 object-contain mb-6 opacity-90"
-            />
-
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-              {isFi ? "Suljettu juuri nyt" : "Closed right now"}
-            </h1>
-
-            <p className={cn(
-              "mt-4 max-w-md text-sm sm:text-base leading-relaxed",
-              darkMode ? "text-gray-400" : "text-gray-500",
-            )}>
-              {isFi
-                ? decision.reasonCode === "outside-hours"
-                  ? "Sovellus on käytössä vain koulupäivinä ja kouluaikana."
-                  : decision.reasonCode === "holiday"
-                  ? "Tänään on loma tai vapaapäivä."
-                  : decision.reasonCode === "off-network"
-                  ? "Olet koulun verkon ulkopuolella."
-                  : decision.reasonCode === "guest-login-required"
-                  ? "Kirjaudu sisään @ksyk.fi-tunnuksella täyden pääsyn saamiseksi."
-                  : decision.reason
-                : decision.reason}
-            </p>
-
-            {decision.nextOpen && (
-              <div className={cn(
-                "mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold",
-                darkMode ? "bg-gray-900 text-gray-200 ring-1 ring-gray-800" : "bg-gray-100 text-gray-800 ring-1 ring-gray-200",
-              )}>
-                <Clock className="h-3.5 w-3.5 opacity-70" />
-                {isFi ? "Avoinna" : "Opens"} {decision.nextOpen[isFi ? "fi" : "en"]}
-              </div>
-            )}
-          </div>
-
-          {/* Schedule preview — only when a time window is active */}
-          {settings.timeWindowEnabled && (
-            <div className={cn(
-              "mb-12 rounded-2xl border overflow-hidden",
-              darkMode ? "border-gray-900" : "border-gray-200",
-            )}>
-              <div className={cn(
-                "px-4 py-2.5 flex items-center justify-between border-b",
-                darkMode ? "bg-gray-900 border-gray-800" : "bg-gray-50 border-gray-200",
-              )}>
-                <p className="text-[10px] font-bold tracking-[0.28em] uppercase text-gray-500">
-                  {isFi ? "Aukioloajat" : "Opening hours"}
-                </p>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-900">
-                {DAY_KEYS.map((d) => {
-                  const win = settings.schedule[d];
-                  const isToday = today === d;
-                  return (
-                    <div
-                      key={d}
-                      className={cn(
-                        "flex items-center px-4 py-2.5 text-sm",
-                        isToday && (darkMode ? "bg-gray-900/60" : "bg-amber-50/60"),
-                      )}
-                    >
-                      <span className={cn(
-                        "w-12 text-xs font-bold uppercase tracking-wider",
-                        isToday
-                          ? (darkMode ? "text-amber-400" : "text-amber-600")
-                          : (darkMode ? "text-gray-400" : "text-gray-500"),
-                      )}>
-                        {DAY_LABELS[d]}
-                      </span>
-                      <span className={cn(
-                        "flex-1 font-medium",
-                        darkMode ? "text-gray-200" : "text-gray-900",
-                      )}>
-                        {win
-                          ? `${win.open} – ${win.close}`
-                          : (isFi ? "Suljettu" : "Closed")}
-                      </span>
-                      {isToday && (
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-wider",
-                          darkMode ? "text-amber-400" : "text-amber-700",
-                        )}>
-                          {isFi ? "Tänään" : "Today"}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Sign-in CTAs */}
-          {settings.loginGateEnabled && (
-            <div className="space-y-3 mb-12">
-              <div className="text-center">
-                <p className="text-[10px] font-bold tracking-[0.32em] uppercase text-gray-400 mb-2">
-                  {isFi ? "Tai" : "Or"}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleMsLogin}
-                className={cn(
-                  "w-full h-11 rounded-xl text-sm font-semibold flex items-center gap-2.5 px-4 transition-all duration-150",
-                  "bg-blue-600 text-white shadow-sm shadow-blue-600/25",
-                  "hover:bg-blue-700 hover:shadow-md hover:shadow-blue-700/30 hover:-translate-y-px",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  darkMode ? "focus-visible:ring-offset-gray-950" : "focus-visible:ring-offset-white",
-                  "active:translate-y-0 active:shadow-sm active:scale-[0.98]",
-                )}
-              >
-                <MicrosoftLogo />
-                <span className="flex-1 text-left">
-                  {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
-                </span>
-                <ArrowRight className="h-4 w-4 opacity-80" />
-              </button>
-            </div>
-          )}
-
-          {/* Custom lockout message from admin */}
-          {settings.lockoutMessage && (
-            <p className={cn(
-              "max-w-md mx-auto text-center text-sm leading-relaxed mb-12",
-              darkMode ? "text-gray-400" : "text-gray-600",
-            )}>
-              {settings.lockoutMessage}
-            </p>
-          )}
-
-          {/* Divider */}
-          <div className={cn(
-            "h-px max-w-md mx-auto mb-10",
-            darkMode ? "bg-gray-900" : "bg-gray-200",
-          )} />
-
-          {/* Request access */}
-          {!submitted ? (
-            <div className="max-w-md mx-auto space-y-3">
-              <div className="text-center">
-                <p className="text-[10px] font-bold tracking-[0.32em] uppercase text-gray-400 mb-1">
-                  {isFi ? "Tarvitsetko pääsyn?" : "Need access?"}
-                </p>
-                <h3 className="text-base font-semibold tracking-tight">
-                  {isFi ? "Pyydä admineja" : "Ask the admins"}
-                </h3>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ra-email" className="sr-only">Email</Label>
-                <Input
-                  id="ra-email"
-                  type="email"
-                  placeholder={isFi ? "Sähköpostisi" : "Your email"}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={cn(
-                    "h-10 rounded-lg text-sm",
-                    darkMode
-                      ? "bg-gray-900 border-gray-800 text-white"
-                      : "bg-white border-gray-300 text-gray-900",
-                  )}
-                />
-                <Input
-                  id="ra-reason"
-                  type="text"
-                  placeholder={isFi ? "Syy (valinnainen)" : "Reason (optional)"}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className={cn(
-                    "h-10 rounded-lg text-sm",
-                    darkMode
-                      ? "bg-gray-900 border-gray-800 text-white"
-                      : "bg-white border-gray-300 text-gray-900",
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={handleRequestAccess}
-                  disabled={submitting || !email.trim()}
-                  className={cn(
-                    "w-full h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-150",
-                    // Base — solid primary blue with real depth so the CTA reads
-                    "bg-blue-600 text-white shadow-sm shadow-blue-600/25",
-                    // Hover — lift + darker fill (only when enabled)
-                    "hover:enabled:bg-blue-700 hover:enabled:shadow-md hover:enabled:shadow-blue-700/30 hover:enabled:-translate-y-px",
-                    // Focus ring — visible for keyboard users
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    darkMode ? "focus-visible:ring-offset-gray-950" : "focus-visible:ring-offset-white",
-                    // Active — press it back down
-                    "active:enabled:translate-y-0 active:enabled:shadow-sm active:enabled:scale-[0.98]",
-                    // Disabled — clearly non-interactive
-                    "disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none",
-                  )}
-                >
-                  <Send className={cn("h-3.5 w-3.5", submitting && "animate-pulse")} />
-                  {submitting
-                    ? (isFi ? "Lähetetään…" : "Sending…")
-                    : (isFi ? "Lähetä pyyntö" : "Send request")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={cn(
-              "max-w-md mx-auto rounded-2xl border p-5 text-center",
-              darkMode
-                ? "border-emerald-900/50 bg-emerald-950/30"
-                : "border-emerald-200 bg-emerald-50/70",
-            )}>
-              <div className={cn(
-                "inline-flex items-center justify-center h-10 w-10 rounded-full mb-3",
-                darkMode ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-100 text-emerald-700",
-              )}>
-                <Send className="h-5 w-5" strokeWidth={2.25} />
-              </div>
-              <p className={cn(
-                "text-sm font-semibold mb-1",
-                darkMode ? "text-emerald-200" : "text-emerald-800",
-              )}>
-                {isFi ? "Pyyntö lähetetty" : "Request sent"}
-              </p>
-              <p className={cn(
-                "text-xs",
-                darkMode ? "text-emerald-400/80" : "text-emerald-700/80",
-              )}>
-                {isFi
-                  ? "Sähköpostiisi tulee vastaus kun admin on hyväksynyt tai hylännyt pyynnön."
-                  : "You'll get an email when an admin approves or denies your request."}
-              </p>
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-5 py-6 sm:py-8">
+        {/* Document title block */}
+        <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-red-700 dark:text-red-400 mb-1 flex items-center gap-1.5">
+            <Icon className="h-3 w-3" strokeWidth={2.5} />
+            {isFi ? "Pääsy rajoitettu" : "Access restricted"}
+          </p>
+          <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight leading-[1.1] text-gray-900 dark:text-white">
+            {isFi
+              ? decision.reasonCode === "outside-hours" ? "Suljettu juuri nyt"
+              : decision.reasonCode === "holiday" ? "Loma tai vapaapäivä"
+              : decision.reasonCode === "off-network" ? "Kouluverkon ulkopuolella"
+              : decision.reasonCode === "guest-login-required" ? "Kirjautuminen vaaditaan"
+              : "Pääsy estetty"
+              : decision.reasonCode === "outside-hours" ? "Closed right now"
+              : decision.reasonCode === "holiday" ? "School holiday"
+              : decision.reasonCode === "off-network" ? "Off the school network"
+              : decision.reasonCode === "guest-login-required" ? "Sign in to continue"
+              : "Access blocked"}
+          </h1>
+          <p className="text-[14px] leading-[1.6] mt-2 text-gray-600 dark:text-gray-400 max-w-xl">
+            {isFi
+              ? decision.reasonCode === "outside-hours" ? "Sovellus on käytössä vain koulupäivinä ja kouluaikana."
+              : decision.reasonCode === "holiday" ? "Tänään on loma tai vapaapäivä."
+              : decision.reasonCode === "off-network" ? "Olet koulun verkon ulkopuolella. Yhdistä kouluverkkoon nähdäksesi kartan."
+              : decision.reasonCode === "guest-login-required" ? "Kirjaudu sisään @ksyk.fi-tunnuksella täyden pääsyn saamiseksi."
+              : decision.reason
+              : decision.reason}
+          </p>
+          {decision.nextOpen && (
+            <div className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300">
+              <Clock className="h-3.5 w-3.5 text-[#003d82] dark:text-[#4a90d9]" strokeWidth={2.25} />
+              {isFi ? "Avoinna" : "Opens"} {decision.nextOpen[isFi ? "fi" : "en"]}
             </div>
           )}
         </div>
-      </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className={cn(
-        "shrink-0 border-t px-5 sm:px-10 py-4 flex items-center justify-between text-[11px]",
-        darkMode ? "border-gray-900 text-gray-500" : "border-gray-100 text-gray-400",
-      )}>
-        <span>© KSYK Maps</span>
-        <a
-          href="/admin"
-          className={cn(
-            "inline-flex items-center gap-1 transition-colors",
-            darkMode ? "hover:text-white" : "hover:text-gray-900",
+        {/* Schedule preview */}
+        {settings.timeWindowEnabled && (
+          <section className="mb-6">
+            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
+              {isFi ? "Aukioloajat" : "Opening hours"}
+            </p>
+            <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 divide-y divide-[#d5dae0] dark:divide-[#2a3040] overflow-hidden">
+              {DAY_KEYS.map((d) => {
+                const win = settings.schedule[d];
+                const isToday = today === d;
+                return (
+                  <div
+                    key={d}
+                    className={cn(
+                      "flex items-center px-4 py-2.5 text-[13px]",
+                      isToday && "bg-[#e6ecf3] dark:bg-[#4a90d9]/10",
+                    )}
+                  >
+                    <span className={cn(
+                      "w-14 text-[10px] font-bold uppercase tracking-[0.06em]",
+                      isToday
+                        ? "text-[#003d82] dark:text-[#4a90d9]"
+                        : "text-gray-500 dark:text-gray-400",
+                    )}>
+                      {DAY_LABELS[d]}
+                    </span>
+                    <span className={cn(
+                      "flex-1 font-semibold tabular-nums",
+                      darkMode ? "text-gray-200" : "text-gray-900",
+                    )}>
+                      {win
+                        ? `${win.open} – ${win.close}`
+                        : (isFi ? "Suljettu" : "Closed")}
+                    </span>
+                    {isToday && (
+                      <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#003d82] dark:text-[#4a90d9]">
+                        {isFi ? "Tänään" : "Today"}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Sign-in CTA */}
+        {settings.loginGateEnabled && (
+          <section className="mb-6">
+            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
+              {isFi ? "Kirjaudu sisään" : "Sign in"}
+            </p>
+            <button
+              type="button"
+              onClick={handleMsLogin}
+              className="w-full h-11 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[14px] font-bold inline-flex items-center gap-2.5 px-4 transition-colors"
+            >
+              <MicrosoftLogo />
+              <span className="flex-1 text-left">
+                {isFi ? "Kirjaudu Microsoftilla" : "Sign in with Microsoft"}
+              </span>
+              <ArrowRight className="h-4 w-4 opacity-80" strokeWidth={2.25} />
+            </button>
+          </section>
+        )}
+
+        {/* Custom lockout message */}
+        {settings.lockoutMessage && (
+          <div className="mb-6 rounded-[6px] border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-[13px] text-amber-900 dark:text-amber-200 leading-relaxed">
+            {settings.lockoutMessage}
+          </div>
+        )}
+
+        {/* Request access */}
+        <section>
+          {!submitted ? (
+            <>
+              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
+                {isFi ? "Tarvitsetko pääsyn?" : "Need access?"}
+              </p>
+              <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] bg-white dark:bg-gray-950 overflow-hidden">
+                <div className="p-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ra-email" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">
+                      {isFi ? "Sähköposti" : "Email"}
+                    </Label>
+                    <Input
+                      id="ra-email"
+                      type="email"
+                      placeholder={isFi ? "sinun@sahkoposti.fi" : "you@example.com"}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ra-reason" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">
+                      {isFi ? "Syy (valinnainen)" : "Reason (optional)"}
+                    </Label>
+                    <Input
+                      id="ra-reason"
+                      type="text"
+                      placeholder={isFi ? "Miksi tarvitset pääsyn" : "Why you need access"}
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="h-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRequestAccess}
+                    disabled={submitting || !email.trim()}
+                    className="w-full h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Send className={cn("h-4 w-4", submitting && "animate-pulse")} strokeWidth={2} />
+                    {submitting
+                      ? (isFi ? "Lähetetään…" : "Sending…")
+                      : (isFi ? "Lähetä pyyntö" : "Send request")}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-[6px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 p-5 flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-emerald-600 dark:bg-emerald-500 text-white">
+                <Send className="h-4 w-4" strokeWidth={2.25} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-emerald-900 dark:text-emerald-100">
+                  {isFi ? "Pyyntö lähetetty" : "Request sent"}
+                </p>
+                <p className="text-[12px] text-emerald-800 dark:text-emerald-200/80 mt-1 leading-relaxed">
+                  {isFi
+                    ? "Sähköpostiisi tulee vastaus kun admin on hyväksynyt tai hylännyt pyynnön."
+                    : "You'll get an email when an admin approves or denies your request."}
+                </p>
+              </div>
+            </div>
           )}
-        >
-          {isFi ? "Admin kirjautuminen" : "Admin sign-in"}
-          <ExternalLink className="h-3 w-3" />
-        </a>
-      </footer>
+        </section>
+
+        {/* Footer meta */}
+        <div className="mt-10 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-500">
+          <span>© KSYK Maps</span>
+          <a
+            href="/admin"
+            className="inline-flex items-center gap-1 text-[#003d82] dark:text-[#4a90d9] hover:underline underline-offset-2 font-semibold"
+          >
+            {isFi ? "Admin" : "Admin"}
+            <ExternalLink className="h-3 w-3" strokeWidth={2.25} />
+          </a>
+        </div>
+      </main>
     </div>
   );
 }

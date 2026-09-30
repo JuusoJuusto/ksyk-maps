@@ -187,7 +187,9 @@ export default function Header({
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-5">
-          <div className="flex items-center gap-3 h-14 sm:h-[60px]">
+          {/* v4.7.54 — shrunk from 56/60px → 48/52px so 150% zoom users
+           *  keep more map real estate. */}
+          <div className="flex items-center gap-3 h-12 sm:h-[52px]">
             {/* Wordmark — logo slightly smaller than v4.7.43 for a more
              *  modern balance against the taller bar.  KSYKLogo has no
              *  "xs" size; we scale down via a wrapper so the type stays
@@ -197,10 +199,10 @@ export default function Header({
                 <KSYKLogo size={largeLogo ? "md" : "sm"} priority={largeLogo} />
               </span>
               <div className="flex flex-col leading-none">
-                <span className="text-[16px] sm:text-[17px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
+                <span className="text-[15px] sm:text-[16px] font-bold tracking-tight text-[#003d82] dark:text-[#4a90d9]">
                   KSYK Maps
                 </span>
-                <span className="hidden sm:block mt-1 text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+                <span className="hidden sm:block mt-0.5 text-[9px] font-semibold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
                   Campus navigation
                 </span>
               </div>
@@ -216,7 +218,7 @@ export default function Header({
                       key={r.href}
                       href={r.href}
                       className={cn(
-                        "h-10 px-3.5 rounded-[6px] text-sm font-semibold inline-flex items-center gap-2 transition-colors",
+                        "h-9 px-3 rounded-[6px] text-[13px] font-semibold inline-flex items-center gap-1.5 transition-colors",
                         active
                           ? "text-[#003d82] dark:text-[#4a90d9] bg-[#e6ecf3] dark:bg-[#4a90d9]/10"
                           : "text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900",
@@ -241,7 +243,7 @@ export default function Header({
                   <button
                     onClick={onOpenSettings}
                     data-testid="button-settings"
-                    className="h-10 px-3.5 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 inline-flex items-center gap-2 transition-colors"
+                    className="h-9 px-3 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 inline-flex items-center gap-1.5 transition-colors"
                   >
                     <Settings className="h-4 w-4" strokeWidth={2} />
                     <span className="hidden xl:inline">{fi ? "Asetukset" : "Settings"}</span>
@@ -268,7 +270,7 @@ export default function Header({
                 {/* Theme toggle — third per user request */}
                 <button
                   onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
-                  className="h-10 w-10 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  className="h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                   aria-label={theme === "dark"
                     ? (fi ? "Vaihda vaaleaan tilaan" : "Switch to light mode")
                     : (fi ? "Vaihda tummaan tilaan" : "Switch to dark mode")}
@@ -278,7 +280,7 @@ export default function Header({
                 {isInAdminPanel && (
                   <button
                     onClick={handleLogout}
-                    className="h-10 px-3.5 rounded-[6px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center gap-2 transition-colors"
+                    className="h-9 px-3 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center gap-1.5 transition-colors"
                   >
                     <LogOut className="h-4 w-4" strokeWidth={2} />
                     <span className="hidden xl:inline">{fi ? "Kirjaudu ulos" : "Log out"}</span>
@@ -287,16 +289,16 @@ export default function Header({
               </div>
             )}
 
-            {/* Mobile hamburger — sized for the taller bar */}
+            {/* Mobile hamburger */}
             {!homeMinimal && (
               <button
                 onClick={() => setDrawerOpen(true)}
-                className="md:hidden h-11 w-11 flex items-center justify-center rounded-[6px] text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-all"
+                className="md:hidden h-10 w-10 flex items-center justify-center rounded-[6px] text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 active:scale-95 transition-all"
                 aria-label={fi ? "Avaa valikko" : "Open menu"}
                 aria-expanded={drawerOpen}
                 aria-controls="mobile-drawer"
               >
-                <Menu className="h-5 w-5" strokeWidth={2.25} />
+                <Menu className="h-4 w-4" strokeWidth={2.25} />
               </button>
             )}
           </div>
@@ -307,9 +309,9 @@ export default function Header({
          *  and announcements a bit bigger"). */}
         {onSearchChange && (
           <div className="border-t border-[#d5dae0] dark:border-[#2a3040] bg-[#f5f6f8] dark:bg-[#12161f]">
-            <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 sm:py-3 relative">
+            <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2 relative">
               <Search className={cn(
-                "absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 h-[18px] w-[18px] pointer-events-none z-10 transition-colors",
+                "absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors",
                 (searchQuery && searchQuery.trim()) ? "text-[#003d82] dark:text-[#4a90d9]" : "text-gray-400",
               )} strokeWidth={2.25} />
               <Input
@@ -321,7 +323,7 @@ export default function Header({
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={searchPlaceholder ?? (fi ? "Etsi tiloja tai rakennuksia…" : "Search rooms or buildings…")}
                 className={cn(
-                  "h-11 w-full pl-11 pr-16 text-[16px] sm:text-[15px] rounded-[8px] border font-medium transition-all",
+                  "h-9 w-full pl-10 pr-14 text-[16px] sm:text-[13px] rounded-[6px] border font-medium transition-all",
                   "bg-white dark:bg-gray-950 border-[#d5dae0] dark:border-[#2a3040]",
                   "focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/25",
                 )}
@@ -339,13 +341,13 @@ export default function Header({
                 <button
                   type="button"
                   onClick={() => { setDraftSearch(""); onSearchChange?.(""); }}
-                  className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 h-7 w-7 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={fi ? "Tyhjennä haku" : "Clear search"}
                 >
-                  <X className="h-4 w-4" strokeWidth={2.5} />
+                  <X className="h-3.5 w-3.5" strokeWidth={2.5} />
                 </button>
               ) : (
-                <kbd className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-bold px-1.5 py-1 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-500 pointer-events-none select-none">
+                <kbd className="absolute right-5 sm:right-7 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-[4px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 text-gray-500 pointer-events-none select-none">
                   {typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
                 </kbd>
               )}

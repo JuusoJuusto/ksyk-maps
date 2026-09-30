@@ -10,17 +10,45 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.54";
+export const APP_VERSION = "4.7.55";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.55",
+    date: "September 2026",
+    title: "Chrome shrunk for 150% zoom · access + maintenance redesign · profile bigger · Get-the-app wired",
+    titleFi: "Ylätunniste ja kartan kontrollit pienempinä 150% zoomiin · pääsy- ja huoltosivut uusiksi",
+    latest: true,
+    highlights: [
+      "**Chrome shrunk across the board for 150 % zoom users.** Top bar 56/60 → 48/52 px. Search input 44 → 36 px. Announcement strip 40/44 → 36/40 px. Map floor-selector: buttons 12 × 10 → 10 × 8; readout 12 × 14 → 10 × 11. Right-side control rail: 48 × 48 → 40 × 40. Icons 20 → 16 px throughout. Everything now fits without eating half the map viewport when browsers zoom to 150 %.",
+      "**KRS label finally translates.** English mode shows `Floor`, Finnish mode keeps `Krs`. Was hard-coded `Krs` in both.",
+      "**AccessLockoutScreen fully rewritten** on the Wilma document pattern (matches FAQ / Privacy / AdminLogin / StudentLoginGate). Hairline top bar with `RESTRICTED` badge → uppercase reason masthead + big navy H1 + subtitle → next-open chip → schedule preview with today highlighted → Microsoft sign-in CTA → request-access form as a proper `RowList` → hairline footer. No more animated pulse dot, no rounded-full pills, no ring-* boxes.",
+      "**MaintenanceMode rewritten** with the same document shell — hairline top bar with `MAINTENANCE` badge → amber wrench icon + `Notice` masthead + `Be right back` H1 → hairline card with the admin's message. Was a centered white page with a pulsing amber pill.",
+      "**Announcement dialog polished.** Was `border` + huge title + centered `max-w-[44rem]` inner column that created weird margins. Now full 44 rem × 90 dvh dialog, title tightened to 20 / 24 px, priority chip shrunk 11 / py-1.5 → 10 / py-1, timestamp text 12 → 11, body flex uses `min-h-0` instead of `h-0` (reliable scroll for long content), mobile goes full 100 dvh. Long announcements scroll cleanly.",
+      "**AdminProfileDialog bigger.** Desktop max width 32 rem → 42 rem, height auto → `min(92dvh, 52rem)`. Mobile now `h-[100dvh]` (was 92). Header padding y-4 → y-4-6, title 20 → 22-26 px. Body px 5 → 5-7, py 5 → 6-8.",
+      "**Get-the-app admin toggle wired.** Root cause: `showGetAppPopup` and `getAppUrl` weren't in the API `SETTINGS_COLUMNS` whitelist, so `PUT /api/settings` filtered them out before the DB write. Added both to the whitelist. Toggle now persists.",
+      "**Rollback** — `git tag rollback-before-4-7-55` at prior HEAD. Revert: `git reset --hard rollback-before-4-7-55 && git push --force-with-lease origin main`.",
+      "**NOT included this pass (larger effort, next iteration)** — Android APK visual pass to match the web (would need a full Compose theme rework), full admin panel routing history-stack overhaul.",
+      "Web version bumped `4.7.54` → `4.7.55`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Kaikki UI-elementit pienempinä 150% zoom-käyttäjille: ylätunniste, hakukenttä, kartan kontrollit, kerrosvalitsin.",
+      "KRS-teksti kääntyy: englanniksi `Floor`, suomeksi `Krs`.",
+      "Pääsy-estetty-sivu ja Huolto-sivu uusittu Wilma-asiakirjatyyliin.",
+      "Ilmoitusdialogi paranneltu: pitkät sisällöt vierittyvät nyt siististi, otsikot ja tagit tiiviimpiä.",
+      "Admin-profiilidialogi isompi: 32rem → 42rem työpöydällä, 100dvh mobiilissa.",
+      "Admin-paneelin \"Lataa sovellus\" -popup-katkaisin toimii nyt oikeasti — puuttui palvelimen kirjoitussuodattimesta.",
+      "Palauta: `git reset --hard rollback-before-4-7-55`.",
+    ],
+  },
+  {
     version: "4.7.54",
     date: "September 2026",
     title: "3D east/west de-flipped · MazeMap-style buildings · builder 3D preview button",
     titleFi: "3D-suunnat oikein · MazeMap-tyyliset rakennukset · rakentajassa 3D-esikatselu",
-    latest: true,
+    latest: false,
     highlights: [
       "**3D map was mirrored — fixed.** The lat/lng → world projection had a stray negation on the Z axis. Combined with the shape → world rotation, north features landed at world +Z (out of the screen) and the whole map read as horizontally flipped. Removed the negation and set `initialYaw = π/4` so the camera sits SE of the target, looking NW. Result: north at the top of the screen, east on the right — the intuitive map orientation.",
       "**Buildings now read like real architecture, not a stack of plates.** Each building is a single solid extrusion from the ground to its full height in the neutral plate colour, plus a brand-coloured roof cap that sits proud of the base. Hairline building-outline edges on the base and each floor band give the walls definition without turning into wireframe noise. The look mirrors MazeMap's soft, opaque volume-first aesthetic.",

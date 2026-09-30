@@ -136,36 +136,38 @@ export default function AdminProfileDialog({
       <DialogContent
         className={cn(
           "p-0 gap-0 border-0",
+          // Mobile: full-height sheet — user asked for bigger + more room
           "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-          "h-[92dvh] max-h-[92dvh] w-full max-w-full rounded-t-[8px]",
+          "h-[100dvh] max-h-[100dvh] w-full max-w-full rounded-t-[8px]",
+          // Desktop: bigger dialog, closer to a mini-page
           "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-          "sm:h-auto sm:max-w-[min(94vw,32rem)] sm:w-full sm:max-h-[90dvh]",
+          "sm:h-[min(92dvh,52rem)] sm:max-w-[min(94vw,42rem)] sm:w-full sm:max-h-[92dvh]",
           "sm:rounded-[8px]",
           "[&>button:first-of-type]:hidden",
           "flex flex-col overflow-hidden",
           "bg-white dark:bg-gray-950",
           "border border-[#d5dae0] dark:border-[#2a3040]",
           "border-t-[3px] border-t-[#003d82]",
-          "shadow-[0_20px_50px_-12px_rgba(15,23,42,0.4)]",
+          "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
         )}
       >
-        {/* Header */}
-        <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 py-4 flex items-start justify-between gap-3">
+        {/* Header — bigger padding for both mobile + desktop breathe */}
+        <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-5 sm:py-6 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
               {roleLabel}
             </p>
-            <DialogTitle className="text-[20px] sm:text-[22px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-1">
+            <DialogTitle className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-1">
               Profile settings
             </DialogTitle>
-            <DialogDescription className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
+            <DialogDescription className="text-[13px] text-gray-500 dark:text-gray-400 mt-1.5">
               Update your display name, email, or password.
             </DialogDescription>
           </div>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="shrink-0 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="shrink-0 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Close"
           >
             <X className="h-4 w-4" strokeWidth={2.25} />
@@ -173,7 +175,7 @@ export default function AdminProfileDialog({
         </div>
 
         {/* Body */}
-        <div className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+        <div className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 sm:py-8">
           {/* Identity row */}
           <div className="flex items-center gap-3 pb-5 mb-5 border-b border-[#d5dae0] dark:border-[#2a3040]">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[18px] font-bold">
