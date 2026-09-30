@@ -16,6 +16,14 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.54 — 3D east/west de-flipped, MazeMap-style buildings, builder 3D preview)
+
+- **3D projection inversion — fixed.** `project(latlng, centre)` had `z: -dLat * EARTH_R`. Combined with the shape's `rotateX(-π/2)` (which maps shape.y → world -Z), this landed north features at world **+Z** (behind the camera) instead of -Z, giving the whole scene a horizontal mirror. Dropped the negation → `z: dLat * EARTH_R`; north now sits at world -Z where it belongs. Adjusted `initialYaw` from `-π/4` (NE quadrant, looking SW) to `+π/4` (SE quadrant, looking NW) so north is at the top of the screen and east on the right — the standard map orientation. Target Z also negated to convert project-space midpoint back to world space.
+- **Buildings look like real buildings.** Refactored from "stack of hairline floor plates + coloured roof" to a single solid extruded volume in the neutral plate colour + hairline outline edges + subtle floor-band lines at each storey height + a proud brand-coloured roof cap with its own outline. Matches MazeMap's opaque-volume-first aesthetic.
+- **Builder: Preview in 3D button.** New `Box`-icon button in `TopToolbar` between Preview and Validate. Opens the same fullscreen `CampusThreeDView` the public map uses via `setShow3DPreview(true)`. Wired through `onPreview3D` prop; `CampusThreeDView` lazy-imported so the builder bundle is unchanged when the button isn't pressed.
+- **Files** — `CampusThreeDView.tsx`, `TopToolbar.tsx`, `pages/builder.tsx`, `changelog.ts`.
+- **Web bumped** `4.7.53` → `4.7.54`.
+
 ## ✅ Just shipped (web 4.7.52 — 3D unblocked, Three.js bundled locally)
 
 - **CSP was blocking the 3D script.** In production, `script-src-elem` allows only `'self'`, `https://*.posthog.com`, `https://www.googletagmanager.com`. The old `loadThree()` helper appended `<script src="https://unpkg.com/three@0.160.0/build/three.min.js">` and the browser refused it. The 3D modal opened but rendered nothing.

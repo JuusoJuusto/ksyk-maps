@@ -13,7 +13,10 @@
  *
  * Enter finalizes, Escape cancels. Del removes the selected feature.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Fullscreen 3D preview — lazy-loaded so the builder bundle doesn't
+// carry Three.js unless the admin opens the preview.
+const CampusThreeDView = lazy(() => import("@/components/CampusThreeDView"));
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import maplibregl, { Map as MaplibreMap, LngLat, MapMouseEvent } from "maplibre-gl";
@@ -446,6 +449,10 @@ function BuilderWorkspace() {
   const [showValidation, setShowValidation] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
   const [showSvgImport, setShowSvgImport] = useState(false);
+  // v4.7.53 — fullscreen 3D preview modal for the builder. Uses the
+  // same CampusThreeDView component the public map opens, so builders
+  // see exactly what students will see.
+  const [show3DPreview, setShow3DPreview] = useState(false);
   const [gridEnabled, setGridEnabled] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   // Ortho: defaults ON, persists in localStorage so tool switches and
@@ -3416,6 +3423,7 @@ function BuilderWorkspace() {
           // Preview opens the public map in a new tab so the Builder's
           // draft state doesn't get lost.
           onPreview={() => window.open("/", "_blank", "noopener,noreferrer")}
+          onPreview3D={() => setShow3DPreview(true)}
           onValidate={() => setShowValidation(true)}
           onPublish={() => void onPublish()}
         />
@@ -3939,6 +3947,21 @@ function BuilderWorkspace() {
 
       {/* Bottom status bar */}
       <StatusBar state={statusState} onOpenValidation={() => setShowValidation(true)} />
+
+      {/* v4.7.53 — 3D preview modal. Uses the same CampusThreeDView
+       *  the public map opens, so admins see exactly what students
+       *  will see once they publish. */}
+      {show3DPreview && (
+        <Suspense fallback={
+          <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <div className="text-white text-sm font-medium px-4 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/20">
+              Loading 3D preview…
+            </div>
+          </div>
+        }>
+          <CampusThreeDView onClose={() => setShow3DPreview(false)} />
+        </Suspense>
+      )}
 
       {/* Drawers + dialogs */}
       <ValidationDrawer

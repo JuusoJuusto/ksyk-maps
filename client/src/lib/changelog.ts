@@ -10,17 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.53";
+export const APP_VERSION = "4.7.54";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.54",
+    date: "September 2026",
+    title: "3D east/west de-flipped · MazeMap-style buildings · builder 3D preview button",
+    titleFi: "3D-suunnat oikein · MazeMap-tyyliset rakennukset · rakentajassa 3D-esikatselu",
+    latest: true,
+    highlights: [
+      "**3D map was mirrored — fixed.** The lat/lng → world projection had a stray negation on the Z axis. Combined with the shape → world rotation, north features landed at world +Z (out of the screen) and the whole map read as horizontally flipped. Removed the negation and set `initialYaw = π/4` so the camera sits SE of the target, looking NW. Result: north at the top of the screen, east on the right — the intuitive map orientation.",
+      "**Buildings now read like real architecture, not a stack of plates.** Each building is a single solid extrusion from the ground to its full height in the neutral plate colour, plus a brand-coloured roof cap that sits proud of the base. Hairline building-outline edges on the base and each floor band give the walls definition without turning into wireframe noise. The look mirrors MazeMap's soft, opaque volume-first aesthetic.",
+      "**Builder: Preview in 3D button.** New Box-icon button next to the existing Preview eye in the builder toolbar. Opens the same fullscreen CampusThreeDView the public map uses, so admins can preview building/room height edits without leaving the builder or waiting for a publish round-trip. Lazy-loaded so the builder bundle isn't heavier by default.",
+    ],
+    highlightsFi: [
+      "3D-kartta oli peilattu — korjattu. Projektion Z-akseli negoitiin virheellisesti; nyt pohjoinen on ylhäällä ja itä oikealla.",
+      "Rakennukset näyttävät nyt oikeilta rakennuksilta: yksi kiinteä ekstruusio maasta kattoon + värillinen kattolevy + ohut ääriviiva jokaisella kerroksella.",
+      "Rakentajassa uusi 3D-esikatselunappi — avaa saman koko näytön 3D-scenen jonka opiskelijatkin näkevät.",
+    ],
+  },
+  {
     version: "4.7.53",
     date: "September 2026",
     title: "StudentLoginGate + MazeMap floor switcher + admin overview + profile dialog",
     titleFi: "Sisäänkirjautuminen + MazeMap-kerrosvalitsin + admin-yleiskatsaus + profiilidialogi",
-    latest: true,
+    latest: false,
     highlights: [
       "**StudentLoginGate rewrite** — the first-visit welcome modal now uses the Wilma document pattern. Masthead header (`SIGN IN` label + navy KSYK Maps wordmark + close button) → big `Welcome` H1 → subtitle → primary Microsoft button (navy) + secondary guest button (hairline outline with `User` icon) → hairline footer with @ksyk.fi disclosure. 3 px navy top-accent border.",
       "**Floor switcher — MazeMap up/current/down pattern.** Replaced the long vertical list of every floor with a compact 3-cell stack: ▲ up chevron / big centered current-floor readout (uppercase `KRS` label + big navy number) / ▼ down chevron. End buttons disable at the top / bottom of the stack. K-prefix preserved for basement levels.",

@@ -75,14 +75,27 @@ const TYPE_COLORS: Record<string, number> = {
 
 const EARTH_R = 6371000; // metres
 
-/** Convert a lat/lng to metres relative to a centre point. Simple
- *  equirectangular scale — accurate at campus scale. */
+/** Convert a lat/lng to metres relative to a centre point.
+ *
+ *  Shape → world axis mapping (after `rotateX(-Math.PI/2)` on the
+ *  extrude geometry):
+ *    - shape.x  → world +X (east)
+ *    - shape.y  → world -Z (i.e. positive shape.y goes into the screen)
+ *
+ *  We want increasing lng → east → world +X and increasing lat →
+ *  north → world -Z. So the shape's y coordinate must be POSITIVE
+ *  when we're south of the centre and NEGATIVE when we're north of
+ *  it. `dLat` is positive north → we return positive z when SOUTH
+ *  (i.e. `-dLat`), and the shape/rotation flip lands north at world
+ *  -Z automatically.  Getting this right removes the horizontal
+ *  mirror the earlier v4.7.49 build had.
+ */
 function project(p: LatLng, centre: LatLng): { x: number; z: number } {
   const dLng = (p.lng - centre.lng) * Math.PI / 180;
   const dLat = (p.lat - centre.lat) * Math.PI / 180;
   return {
     x: dLng * Math.cos(centre.lat * Math.PI / 180) * EARTH_R,
-    z: -dLat * EARTH_R, // negate so north is -Z (screen-up-ish)
+    z: dLat * EARTH_R,
   };
 }
 
@@ -281,53 +294,82 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         buildingHeightById.set(b.id, perFloor);
 
         const shape = makeShape(b.points!);
+        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
 
-        // Floor plate per floor — very light cream, subtle. Uses tiny
-        // extrusion so it reads as a slab, not a line.
-        for (let f = 0; f < floors; f++) {
-          const plateGeo = new THREE.ExtrudeGeometry(shape, {
-            depth: 0.25,
+        // Building base — one solid extrusion from ground to full
+        // height, in the plate colour. This is the "block" of the
+        // building; it's what makes it read as a real structure rather
+        // than a stack of floating plates.
+        const baseGeo = new THREE.ExtrudeGeometry(shape, {
+          depth: total,
+          bevelEnabled: false,
+        });
+        baseGeo.rotateX(-Math.PI / 2);
+        const baseMat = new THREE.MeshStandardMaterial({
+          color: palette.plate,
+          roughness: 0.94,
+          metalness: 0,
+        });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        buildingGroup.add(base);
+
+        // Hairline vertical edges so building corners are legible.
+        const baseEdgeGeo = new THREE.EdgesGeometry(baseGeo, 20);
+        const baseEdgeMat = new THREE.LineBasicMaterial({
+          color: palette.edge,
+          transparent: true,
+          opacity: darkMode ? 0.55 : 0.45,
+        });
+        const baseEdges = new THREE.LineSegments(baseEdgeGeo, baseEdgeMat);
+        buildingGroup.add(baseEdges);
+
+        // Subtle floor-band lines around the building at each storey
+        // height — reads as an architectural detail without blowing
+        // out the flat MazeMap silhouette.
+        for (let f = 1; f < floors; f++) {
+          const bandGeo = new THREE.ExtrudeGeometry(shape, {
+            depth: 0.08,
             bevelEnabled: false,
           });
-          plateGeo.rotateX(-Math.PI / 2);
-          const plateMat = new THREE.MeshStandardMaterial({
-            color: palette.plate,
-            roughness: 0.98,
-            metalness: 0,
-          });
-          const plate = new THREE.Mesh(plateGeo, plateMat);
-          plate.position.y = f * perFloor;
-          buildingGroup.add(plate);
-
-          // Hairline edge.
-          const edgeGeo = new THREE.EdgesGeometry(plateGeo);
-          const edgeMat = new THREE.LineBasicMaterial({
+          bandGeo.rotateX(-Math.PI / 2);
+          const bandEdgeGeo = new THREE.EdgesGeometry(bandGeo, 20);
+          const bandEdgeMat = new THREE.LineBasicMaterial({
             color: palette.edge,
             transparent: true,
-            opacity: darkMode ? 0.5 : 0.35,
+            opacity: darkMode ? 0.35 : 0.22,
           });
-          const edges = new THREE.LineSegments(edgeGeo, edgeMat);
-          edges.position.y = f * perFloor;
-          buildingGroup.add(edges);
+          const bandEdges = new THREE.LineSegments(bandEdgeGeo, bandEdgeMat);
+          bandEdges.position.y = f * perFloor;
+          buildingGroup.add(bandEdges);
+          bandGeo.dispose();
         }
 
-        // Roof cap — colored (building brand).
+        // Roof cap — brand-coloured, sits proud of the base so the
+        // top reads as a distinct cap rather than a flat surface.
         const roofGeo = new THREE.ExtrudeGeometry(shape, {
-          depth: 0.4,
+          depth: 0.55,
           bevelEnabled: false,
         });
         roofGeo.rotateX(-Math.PI / 2);
-        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
         const roofMat = new THREE.MeshStandardMaterial({
           color: brand,
-          roughness: 0.7,
-          metalness: 0.04,
-          transparent: true,
-          opacity: 0.9,
+          roughness: 0.62,
+          metalness: 0.06,
         });
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.y = total;
         buildingGroup.add(roof);
+
+        // Roof outline for extra definition.
+        const roofEdgeGeo = new THREE.EdgesGeometry(roofGeo, 20);
+        const roofEdgeMat = new THREE.LineBasicMaterial({
+          color: brand.clone().multiplyScalar(0.6),
+          transparent: true,
+          opacity: 0.6,
+        });
+        const roofEdges = new THREE.LineSegments(roofEdgeGeo, roofEdgeMat);
+        roofEdges.position.y = total;
+        buildingGroup.add(roofEdges);
       }
 
       // ── Build rooms ────────────────────────────────────────────
@@ -421,15 +463,22 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       }
 
       // ── Camera ─────────────────────────────────────────────────
-      const initialYaw = -Math.PI / 4;
+      //
+      // yaw = π/4 puts the camera SE of target, looking NW. Combined
+      // with our project() sign convention (north = world -Z), this
+      // lands north at the TOP of the screen and east on the RIGHT
+      // — the intuitive map orientation everyone expects.
+      const initialYaw = Math.PI / 4;
       const initialPitch = Math.PI / 4;
       let yaw = initialYaw, pitch = initialPitch, dist = camDist;
 
       // Aim at the middle of the extent (relative to our centre).
+      // minZ/maxZ are project-space (shape.y); world Z = -shape.y, so
+      // we negate the mid to get the world-space target.
       const target = new THREE.Vector3(
         (minX + maxX) / 2,
         Math.max(6, extentR * 0.05),
-        (minZ + maxZ) / 2,
+        -(minZ + maxZ) / 2,
       );
 
       const walkPos = new THREE.Vector3(target.x, 4, target.z + extentD * 0.35);

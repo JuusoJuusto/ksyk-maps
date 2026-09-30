@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Save, Undo2, Redo2, Upload, Download, Grid3x3, Magnet, ZoomIn, ZoomOut,
   RotateCw, Eye, ShieldCheck, Rocket, ChevronLeft, Check, Image as ImageIcon,
-  RectangleHorizontal, PenLine, Crosshair, FileUp,
+  RectangleHorizontal, PenLine, Crosshair, FileUp, Box,
 } from "lucide-react";
 
 export interface TopToolbarProps {
@@ -59,6 +59,11 @@ export interface TopToolbarProps {
   onZoomOut: () => void;
   onRotateCW: () => void;
   onPreview: () => void;
+  /** v4.7.53 — open the fullscreen 3D scene so builders can preview
+   *  their edits (buildings, floor heights, room slabs) without
+   *  leaving the builder. Optional so pre-4.7.53 callers still
+   *  compile. */
+  onPreview3D?: () => void;
   onValidate: () => void;
   onPublish: () => void;
 }
@@ -188,6 +193,11 @@ export default function TopToolbar(p: TopToolbarProps) {
       <IconButton onClick={p.onPreview} label="Preview">
         <Eye className="h-4 w-4" />
       </IconButton>
+      {p.onPreview3D && (
+        <IconButton onClick={p.onPreview3D} label="Preview in 3D">
+          <Box className="h-4 w-4" />
+        </IconButton>
+      )}
       <IconButton
         onClick={p.onValidate}
         label="Validate"
