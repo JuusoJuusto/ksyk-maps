@@ -10,17 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.57";
+export const APP_VERSION = "4.7.58";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "2.0.0-beta";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.58",
+    date: "October 2026",
+    title: "3D map polished to MazeMap quality — soft shadows, warm palette, inertia",
+    titleFi: "3D-kartta MazeMapin tasolle — pehmeät varjot, lämmin paletti, inertia",
+    latest: true,
+    highlights: [
+      "**Soft directional shadows.** Enabled PCF soft shadow mapping with a 2048×2048 map fitted to the campus extent. Buildings cast, ground + roofs receive. This is what makes a 3D model feel grounded rather than floating — the detail MazeMap gets right.",
+      "**Warm MazeMap palette.** Replaced the cool blue-grey ground + pure-white plates with warm neutrals: sky `#f7f5f0`, ground `#e8e5e0`, walls `#f5f2ec` (ivory), roofs `#e4e1db` (slightly darker cream). Dark mode gets a matching deep-navy warm set. Buildings read as real plaster and cream, not blueprint boxes.",
+      "**Roofs are quiet now.** Previously brand-coloured bright caps. Now plateTop grey with a 15 % lerp toward the admin's building colour — a hint of brand identity, never a scream. Matches MazeMap's \"warm roof with a whisper of accent\" look.",
+      "**Walls stop short of the top.** Wall extrusion is `floors × perFloor − 0.4 m`; the roof cap sits proud of the wall as a distinct lid. Reads as a real building, not a slab with a hat.",
+      "**Room palette heavily desaturated.** Classroom `#c0c8d4`, library `#d0c8b8`, hallway `#e4e4e0`, etc. Every room type is now a muted tint of a warm neutral, not a saturated hue. Rooms read as \"different functions of the same campus\", not a rainbow.",
+      "**Camera inertia.** Drag release decays smoothly over ~15 frames (per-frame 0.90 damping) in both orbit and walk modes — MazeMap's hallmark \"glide after release\" feel.",
+      "**Smaller cleaner room labels.** Pills shrunk from 192×64 canvas to 160×48 @ 2× DPR for crisp retina text. Font sized 22 px, label scale clamp tightened to `[3.5, 10]` world-units.",
+      "**Fog pushed back.** Starts at 3× extent instead of 2× — distant buildings stay crisp. Camera FOV dropped from 50° to 45° for a less wide-angle, more map-like perspective.",
+    ],
+    highlightsFi: [
+      "Pehmeät suuntavarjot — rakennukset heittävät varjon maahan, mikä tekee skenestä aidon tuntuisen.",
+      "Lämmin MazeMap-paletti — kerman valkoiset seinät, hieman tummempi katto, lämmin maa.",
+      "Katot ovat nyt hiljaisia — brändiväri vilahtaa 15% sekoituksena, ei räikeänä kattona.",
+      "Seinät jäävät katon alle — katto näkyy omana kerroksena.",
+      "Huoneiden värit erittäin pehmeät — eri sävyjä lämpimistä neutraaleista, ei sateenkaarta.",
+      "Kameran inertia — vedon jälkeen kamera liukuu pehmeästi, kuten MazeMapissa.",
+      "Pienemmät ja selkeämmät huonenumerot.",
+      "Sumu työnnetty kauemmas — kaukaisetkin rakennukset pysyvät terävinä.",
+    ],
+  },
+  {
     version: "4.7.57",
     date: "October 2026",
     title: "Dialog desktop fix · Get-the-app popup redesign · Android Wilma theme (v2.0.0-beta APK)",
     titleFi: "Dialogien työpöytäkorjaus · Lataa-popup Wilma-tyyliin · Android Wilma-teema (2.0.0-beta)",
-    latest: true,
+    latest: false,
     highlights: [
       "**Desktop dialog sizing — real fix.** v4.7.56's mobile-first `fixed inset-0` + `translate-x/y-0` was fighting shadcn's default centered-positioning on desktop, and the `sm:` overrides never caught the full inset. Rewrote with `max-sm:` mobile overrides so shadcn's default `fixed left-[50%] top-[50%] translate -50/-50` keeps working on desktop/tablet, and mobile flips to full-screen only below 640 px. Applied to `AdminProfileDialog`, `AnnouncementBanner` detail dialog, and `BetaWelcomeBanner`. Desktop + tablet + phone all work now.",
       "**Get-the-app popup redesigned.** Was a `rounded-2xl shadow-lg` card with a colored icon pill + Apple-blue CTA + emoji-free-but-still-chunky layout. Now a Wilma document card: 3 px navy top accent, hairline border, 6/8 px radius, uppercase `MOBILE` masthead, bold `KSYK Maps in your pocket` title, hairline-split footer with two 50/50 actions (`Not now` + navy `Download`). Finnish localization aware. Respects the per-user kill switch (`ksyk_get_app_enabled_v1`).",

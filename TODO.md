@@ -16,6 +16,19 @@ Also on GitHub at `main/TODO.md`.
 
 ---
 
+## ✅ Just shipped (web 4.7.58 — 3D polished to MazeMap quality)
+
+- **Soft directional shadows.** `renderer.shadowMap.enabled = true` + `PCFSoftShadowMap`, 2048² shadow map fitted to campus extent (`shadow.camera.left/right/top/bottom = ±extentR × 1.4`). Buildings `castShadow`, roofs + ground `receiveShadow`. Shadow bias `-0.0005`, radius `2.5` for soft edges. Sun intensity bumped from 0.35 → 0.55, hemisphere light reduced from 1.15 → 0.9 so shadows actually read.
+- **Warm MazeMap palette.** Previously cool blue-grey. Now light-mode: sky `#f7f5f0`, ground `#e8e5e0`, walls `#f5f2ec`, roofs `#e4e1db`, edges `#c9c5be`. Dark-mode warm-neutral equivalents. The whole scene reads as real plaster and cream.
+- **Roofs no longer scream.** Replaced bright brand-colour roof caps with `plateTop` lerped 15% toward the building's admin-set colour — brand identity preserved as a quiet tint, not a bright accent.
+- **Wall-roof separation.** Walls now extrude to `total − 0.4 m`; the roof cap (0.4 m extrusion) sits proud of the walls as a distinct lid. Reads as a real multi-storey building.
+- **Room palette desaturated.** `TYPE_COLORS` rewritten from saturated hues (`#6b8ac5`, `#8b7bb8`) to muted tints (`#c0c8d4`, `#c8c4d0`, `#e4e4e0` for hallways). Every room is now 85-90% grey with just a hint of its function colour.
+- **Camera inertia.** Drag release decays smoothly over ~15 frames at 0.90 per-frame damping, both yaw/pitch in orbit mode and look-yaw/pitch in walk mode. Zero velocity threshold is `0.0001` so we don't thrash tiny amounts.
+- **Room labels tightened.** 160×48 @ 2× DPR canvas (was 192×64 @ 1×), 22 px font, `renderer.capabilities.getMaxAnisotropy()` for crisp retina. Label scale clamp `[3.5, 10]` world units (was `[4, 16]`).
+- **Fog pushed back.** Starts at 3× extent (was 2×); ends at 8× (was 6×). Camera FOV 45° (was 50°) — less wide-angle, more map-like.
+- **Files** — `CampusThreeDView.tsx`, `changelog.ts`, `TODO.md`.
+- **Web bumped** `4.7.57` → `4.7.58`. `tsc` clean.
+
 ## ✅ Just shipped (web 4.7.54 — 3D east/west de-flipped, MazeMap-style buildings, builder 3D preview)
 
 - **3D projection inversion — fixed.** `project(latlng, centre)` had `z: -dLat * EARTH_R`. Combined with the shape's `rotateX(-π/2)` (which maps shape.y → world -Z), this landed north features at world **+Z** (behind the camera) instead of -Z, giving the whole scene a horizontal mirror. Dropped the negation → `z: dLat * EARTH_R`; north now sits at world -Z where it belongs. Adjusted `initialYaw` from `-π/4` (NE quadrant, looking SW) to `+π/4` (SE quadrant, looking NW) so north is at the top of the screen and east on the right — the standard map orientation. Target Z also negated to convert project-space midpoint back to world space.

@@ -56,21 +56,23 @@ const THREE: any = THREE_MODULE;
 
 type CameraMode = "orbit" | "walk";
 
-/** Muted Apple-Maps-inspired palette. */
+/** MazeMap-inspired palette — heavily desaturated tints, closer to
+ *  greys than to their nominal hue. Rooms should read as "different
+ *  functions of the same building", not as a rainbow. */
 const TYPE_COLORS: Record<string, number> = {
-  classroom:  0x6b8ac5,
-  office:     0x8b7bb8,
-  lab:        0x5eaab3,
-  library:    0xd4a15e,
-  cafeteria:  0xd97878,
-  auditorium: 0xc27ba0,
-  gym:        0x6bb598,
-  hallway:    0xbcc4d0,
-  stairs:     0x8994a3,
-  wc:         0xa89bc8,
-  bathroom:   0xa89bc8,
-  lobby:      0xd4a15e,
-  other:      0x9ba5b5,
+  classroom:  0xc0c8d4, // muted blue-grey (default rooms)
+  office:     0xc8c4d0, // muted purple-grey
+  lab:        0xc0d0d0, // muted teal-grey
+  library:    0xd0c8b8, // warm cream
+  cafeteria:  0xd4c4c4, // muted red-grey
+  auditorium: 0xccc4d0, // muted magenta-grey
+  gym:        0xc4d0c8, // muted green-grey
+  hallway:    0xe4e4e0, // very light warm grey (circulation)
+  stairs:     0xd0d4d8, // near-white
+  wc:         0xd0ccd4, // muted purple-grey
+  bathroom:   0xd0ccd4,
+  lobby:      0xd8d0c4, // warm cream
+  other:      0xd4d4d0, // neutral
 };
 
 const EARTH_R = 6371000; // metres
@@ -149,24 +151,35 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
     }
   }, [roomsError, buildingsError]);
 
+  // MazeMap-inspired palette — warm off-whites, cream tones, soft
+  // shadows.  Buildings default to a neutral warm ivory (like real
+  // wall plaster) with slightly darker roofs.
   const palette = useMemo(() => darkMode ? {
-    ground:      0x0f1420,
-    plate:       0x1a2334,
-    edge:        0x0a0f18,
-    ambient1:    0xeef2ff,
-    ambient2:    0x2a3448,
-    label:       "rgba(15,20,30,0.94)",
-    labelText:   "#f1f5f9",
-    labelBorder: "rgba(255,255,255,0.12)",
-  } : {
-    ground:      0xf1f3f7,
-    plate:       0xffffff,
-    edge:        0xc9d0dc,
+    sky:         0x1a1f28,
+    ground:      0x1e2028,
+    plate:       0x2c2f38, // building wall
+    plateTop:    0x252831, // building roof (slightly darker than wall)
+    edge:        0x121620,
     ambient1:    0xffffff,
-    ambient2:    0xe4e9f2,
-    label:       "rgba(255,255,255,0.98)",
-    labelText:   "#111827",
-    labelBorder: "rgba(0,0,0,0.10)",
+    ambient2:    0x1a1f28,
+    label:       "rgba(20,24,32,0.94)",
+    labelText:   "#f1f5f9",
+    labelBorder: "rgba(255,255,255,0.10)",
+    shadow:      0x000000,
+    shadowOpacity: 0.35,
+  } : {
+    sky:         0xf7f5f0, // very soft warm off-white
+    ground:      0xe8e5e0, // MazeMap ground — warm neutral
+    plate:       0xf5f2ec, // building wall — ivory
+    plateTop:    0xe4e1db, // building roof — slightly darker cream
+    edge:        0xc9c5be, // wall edge — muted warm grey
+    ambient1:    0xffffff,
+    ambient2:    0xe0dcd4,
+    label:       "rgba(255,255,255,0.97)",
+    labelText:   "#2c2f38",
+    labelBorder: "rgba(0,0,0,0.08)",
+    shadow:      0x000000,
+    shadowOpacity: 0.15,
   }, [darkMode]);
 
   useEffect(() => {
@@ -233,32 +246,60 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       setDebugInfo({ rooms: validRooms.length, buildings: validBuildings.length });
 
       // ── Scene setup ─────────────────────────────────────────────
+      // MazeMap-style: warm sky, warm ground, soft directional sun
+      // casting a gentle shadow. Buildings cast + ground receives so
+      // the campus reads as a real 3D model rather than flat shapes.
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(palette.ground);
-      // Fog kicks in past 2× extent so nothing useful is occluded.
-      scene.fog = new THREE.Fog(palette.ground, extentR * 2, extentR * 6);
+      scene.background = new THREE.Color(palette.sky);
+      // Very soft distance fog that only begins past 3× the campus
+      // extent — distant buildings dissolve into the sky instead of
+      // cutting off sharply, but anything close stays crisp.
+      scene.fog = new THREE.Fog(palette.sky, extentR * 3, extentR * 8);
 
-      const camera = new THREE.PerspectiveCamera(50, w / h, 0.5, extentR * 20);
+      const camera = new THREE.PerspectiveCamera(45, w / h, 0.5, extentR * 20);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       renderer.setSize(w, h);
-      renderer.shadowMap.enabled = false;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       host.appendChild(renderer.domElement);
 
-      // Soft flat lighting — no shadows anywhere.
-      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 1.15));
-      const sun = new THREE.DirectionalLight(0xffffff, 0.35);
-      sun.position.set(extentR, extentR * 1.5, extentR * 0.6);
+      // Hemisphere light fills in ambient; sun is a soft directional
+      // for subtle shading on building sides + the ground shadow.
+      scene.add(new THREE.HemisphereLight(palette.ambient1, palette.ambient2, 0.9));
+      const sun = new THREE.DirectionalLight(0xffffff, 0.55);
+      sun.position.set(extentR * 0.9, extentR * 2.5, extentR * 1.3);
+      sun.castShadow = true;
+      sun.shadow.mapSize.width = 2048;
+      sun.shadow.mapSize.height = 2048;
+      sun.shadow.camera.near = 1;
+      sun.shadow.camera.far = extentR * 8;
+      // Fit the shadow frustum to the campus extent so the shadow is
+      // sharp instead of blurry-everything-at-once.
+      const shadowFit = extentR * 1.4;
+      sun.shadow.camera.left = -shadowFit;
+      sun.shadow.camera.right = shadowFit;
+      sun.shadow.camera.top = shadowFit;
+      sun.shadow.camera.bottom = -shadowFit;
+      sun.shadow.bias = -0.0005;
+      sun.shadow.radius = 2.5;
       scene.add(sun);
 
-      // Ground plane.
+      // Ground plane. Receives shadows from buildings — this is what
+      // makes the scene feel grounded like MazeMap does.
       const groundSize = Math.max(2000, extentR * 8);
       const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize);
-      const groundMat = new THREE.MeshBasicMaterial({ color: palette.ground });
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: palette.ground,
+        roughness: 1,
+        metalness: 0,
+      });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = -0.05;
+      ground.receiveShadow = true;
       scene.add(ground);
 
       // Constants tuned to metric units. Real buildings are ~4m per
@@ -294,81 +335,77 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         buildingHeightById.set(b.id, perFloor);
 
         const shape = makeShape(b.points!);
-        const brand = new THREE.Color(b.colorCode ?? "#6b8ac5");
 
-        // Building base — one solid extrusion from ground to full
-        // height, in the plate colour. This is the "block" of the
-        // building; it's what makes it read as a real structure rather
-        // than a stack of floating plates.
-        const baseGeo = new THREE.ExtrudeGeometry(shape, {
-          depth: total,
+        // Wall extrusion — solid opaque matte ivory. MazeMap-style:
+        // walls stop just short of the top so the roof cap reads as a
+        // distinct lid.
+        const wallHeight = Math.max(0.1, total - 0.4);
+        const wallGeo = new THREE.ExtrudeGeometry(shape, {
+          depth: wallHeight,
           bevelEnabled: false,
         });
-        baseGeo.rotateX(-Math.PI / 2);
-        const baseMat = new THREE.MeshStandardMaterial({
+        wallGeo.rotateX(-Math.PI / 2);
+        const wallMat = new THREE.MeshStandardMaterial({
           color: palette.plate,
-          roughness: 0.94,
+          roughness: 0.96,
           metalness: 0,
         });
-        const base = new THREE.Mesh(baseGeo, baseMat);
-        buildingGroup.add(base);
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        buildingGroup.add(wall);
 
-        // Hairline vertical edges so building corners are legible.
-        const baseEdgeGeo = new THREE.EdgesGeometry(baseGeo, 20);
-        const baseEdgeMat = new THREE.LineBasicMaterial({
+        // Hairline edges only on the top ring of the walls — a crisp
+        // "where the roof meets the wall" line without the full-height
+        // outline that was turning buildings into wireframe boxes.
+        const wallEdgeGeo = new THREE.EdgesGeometry(wallGeo, 20);
+        const wallEdgeMat = new THREE.LineBasicMaterial({
           color: palette.edge,
           transparent: true,
-          opacity: darkMode ? 0.55 : 0.45,
+          opacity: darkMode ? 0.5 : 0.35,
         });
-        const baseEdges = new THREE.LineSegments(baseEdgeGeo, baseEdgeMat);
-        buildingGroup.add(baseEdges);
+        const wallEdges = new THREE.LineSegments(wallEdgeGeo, wallEdgeMat);
+        buildingGroup.add(wallEdges);
 
-        // Subtle floor-band lines around the building at each storey
-        // height — reads as an architectural detail without blowing
-        // out the flat MazeMap silhouette.
-        for (let f = 1; f < floors; f++) {
-          const bandGeo = new THREE.ExtrudeGeometry(shape, {
-            depth: 0.08,
-            bevelEnabled: false,
-          });
-          bandGeo.rotateX(-Math.PI / 2);
-          const bandEdgeGeo = new THREE.EdgesGeometry(bandGeo, 20);
-          const bandEdgeMat = new THREE.LineBasicMaterial({
-            color: palette.edge,
-            transparent: true,
-            opacity: darkMode ? 0.35 : 0.22,
-          });
-          const bandEdges = new THREE.LineSegments(bandEdgeGeo, bandEdgeMat);
-          bandEdges.position.y = f * perFloor;
-          buildingGroup.add(bandEdges);
-          bandGeo.dispose();
+        // Roof cap — slightly darker than the wall, same shape. This
+        // is MazeMap's signature: a quiet, slightly darker lid that
+        // reads as the top of the building, never a bright accent.
+        // Admin-set brand colour (if any) tints the roof subtly so a
+        // building keeps its identity on the campus overview.
+        const roofColour = new THREE.Color(palette.plateTop);
+        if (b.colorCode) {
+          const brand = new THREE.Color(b.colorCode);
+          // Mix 85% plate-top + 15% brand so the tint is a hint, not
+          // a scream. Produces the MazeMap "warm cream with a
+          // whisper of blue/red/green" look.
+          roofColour.lerp(brand, 0.15);
         }
-
-        // Roof cap — brand-coloured, sits proud of the base so the
-        // top reads as a distinct cap rather than a flat surface.
         const roofGeo = new THREE.ExtrudeGeometry(shape, {
-          depth: 0.55,
+          depth: 0.4,
           bevelEnabled: false,
         });
         roofGeo.rotateX(-Math.PI / 2);
         const roofMat = new THREE.MeshStandardMaterial({
-          color: brand,
-          roughness: 0.62,
-          metalness: 0.06,
+          color: roofColour,
+          roughness: 0.92,
+          metalness: 0,
         });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.y = total;
+        roof.position.y = wallHeight;
+        roof.castShadow = true;
+        roof.receiveShadow = true;
         buildingGroup.add(roof);
 
-        // Roof outline for extra definition.
+        // Roof top outline — slightly darker than the roof itself to
+        // give the top edge definition without a hard line.
         const roofEdgeGeo = new THREE.EdgesGeometry(roofGeo, 20);
         const roofEdgeMat = new THREE.LineBasicMaterial({
-          color: brand.clone().multiplyScalar(0.6),
+          color: roofColour.clone().multiplyScalar(0.78),
           transparent: true,
-          opacity: 0.6,
+          opacity: 0.5,
         });
         const roofEdges = new THREE.LineSegments(roofEdgeGeo, roofEdgeMat);
-        roofEdges.position.y = total;
+        roofEdges.position.y = wallHeight;
         buildingGroup.add(roofEdges);
       }
 
@@ -399,53 +436,64 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         geo.rotateX(-Math.PI / 2);
         const mat = new THREE.MeshStandardMaterial({
           color,
-          roughness: 0.7,
-          metalness: 0.03,
+          roughness: 0.92,
+          metalness: 0,
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.y = baseY;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         mesh.userData = { room: r };
         roomGroup.add(mesh);
 
+        // Subtle hairline on room edges — same muted tone as building
+        // walls so the whole scene reads coherent.
         const edgeGeo = new THREE.EdgesGeometry(geo);
         const edgeMat = new THREE.LineBasicMaterial({
           color: palette.edge,
           transparent: true,
-          opacity: darkMode ? 0.6 : 0.45,
+          opacity: darkMode ? 0.55 : 0.4,
         });
         const edges = new THREE.LineSegments(edgeGeo, edgeMat);
         edges.position.copy(mesh.position);
         roomGroup.add(edges);
 
-        // Room label — canvas sprite. Positioned above the slab centre.
+        // Room label — a tight MazeMap-style white pill with a hairline
+        // border. Smaller than before, always face camera, depth-tested
+        // so it occludes behind building roofs when a room is on a
+        // lower floor hidden by a storey above.
         if (r.roomNumber) {
           const c = centroid(r.points!);
           const p = project(c, centreLatLng);
 
+          // 2× resolution for crisp text on retina displays.
+          const DPR = 2;
           const canvas = document.createElement("canvas");
-          canvas.width = 192; canvas.height = 64;
+          canvas.width = 160 * DPR; canvas.height = 48 * DPR;
           const ctx = canvas.getContext("2d")!;
-          ctx.font = "600 32px -apple-system, Segoe UI, Roboto, sans-serif";
+          ctx.scale(DPR, DPR);
+          ctx.font = "600 22px -apple-system, system-ui, Segoe UI, Roboto, sans-serif";
           ctx.textBaseline = "middle";
           ctx.textAlign = "center";
           const m = ctx.measureText(r.roomNumber);
-          const pillW = m.width + 26;
-          const pillH = 44;
-          const pillX = (192 - pillW) / 2;
-          const pillY = (64 - pillH) / 2;
+          const pillW = Math.max(44, m.width + 20);
+          const pillH = 30;
+          const pillX = (160 - pillW) / 2;
+          const pillY = (48 - pillH) / 2;
           ctx.fillStyle = palette.label;
           ctx.beginPath();
           // @ts-ignore roundRect exists on modern canvas
-          ctx.roundRect?.(pillX, pillY, pillW, pillH, 11);
+          ctx.roundRect?.(pillX, pillY, pillW, pillH, 8);
           ctx.fill();
           ctx.strokeStyle = palette.labelBorder;
           ctx.lineWidth = 1;
           ctx.stroke();
           ctx.fillStyle = palette.labelText;
-          ctx.fillText(r.roomNumber, 96, 32);
+          ctx.fillText(r.roomNumber, 80, 24);
 
           const tex = new THREE.CanvasTexture(canvas);
           tex.minFilter = THREE.LinearFilter;
+          tex.anisotropy = Math.max(1, renderer.capabilities.getMaxAnisotropy?.() ?? 1);
           const spriteMat = new THREE.SpriteMaterial({
             map: tex,
             transparent: true,
@@ -453,9 +501,10 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             depthWrite: false,
           });
           const sprite = new THREE.Sprite(spriteMat);
-          const labelScale = Math.max(4, Math.min(16, extentR * 0.04));
-          sprite.scale.set(labelScale, labelScale * 0.33, 1);
-          sprite.position.set(p.x, baseY + slabH + labelScale * 0.35, p.z);
+          // Smaller than v4.7.54 — MazeMap labels are discreet.
+          const labelScale = Math.max(3.5, Math.min(10, extentR * 0.025));
+          sprite.scale.set(labelScale, labelScale * 0.3, 1);
+          sprite.position.set(p.x, baseY + slabH + labelScale * 0.5, p.z);
           sprite.renderOrder = 999;
           roomGroup.add(sprite);
           labelSprites.push(sprite);
@@ -534,9 +583,13 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         return false;
       };
 
-      // Input.
+      // Input with MazeMap-style inertia — camera keeps gliding after
+      // you let go of the mouse, decaying smoothly.
       let dragging = false;
       let lastX = 0, lastY = 0;
+      let yawVel = 0, pitchVel = 0; // orbit inertia
+      let lookYawVel = 0, lookPitchVel = 0; // walk inertia
+      const INERTIA_DECAY = 0.90; // per-frame damping (approx 60fps)
       const cv = renderer.domElement;
       cv.style.cursor = "grab";
 
@@ -545,6 +598,7 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         cv.style.cursor = "grabbing";
         cv.setPointerCapture?.(e.pointerId);
         autoRotate = false;
+        yawVel = 0; pitchVel = 0; lookYawVel = 0; lookPitchVel = 0;
       };
       const onPointerUp = () => { dragging = false; cv.style.cursor = "grab"; };
       const onPointerMove = (e: PointerEvent) => {
@@ -553,11 +607,20 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
         const dy = e.clientY - lastY;
         lastX = e.clientX; lastY = e.clientY;
         if (mode === "orbit") {
-          yaw -= dx * 0.005;
-          pitch = Math.max(0.15, Math.min(Math.PI / 2 - 0.05, pitch + dy * 0.004));
+          const yawDelta = -dx * 0.005;
+          const pitchDelta = dy * 0.004;
+          yaw += yawDelta;
+          pitch = Math.max(0.15, Math.min(Math.PI / 2 - 0.05, pitch + pitchDelta));
+          // Store the last applied delta as velocity for inertia.
+          yawVel = yawDelta;
+          pitchVel = pitchDelta;
         } else {
-          walkLook.yaw += dx * 0.004;
-          walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch - dy * 0.004));
+          const yawDelta = dx * 0.004;
+          const pitchDelta = -dy * 0.004;
+          walkLook.yaw += yawDelta;
+          walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch + pitchDelta));
+          lookYawVel = yawDelta;
+          lookPitchVel = pitchDelta;
         }
       };
       const onWheel = (e: WheelEvent) => {
@@ -662,6 +725,23 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
 
         if (mode === "orbit") {
           if (autoRotate) yaw -= AUTO_ROTATE_SPEED * dt;
+          // Apply inertia from the last drag — camera keeps gliding
+          // after release and decays over a few frames. Threshold
+          // kills tiny velocities so we don't thrash.
+          if (!dragging) {
+            if (Math.abs(yawVel) > 0.0001) {
+              yaw += yawVel;
+              yawVel *= INERTIA_DECAY;
+            } else {
+              yawVel = 0;
+            }
+            if (Math.abs(pitchVel) > 0.0001) {
+              pitch = Math.max(0.15, Math.min(Math.PI / 2 - 0.05, pitch + pitchVel));
+              pitchVel *= INERTIA_DECAY;
+            } else {
+              pitchVel = 0;
+            }
+          }
           updateOrbit();
         } else {
           const speed = 8 * dt * (keys.has("shift") ? 3 : 1);
@@ -675,6 +755,21 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
           if (ddz !== 0 && !blocked(walkPos.x, walkPos.y, walkPos.z + ddz)) walkPos.z += ddz;
           if (keys.has(" ") || keys.has("e"))          { walkPos.y += speed * 0.5; }
           if (keys.has("q") || keys.has("control"))    { walkPos.y = Math.max(1.2, walkPos.y - speed * 0.5); }
+          // Look inertia for walk mode.
+          if (!dragging) {
+            if (Math.abs(lookYawVel) > 0.0001) {
+              walkLook.yaw += lookYawVel;
+              lookYawVel *= INERTIA_DECAY;
+            } else {
+              lookYawVel = 0;
+            }
+            if (Math.abs(lookPitchVel) > 0.0001) {
+              walkLook.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, walkLook.pitch + lookPitchVel));
+              lookPitchVel *= INERTIA_DECAY;
+            } else {
+              lookPitchVel = 0;
+            }
+          }
           updateWalk();
         }
 
