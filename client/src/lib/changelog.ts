@@ -10,17 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.56";
+export const APP_VERSION = "4.7.57";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.99.0";
+export const ANDROID_APP_VERSION = "2.0.0-beta";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.57",
+    date: "October 2026",
+    title: "Dialog desktop fix · Get-the-app popup redesign · Android Wilma theme (v2.0.0-beta APK)",
+    titleFi: "Dialogien työpöytäkorjaus · Lataa-popup Wilma-tyyliin · Android Wilma-teema (2.0.0-beta)",
+    latest: true,
+    highlights: [
+      "**Desktop dialog sizing — real fix.** v4.7.56's mobile-first `fixed inset-0` + `translate-x/y-0` was fighting shadcn's default centered-positioning on desktop, and the `sm:` overrides never caught the full inset. Rewrote with `max-sm:` mobile overrides so shadcn's default `fixed left-[50%] top-[50%] translate -50/-50` keeps working on desktop/tablet, and mobile flips to full-screen only below 640 px. Applied to `AdminProfileDialog`, `AnnouncementBanner` detail dialog, and `BetaWelcomeBanner`. Desktop + tablet + phone all work now.",
+      "**Get-the-app popup redesigned.** Was a `rounded-2xl shadow-lg` card with a colored icon pill + Apple-blue CTA + emoji-free-but-still-chunky layout. Now a Wilma document card: 3 px navy top accent, hairline border, 6/8 px radius, uppercase `MOBILE` masthead, bold `KSYK Maps in your pocket` title, hairline-split footer with two 50/50 actions (`Not now` + navy `Download`). Finnish localization aware. Respects the per-user kill switch (`ksyk_get_app_enabled_v1`).",
+      "**Android visual pass — Wilma theme (v2.0.0-beta APK).** `android/app/.../theme.kt` rewritten: iOS-blue Material You (`KsykBlue #2563EB` + dynamic wallpaper palette) → Wilma navy `#003D82` + hairline outlines. Full custom `Shapes` (4/6/8/10/12 dp — down from Material's 12/16/28) and `Typography` (uppercase 10sp labels, 14-16sp body, 20-26sp titles with negative tracking). Dynamic colors deliberately disabled — brand consistency with the web matters more than wallpaper tint. Status bar + splash color (`ksyk_blue`) swapped to navy. Hardcoded `0xFF2563EB` refs in `AnnouncementsScreen` + `BeaconScreen` updated. Backup remains available via git (v4.7.38 Material 3 pass → `rollback-before-4-7-56` and earlier tags).",
+      "**Android version bumped** `1.99.0` (versionCode 101) → `2.0.0-beta` (versionCode 102). Treating the Wilma-themed APK as a new major because the whole visual language changes.",
+      "**Rollback** — `git tag rollback-before-4-7-57` at `a667600`. Revert: `git reset --hard rollback-before-4-7-57 && git push --force-with-lease origin main`. Android: the old theme survives in the previous APK release and in git history.",
+      "Web version bumped `4.7.56` → `4.7.57`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Dialogien työpöytäkoko korjattu oikeasti. v4.7.56:n mobile-first-tyyli taisteli shadcnin keskitysaseman kanssa. Nyt työpöytä käyttää shadcnin oletusta, mobiili on `max-sm:`-ylikirjoituksella täyskokokortti.",
+      "Lataa-popup uusiksi Wilma-tyyliin: hiuslinja-reunat, 3px navy-korostuspalkki, uppercase MOBILE-masthead, 50/50-toimintopalkki.",
+      "Android: iOS-sininen Material You -teema vaihdettu Wilma-navy -paletiksi. Omat Shapes- ja Typography-skaalat. Dynaamiset wallpaper-värit pois.",
+      "Android-versio: 1.99.0 → 2.0.0-beta.",
+      "Palauta: `git reset --hard rollback-before-4-7-57`.",
+    ],
+  },
   {
     version: "4.7.56",
     date: "October 2026",
     title: "Beta banner · Get-the-app really fixed · admin sub-tab routing · profile/announce size bugs · block users",
     titleFi: "Beta-ilmoitus · Lataa-popup todella korjattu · admin-alavälilehdet URL:iin · dialogien koko-bugit · käyttäjän esto",
-    latest: true,
+    latest: false,
     highlights: [
       "**Beta welcome banner.** New Wilma-document dialog shown once per visitor on first map load. Finnish-first copy (per user) with English fallback. Amber accent, dismissible, remembered in `localStorage`. Settings `About` now shows `v4.7.56 · BETA` on web version + copyright footer.",
       "**Get-the-app popup — root cause really fixed.** The `showGetAppPopup` + `getAppUrl` fields were in the AdminSettings UI AND the API whitelist AND the client fetch, but the **columns themselves were missing from the `app_settings` table in `shared/schema.ts`**. Drizzle's UPSERT silently dropped unknown columns. Added columns to the schema + idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` in `server/initDb.ts` so Vercel cold-starts apply the migration automatically. Also wrote `migrations/0004_get_app_popup_columns.sql` for the drizzle-kit workflow.",

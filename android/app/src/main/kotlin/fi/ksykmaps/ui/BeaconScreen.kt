@@ -148,7 +148,7 @@ fun BeaconScreen() {
         }
         capturing = true
         status = "Capturing GPS + WiFi…"
-        statusColor = Color(0xFF2563EB)
+        statusColor = Color(0xFF003D82)
         scope.launch {
             val roomId = (room["id"] as? JsonPrimitive)?.contentOrNull ?: return@launch
             try {

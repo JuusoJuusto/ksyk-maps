@@ -1,94 +1,155 @@
 package fi.ksykmaps.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
-private val KsykBlue     = Color(0xFF2563EB)
-private val KsykBlueDark = Color(0xFF1D4ED8)
+/* ─────────────────────────────────────────────────────────────────────
+ * KSYK Maps — Wilma visual pass (v4.7.57).
+ *
+ * The Compose theme now matches the web's Wilma design layer:
+ *   - navy #003d82 (not iOS blue) as the sole brand accent
+ *   - hairline #d5dae0 outlines over Material-elevation surfaces
+ *   - compact 6/8 dp corner radius (not Material's 12/16/28)
+ *   - uppercase 10sp labels, 14-16sp body, 20-26sp titles with -0.015 em
+ *   - no dynamic-color scheme — the whole point is brand consistency
+ *     with the web, so we ignore wallpaper tint
+ *
+ * The previous iOS-blue Material-You theme is preserved in git history
+ * (tag `rollback-before-4-7-56` → `android/.../theme.kt@v4.7.38`).
+ * ───────────────────────────────────────────────────────────────────── */
+
+// Light palette — Wilma navy brand.
+private val WilmaNavy      = Color(0xFF003D82)
+private val WilmaNavyDark  = Color(0xFF002D5F)
+private val WilmaNavyTint  = Color(0xFFE6ECF3)
+private val WilmaInk       = Color(0xFF1A1A1A)
+private val WilmaBody      = Color(0xFF333333)
+private val WilmaMuted     = Color(0xFF6B7280)
+private val WilmaHair      = Color(0xFFD5DAE0)
+private val WilmaHairStrong = Color(0xFFB7BDC6)
+private val WilmaSurface   = Color.White
+private val WilmaSurfaceAlt = Color(0xFFF5F6F8)
+private val WilmaDanger    = Color(0xFFB91C1C)
 
 private val LightColors = lightColorScheme(
-    primary             = KsykBlue,
+    primary             = WilmaNavy,
     onPrimary           = Color.White,
-    primaryContainer    = Color(0xFFDBEAFE),
-    onPrimaryContainer  = Color(0xFF1E3A8A),
-    secondary           = KsykBlueDark,
+    primaryContainer    = WilmaNavyTint,
+    onPrimaryContainer  = WilmaNavy,
+    secondary           = WilmaNavyDark,
     onSecondary         = Color.White,
-    tertiary            = Color(0xFF0F172A),
+    secondaryContainer  = WilmaNavyTint,
+    onSecondaryContainer = WilmaNavyDark,
+    tertiary            = WilmaInk,
     onTertiary          = Color.White,
-    background          = Color(0xFFF5F7FB),
-    onBackground        = Color(0xFF0F172A),
-    surface             = Color.White,
-    onSurface           = Color(0xFF0F172A),
-    surfaceVariant      = Color(0xFFEEF2F8),
-    onSurfaceVariant    = Color(0xFF475569),
-    error               = Color(0xFFDC2626),
+    background          = WilmaSurfaceAlt,
+    onBackground        = WilmaInk,
+    surface             = WilmaSurface,
+    onSurface           = WilmaInk,
+    surfaceVariant      = WilmaSurfaceAlt,
+    onSurfaceVariant    = WilmaMuted,
+    error               = WilmaDanger,
     onError             = Color.White,
     errorContainer      = Color(0xFFFEE2E2),
     onErrorContainer    = Color(0xFF7F1D1D),
-    outline             = Color(0xFFCBD5E1),
-    outlineVariant      = Color(0xFFE2E8F0),
+    outline             = WilmaHairStrong,
+    outlineVariant      = WilmaHair,
 )
 
+// Dark palette — same aesthetic, inverted luminance.
+private val WilmaNavyDarkMode     = Color(0xFF4A90D9)
+private val WilmaNavyDarkModeHover = Color(0xFF6BA6E2)
+private val WilmaInkDarkMode      = Color(0xFFF3F4F6)
+private val WilmaBodyDarkMode     = Color(0xFFE5E7EB)
+private val WilmaMutedDarkMode    = Color(0xFF9CA3AF)
+private val WilmaHairDarkMode     = Color(0xFF2A3040)
+private val WilmaHairStrongDarkMode = Color(0xFF3A4152)
+private val WilmaSurfaceDarkMode  = Color(0xFF12161F)
+private val WilmaSurfaceAltDarkMode = Color(0xFF1A1F2A)
+
 private val DarkColors = darkColorScheme(
-    primary             = Color(0xFF60A5FA),   // blue-400
-    onPrimary           = Color(0xFF1E3A8A),
-    primaryContainer    = Color(0xFF1D4ED8),
-    onPrimaryContainer  = Color(0xFFDBEAFE),
-    secondary           = Color(0xFF93C5FD),   // blue-300
-    onSecondary         = Color(0xFF1E3A8A),
-    tertiary            = Color(0xFFCBD5E1),
+    primary             = WilmaNavyDarkMode,
+    onPrimary           = Color(0xFF001F42),
+    primaryContainer    = Color(0xFF003D82),
+    onPrimaryContainer  = WilmaNavyTint,
+    secondary           = WilmaNavyDarkModeHover,
+    onSecondary         = Color(0xFF001F42),
+    tertiary            = WilmaInkDarkMode,
     onTertiary          = Color(0xFF0F172A),
-    background          = Color(0xFF0F172A),   // slate-900
-    onBackground        = Color(0xFFF1F5F9),
-    surface             = Color(0xFF1E293B),   // slate-800
-    onSurface           = Color(0xFFF1F5F9),
-    surfaceVariant      = Color(0xFF334155),   // slate-700
-    onSurfaceVariant    = Color(0xFF94A3B8),
+    background          = Color(0xFF0D1017),
+    onBackground        = WilmaInkDarkMode,
+    surface             = WilmaSurfaceDarkMode,
+    onSurface           = WilmaBodyDarkMode,
+    surfaceVariant      = WilmaSurfaceAltDarkMode,
+    onSurfaceVariant    = WilmaMutedDarkMode,
     error               = Color(0xFFF87171),
     onError             = Color(0xFF7F1D1D),
     errorContainer      = Color(0xFF991B1B),
     onErrorContainer    = Color(0xFFFEE2E2),
-    outline             = Color(0xFF475569),
-    outlineVariant      = Color(0xFF334155),
+    outline             = WilmaHairStrongDarkMode,
+    outlineVariant      = WilmaHairDarkMode,
+)
+
+// Wilma shape scale — tighter than Material defaults (12/16/28 → 4/6/10).
+private val WilmaShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small      = RoundedCornerShape(6.dp),
+    medium     = RoundedCornerShape(8.dp),
+    large      = RoundedCornerShape(10.dp),
+    extraLarge = RoundedCornerShape(12.dp),
+)
+
+// Wilma typography — Inter-like, tight tracking, compact scale.
+private val WilmaTypography = Typography(
+    displayLarge   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 32.sp, lineHeight = 36.sp, letterSpacing = (-0.5).sp),
+    displayMedium  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 28.sp, lineHeight = 32.sp, letterSpacing = (-0.4).sp),
+    displaySmall   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 24.sp, lineHeight = 28.sp, letterSpacing = (-0.3).sp),
+    headlineLarge  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 22.sp, lineHeight = 26.sp, letterSpacing = (-0.3).sp),
+    headlineMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = (-0.2).sp),
+    headlineSmall  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 17.sp, lineHeight = 22.sp, letterSpacing = (-0.2).sp),
+    titleLarge     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = (-0.1).sp),
+    titleMedium    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = (-0.1).sp),
+    titleSmall     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, letterSpacing =   0.0 .sp),
+    bodyLarge      = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,   fontSize = 15.sp, lineHeight = 22.sp),
+    bodyMedium     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,   fontSize = 14.sp, lineHeight = 20.sp),
+    bodySmall      = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,   fontSize = 12.sp, lineHeight = 16.sp),
+    labelLarge     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.1.sp),
+    labelMedium    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.6.sp),
+    // labelSmall is the uppercase 10sp Wilma masthead label.  Pair with
+    // text-transform: uppercase at the call site.
+    labelSmall     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,     fontSize = 10.sp, lineHeight = 12.sp, letterSpacing = 0.8.sp),
 )
 
 /**
- * KSYK Maps theme with full dark-mode support.
+ * KSYK Maps theme — Wilma visual language.
  *
- * On Android 12+ (S) and when the user hasn't overridden the colour, we
- * use Material You dynamic colours that pull from the wallpaper palette.
- * On older devices or when dynamic colours are disabled we fall back to
- * the KSYK blue brand palette in the appropriate light/dark variant.
- *
- * [dynamicColor] is exposed so callers can toggle Material You from
- * Settings (the SettingsScreen "Dynamic colour" switch).
+ * [dynamicColor] is kept for API compatibility with the previous theme
+ * but is now a no-op: Wilma's whole point is a consistent brand palette
+ * across every surface, so we ignore wallpaper tint.
  */
 @Composable
 fun KsykTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    @Suppress("UNUSED_PARAMETER") dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val ctx = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
-        }
-        darkTheme -> DarkColors
-        else      -> LightColors
-    }
+    val colorScheme = if (darkTheme) DarkColors else LightColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -101,5 +162,10 @@ fun KsykTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    MaterialTheme(
+        colorScheme = colorScheme,
+        shapes      = WilmaShapes,
+        typography  = WilmaTypography,
+        content     = content,
+    )
 }

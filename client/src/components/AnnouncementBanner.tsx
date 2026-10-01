@@ -226,22 +226,22 @@ export default function AnnouncementBanner() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className={cn(
-            // v4.7.56 — same simplified sizing as AdminProfileDialog so
-            // tablet + laptop + phone all work without height conflicts.
+            // v4.7.57 — same working pattern as AdminProfileDialog.
+            // Keep shadcn's default centered-positioning untouched for
+            // desktop; override to full-screen on <640px.
             "p-0 gap-0 overflow-hidden flex flex-col",
             "bg-white dark:bg-gray-950",
             "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
+            "border border-[#d5dae0] dark:border-[#2a3040]",
             "[&>button:first-of-type]:hidden",
-            // Mobile phones: full-screen sheet
-            "fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 right-0 bottom-0",
-            "w-screen h-[100dvh] max-w-none max-h-none rounded-none",
-            "border-0",
-            // Tablet + desktop: centred modal, content-driven height, 88 dvh cap
-            "sm:fixed sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto",
-            "sm:-translate-x-1/2 sm:-translate-y-1/2",
-            "sm:inset-auto",
-            "sm:h-auto sm:max-h-[88dvh] sm:w-[min(94vw,44rem)] sm:max-w-[44rem]",
-            "sm:rounded-[8px] sm:border sm:border-[#d5dae0] sm:dark:border-[#2a3040]",
+            // Desktop (default): comfortable reading dialog
+            "w-[min(94vw,44rem)] max-w-[44rem] max-h-[88dvh]",
+            "rounded-[8px]",
+            // Mobile override
+            "max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0",
+            "max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0",
+            "max-sm:w-screen max-sm:h-[100dvh] max-sm:max-w-none max-sm:max-h-none",
+            "max-sm:rounded-none max-sm:border-0",
           )}
         >
           {/* Priority accent — explicit 3 px bar, color per priority */}

@@ -315,7 +315,7 @@ private fun typeColor(type: String): Color = when (type.lowercase()) {
     "urgent"  -> Color(0xFFDC2626)
     "warning" -> Color(0xFFF59E0B)
     "event"   -> Color(0xFF8B5CF6)
-    else      -> Color(0xFF2563EB)
+    else      -> Color(0xFF003D82)
 }
 
 private fun formatRange(start: String?, end: String?, created: String?, isFi: Boolean): String {

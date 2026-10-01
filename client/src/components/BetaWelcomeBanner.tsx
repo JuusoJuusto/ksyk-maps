@@ -45,14 +45,14 @@ export default function BetaWelcomeBanner() {
           "p-0 gap-0 overflow-hidden flex flex-col",
           "bg-white dark:bg-gray-950",
           "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
+          "border border-[#d5dae0] dark:border-[#2a3040]",
           "[&>button:first-of-type]:hidden",
-          "fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 right-0 bottom-0",
-          "w-screen h-[100dvh] max-w-none max-h-none rounded-none",
-          "border-0",
-          "sm:fixed sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto",
-          "sm:-translate-x-1/2 sm:-translate-y-1/2 sm:inset-auto",
-          "sm:h-auto sm:max-h-[88dvh] sm:w-[min(94vw,32rem)] sm:max-w-[32rem]",
-          "sm:rounded-[8px] sm:border sm:border-[#d5dae0] sm:dark:border-[#2a3040]",
+          "w-[min(94vw,32rem)] max-w-[32rem] max-h-[88dvh]",
+          "rounded-[8px]",
+          "max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0",
+          "max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0",
+          "max-sm:w-screen max-sm:h-[100dvh] max-sm:max-w-none max-sm:max-h-none",
+          "max-sm:rounded-none max-sm:border-0",
         )}
       >
         {/* Amber beta accent bar */}

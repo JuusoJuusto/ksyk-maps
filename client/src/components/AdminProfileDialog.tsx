@@ -135,25 +135,25 @@ export default function AdminProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          // v4.7.56 — simplified sizing.  Was broken: competing `h-[min()]`
-          // and `max-h` on desktop, redundant max-h on mobile.
+          // v4.7.57 — leave the shadcn default centered-positioning
+          // alone (fixed left-50% top-50% translate -50/-50 max-w-lg).
+          // Override its layout but NOT its position on desktop; only
+          // flip to full-screen on mobile (<640px).
           "p-0 gap-0 overflow-hidden flex flex-col",
           "bg-white dark:bg-gray-950",
           "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
-          // Hide shadcn's default close button — we have our own
+          "border border-[#d5dae0] dark:border-[#2a3040]",
+          "border-t-[3px] border-t-[#003d82]",
           "[&>button:first-of-type]:hidden",
-          // ── Mobile phones (<640px): full-screen sheet, no rounding
-          "fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 right-0 bottom-0",
-          "w-screen h-[100dvh] max-w-none max-h-none rounded-none",
-          "border-l-0 border-r-0 border-b-0 border-t-[3px] border-t-[#003d82]",
-          // ── Tablets + desktop (sm+): centred modal, content-driven height
-          //    capped at 88 dvh with a hard rounded border
-          "sm:fixed sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto",
-          "sm:-translate-x-1/2 sm:-translate-y-1/2",
-          "sm:inset-auto",
-          "sm:h-auto sm:max-h-[88dvh] sm:w-[min(94vw,40rem)] sm:max-w-[40rem]",
-          "sm:rounded-[8px] sm:border sm:border-[#d5dae0] sm:dark:border-[#2a3040]",
-          "sm:border-t-[3px] sm:border-t-[#003d82]",
+          // Desktop (default + sm+): comfortable size
+          "w-[min(94vw,40rem)] max-w-[40rem] max-h-[88dvh]",
+          "rounded-[8px]",
+          // Mobile (<640px): full-screen takeover.  max-sm: breakpoint
+          // reaches below sm.
+          "max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0",
+          "max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0",
+          "max-sm:w-screen max-sm:h-[100dvh] max-sm:max-w-none max-sm:max-h-none",
+          "max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0",
         )}
       >
         {/* Header */}

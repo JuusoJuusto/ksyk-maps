@@ -1,41 +1,43 @@
 /**
- * "Get the app" popup — nudges web visitors to install the Android app.
- * Feature-flagged via /api/settings.showGetAppPopup (admin only) and
- * defaults to OFF. Shows once per session; the user can dismiss it for
- * the tab. There is no user-facing kill switch — admins control this.
+ * "Get the app" popup — v4.7.57 Wilma rewrite.
  *
- * Sits above the map with a small semi-transparent card in the
- * bottom-right on desktop, full-width bottom sheet on mobile.
+ * Admin-flag gated via `/api/settings.showGetAppPopup`.  Visible once
+ * per session, dismissible, slides up from the bottom.  Styled to
+ * match the rest of the Wilma chrome: hairline border, 6 px radius,
+ * uppercase 10 px masthead, Wilma-navy CTA.
  */
 import { useEffect, useState } from "react";
-import { Smartphone, X, Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Smartphone, X, Download, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Settings { showGetAppPopup?: boolean; getAppUrl?: string; }
 
 const DISMISSED_KEY = "ksyk_get_app_dismissed_v1";
+const USER_ENABLED_KEY = "ksyk_get_app_enabled_v1";
 
 export default function GetAppPopup() {
+  const { i18n } = useTranslation();
+  const isFi = i18n.language === "fi";
   const [visible, setVisible] = useState(false);
-  // v4.7.12 — default to relative /download so it works on any host
-  // (localhost, preview deploy, prod) without a hardcoded domain.
   const [href, setHref] = useState("/download");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Skip if dismissed this session.
-    try { if (sessionStorage.getItem(DISMISSED_KEY) === "1") return; } catch { /* ignore */ }
+    try { if (sessionStorage.getItem(DISMISSED_KEY) === "1") return; } catch { /* */ }
+    // Per-user kill switch (admin-independent)
+    try { if (localStorage.getItem(USER_ENABLED_KEY) === "0") return; } catch { /* */ }
 
     let cancelled = false;
     fetch("/api/settings")
       .then(r => r.json())
       .then((s: Settings) => {
         if (cancelled) return;
-        // Default off: only show when the admin has explicitly enabled it.
         if (s?.showGetAppPopup !== true) return;
         if (s.getAppUrl) setHref(s.getAppUrl);
         setTimeout(() => !cancelled && setVisible(true), 3000);
       })
-      .catch(() => { /* silent — popup optional */ });
+      .catch(() => { /* silent */ });
 
     return () => { cancelled = true; };
   }, []);
@@ -44,49 +46,71 @@ export default function GetAppPopup() {
 
   const close = () => {
     setVisible(false);
-    try { sessionStorage.setItem(DISMISSED_KEY, "1"); } catch { /* ignore */ }
+    try { sessionStorage.setItem(DISMISSED_KEY, "1"); } catch { /* */ }
   };
 
   return (
     <div
-      className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[22rem] z-40 pointer-events-none"
+      className="fixed bottom-3 right-3 left-3 sm:left-auto sm:w-[22rem] z-40 pointer-events-none"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="animate-fade-in-up pointer-events-auto rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-card">
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
-              <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold tracking-tight">KSYK Maps mobile</p>
-              <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-                Kartta, lukujärjestys ja widgetit taskussasi.
-              </p>
-            </div>
-            <button
-              onClick={close}
-              className="h-8 w-8 -mr-1.5 -mt-1.5 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-90 transition-all"
-              aria-label="Close / Sulje"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      <div
+        className={cn(
+          "pointer-events-auto overflow-hidden",
+          "bg-white dark:bg-gray-950",
+          "border border-[#d5dae0] dark:border-[#2a3040]",
+          "border-t-[3px] border-t-[#003d82]",
+          "rounded-[8px]",
+          "shadow-[0_20px_40px_-12px_rgba(15,23,42,0.3)]",
+          "animate-fade-in-up",
+        )}
+      >
+        {/* Masthead row */}
+        <div className="flex items-start gap-3 px-4 pt-3.5 pb-2">
+          <span className="h-9 w-9 shrink-0 flex items-center justify-center rounded-[6px] bg-[#e6ecf3] dark:bg-[#4a90d9]/15 border border-[#d5dae0] dark:border-[#2a3040]">
+            <Smartphone className="h-4 w-4 text-[#003d82] dark:text-[#4a90d9]" strokeWidth={2.25} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
+              {isFi ? "Mobiili" : "Mobile app"}
+            </p>
+            <p className="text-[14px] font-bold tracking-tight text-gray-900 dark:text-white leading-tight mt-0.5">
+              {isFi ? "KSYK Maps taskussasi" : "KSYK Maps in your pocket"}
+            </p>
           </div>
-          <div className="flex gap-2 mt-4">
-            <a
-              href={href}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-semibold active:scale-[0.98] transition-all"
-            >
-              <Download className="w-4 h-4" strokeWidth={2.5} />
-              Lataa Android
-            </a>
-            <button
-              onClick={close}
-              className="h-11 px-4 rounded-xl text-[14px] font-semibold text-muted-foreground hover:bg-muted active:scale-[0.98] transition-all"
-            >
-              Ei nyt
-            </button>
-          </div>
+          <button
+            onClick={close}
+            className="shrink-0 h-7 w-7 -mr-1 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label={isFi ? "Sulje" : "Close"}
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <p className="px-4 pb-3 text-[13px] leading-snug text-gray-600 dark:text-gray-400">
+          {isFi
+            ? "Kartta, lukujärjestys ja widgetit kotinäytölle."
+            : "Map, timetable and widgets on your home screen."}
+        </p>
+
+        {/* Hairline + action row */}
+        <div className="border-t border-[#d5dae0] dark:border-[#2a3040] flex items-stretch">
+          <button
+            onClick={close}
+            className="flex-1 h-10 text-[13px] font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            {isFi ? "Ei nyt" : "Not now"}
+          </button>
+          <span className="w-px bg-[#d5dae0] dark:bg-[#2a3040]" />
+          <a
+            href={href}
+            className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold text-white bg-[#003d82] hover:bg-[#002d5f] transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={2.5} />
+            {isFi ? "Lataa" : "Download"}
+            <ArrowRight className="h-3.5 w-3.5 opacity-80" strokeWidth={2.25} />
+          </a>
         </div>
       </div>
     </div>

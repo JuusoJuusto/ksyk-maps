@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- KSYK brand blue used by the splash screen background. -->
-    <color name="ksyk_blue">#2563EB</color>
+    <!-- v4.7.57: Wilma navy brand.  Was iOS blue #2563EB; swapped to
+         match the web Wilma visual pass.  Named `ksyk_blue` kept for
+         backward compat with existing references. -->
+    <color name="ksyk_blue">#003D82</color>
+    <color name="ksyk_navy">#003D82</color>
+    <color name="ksyk_navy_dark">#002D5F</color>
+    <color name="ksyk_navy_tint">#E6ECF3</color>
+    <color name="ksyk_hair">#D5DAE0</color>
+    <color name="ksyk_ink">#1A1A1A</color>
+    <color name="ksyk_body">#333333</color>
+    <color name="ksyk_muted">#6B7280</color>
+    <color name="ksyk_surface">#FFFFFF</color>
+    <color name="ksyk_surface_alt">#F5F6F8</color>
 </resources>
