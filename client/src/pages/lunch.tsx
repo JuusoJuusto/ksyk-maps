@@ -32,22 +32,12 @@ interface MenuItem {
 const MENU_TIMEOUT_MS = 10_000;
 const TRANSLATE_TIMEOUT_MS = 5_000;
 
-const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-};
-
 const translateText = async (text: string): Promise<string> => {
   if (!text || text === "Ei saatavilla") return text;
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=fi&tl=en&dt=t&q=${encodeURIComponent(text)}`,
-      TRANSLATE_TIMEOUT_MS,
+      { signal: AbortSignal.timeout(TRANSLATE_TIMEOUT_MS) },
     );
     const data = await response.json();
     return data[0][0][0] || text;
@@ -83,7 +73,7 @@ export default function Lunch() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchWithTimeout("/api/lunch-menu", MENU_TIMEOUT_MS);
+      const response = await fetch("/api/lunch-menu", { signal: AbortSignal.timeout(MENU_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`Lunch menu responded ${response.status}`);
       const text = await response.text();
       const parser = new DOMParser();
