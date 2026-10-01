@@ -4,7 +4,7 @@
  * Data: Amica RSS feed via /api/lunch-menu.
  * Design: warm editorial — amber accent, clean typography, no icon boxes.
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -29,17 +29,38 @@ interface MenuItem {
   dessert?: string;
 }
 
-const translateText = async (text: string, targetLang: string): Promise<string> => {
-  if (targetLang === "fi" || !text || text === "Ei saatavilla") return text;
+const MENU_TIMEOUT_MS = 10_000;
+const TRANSLATE_TIMEOUT_MS = 5_000;
+
+const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const translateText = async (text: string): Promise<string> => {
+  if (!text || text === "Ei saatavilla") return text;
+  try {
+    const response = await fetchWithTimeout(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=fi&tl=en&dt=t&q=${encodeURIComponent(text)}`,
+      TRANSLATE_TIMEOUT_MS,
     );
     const data = await response.json();
     return data[0][0][0] || text;
   } catch {
     return text;
   }
+};
+
+/** Translates every dish at once and returns a Finnish → English lookup. */
+const translateDishes = async (items: MenuItem[]): Promise<Map<string, string>> => {
+  const unique = Array.from(new Set(items.flatMap((m) => [m.regular, m.vegetarian, m.dessert ?? ""])));
+  const translated = await Promise.all(unique.map(translateText));
+  return new Map(unique.map((fi, i) => [fi, translated[i]]));
 };
 
 export default function Lunch() {
@@ -52,15 +73,18 @@ export default function Lunch() {
   const [todayIndex, setTodayIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isWeekend, setIsWeekend] = useState(false);
+  const requestIdRef = useRef(0);
 
   const isFi = i18n.language === "fi";
   const NOT_AVAILABLE = isFi ? "Ei saatavilla" : "Not available";
 
   const fetchMenu = async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/lunch-menu");
+      const response = await fetchWithTimeout("/api/lunch-menu", MENU_TIMEOUT_MS);
+      if (!response.ok) throw new Error(`Lunch menu responded ${response.status}`);
       const text = await response.text();
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "text/xml");
@@ -107,11 +131,6 @@ export default function Lunch() {
             dessert = line.replace("Jälkiruoka:", "").trim();
           }
         });
-        if (i18n.language === "en") {
-          vegetarian = await translateText(vegetarian, "en");
-          regular = await translateText(regular, "en");
-          if (dessert) dessert = await translateText(dessert, "en");
-        }
         parsedMenu.push({
           date: title,
           dayName,
@@ -120,13 +139,28 @@ export default function Lunch() {
           dessert,
         });
       }
+      if (requestId !== requestIdRef.current) return;
       setMenuItems(parsedMenu);
       setTodayIndex(foundTodayIndex);
       setSelectedIndex(foundTodayIndex);
+      setLoading(false);
+
+      // Show the Finnish menu right away, then swap in the translation.
+      if (i18n.language === "en") {
+        const lookup = await translateDishes(parsedMenu);
+        if (requestId !== requestIdRef.current) return;
+        const tr = (fi: string) => lookup.get(fi) ?? fi;
+        setMenuItems(parsedMenu.map((m) => ({
+          ...m,
+          regular: tr(m.regular),
+          vegetarian: tr(m.vegetarian),
+          dessert: m.dessert ? tr(m.dessert) : m.dessert,
+        })));
+      }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.error("Failed to fetch menu:", err);
       setError(isFi ? "Ruokalistan lataaminen epäonnistui." : "Failed to load the menu.");
-    } finally {
       setLoading(false);
     }
   };
