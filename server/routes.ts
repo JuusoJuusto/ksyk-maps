@@ -24,6 +24,7 @@ import { registerCampusRoutes } from "./campusRoutes";
 import { registerMapRoutes } from "./mapRoutes";
 import { registerEasterEggRoutes } from "./easterEggRoutes";
 import { registerTelemetryRoutes } from "./telemetryRoutes";
+import { getLunchMenuXml } from "./lunchMenu";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 
@@ -2700,9 +2701,9 @@ https://ksykmaps.fi
   // Lunch menu proxy to bypass CORS
   app.get("/api/lunch-menu", async (req, res) => {
     try {
-      const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
-      const text = await response.text();
+      const text = await getLunchMenuXml();
       res.setHeader("Content-Type", "application/xml");
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
       res.send(text);
     } catch (error) {
       console.error("Failed to fetch lunch menu:", error);

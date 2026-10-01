@@ -2,6 +2,7 @@
 import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
 import { emitLog, flushLogs } from '../server/posthogLogger.js';
 import { capture as posthogCapture, flush as posthogFlush } from '../server/posthogNode.js';
+import { getLunchMenuXml } from '../server/lunchMenu.js';
 import crypto from 'node:crypto';
 
 // â”€â”€ Stateless admin token (HMAC-signed, 7-day TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1931,9 +1932,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Lunch menu proxy to bypass CORS
     if (apiPath === '/lunch-menu' && req.method === 'GET') {
       try {
-        const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
-        const text = await response.text();
+        const text = await getLunchMenuXml();
         res.setHeader("Content-Type", "application/xml");
+        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
         return res.status(200).send(text);
       } catch (error: any) {
         console.error("Failed to fetch lunch menu:", error);

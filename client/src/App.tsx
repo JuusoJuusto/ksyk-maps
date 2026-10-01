@@ -18,6 +18,7 @@ import MaintenanceMode from "@/components/MaintenanceMode";
 import SplashScreen from "@/components/SplashScreen";
 import CookieConsent from "@/components/CookieConsent";
 import DevPanel from "@/components/DevPanel";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { initAnalytics } from "@/lib/analytics";
 import { initTelemetry as initLegacyTelemetry } from "@/lib/telemetry";
@@ -27,6 +28,7 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
 import { useKsykEasterEggs } from "@/hooks/useKsykEasterEggs";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 // Main page loads eagerly — it is the primary route and must render without
 // any async delay. All other routes are code-split so they do not inflate the
@@ -76,6 +78,16 @@ function OfflineBanner() {
       {fi
         ? "Ei internet-yhteyttä — kartta toimii, mutta tiedot päivittyvät vasta yhteyden palauduttua."
         : "No internet connection — the map works, but live data won't update until you reconnect."}
+    </div>
+  );
+}
+
+/** Shown while a lazy route chunk downloads, so the screen is never blank. */
+function RouteFallback() {
+  const { i18n } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+      <LoadingSpinner message={i18n.language === "fi" ? "Ladataan…" : "Loading…"} />
     </div>
   );
 }
@@ -130,7 +142,7 @@ function Router() {
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<RouteFallback />}>
     <Switch>
       {/* Public map */}
       <Route path="/" component={KSYKMapsHome} />
