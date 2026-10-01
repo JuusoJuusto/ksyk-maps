@@ -76,7 +76,16 @@ const DEFAULT_SETTINGS: AppSettings = {
   enableFooterCredits: true,
 };
 
-export default function AppSettingsManager() {
+interface AppSettingsManagerProps {
+  subtab?: string;
+  onSubtabChange?: (tab: string) => void;
+}
+
+export default function AppSettingsManager({ subtab, onSubtabChange }: AppSettingsManagerProps = {}) {
+  // v4.7.56 — tab param driven by URL (:subtab) when passed from the
+  // AdminDashboard route.  Falls back to "general".
+  const activeTab = subtab && ["general", "content", "features", "schedule", "maintenance"].includes(subtab)
+    ? subtab : "general";
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [localSettings, setLocalSettings] = useState<AppSettings | null>(null);
@@ -186,7 +195,7 @@ export default function AppSettingsManager() {
         </div>
       )}
 
-      <Tabs defaultValue="general">
+      <Tabs value={activeTab} onValueChange={(v) => onSubtabChange?.(v)}>
         <TabsList className="grid w-full grid-cols-5 h-9">
           <TabsTrigger value="general" className="gap-1.5 text-xs">
             <Globe className="h-3.5 w-3.5" />General

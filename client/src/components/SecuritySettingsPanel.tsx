@@ -694,19 +694,43 @@ function ExceptionsEditor({ exceptions, onChange }: { exceptions: UserException[
   const [tier, setTier] = useState<AccessTier>("full");
   const [note, setNote] = useState("");
 
-  const add = () => {
+  const addWith = (t: AccessTier) => {
     if (!email.trim()) return;
-    onChange([...exceptions, { id: genId(), email: email.trim().toLowerCase(), tier, note: note.trim() || undefined }]);
+    onChange([...exceptions, { id: genId(), email: email.trim().toLowerCase(), tier: t, note: note.trim() || undefined }]);
     setEmail(""); setNote("");
   };
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr,auto] gap-2 items-end">
+      {/* v4.7.56 — quick-action layout: enter an email, hit Grant for
+       *  full access or Block to deny.  Still exposes the full tier
+       *  picker + a custom Add button for the restricted tier. */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr,1fr] gap-2">
         <Input placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-9 text-sm" />
-        <TierSelect value={tier} onChange={setTier} />
         <Input placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="h-9 text-sm" />
-        <Button variant="outline" onClick={add} className="h-9 text-xs gap-1"><Plus className="h-3.5 w-3.5" />Add</Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => addWith("full")}
+          disabled={!email.trim()}
+          className="h-9 px-3 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-bold inline-flex items-center gap-1.5 transition-colors"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+          Grant full access
+        </button>
+        <button
+          type="button"
+          onClick={() => addWith("blocked")}
+          disabled={!email.trim()}
+          className="h-9 px-3 rounded-[6px] bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-bold inline-flex items-center gap-1.5 transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+          Block user
+        </button>
+        <span className="text-[11px] text-muted-foreground">or custom tier:</span>
+        <TierSelect value={tier} onChange={setTier} />
+        <Button variant="outline" onClick={() => addWith(tier)} disabled={!email.trim()} className="h-9 text-xs gap-1 rounded-[6px]"><Plus className="h-3.5 w-3.5" />Add</Button>
       </div>
       {exceptions.length === 0 ? (
         <p className="text-xs text-muted-foreground italic py-2 text-center">No exceptions yet.</p>

@@ -151,6 +151,8 @@ function Router() {
        * Legacy paths redirect via the LegacyAdminRedirect component below
        * so old bookmarks keep working. */}
       <Route path="/admin/tickets/:ticketId" component={Admin} />
+      {/* v4.7.56 — sub-tab support: /admin/:section/:subtab */}
+      <Route path="/admin/:section/:subtab" component={Admin} />
       <Route path="/admin/:section" component={Admin} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin-login" component={LegacyAdminRedirect} />

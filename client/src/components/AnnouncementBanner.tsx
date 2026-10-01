@@ -226,22 +226,25 @@ export default function AnnouncementBanner() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className={cn(
-            "p-0 gap-0 border-0",
-            // Mobile: full-screen sheet, safe-area-aware
-            "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-            "h-[100dvh] max-h-[100dvh] w-full max-w-full rounded-none",
-            // Desktop: comfortable reading width, tall enough for long notices
-            "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-            "sm:h-[min(90dvh,52rem)] sm:max-w-[min(94vw,44rem)] sm:w-full sm:max-h-[90dvh]",
-            "sm:rounded-[8px]",
-            "[&>button:first-of-type]:hidden",
-            "flex flex-col overflow-hidden",
+            // v4.7.56 — same simplified sizing as AdminProfileDialog so
+            // tablet + laptop + phone all work without height conflicts.
+            "p-0 gap-0 overflow-hidden flex flex-col",
             "bg-white dark:bg-gray-950",
             "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
-            "border border-[#d5dae0] dark:border-[#2a3040]",
+            "[&>button:first-of-type]:hidden",
+            // Mobile phones: full-screen sheet
+            "fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 right-0 bottom-0",
+            "w-screen h-[100dvh] max-w-none max-h-none rounded-none",
+            "border-0",
+            // Tablet + desktop: centred modal, content-driven height, 88 dvh cap
+            "sm:fixed sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto",
+            "sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:inset-auto",
+            "sm:h-auto sm:max-h-[88dvh] sm:w-[min(94vw,44rem)] sm:max-w-[44rem]",
+            "sm:rounded-[8px] sm:border sm:border-[#d5dae0] sm:dark:border-[#2a3040]",
           )}
         >
-          {/* Priority accent — 3 px navy/amber/red top bar */}
+          {/* Priority accent — explicit 3 px bar, color per priority */}
           <div
             className={cn(
               "shrink-0 h-[3px]",
@@ -251,10 +254,9 @@ export default function AnnouncementBanner() {
             )}
           />
 
-          {/* Document header — masthead + title + close.  Sticky on mobile
-           *  so long content scrolls under it and users can always close. */}
+          {/* Document header — masthead + title + close */}
           <div
-            className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-4 sm:py-5"
+            className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4 sm:py-5"
             style={{ paddingTop: "max(1rem, env(safe-area-inset-top, 1rem))" }}
           >
             <div className="flex items-start justify-between gap-3">

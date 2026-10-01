@@ -14,6 +14,7 @@ import Header from "@/components/Header";
 import KSYKMapView from "@/components/KSYKMapView";
 import StudentLoginGate from "@/components/StudentLoginGate";
 import OfflineBanner from "@/components/OfflineBanner";
+import BetaWelcomeBanner from "@/components/BetaWelcomeBanner";
 
 // Only loaded when the user opens settings — keeps changelog data (~3k lines)
 // out of the initial bundle.
@@ -71,6 +72,7 @@ export default function KSYKMapsHome() {
       }}
     >
       <StudentLoginGate />
+      <BetaWelcomeBanner />
       <OfflineBanner />
       <AnnouncementBanner />
       <Header

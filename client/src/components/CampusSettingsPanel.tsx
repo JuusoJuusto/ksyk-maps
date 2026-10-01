@@ -292,7 +292,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                     <MetaRow
                       icon={Globe}
                       label={isFi ? "Verkkoversio" : "Web version"}
-                      value={`v${APP_VERSION}`}
+                      value={`v${APP_VERSION} · BETA`}
                     />
                     <MetaRow
                       icon={Smartphone}
@@ -343,7 +343,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                 </Section>
 
                 <p className="text-[11px] text-center text-gray-400 dark:text-gray-600 pb-2 pt-2">
-                  © {new Date().getFullYear()} KSYK Maps · v{APP_VERSION}
+                  © {new Date().getFullYear()} KSYK Maps · v{APP_VERSION} · BETA
                 </p>
               </div>
             )}

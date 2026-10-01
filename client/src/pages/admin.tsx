@@ -12,14 +12,18 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const { darkMode } = useDarkMode();
 
-  // Read the optional :section param from all possible route patterns.
-  // /admin/tickets/:ticketId must be checked first — its ticketId overrides
-  // the generic :section and forces the Tickets tab open.
+  // Read the optional :section + :subtab params from all possible route
+  // patterns.  /admin/tickets/:ticketId must be checked first — its ticketId
+  // overrides the generic :section and forces the Tickets tab open.
   const [, paramsLong] = useRoute("/admin-ksyk-management-portal/:section");
   const [, paramsTicket] = useRoute("/admin/tickets/:ticketId");
+  // v4.7.56 — nested sub-tab support: /admin/settings/general
+  const [, paramsNested] = useRoute("/admin/:section/:subtab");
   const [, paramsShort] = useRoute("/admin/:section");
   const ticketId = paramsTicket?.ticketId;
-  const section = paramsLong?.section ?? (ticketId ? "tickets" : paramsShort?.section);
+  const section = paramsLong?.section
+    ?? (ticketId ? "tickets" : (paramsNested?.section ?? paramsShort?.section));
+  const subtab = paramsNested?.subtab;
 
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +125,7 @@ export default function Admin() {
         darkMode ? "bg-gray-950" : "bg-slate-50",
       )}
     >
-      <AdminDashboard section={section} openTicketId={ticketId} />
+      <AdminDashboard section={section} subtab={subtab} openTicketId={ticketId} />
     </div>
   );
 }

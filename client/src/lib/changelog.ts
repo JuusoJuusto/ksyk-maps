@@ -10,11 +10,40 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.55";
+export const APP_VERSION = "4.7.56";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.99.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "4.7.56",
+    date: "October 2026",
+    title: "Beta banner · Get-the-app really fixed · admin sub-tab routing · profile/announce size bugs · block users",
+    titleFi: "Beta-ilmoitus · Lataa-popup todella korjattu · admin-alavälilehdet URL:iin · dialogien koko-bugit · käyttäjän esto",
+    latest: true,
+    highlights: [
+      "**Beta welcome banner.** New Wilma-document dialog shown once per visitor on first map load. Finnish-first copy (per user) with English fallback. Amber accent, dismissible, remembered in `localStorage`. Settings `About` now shows `v4.7.56 · BETA` on web version + copyright footer.",
+      "**Get-the-app popup — root cause really fixed.** The `showGetAppPopup` + `getAppUrl` fields were in the AdminSettings UI AND the API whitelist AND the client fetch, but the **columns themselves were missing from the `app_settings` table in `shared/schema.ts`**. Drizzle's UPSERT silently dropped unknown columns. Added columns to the schema + idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` in `server/initDb.ts` so Vercel cold-starts apply the migration automatically. Also wrote `migrations/0004_get_app_popup_columns.sql` for the drizzle-kit workflow.",
+      "**Admin sub-tab routing.** Added `/admin/:section/:subtab` route (e.g. `/admin/settings/features`). `admin.tsx` reads the subtab param, forwards to `AdminDashboard`, which forwards to `AppSettingsManager`. Settings tab clicks now push a URL entry — browser back navigates between settings sub-tabs, deep links work, shared links reopen the exact tab.",
+      "**AdminProfileDialog sizing — bug fixed.** Was shipping conflicting `h-[min(92dvh,52rem)]` + `max-h-[92dvh]` + weird mobile 100 dvh with rounded-top. Rewrote with a clean two-tier sizing: mobile = full-screen with 3 px navy top accent (no rounding); tablet + desktop = centered `w-[min(94vw,40rem)]`, auto height capped at 88 dvh, 8 px rounded border. Body now uses `min-h-0` (reliable scroll pattern) instead of the broken `h-0`.",
+      "**Announcement dialog mobile/tablet polish.** Same sizing rewrite as profile dialog. Mobile = full-screen, tablet/desktop = `w-[min(94vw,44rem)]` auto-height. Dropped the double-border conflict (was `border` + `border-t-[3px]`). Priority accent bar now a 3 px div inside the content.",
+      "**Maintenance page polish.** Added KSYK logo to both the top-bar brand (small) and the hero (big 72 px). Removed the leftover ArrowLeft icon next to the `KSYK Maps` text. Admin message now lives inside a Wilma document card with a `Message from admins` masthead.",
+      "**Per-user block action.** `SecuritySettingsPanel` exception editor rebuilt. Email + optional note on one row; three primary actions below: `Grant full access` (emerald), `Block user` (red), and a custom-tier `Add` button for `Restricted`. Admins can now revoke access to a specific user in one click.",
+      "**NOT included this pass (deferred, needs a dedicated session)** — Android APK Compose theme pass to match the Wilma web design. The current v4.7.38 Material 3 pass keeps shipping as a backup.",
+      "**Rollback** — `git tag rollback-before-4-7-56` at `e88697a`. Revert: `git reset --hard rollback-before-4-7-56 && git push --force-with-lease origin main`.",
+      "Web version bumped `4.7.55` → `4.7.56`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Beta-tervetuloviesti ensikäyttäjille — selittää beta-vaiheen ja ohjaa tukisivulle.",
+      "Lataa-sovellus-popup toimii viimein: puuttuvat tietokantasarakkeet lisätty.",
+      "Admin-paneelin asetukset-alivälilehdet nyt URL:issa (/admin/settings/features), takaisin-nappi toimii.",
+      "Admin-profiilidialogi: kokorikot korjattu — mobiili täyskorkeus, tabletilla ja koneella keskitetty 40rem.",
+      "Ilmoitusdialogi: samat kokokorjaukset.",
+      "Huoltosivu: KSYK Maps -logo lisätty, nuoli otsikon vierestä poistettu.",
+      "Käyttäjien esto: SecuritySettings-paneeliin selkeät \"Myönnä pääsy\" ja \"Estä käyttäjä\" -napit.",
+      "Palauta: `git reset --hard rollback-before-4-7-56`.",
+    ],
+  },
   {
     version: "4.7.55",
     date: "September 2026",

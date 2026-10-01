@@ -718,6 +718,11 @@ export const appSettings = pgTable("app_settings", {
   enableVoiceCommands: boolean("enable_voice_commands").default(false),
   enableMultiLanguage: boolean("enable_multi_language").default(true),
   enableExportData: boolean("enable_export_data").default(true),
+  // v4.7.56 — admin-controlled "Get the app" popup.  Columns were missing
+  // from the schema, so the UPSERT silently dropped the values and the
+  // toggle in /admin/settings never persisted.
+  showGetAppPopup: boolean("show_get_app_popup").default(false),
+  getAppUrl: varchar("get_app_url").default("/download"),
   enableImportData: boolean("enable_import_data").default(true),
   enableBulkOperations: boolean("enable_bulk_operations").default(true),
   enableAdvancedFilters: boolean("enable_advanced_filters").default(true),

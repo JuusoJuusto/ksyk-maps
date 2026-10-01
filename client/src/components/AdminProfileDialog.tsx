@@ -135,32 +135,40 @@ export default function AdminProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "p-0 gap-0 border-0",
-          // Mobile: full-height sheet — user asked for bigger + more room
-          "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
-          "h-[100dvh] max-h-[100dvh] w-full max-w-full rounded-t-[8px]",
-          // Desktop: bigger dialog, closer to a mini-page
-          "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:right-auto sm:bottom-auto",
-          "sm:h-[min(92dvh,52rem)] sm:max-w-[min(94vw,42rem)] sm:w-full sm:max-h-[92dvh]",
-          "sm:rounded-[8px]",
-          "[&>button:first-of-type]:hidden",
-          "flex flex-col overflow-hidden",
+          // v4.7.56 — simplified sizing.  Was broken: competing `h-[min()]`
+          // and `max-h` on desktop, redundant max-h on mobile.
+          "p-0 gap-0 overflow-hidden flex flex-col",
           "bg-white dark:bg-gray-950",
-          "border border-[#d5dae0] dark:border-[#2a3040]",
-          "border-t-[3px] border-t-[#003d82]",
           "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
+          // Hide shadcn's default close button — we have our own
+          "[&>button:first-of-type]:hidden",
+          // ── Mobile phones (<640px): full-screen sheet, no rounding
+          "fixed inset-0 translate-x-0 translate-y-0 top-0 left-0 right-0 bottom-0",
+          "w-screen h-[100dvh] max-w-none max-h-none rounded-none",
+          "border-l-0 border-r-0 border-b-0 border-t-[3px] border-t-[#003d82]",
+          // ── Tablets + desktop (sm+): centred modal, content-driven height
+          //    capped at 88 dvh with a hard rounded border
+          "sm:fixed sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:right-auto",
+          "sm:-translate-x-1/2 sm:-translate-y-1/2",
+          "sm:inset-auto",
+          "sm:h-auto sm:max-h-[88dvh] sm:w-[min(94vw,40rem)] sm:max-w-[40rem]",
+          "sm:rounded-[8px] sm:border sm:border-[#d5dae0] sm:dark:border-[#2a3040]",
+          "sm:border-t-[3px] sm:border-t-[#003d82]",
         )}
       >
-        {/* Header — bigger padding for both mobile + desktop breathe */}
-        <div className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-7 py-5 sm:py-6 flex items-start justify-between gap-3">
+        {/* Header */}
+        <div
+          className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-3"
+          style={{ paddingTop: "max(1rem, env(safe-area-inset-top, 1rem))" }}
+        >
           <div className="min-w-0">
             <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
               {roleLabel}
             </p>
-            <DialogTitle className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-1">
+            <DialogTitle className="text-[20px] sm:text-[24px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-0.5">
               Profile settings
             </DialogTitle>
-            <DialogDescription className="text-[13px] text-gray-500 dark:text-gray-400 mt-1.5">
+            <DialogDescription className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
               Update your display name, email, or password.
             </DialogDescription>
           </div>
@@ -174,8 +182,8 @@ export default function AdminProfileDialog({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 sm:py-8">
+        {/* Body — min-h-0 is reliable scroll pattern, h-0 was the bug */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
           {/* Identity row */}
           <div className="flex items-center gap-3 pb-5 mb-5 border-b border-[#d5dae0] dark:border-[#2a3040]">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[18px] font-bold">

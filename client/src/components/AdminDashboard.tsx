@@ -881,7 +881,7 @@ function FeedbackPanel() {
   );
 }
 
-export default function AdminDashboard({ section, openTicketId }: { section?: string; openTicketId?: string }) {
+export default function AdminDashboard({ section, subtab, openTicketId }: { section?: string; subtab?: string; openTicketId?: string }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
@@ -2446,7 +2446,10 @@ export default function AdminDashboard({ section, openTicketId }: { section?: st
 
         {isOwner && (
           <TabsContent value="settings" className="mt-0 space-y-6">
-            <AppSettingsManager />
+            <AppSettingsManager
+              subtab={subtab}
+              onSubtabChange={(t: string) => setLocation(`${adminBase}/settings/${t}`)}
+            />
             {/*
               v1.83.0 — 'Delete ALL map data' removed on user request.
               Individual delete flows in Buildings / Rooms / Staff /

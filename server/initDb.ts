@@ -227,6 +227,13 @@ export async function ensureSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_bugs_created_at ON app_bug_reports (created_at);
       CREATE INDEX IF NOT EXISTS idx_bugs_status     ON app_bug_reports (status);
 
+      -- v4.7.56 — Get-the-app popup columns.  The admin toggle +
+      -- API whitelist were wired, but the columns themselves were
+      -- missing from the app_settings table, so UPSERTs silently
+      -- dropped the values.  Add them idempotently.
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS show_get_app_popup boolean DEFAULT false;
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS get_app_url varchar DEFAULT '/download';
+
       CREATE TABLE IF NOT EXISTS push_tokens (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id     varchar,
