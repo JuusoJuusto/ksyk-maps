@@ -118,34 +118,57 @@ type FeatureBuilding = SharedBuilding;
 // Try server-side session first; fall back to localStorage when the server
 // returns 401 (e.g. cross-origin Vercel deployment where the cookie isn't
 // forwarded). A 200 with a non-admin role still denies access.
+// Re-checks when the admin keys change (sign-in in another tab) or the tab
+// becomes visible, so a builder opened before sign-in doesn't stay denied.
+// Never downgrades from "allowed" — that would unmount unsaved builder work.
+const ADMIN_AUTH_KEYS = ["ksyk_admin_token", "ksyk_admin_logged_in", "ksyk_admin_user"];
+
 function useAdminAuth() {
   const [state, setState] = useState<"checking" | "allowed" | "denied">("checking");
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
+    let latest = 0;
+    const settle = (next: "allowed" | "denied") =>
+      setState((prev) => (prev === "allowed" ? prev : next));
+    const check = async () => {
+      const run = ++latest;
+      const isStale = () => run !== latest;
       try {
         const token = localStorage.getItem('ksyk_admin_token');
         const res = await fetch("/api/auth/user", {
           credentials: "include",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-        if (!cancelled && res.ok) {
+        if (!isStale() && res.ok) {
           const u = await res.json();
-          setState(["admin", "owner", "editor"].includes(u?.role) ? "allowed" : "denied");
+          if (isStale()) return;
+          settle(["admin", "owner", "editor"].includes(u?.role) ? "allowed" : "denied");
           return;
         }
       } catch { /* network error — fall through to localStorage */ }
-      if (cancelled) return;
+      if (isStale()) return;
       // localStorage fallback
       const loggedIn = localStorage.getItem("ksyk_admin_logged_in") === "true";
       const userRaw = localStorage.getItem("ksyk_admin_user");
-      if (!loggedIn || !userRaw) { setState("denied"); return; }
+      if (!loggedIn || !userRaw) { settle("denied"); return; }
       try {
         const u = JSON.parse(userRaw);
-        setState(["admin", "owner", "editor"].includes(u?.role) ? "allowed" : "denied");
-      } catch { setState("denied"); }
-    })();
-    return () => { cancelled = true; };
+        settle(["admin", "owner", "editor"].includes(u?.role) ? "allowed" : "denied");
+      } catch { settle("denied"); }
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || ADMIN_AUTH_KEYS.includes(e.key)) void check();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    void check();
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      latest++;
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
   return state;
 }

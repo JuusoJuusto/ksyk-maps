@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useSecuritySettings, saveSecurityToServer, loadSecurityFromServer } from "@/hooks/useSecuritySettings";
-import { getAdminHeaders } from "@/lib/adminAuth";
+import { getAdminHeaders, getAdminToken } from "@/lib/adminAuth";
+import posthog from "@/lib/posthog";
 import { evaluateAccess } from "@/lib/accessControl";
 import {
   DAY_KEYS,
@@ -58,6 +59,17 @@ function genId() {
   return `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const AUTH_FAILURE_COPY: Record<string, { title: string; description: string }> = {
+  missing: {
+    title: "Not signed in",
+    description: "This tab has no admin token. Sign in again, then try again.",
+  },
+  expired: {
+    title: "Session expired",
+    description: "Your admin session has expired. Sign out and sign back in, then try again.",
+  },
+};
+
 export default function SecuritySettingsPanel() {
   const { settings, setAll, reset } = useSecuritySettings();
   const { toast } = useToast();
@@ -96,12 +108,20 @@ export default function SecuritySettingsPanel() {
         description: "Live for all users — propagates within 60 s.",
       });
     } catch (e: any) {
+      const loginAt = Number(localStorage.getItem("ksyk_admin_login_at") || 0);
+      posthog.capture("admin_save_failed", {
+        endpoint: "security-settings",
+        status: e?.status ?? null,
+        reason: e?.reason ?? null,
+        has_token: !!getAdminToken(),
+        seconds_since_login: loginAt > 0 ? Math.round((Date.now() - loginAt) / 1000) : null,
+      });
       if (e?.status === 401) {
-        toast({
-          title: "Session expired",
-          description: "Your admin session has expired. Sign out and sign back in, then try again.",
-          variant: "destructive",
-        });
+        const copy = AUTH_FAILURE_COPY[e?.reason as string] ?? {
+          title: "Sign-in rejected",
+          description: `${e?.message || "The server rejected your admin token"}. Sign out and sign back in, then try again.`,
+        };
+        toast({ ...copy, variant: "destructive" });
       } else {
         toast({
           title: "Save failed",

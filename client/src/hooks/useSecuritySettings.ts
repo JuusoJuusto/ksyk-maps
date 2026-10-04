@@ -70,8 +70,12 @@ export async function saveSecurityToServer(s: SecuritySettings): Promise<void> {
     body: JSON.stringify(s),
   });
   if (!r.ok) {
-    const err = new Error("Failed to save security settings") as Error & { status: number };
+    const body = await r.json().catch(() => ({}));
+    const err = new Error(
+      typeof body?.message === "string" ? body.message : "Failed to save security settings",
+    ) as Error & { status: number; reason?: string };
     err.status = r.status;
+    if (typeof body?.reason === "string") err.reason = body.reason;
     throw err;
   }
 }
