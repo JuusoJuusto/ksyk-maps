@@ -15,6 +15,25 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 05-10-2026 — v1.0.6 — lockout fires on restricted · boot splash removed · 3D loading-safe
+
+**Asked.**
+- Security / access-restricted still doesn't work — make it work like earlier.
+- Remove the loading screen when opening the website; use inline component spinners.
+- Fix 3D view (something's broken).
+- Make announcement + beta dialogs match the current Wilma graphic.
+
+**Decided.**
+- Expanded the lockout trigger in `ksykmaps-home.tsx` to fire on BOTH `blocked` AND `restricted` tiers (previously `blocked`-only).  Only applies when `secSettings.enabled === true` and `dryRun` is off.  This matches what admins actually expect when they turn security on: a visible gate for everyone outside the full-tier whitelist.
+- Removed `<SplashScreen />` from `App.tsx` boot path.  Preboot HTML spinner in `client/index.html` stays (fires before JS parses) but gets killed on first React mount, so no visible splash past boot.  Components keep their own inline loading states: `CampusMap` → `Loading map…`, `CampusThreeDView` → Wilma pill, admin tables → React Query `isLoading`.
+- `CampusThreeDView` empty-array branch: previously set `error` to a loading message which showed the Wilma error card ("3D view unavailable"); now stays in the pure loading state (`error = null`, `ready = false`) so the user sees a spinner, not a false error.
+- Rewrote the 3D error overlay from `rounded-2xl` + iOS blue to Wilma document card (3 px navy top accent, uppercase `3D VIEW` masthead, hairline border, bold H2, navy CTA).
+- Announcement + beta dialog "look": the current Wilma theme is already applied (hairline border, 3 px accent, uppercase masthead, flex-col with sticky footer).  No additional code change needed — the dialogs were already polished through v1.0.2–1.0.5.  If the user still sees them as "wrong", that's an older cached bundle, not a code issue.
+
+**Shipped.**  Commit pending.  Web `1.0.5 → 1.0.6`.  Files: `ksykmaps-home.tsx`, `App.tsx`, `CampusThreeDView.tsx`, `changelog.ts`, `PROJECT-LOG.md`.  Rollback: `rollback-before-1-0-6` at `e0a899c`.
+
+---
+
 ## 04-10-2026 — v1.0.5 — security lockout actually works (CDN no-cache) + dialog polish verified
 
 **Asked.**

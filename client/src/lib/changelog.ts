@@ -10,17 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.5";
+export const APP_VERSION = "1.0.6";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.6",
+    date: "October 2026",
+    title: "Access lockout fires on restricted · boot splash removed · 3D loading-safe · Wilma error overlay",
+    titleFi: "Lukitusnäyttö aukeaa myös 'restricted'-tasolla · aloitusruutu pois · 3D latauskestävä",
+    latest: true,
+    highlights: [
+      "**Access lockout now fires on `restricted` tier too, not only `blocked`.**  Earlier builds only showed the `AccessLockoutScreen` when `tier === \"blocked\"`.  That meant an admin who turned the security engine on + enabled the login gate expected a sign-in-to-continue wall — but non-admin visitors saw the public map with a few features gone, no visible gate at all.  Fixed: when `secSettings.enabled === true` (and `dryRun` is off), both `restricted` and `blocked` tiers now render the lockout.  Admin / owner / full-tier users still bypass as before.",
+      "**Boot splash removed.**  The React `SplashScreen` component used to cover the whole viewport until data loaded — gone.  Preboot HTML spinner stays (fires before any JS parses, so no blank frame), but it's killed the moment React inserts anything into `#root`.  Components that need loading UI render inline spinners now: `CampusMap` has `Loading map…`, `CampusThreeDView` has a Wilma pill `Loading 3D view`, admin tables use React Query's `isLoading`.",
+      "**3D view no longer errors on cold load.**  `CampusThreeDView` previously showed `No campus geometry to render` as an error when the campus fetch was still in flight.  Now it stays in the loading state until the data resolves — if rooms + buildings genuinely are empty, the user sees a persistent spinner instead of a false admin-blame message.",
+      "**3D error overlay re-themed to Wilma.**  Was `rounded-2xl` + iOS blue; now a Wilma document card: 3 px navy top accent, uppercase `3D VIEW` masthead, hairline border, bold `Can't open 3D right now` H2, navy CTA.",
+      "**Rollback** — `git tag rollback-before-1-0-6` at `e0a899c`.  Revert: `git reset --hard rollback-before-1-0-6 && git push --force-with-lease origin main`.",
+      "Web `1.0.5 → 1.0.6`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Lukitusnäyttö aukeaa nyt myös `restricted`-tasolla, ei vain `blocked`:lla.  Admin voi näin esim. pakottaa @ksyk.fi-kirjautumisen ja saada koko sivuston piiloon vieraille.",
+      "Aloitusruutu (React SplashScreen) poistettu.  HTML:n esivaihespinner näkyy vielä ennen JS:n latausta, mutta se poistuu heti kun React mountaa.  Komponentit lataavat omilla sisäisillä spinnereillään.",
+      "3D-näkymä ei enää näytä virhettä kylmällä latauksella — pysyy latauksessa kunnes kampusdata saapuu.",
+      "3D-virhekortti uusittu Wilma-tyyliin.",
+      "Palauta: `git reset --hard rollback-before-1-0-6`.",
+    ],
+  },
+  {
     version: "1.0.5",
     date: "October 2026",
     title: "Security lockout actually works — no-cache fix on /api/security-settings",
     titleFi: "Pääsy-eston lukitus toimii vihdoin — välimuistiotsake korjattu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Root cause of \"security enabled but no lockout in incognito\":**  `GET /api/security-settings` had NO cache-control headers.  On first prod boot Postgres' `kv_settings` row for `securitySettings` was missing, so the endpoint returned `null`; Vercel's edge cached that null for 30+ minutes.  Admins would flip `enabled: true` in `/admin/security`, the save worked, but every public client kept hitting the stale CDN null and `useAccessDecision` kept returning `tier: \"full\"` → no lockout screen ever appeared.",
       "**Fix (two parts).**  Server: added `Cache-Control: no-store` + `CDN-Cache-Control: no-store` + `Vercel-CDN-Cache-Control: no-store` headers on the GET response (mirrors `/api/settings`).  Client: `loadSecurityFromServer()` now appends `?t=<Date.now()>` and sets `cache: \"no-store\"` on its fetch, so every mount pulls fresh.",

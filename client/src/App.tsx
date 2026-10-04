@@ -15,7 +15,9 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
-import SplashScreen from "@/components/SplashScreen";
+// v1.0.6 — SplashScreen removed from the boot path; the component
+// file stays in the repo in case we want it back behind an admin
+// toggle later.
 import CookieConsent from "@/components/CookieConsent";
 import DevPanel from "@/components/DevPanel";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -225,13 +227,11 @@ export default function App() {
     <ErrorBoundary>
       {/* Vercel Analytics widget removed — see top-of-file note. */}
       <QueryClientProvider client={queryClient}>
-        {/* Splash lives INSIDE QueryClientProvider because its boot
-         *  loader uses React Query to detect readiness. */}
-        <SplashScreen />
-        {/* v4.7.26 — #app-root wrapper so SplashScreen can toggle
-         *  `inert` on the whole app tree while the boot splash is up.
-         *  Prevents inputs behind the splash from stealing focus /
-         *  triggering browser autofill before the splash fades. */}
+        {/* v1.0.6 — boot splash removed per user feedback.  Components
+         *  that need loading UI render their own inline spinners now
+         *  (CampusMap shows a spinner until MapLibre loads the first
+         *  tile; CampusThreeDView shows "Loading campus…"; tabs that
+         *  depend on data use React Query's isLoading state). */}
         <div id="app-root" style={{ display: "contents" }}>
           <ThemeProvider>
             <DarkModeProvider>

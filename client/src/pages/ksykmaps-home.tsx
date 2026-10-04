@@ -56,9 +56,20 @@ export default function KSYKMapsHome() {
     return () => window.removeEventListener("ksyk:search-clear", onClear);
   }, []);
 
-  // Security gate — blocked users see the lockout screen.
-  // dryRun mode logs the decision without enforcing it.
-  if (decision.tier === "blocked" && !secSettings.dryRun) {
+  // v1.0.6 — security gate now fires for BOTH blocked AND restricted
+  // tiers when the admin has turned the security engine on
+  // (`secSettings.enabled: true`).  Previously only `blocked` triggered
+  // the lockout screen, which left admins who only wanted "sign in with
+  // @ksyk.fi to continue" with no visible gate at all — the public map
+  // just rendered with a few features missing.  Now:
+  //   - full tier (admin bypass, dry-run, security disabled) → map
+  //   - restricted tier → lockout with sign-in CTA (expected behaviour)
+  //   - blocked tier → lockout (unchanged)
+  //   - dryRun bypass still works for admins testing rules.
+  const shouldLockOut = secSettings.enabled
+    && !secSettings.dryRun
+    && (decision.tier === "blocked" || decision.tier === "restricted");
+  if (shouldLockOut) {
     return <AccessLockoutScreen decision={decision} />;
   }
 

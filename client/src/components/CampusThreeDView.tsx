@@ -203,16 +203,12 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       );
 
       if (validBuildings.length === 0 && validRooms.length === 0) {
-        // v1.0.4 — if the campus fetch hasn't landed yet, the arrays are
-        // empty but it's a loading state, not a real empty-campus.  Set
-        // a loading message instead of the admin-blame message; the
-        // caller will re-run this effect once the campus data arrives.
-        if (!rooms || !buildings) {
-          setError("Loading campus…");
-        } else {
-          setError("No campus geometry yet. Open the map on 2D to see what's published.");
-        }
-        setReady(true);
+        // v1.0.6 — stay in loading state rather than showing the
+        // "3D view unavailable" error card.  Arrays are empty either
+        // because the fetch is in flight (common on cold load) or the
+        // published snapshot is empty.  Either way the parent re-runs
+        // this effect when `rooms`/`buildings` resolve.  Leaving
+        // `error` null and `ready` false keeps the inline spinner up.
         return;
       }
 
@@ -946,34 +942,47 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
             : "W A S D to move · Drag to look · Shift to run"}
         </div>
 
-        {/* Loading + error overlays. */}
+        {/* v1.0.6 — Wilma-style loading + error overlays */}
         {(!ready && !error) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className={cn(
-              "text-[13px] font-medium px-4 py-2.5 rounded-full backdrop-blur-xl border",
+              "inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] px-3 py-2 rounded-[6px] border",
               darkMode
-                ? "bg-gray-900/85 border-white/[0.08] text-gray-200"
-                : "bg-white/90 border-black/[0.08] text-gray-700",
+                ? "bg-gray-950 border-[#2a3040] text-gray-200"
+                : "bg-white border-[#d5dae0] text-gray-700",
             )}>
-              Loading 3D view…
+              <span className="h-3 w-3 rounded-full border-2 border-[#003d82] dark:border-[#4a90d9] border-t-transparent animate-spin" />
+              Loading 3D view
             </div>
           </div>
         )}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <div className={cn(
-              "rounded-2xl border p-6 max-w-md text-center",
-              darkMode ? "bg-gray-900 border-gray-800 text-gray-200" : "bg-white border-gray-200 text-gray-800",
+              "rounded-[6px] border max-w-md w-full overflow-hidden text-left",
+              darkMode ? "bg-gray-950 border-[#2a3040]" : "bg-white border-[#d5dae0]",
+              "border-t-[3px] border-t-[#003d82]",
             )}>
-              <p className="font-semibold text-[15px] mb-2">3D view unavailable</p>
-              <p className="text-[13px] text-muted-foreground mb-4">{error}</p>
-              <button
-                type="button"
-                onClick={onClose}
-                className="h-9 px-4 rounded-xl text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.97] transition-all"
-              >
-                Close
-              </button>
+              <div className="p-5">
+                <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+                  3D view
+                </p>
+                <p className="font-bold text-[18px] tracking-tight text-gray-900 dark:text-white mb-2">
+                  Can't open 3D right now
+                </p>
+                <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {error}
+                </p>
+              </div>
+              <div className="border-t border-[#d5dae0] dark:border-[#2a3040] p-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[13px] font-bold inline-flex items-center justify-center transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
