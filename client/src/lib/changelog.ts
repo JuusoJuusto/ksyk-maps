@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.6";
+export const APP_VERSION = "1.0.7";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.7",
+    date: "October 2026",
+    title: "Google Fonts un-blocked (~520 ms LCP win) · Map back-link removed from lockout screen",
+    titleFi: "Google-fontit eivät enää blokkaa ensimmäistä piirtoa · 'Kartta'-paluulinkki pois lukitusnäytöltä",
+    latest: true,
+    highlights: [
+      "**Fonts stop blocking first paint.**  Lighthouse flagged `fonts.googleapis.com/css2?...` at 760 ms on the critical render path — the single biggest LCP delay.  Changed the stylesheet link to `media=\"print\" onload=\"this.media='all'\"` so the browser downloads the CSS asynchronously; FCP ships before the fonts resolve.  `<noscript>` fallback keeps non-JS clients working, `preconnect` to `fonts.googleapis.com` + `fonts.gstatic.com` stays so the handshake overlaps with HTML parse.  Expected savings: ~520 ms LCP per Lighthouse.",
+      "**`← Kartta / ← Map` back-link removed from the access-restricted header.**  The lockout screen IS the gate — bouncing back to `/` just re-rendered the same lockout again (or flashed the map while the gate re-evaluated).  Header now only shows the uppercase `RESTRICTED` chip on the right; the owner escape hatch is still the `Admin` link in the footer.",
+      "**Why the \"lockout isn't working\" turned out to be a non-bug.**  dryRun was enabled in `/admin/security` — that's the explicit admin-test switch that suppresses the gate even when `enabled: true`.  Flipping dryRun off made the lockout fire exactly as designed.  No code fix needed on the engine side.",
+      "**Rollback** — `git tag rollback-before-1-0-7` at `a154056`.  Revert: `git reset --hard rollback-before-1-0-7 && git push --force-with-lease origin main`.",
+      "Files touched: `client/index.html` (fonts link), `client/src/components/AccessLockoutScreen.tsx` (header back-link removed).  Web `1.0.6 → 1.0.7`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Google-fontit eivät enää blokkaa ensimmäistä piirtoa.  `media=\"print\" onload=\"this.media='all'\"` lataa fonttien CSS:n taustalla, LCP paranee ~520 ms.",
+      "'Kartta'/'Map'-paluulinkki poistettu lukitusnäytön ylätunnisteesta — lukitus itsessään on portti, paluu `/`:lle vain renderöi saman näytön uudelleen.",
+      "Lukitus 'ei toiminut' koska `dryRun` oli päällä `/admin/security`-paneelissa — se on nimenomaan admin-testikytkin joka ohittaa portin.  Pois päältä → lukitus toimii.",
+      "Palauta: `git reset --hard rollback-before-1-0-7`.",
+    ],
+  },
+  {
     version: "1.0.6",
     date: "October 2026",
     title: "Access lockout fires on restricted · boot splash removed · 3D loading-safe · Wilma error overlay",
     titleFi: "Lukitusnäyttö aukeaa myös 'restricted'-tasolla · aloitusruutu pois · 3D latauskestävä",
-    latest: true,
+    latest: false,
     highlights: [
       "**Access lockout now fires on `restricted` tier too, not only `blocked`.**  Earlier builds only showed the `AccessLockoutScreen` when `tier === \"blocked\"`.  That meant an admin who turned the security engine on + enabled the login gate expected a sign-in-to-continue wall — but non-admin visitors saw the public map with a few features gone, no visible gate at all.  Fixed: when `secSettings.enabled === true` (and `dryRun` is off), both `restricted` and `blocked` tiers now render the lockout.  Admin / owner / full-tier users still bypass as before.",
       "**Boot splash removed.**  The React `SplashScreen` component used to cover the whole viewport until data loaded — gone.  Preboot HTML spinner stays (fires before any JS parses, so no blank frame), but it's killed the moment React inserts anything into `#root`.  Components that need loading UI render inline spinners now: `CampusMap` has `Loading map…`, `CampusThreeDView` has a Wilma pill `Loading 3D view`, admin tables use React Query's `isLoading`.",

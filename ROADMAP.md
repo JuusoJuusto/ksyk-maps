@@ -27,6 +27,7 @@ Hub: [[BRAIN.md]]
 - [[security-settings-reset]] — one-click "Reset to defaults" that forces all users into `restricted` tier
 - [[motion-pass]] — subtle enter/exit transitions on dialogs + sheets, respect `prefers-reduced-motion`
 - [[faq-content-review]] — refresh Finnish copy, add 3–5 new entries
+- [[critical-css-inline]] — inline the first-paint Tailwind/MapLibre CSS so the two render-blocking `/assets/*.css` fetches (300 ms + 150 ms per Lighthouse) stop blocking LCP.  Needs a build-step critical-CSS extraction plugin.
 
 ## 🔮 Future
 
@@ -39,6 +40,12 @@ Hub: [[BRAIN.md]]
 
 ## ✅ Shipped (recent)
 
+- v1.0.7 — Google Fonts no longer render-blocking (saves ~520 ms LCP) + `← Map` back-link removed from the access-restricted screen
+- v1.0.6 — lockout fires on `restricted` tier too, boot splash removed, 3D loading-safe, Wilma-themed 3D error card
+- v1.0.5 — `/api/security-settings` no-cache fix (CDN was caching null for 30+ min; admin flips never propagated)
+- v1.0.4 — unconditional Nav/3D/Navigoi, peek 44dvh, 3D loading message
+- v1.0.3 — map rail clipping fix, PROJECT-LOG DD-MM-YYYY convention
+- v1.0.2 — beta admin toggle, forgot-password Wilma polish, easter eggs OFF
 - v1.0.1 — version reset, root cause of `Failed to fetch` flood fixed, student login gate opt-in, cookie banner EN default
 - v4.7.57 — dialog desktop sizing fix, Get-the-app Wilma redesign, Android 2.0.0-beta theme
 - v4.7.56 — beta banner, Get-the-app really fixed (DB column), admin sub-tab routing, per-user block action

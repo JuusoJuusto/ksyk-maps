@@ -15,6 +15,24 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 05-10-2026 — v1.0.7 — Google Fonts un-blocked (~520 ms LCP) · Map back-link removed from lockout
+
+**Asked.**
+- Make the website load faster — Lighthouse flagged `fonts.googleapis.com/css2?...` as a 760 ms render-blocking request (biggest single LCP delay), plus `/assets/index-*.css` (300 ms) and `/assets/vendor-ma....css` (150 ms).
+- Find why the access-restricted lockout screen "isn't on" — I can access the site when it should be gated.
+- (Mid-session.)  Nevermind — dryRun was enabled.  Remove the Map back-link from the lockout page, and also remove the `?debug-access` overlay I just added.  Push to main.
+
+**Decided.**
+- **Fonts.**  Swapped the `<link rel="stylesheet">` for Google Fonts in `client/index.html` to use `media="print" onload="this.media='all'"` — the browser downloads the stylesheet without blocking first paint, then flips `media` back to `all` once parsed.  Added a `<noscript>` fallback so non-JS clients still get the fonts.  `preconnect` to `fonts.googleapis.com` + `fonts.gstatic.com` stays so the handshake overlaps HTML parse.  Expected savings per Lighthouse: ~520 ms LCP.
+- **CSS files.**  `/assets/index-*.css` and `/assets/vendor-maplibre.css` can't be deferred the same way — Tailwind utilities + MapLibre controls are needed above-the-fold.  Would need a critical-CSS inlining plugin to save more; parked as [[critical-css-inline]].
+- **Lockout was a non-bug.**  Investigated the full gate stack (`useAccessDecision` → `evaluateAccess`); documented all five silent-suppressors in-session (`ksyk_access_granted` grant flag, owner/admin role, `dryRun`, master off, no gate denies).  User reported back that `dryRun` was on in `/admin/security` — that's the explicit admin-test switch, working as designed.  Flipping it off made the lockout fire correctly.  No engine fix needed.
+- **Map back-link removed.**  `AccessLockoutScreen` header had a `← Kartta / ← Map` link to `/` that defeated the point — the lockout IS the gate, bouncing back just re-rendered it (or flashed the map briefly while the gate re-evaluated).  Header is now just the uppercase `RESTRICTED` chip.  Owner escape hatch (the `Admin` link in the footer) stays.
+- **`?debug-access` overlay reverted.**  Added mid-session as a self-diagnosis aid, but the real cause was already known (dryRun) so the overlay has no reason to ship.  Removed the component, its invocation, and the `URLSearchParams` probe from `ksykmaps-home.tsx`.  Keeping it as a brief in ROADMAP in case a future triage reruns.
+
+**Shipped.**  Commit pending.  Web `1.0.6 → 1.0.7`.  Files: `client/index.html` (fonts), `client/src/components/AccessLockoutScreen.tsx` (header back-link removed), `client/src/pages/ksykmaps-home.tsx` (debug overlay removed), `client/src/lib/changelog.ts`, `PROJECT-LOG.md`, `ROADMAP.md`, `CHANGELOG.md`.  `tsc` clean, Vite production build verified.  Rollback: `rollback-before-1-0-7` at `a154056`.
+
+---
+
 ## 05-10-2026 — v1.0.6 — lockout fires on restricted · boot splash removed · 3D loading-safe
 
 **Asked.**

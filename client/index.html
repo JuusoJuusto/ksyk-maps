@@ -98,7 +98,23 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <!-- v1.0.7 — Google Fonts was render-blocking for ~760 ms on first
+         paint (Lighthouse flagged it as the biggest LCP delay).  Load
+         it async by swapping media="print" → "all" once the stylesheet
+         is parsed.  Fonts stay the same; FCP ships before the request
+         resolves.  The <noscript> fallback keeps non-JS clients working. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+      media="print"
+      onload="this.media='all'"
+    >
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+      >
+    </noscript>
 
     <!-- v4.7.15 — inline preboot spinner. Drawn by the HTML parser
          before any JS parses, so users never see a blank screen or a

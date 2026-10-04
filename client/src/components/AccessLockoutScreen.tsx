@@ -10,7 +10,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Clock, Wifi, Mail, AlertTriangle, Send, ArrowRight, Calendar,
-  Shield, ExternalLink, ArrowLeft,
+  Shield, ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,16 +95,14 @@ export default function AccessLockoutScreen({ decision }: Props) {
       paddingTop: "env(safe-area-inset-top, 0px)",
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
     }}>
-      {/* ── Document header — matches every other Wilma page ────────── */}
+      {/* ── Document header — matches every other Wilma page.
+           v1.0.7 — "Kartta/Map" back-link removed: the lockout screen
+           IS the gate, so letting the user bounce back to `/` just
+           rendered the same lockout again (or, worse, briefly flashed
+           the map while the gate re-evaluated).  The admin link in the
+           footer is still available for owner escape. ─────────────── */}
       <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
-        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
-          <a
-            href="/"
-            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
-            {isFi ? "Kartta" : "Map"}
-          </a>
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-end">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-red-700 dark:text-red-400">
             <span className="h-1.5 w-1.5 rounded-[1px] bg-red-600 dark:bg-red-400" />
             {isFi ? "Rajoitettu" : "Restricted"}
