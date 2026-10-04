@@ -1163,9 +1163,14 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     localStorage.removeItem("ksyk_admin_user");
     localStorage.removeItem("ksyk_admin_login_at");
     localStorage.removeItem("ksyk_admin_token");
-    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).finally(() => {
-      window.location.replace("/admin");
-    });
+    // v1.0.1 — add .catch so a network error during logout doesn't surface
+    // as an unhandled rejection to error tracking.  We proceed to the
+    // admin page either way.
+    fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+      .catch(() => { /* best-effort — proceed */ })
+      .finally(() => {
+        window.location.replace("/admin");
+      });
   };
 
   // Grouped sidebar structure (v4.5.55) — same items as before but

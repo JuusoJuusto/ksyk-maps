@@ -29,17 +29,41 @@ export default function GetAppPopup() {
     try { if (localStorage.getItem(USER_ENABLED_KEY) === "0") return; } catch { /* */ }
 
     let cancelled = false;
-    fetch("/api/settings")
-      .then(r => r.json())
-      .then((s: Settings) => {
-        if (cancelled) return;
-        if (s?.showGetAppPopup !== true) return;
-        if (s.getAppUrl) setHref(s.getAppUrl);
-        setTimeout(() => !cancelled && setVisible(true), 3000);
-      })
-      .catch(() => { /* silent */ });
 
-    return () => { cancelled = true; };
+    // v1.0.1 — wait for the map to signal ready before even fetching
+    // settings.  First-load UX was being swamped by overlapping modals.
+    const kick = () => {
+      if (cancelled) return;
+      fetch("/api/settings")
+        .then(r => r.json())
+        .then((s: Settings) => {
+          if (cancelled) return;
+          if (s?.showGetAppPopup !== true) return;
+          if (s.getAppUrl) setHref(s.getAppUrl);
+          // 20 s after the map is ready — gives the user ample time
+          // to actually use the product before pitching the APK.
+          setTimeout(() => !cancelled && setVisible(true), 20_000);
+        })
+        .catch(() => { /* silent */ });
+    };
+
+    const onMapReady = () => {
+      window.removeEventListener("ksyk:map-ready", onMapReady);
+      kick();
+    };
+    window.addEventListener("ksyk:map-ready", onMapReady);
+    // Fallback — if the map-ready event never fires (admin panel, offline),
+    // still fetch after 25 s so admins can test the popup.
+    const fallback = window.setTimeout(() => {
+      window.removeEventListener("ksyk:map-ready", onMapReady);
+      kick();
+    }, 25_000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("ksyk:map-ready", onMapReady);
+      clearTimeout(fallback);
+    };
   }, []);
 
   if (!visible) return null;

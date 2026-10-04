@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 import { X, ArrowRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +22,16 @@ const USER_KEY = "ksyk_user";
 export default function StudentLoginGate() {
   const { darkMode } = useDarkMode();
   const { i18n } = useTranslation();
+  const { settings: secSettings } = useSecuritySettings();
   const isFi = i18n.language === "fi";
   const [open, setOpen] = useState(false);
 
+  // v1.0.1 — only show the student login gate if the admin has
+  // explicitly enabled it in the security settings panel.  Default is
+  // OFF so first-time visitors land directly on the map and can click
+  // through to anywhere without hitting a modal.
   useEffect(() => {
+    if (!secSettings.loginGateEnabled) return;
     try {
       const seen = localStorage.getItem(SEEN_KEY) === "true";
       const hasUser = !!(localStorage.getItem(USER_KEY) || localStorage.getItem("ksyk_admin_user"));
@@ -32,7 +39,7 @@ export default function StudentLoginGate() {
     } catch {
       setOpen(true);
     }
-  }, []);
+  }, [secSettings.loginGateEnabled]);
 
   const dismiss = () => {
     try { localStorage.setItem(SEEN_KEY, "true"); } catch { /* */ }

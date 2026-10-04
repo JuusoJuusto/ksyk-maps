@@ -193,13 +193,41 @@ if (typeof window !== "undefined") {
     return false;
   };
 
+  // v1.0.1 — track pagehide state so we can tag + skip the
+  // `Failed to fetch` wave that happens when the browser aborts
+  // in-flight beacons/keepalive during unload.  Those don't represent
+  // real bugs — they're expected lifecycle terminations.
+  let isPageHiding = false;
+  window.addEventListener("pagehide", () => { isPageHiding = true; }, { capture: true });
+  window.addEventListener("beforeunload", () => { isPageHiding = true; }, { capture: true });
+
   const prevUnhandled = window.onunhandledrejection;
   window.onunhandledrejection = (ev) => {
     if (initialised) {
       try {
         const reason = ev.reason;
         const e = reason instanceof Error ? reason : new Error(String(reason));
-        posthog.captureException?.(e, { extra: { type: "unhandledrejection" } });
+        const msg = e.message || String(reason);
+
+        // Skip the two patterns that dominated error tracking in v4.7.57:
+        //   1. `Failed to fetch` fired during pagehide / unload — the
+        //      browser killed the request, not our code.
+        //   2. `Failed to fetch dynamically imported module` — stale
+        //      chunk after a deploy; `main.tsx` already handles with a
+        //      single auto-reload, no need to flood error tracking.
+        const isFailedFetch = /failed to fetch/i.test(msg);
+        const isChunkFetch  = /dynamically imported module/i.test(msg);
+        if ((isFailedFetch && isPageHiding) || isChunkFetch) {
+          ev.preventDefault?.();
+          return;
+        }
+
+        posthog.captureException?.(e, {
+          extra: {
+            type: "unhandledrejection",
+            pagehide: isPageHiding,
+          },
+        });
       } catch { /* never crash on telemetry */ }
     }
     if (typeof prevUnhandled === "function") prevUnhandled.call(window, ev);

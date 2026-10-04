@@ -24,10 +24,39 @@ export default function BetaWelcomeBanner() {
   useEffect(() => {
     try {
       if (localStorage.getItem(SEEN_KEY) === "1") return;
-      // Delay so the map renders first — avoids the banner stealing
-      // focus mid-boot and spooking users with a modal on first paint.
-      const t = setTimeout(() => setOpen(true), 1500);
-      return () => clearTimeout(t);
+      // v1.0.1 — wait until the user has been on the page a few seconds
+      // AND the map has signaled it's ready AND they've interacted.  Was
+      // previously popping up at 1.5s on first paint which spooked users.
+      // The window event `ksyk:map-ready` is dispatched by CampusMap once
+      // the GL instance has rendered the first tile.
+      let mapReady = false;
+      let timeoutId: number | null = null;
+
+      const show = () => {
+        timeoutId = null;
+        if (localStorage.getItem(SEEN_KEY) === "1") return;
+        setOpen(true);
+      };
+
+      const onMapReady = () => {
+        mapReady = true;
+        // Give the user 6 extra seconds to look at the map before the
+        // welcome modal takes over.
+        timeoutId = window.setTimeout(show, 6000);
+      };
+      window.addEventListener("ksyk:map-ready", onMapReady);
+
+      // Fallback — if the map-ready event never fires (admin panel,
+      // offline, etc.), still show after 15 s.
+      const fallback = window.setTimeout(() => {
+        if (!mapReady) show();
+      }, 15_000);
+
+      return () => {
+        window.removeEventListener("ksyk:map-ready", onMapReady);
+        if (timeoutId !== null) clearTimeout(timeoutId);
+        clearTimeout(fallback);
+      };
     } catch {
       /* localStorage unavailable — skip the banner silently */
     }
@@ -69,7 +98,7 @@ export default function BetaWelcomeBanner() {
               {isFi ? "Beta-vaihe" : "Beta release"}
             </p>
             <DialogTitle className="text-[20px] sm:text-[24px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
-              {isFi ? "Tervetuloa käyttämään KSYK Mapsia" : "Welcome to KSYK Maps"}
+              {isFi ? "Tervetuloa KSYK Mapsiin" : "Welcome to KSYK Maps"}
             </DialogTitle>
             <DialogDescription className="sr-only">
               {isFi ? "Palvelu on beta-vaiheessa." : "This service is in beta."}
@@ -94,8 +123,8 @@ export default function BetaWelcomeBanner() {
             {isFi ? (
               <>
                 <p>
-                  Palvelu on tällä hetkellä beta-vaiheessa, joten saatat vielä kohdata bugeja,
-                  puuttuvia tietoja tai keskeneräisiä ominaisuuksia.
+                  Tervetuloa KSYK Mapsiin. Palvelu on tällä hetkellä beta-vaiheessa, joten
+                  saatat vielä kohdata bugeja, puuttuvia tietoja tai keskeneräisiä ominaisuuksia.
                 </p>
                 <p>
                   Jos löydät bugin, tarvitset apua tai sinulla on kehitysehdotus, ota yhteyttä
@@ -114,11 +143,12 @@ export default function BetaWelcomeBanner() {
             ) : (
               <>
                 <p>
-                  KSYK Maps is currently in beta, so you may still run into bugs, missing data,
-                  or unfinished features.
+                  Welcome to KSYK Maps. The service is currently in beta, so you may still
+                  come across bugs, missing information or unfinished features.
                 </p>
                 <p>
-                  Spot a bug, need help, or have a suggestion? Reach the support team at{" "}
+                  If you find a bug, need help or have a suggestion, contact the support team
+                  at{" "}
                   <a
                     href="/support"
                     onClick={dismiss}

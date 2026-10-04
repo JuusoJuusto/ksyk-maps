@@ -58,8 +58,8 @@ export default function AdminProfileDialog({
   const initial = (currentUser?.email || currentUser?.name || "?").slice(0, 1).toUpperCase();
   const roleLabel = currentUser?.role === "owner" ? "Owner" : currentUser?.role === "admin" ? "Admin" : "Staff";
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
     setError(null);
     setSaving(true);
 
@@ -311,26 +311,33 @@ export default function AdminProfileDialog({
               </div>
             </section>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-50 text-white text-[13px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
-              >
-                <Save className="h-4 w-4" strokeWidth={2} />
-                {saving ? "Saving…" : "Save changes"}
-              </button>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="h-10 px-3.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-[13px] font-bold inline-flex items-center gap-2 transition-colors"
-              >
-                <LogOut className="h-4 w-4" strokeWidth={2} />
-                Sign out
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* v1.0.1 — pulled actions out of the scrollable body into a
+         *  sticky footer so Save/Sign-out are always visible on short
+         *  viewports (e.g. mobile landscape or 150% zoom). */}
+        <div
+          className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-3 flex items-center gap-2 bg-white dark:bg-gray-950"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+        >
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
+          >
+            <Save className="h-4 w-4" strokeWidth={2} />
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="h-10 px-3.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-[13px] font-bold inline-flex items-center gap-2 transition-colors"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={2} />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

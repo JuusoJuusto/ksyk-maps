@@ -10,11 +10,44 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "4.7.58";
+export const APP_VERSION = "1.0.1";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "2.0.0-beta";
+export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.0.1",
+    date: "October 2026",
+    title: "Reset to 1.0.1 · root cause of Failed-to-fetch flood fixed · login gate off by default · UX cleanup",
+    titleFi: "Versiointi nollattu 1.0.1 · Failed-to-fetch -tulvan juurisyy korjattu · kirjautumisportti pois oletuksena",
+    latest: true,
+    highlights: [
+      "**Version numbering reset to `1.0.1`.** Web `4.7.57` → `1.0.1`; Android `2.0.0-beta` (versionCode 102) → `1.0.1` (versionCode 103). Settings `About` shows `v1.0.1 · BETA` to make the beta status visible without a popup.",
+      "**ROOT CAUSE of `TypeError: Failed to fetch` flood fixed.** 407 PostHog error-tracking events in 14 days traced back to `client/src/lib/rrwebRecorder.ts`: `void fetch(ENDPOINT, { keepalive: true })` with no `.catch`. The surrounding `try/catch` can't catch a rejected promise, so each failure (offline, DNS, body > ~64 KB keepalive cap during pagehide) hit `window.onunhandledrejection` and got reported. Fixed by: (1) serialising the body once and checking byte size — drop batches > 55 KB instead of letting Chrome throw; (2) using a new `safeFetchFireAndForget` helper that swallows network errors without producing an unhandled rejection; (3) tagging the global unhandled handler to skip `Failed to fetch` during pagehide and `dynamically imported module` failures (the stale-chunk reload path already handles those).",
+      "**New `client/src/lib/safeFetch.ts` helper.** On network error throws a new `Error('fetch POST /api/sessions/rrweb: Failed to fetch')` — method + path without query/token leakage — so the next PostHog event tells us exactly which request failed. Also exports `safeFetchFireAndForget` for the recorder/beacon pattern.",
+      "**Other uncaught fetch audited** across `client/src`: `AdminDashboard.tsx:1166` logout fetch had `.finally` but no `.catch` — added `.catch(()=>{})`. Everything else in telemetry / analytics-sdk / analytics / healthCheck / geminiAI / useAccessDecision / SecuritySettingsPanel already had proper `.catch` or `try/catch`.",
+      "**Student login gate** is now a security setting (`loginGateEnabled`), default OFF. First-time visitors land directly on the map without a modal. Admin opts in from `/admin/security`.",
+      "**Beta welcome banner no longer auto-opens on first paint.** Waits for the `ksyk:map-ready` event + 6 s dwell before appearing (15 s fallback if the event never fires). Finnish-first copy per request. Dismissible, remembered in localStorage.",
+      "**Get-the-app popup delayed to 20 s after map-ready** (25 s fallback). Lets the user actually use the product before the APK pitch. Still gated behind the admin `showGetAppPopup` toggle.",
+      "**Cookie banner (`CookieConsent.tsx`) rewritten** — language-aware (English default, Finnish via `ksyk_language`), 44-px mobile touch targets, Wilma document look: hairline border, 3 px navy top accent, uppercase `COOKIES` masthead, hairline-split action grid.",
+      "**AdminProfileDialog actions pulled into a sticky footer** so Save + Sign out are always visible on short viewports. Body uses `min-h-0 flex-1 overflow-y-auto` so content scrolls cleanly inside the dialog.",
+      "**Mobile navigation + 3D button were missing** for some users. Root cause: `DEFAULT_SECURITY_SETTINGS.restrictedDisabledFeatures.threeDView` was `true`, so restricted-tier users had the 3D button hidden until admin flipped it on. Changed the default to `false` (everything visible, admin opts into hiding).",
+      "**Not in this ship:** full announcement-dialog visual polish, FAQ page language auto-detect, FeatureInfoSheet mobile action-row prominence — queued for the next pass.",
+      "**Rollback** — `git tag rollback-before-1-0-1` at prior HEAD. Revert: `git reset --hard rollback-before-1-0-1 && git push --force-with-lease origin main`.",
+    ],
+    highlightsFi: [
+      "Versiot nollattu `1.0.1` -alkuun. Web ja Android samassa versiossa, molemmissa beta-leima.",
+      "`TypeError: Failed to fetch` -tulva (407 virhettä/14 pv) korjattu — rrweb-session-tallentimen `void fetch(..., {keepalive: true})` sai nyt `.catch`-koukun ja isot (>55 KB) viestit pudotetaan ennen Chrome-rajaa.",
+      "Uusi `safeFetch.ts` -apuri joka upottaa HTTP-metodin ja polun virheilmoitukseen (ei query-stringiä, ei tokeneita).",
+      "Oppilaskirjautumisportti on nyt admin-asetus, oletuksena pois päältä.",
+      "Beta-tervetuloikkuna ei enää avaudu heti ensimmäisellä latauksella — odottaa kartan latautumista + 6 s.",
+      "Lataa-sovellus-popup viivästetty 20 s latautumisen jälkeen.",
+      "Evästeilmoitus uusiksi: kieli valitun kielen mukaan (oletus englanti), isommat napit mobiililla.",
+      "Admin-profiilidialogin tallennus/kirjaudu-napit nyt kiinteässä alapalkissa; sisältö vierittyy.",
+      "Mobiilin kartan 3D-nappi näkyvissä oletuksena (`restrictedDisabledFeatures.threeDView: false`).",
+      "Palauta: `git reset --hard rollback-before-1-0-1`.",
+    ],
+  },
   {
     version: "4.7.58",
     date: "October 2026",

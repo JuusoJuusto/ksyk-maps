@@ -6,10 +6,17 @@
  * Sensitive text is masked via maskAllInputs + maskTextClass="ksyk-mask".
  */
 import { record, type eventWithTime } from "rrweb";
+import { safeFetchFireAndForget } from "./safeFetch";
 
 const BATCH_MS = 5_000;
 const BATCH_MAX_EVENTS = 300;
 const ENDPOINT = "/api/sessions/rrweb";
+// v1.0.1 — Chrome caps `keepalive` POST bodies at ~64 KB.  First-map
+// snapshots regularly exceed that during pagehide, which was throwing
+// `TypeError: Failed to fetch` 400+ times/14d.  We now skip keepalive
+// for anything bigger and drop the batch; the next flush will cover it
+// (except on pagehide, where we accept the loss).
+const KEEPALIVE_BYTE_CAP = 55_000;
 
 let stopFn: (() => void) | null = null;
 let buffer: eventWithTime[] = [];
@@ -53,20 +60,34 @@ function flush(force = false): void {
     eventCount: events.length,
     events,
   };
-  // Fire-and-forget. Body is JSON. sendBeacon works even on
-  // page-hide, so we prefer it and fall back to fetch.
+  // v1.0.1 — serialise once so we can check the byte size and avoid the
+  // Chrome keepalive cap (~64 KB), which was the single largest source
+  // of unhandled rejections in PostHog error tracking.
+  let body: string;
+  try { body = JSON.stringify(payload); }
+  catch { return; /* non-serialisable → drop batch */ }
+  const byteSize = body.length;
+
+  // Prefer sendBeacon — works during pagehide and never throws for the
+  // caller.  Returns false if the browser refused (usually size cap).
   try {
-    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const blob = new Blob([body], { type: "application/json" });
     if (navigator.sendBeacon && navigator.sendBeacon(ENDPOINT, blob)) return;
   } catch { /* fall through to fetch */ }
-  try {
-    void fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true,
-    });
-  } catch { /* swallow — recording is best-effort */ }
+
+  // If the body is too big for keepalive we drop it rather than let
+  // the browser throw TypeError: Failed to fetch 400+ times/14d.
+  if (byteSize > KEEPALIVE_BYTE_CAP) return;
+
+  // Use safeFetchFireAndForget — swallows network errors (offline, DNS,
+  // keepalive-size) without producing an unhandled rejection.  Previous
+  // `void fetch(...)` was the root cause of our Failed-to-fetch flood.
+  safeFetchFireAndForget(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  });
 }
 
 function scheduleFlush(): void {

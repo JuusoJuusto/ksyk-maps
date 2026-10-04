@@ -131,8 +131,12 @@ export const DEFAULT_SECURITY_SETTINGS: SecuritySettings = {
   allowedEmailDomains: ["@ksyk.fi"],
   loggedInTier: "full",
   guestTier: "restricted",
+  // v1.0.1 — restricted tier shows the full UI by default.  Admin can
+  // flip individual features off from the Security panel.  Previously
+  // `threeDView: true` was the default — mobile users on restricted
+  // reported the 3D button missing without the admin ever opting in.
   restrictedDisabledFeatures: {
-    threeDView: true,
+    threeDView: false,
     schedules: false,
     routing: false,
     search: false,
