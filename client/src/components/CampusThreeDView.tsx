@@ -203,7 +203,15 @@ export default function CampusThreeDView({ onClose }: { onClose: () => void }) {
       );
 
       if (validBuildings.length === 0 && validRooms.length === 0) {
-        setError("No campus geometry to render. Ask an admin to add rooms in the builder.");
+        // v1.0.4 — if the campus fetch hasn't landed yet, the arrays are
+        // empty but it's a loading state, not a real empty-campus.  Set
+        // a loading message instead of the admin-blame message; the
+        // caller will re-run this effect once the campus data arrives.
+        if (!rooms || !buildings) {
+          setError("Loading campus…");
+        } else {
+          setError("No campus geometry yet. Open the map on 2D to see what's published.");
+        }
         setReady(true);
         return;
       }

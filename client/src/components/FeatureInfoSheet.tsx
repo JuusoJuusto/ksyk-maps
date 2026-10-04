@@ -44,16 +44,14 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const color = featureColor(feature);
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
-  // v1.0.2 — mobile users reported the Navigoi/Directions button
-  // disappearing.  Root cause: `isFeatureAllowed` returned `false` when
-  // the user was on the restricted tier AND the admin had routing
-  // listed in `restrictedDisabledFeatures`, or when secSettings hadn't
-  // loaded yet.  Simplified: show both buttons unless the user is
-  // fully blocked (lockout screen handles that case anyway).
-  const canUseSchedules = accessDecision.tier !== "blocked"
-    && isFeatureAllowed("schedules", accessDecision, secSettings);
-  const canUseRouting   = accessDecision.tier !== "blocked";
-  void secSettings; // ref kept so the hook subscription stays live
+  // v1.0.4 — Navigoi + schedule buttons are unconditional.  The map
+  // route only renders this sheet when the user has at least
+  // "restricted" access (the lockout screen takes over for "blocked"),
+  // so gating the UI here just creates "button disappeared" bugs.
+  const canUseSchedules = true;
+  const canUseRouting   = true;
+  void accessDecision;
+  void secSettings;
 
   useEffect(() => {
     if (feature.kind === "room") {
@@ -91,9 +89,12 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const cycleSnap = () =>
     setMobileSnap((s) => s === "peek" ? "half" : s === "half" ? "full" : "peek");
 
+  // v1.0.4 — peek snap bumped 38dvh → 44dvh so the action row (Navigoi
+  // + Schedule) never gets pushed below the fold on short mobile
+  // viewports (iPhone SE in landscape, zoomed Android Chrome).
   const mobileMaxH =
-    mobileSnap === "peek" ? "38dvh" :
-    mobileSnap === "half" ? "62dvh" : "88dvh";
+    mobileSnap === "peek" ? "44dvh" :
+    mobileSnap === "half" ? "66dvh" : "92dvh";
 
   // ── Schedule action (rooms only) ─────────────────────────────────────
   const sched = feature.kind === "room"

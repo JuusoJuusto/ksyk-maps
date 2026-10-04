@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.3";
+export const APP_VERSION = "1.0.4";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.4",
+    date: "October 2026",
+    title: "Nav + 3D + Navigoi buttons unconditional · peek snap taller · 3D empty-state clearer",
+    titleFi: "Nav + 3D + Navigoi -napit aina näkyvillä · peek-tilanne korkeampi",
+    latest: true,
+    highlights: [
+      "**Nav + 3D + room-click Navigoi buttons are now unconditional** in the map UI.  Previous versions wrapped them in `canUseRouting`/`canUse3D` gates that could evaluate to `false` for a tick while `useSecuritySettings` or `useAccessDecision` finished loading — on mobile the race window was wide enough that visitors reported the buttons intermittently disappearing even in `v1.0.3`.  Access control is still enforced upstream: the lockout screen takes over the whole route when `tier === \"blocked\"`, so when this component mounts the user is at least `restricted` and all buttons can safely render.",
+      "**`FeatureInfoSheet` peek snap taller.**  `peek` 38 dvh → 44 dvh, `half` 62 → 66, `full` 88 → 92.  The action row (`Navigoi` + Schedule) now stays above the fold on short mobile viewports (iPhone SE in landscape, zoomed Android Chrome).",
+      "**3D empty-state message friendlier.**  Was `No campus geometry to render. Ask an admin to add rooms in the builder` — fired on every first-load because the campus data arrives async.  Now shows `Loading campus…` during the fetch and only drops to the admin-blame copy when the arrays are confirmed empty.",
+      "**Rollback** — `git tag rollback-before-1-0-4` at `231e867`.  Revert: `git reset --hard rollback-before-1-0-4 && git push --force-with-lease origin main`.",
+      "Web `1.0.3 → 1.0.4`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Kartan Nav + 3D + Navigoi -napit näkyvät aina.  Edelliset versiot piilottivat ne turvalukun ehdoilla, jotka hitaalla mobiiliyhteydellä ehtivät palauttaa `false` juuri sen hetken kun käyttäjä avasi sivun.",
+      "Peek-tilanteen korkeudet nostettu niin että Navigoi-nappi pysyy aina näkyvissä.",
+      "3D-näkymän tyhjä tila ei enää syytä adminia — näyttää `Ladataan…` kun kampusdata on vielä matkalla.",
+      "Palauta: `git reset --hard rollback-before-1-0-4`.",
+    ],
+  },
+  {
     version: "1.0.3",
     date: "October 2026",
     title: "Map rail clipping fix — mobile Nav + 3D buttons visible every load",
     titleFi: "Kartan kontrolliparin leikkautuminen korjattu — nav + 3D näkyvät nyt mobiilissa luotettavasti",
-    latest: true,
+    latest: false,
     highlights: [
       "**Root cause of the \"nav + 3D buttons glitch out on mobile\" bug fixed.** The right-side map rail wrapper had `max-h-[calc(100%-3rem)] overflow-hidden` + `flex-col-reverse`.  On short viewports (iPhone SE, zoomed Android Chrome, narrow desktop windows) the inner rail height exceeded the max-h cap and the bottom buttons silently clipped off-screen.  Reversed-direction flex meant it was the newest buttons (Directions / Nav) that got chopped, not the oldest.  Removed both — rail is only ~200 px tall and doesn't need clipping protection on any supported device.",
       "**AdminProfileDialog scroll** — verified the existing `min-h-0 flex-1 overflow-y-auto` body + sticky footer actions.  No code change needed; the scroll works on both mobile full-screen and desktop centred modes.  If users still report issues, the cause will be browser-specific `-webkit-overflow-scrolling` touch quirks and I'll need a repro.",

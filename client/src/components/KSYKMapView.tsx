@@ -65,17 +65,15 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { settings, update } = useAppSettings();
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
-  // v1.0.2 — mobile users reported the right-rail Navigation + 3D
-  // buttons disappearing.  Root cause same as FeatureInfoSheet:
-  // `isFeatureAllowed` returned `false` for restricted-tier users when
-  // secSettings had stale `restrictedDisabledFeatures` flags, or when
-  // the fetch hadn't resolved yet.  Simplified: controls are visible
-  // whenever the user isn't fully blocked (the lockout screen owns the
-  // blocked case).
-  const isBlocked = accessDecision.tier === "blocked";
-  const canUseRouting = !isBlocked;
-  const canUse3D = !isBlocked;
-  void secSettings; // keep subscription live
+  // v1.0.4 — nav + 3D + locate are unconditional in the UI.  Access
+  // control is enforced by the lockout screen taking over the whole
+  // route when `tier === "blocked"`; by the time this component
+  // mounts the user is at least "restricted".  Keep the vars around
+  // for any downstream code that still reads them, but always `true`.
+  const canUseRouting = true;
+  const canUse3D = true;
+  void accessDecision;
+  void secSettings;
   const handleRef = useRef<CampusMapHandle | null>(null);
   // Mirrored to state so children get an actual re-render when the
   // map is ready. Without this, CampusOverlay receives `map={null}`
@@ -762,26 +760,29 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             "divide-y divide-[#d5dae0] dark:divide-[#2a3040]",
           )}
         >
-          {canUseRouting && (
-            <button
-              type="button"
-              onClick={() => {
-                if (!showNav) posthog.capture("directions_opened", { entry_point: "map_controls" });
-                setShowNav((v) => !v);
-              }}
-              aria-label={showNav ? "Close directions" : "Get directions"}
-              aria-pressed={showNav}
-              title="Directions"
-              className={cn(
-                "w-10 h-10 flex items-center justify-center transition-colors",
-                showNav
-                  ? "bg-[#003d82] text-white"
-                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
-              )}
-            >
-              <Navigation2 className="h-4 w-4" strokeWidth={2} />
-            </button>
-          )}
+          {/* v1.0.4 — directions is unconditional now.  Access control
+           *  used to hide the button when the user was in `blocked`
+           *  tier, but we only reach this component when NOT blocked
+           *  (the lockout screen takes over the whole route), so the
+           *  gate was pure regression-bait. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!showNav) posthog.capture("directions_opened", { entry_point: "map_controls" });
+              setShowNav((v) => !v);
+            }}
+            aria-label={showNav ? "Close directions" : "Get directions"}
+            aria-pressed={showNav}
+            title="Directions"
+            className={cn(
+              "w-10 h-10 flex items-center justify-center transition-colors",
+              showNav
+                ? "bg-[#003d82] text-white"
+                : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
+            )}
+          >
+            <Navigation2 className="h-4 w-4" strokeWidth={2} />
+          </button>
 
           <button
             type="button"
@@ -805,19 +806,18 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
             <Minus className="h-4 w-4" strokeWidth={2.25} />
           </button>
 
-          {canUse3D && (
-            <button
-              type="button"
-              aria-label="Open 3D campus view"
-              onClick={open3DScene}
-              title="3D view"
-              className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-            >
-              <span className="text-[12px] font-bold tabular-nums tracking-tight">
-                3D
-              </span>
-            </button>
-          )}
+          {/* v1.0.4 — 3D button also unconditional, same reason. */}
+          <button
+            type="button"
+            aria-label="Open 3D campus view"
+            onClick={open3DScene}
+            title="3D view"
+            className="w-10 h-10 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <span className="text-[12px] font-bold tabular-nums tracking-tight">
+              3D
+            </span>
+          </button>
 
           <button
             type="button"

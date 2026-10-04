@@ -15,6 +15,26 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 04-10-2026 — v1.0.4 — unconditional Nav/3D/Navigoi · peek 44dvh · 3D loading message
+
+**Asked.**
+- Security is enabled but AccessLockoutScreen never appears — expected a lockout state and didn't get one.
+- "No campus geometry to render" message is showing — fix it.
+- Class-info popup action buttons still invisible on mobile.
+- Announcement dialog needs mobile polish + match graphics.
+- Resetting cookies again killed ALL nav buttons — Nav, 3D, class-info Navigoi.  Fix root cause and push.
+
+**Decided.**
+- Nav + 3D + Navigoi gates removed entirely.  Previously `canUseRouting` / `canUse3D` depended on `useSecuritySettings` + `useAccessDecision`, which race on first paint (especially after cookie reset).  Any `false` value during the race window → React mounts without the button → user never sees it until they refresh.  Access control is still enforced by the lockout screen taking over the whole route when `tier === "blocked"`; by the time `KSYKMapView` or `FeatureInfoSheet` mount, the user is at least `restricted` and the buttons are safe to render.  `canUseRouting = true`, `canUse3D = true`, `canUseSchedules = true` locally; `accessDecision` + `secSettings` kept with `void` references so the hook subscriptions stay live.
+- `FeatureInfoSheet` peek snap bumped `38 → 44 dvh` so the action row (`Navigoi` + Schedule) stays above the fold on iPhone SE landscape + zoomed Android Chrome.  `half` 62 → 66, `full` 88 → 92 for consistency.
+- `CampusThreeDView` empty-state copy made loading-aware: shows `Loading campus…` when the fetch is still in flight, only falls back to the admin-blame copy when `rooms` / `buildings` have resolved to empty arrays.
+- "Security enabled but no lockout" — expected behaviour when the user has an admin/owner cookie: `evaluateAccess()` returns `{ tier: "full", reasonCode: "owner-bypass" }` first.  No code change needed; added a note in [[ROADMAP.md]] for a future admin-visible banner showing effective access state.
+- "No campus geometry" — only fires in the 3D view; message softened per above.
+
+**Shipped.**  Commit pending.  Web `1.0.3 → 1.0.4`.  Android unchanged.  Files: `KSYKMapView.tsx`, `FeatureInfoSheet.tsx`, `CampusThreeDView.tsx`, `changelog.ts`, `PROJECT-LOG.md`.  Rollback: `rollback-before-1-0-4` at `231e867`.
+
+---
+
 ## 04-10-2026 — v1.0.3 — map rail clipping fix · profile scroll verification · log format
 
 **Asked.**
