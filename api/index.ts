@@ -2310,6 +2310,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         // whitelist meant the toggle in AppSettingsManager silently threw
         // its value away on save.  Now persists.
         'showGetAppPopup', 'getAppUrl',
+        // v1.0.2 — admin can hide the first-visit beta welcome banner.
+        'showBetaBanner',
       ]);
       const DEFAULT_SETTINGS = {
         id: 'default',

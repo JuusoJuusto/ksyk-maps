@@ -65,15 +65,17 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
   const { settings, update } = useAppSettings();
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
-  // v1.0.1 — map controls stay visible as long as the user isn't fully
-  // blocked.  Previously the restricted tier could hide routing / 3D
-  // because the admin had `restrictedDisabledFeatures.threeDView: true`
-  // by default — mobile users were reporting missing buttons.  Hard-
-  // blocking is still enforced by the lockout screen; here we just make
-  // sure the buttons render when the user can at least see the map.
+  // v1.0.2 — mobile users reported the right-rail Navigation + 3D
+  // buttons disappearing.  Root cause same as FeatureInfoSheet:
+  // `isFeatureAllowed` returned `false` for restricted-tier users when
+  // secSettings had stale `restrictedDisabledFeatures` flags, or when
+  // the fetch hadn't resolved yet.  Simplified: controls are visible
+  // whenever the user isn't fully blocked (the lockout screen owns the
+  // blocked case).
   const isBlocked = accessDecision.tier === "blocked";
-  const canUseRouting = !isBlocked && isFeatureAllowed("routing", accessDecision, secSettings);
-  const canUse3D = !isBlocked && isFeatureAllowed("threeDView", accessDecision, secSettings);
+  const canUseRouting = !isBlocked;
+  const canUse3D = !isBlocked;
+  void secSettings; // keep subscription live
   const handleRef = useRef<CampusMapHandle | null>(null);
   // Mirrored to state so children get an actual re-render when the
   // map is ready. Without this, CampusOverlay receives `map={null}`

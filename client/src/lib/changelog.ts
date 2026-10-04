@@ -10,17 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.1";
+export const APP_VERSION = "1.0.2";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.2",
+    date: "October 2026",
+    title: "Beta banner admin toggle · forgot-password Wilma polish · easter eggs OFF by default · FAQ EN default",
+    titleFi: "Beta-ikkunan admin-katkaisin · unohdin salasanan uusiksi · easter-eggit pois oletuksena",
+    latest: true,
+    highlights: [
+      "**Beta welcome banner now opens instantly** on first visit (removed the 6 s `ksyk:map-ready` wait). Admin can disable the entire banner from `/admin/settings` → Features → `Show beta welcome on first visit`. New `showBetaBanner` column in `app_settings` (default `true`), `ALTER TABLE ADD COLUMN IF NOT EXISTS` migration in `initDb.ts`, column whitelisted in the API `SETTINGS_COLUMNS`. Mobile layout gets safe-area-aware full-screen takeover and a 48 px CTA.",
+      "**AdminForgotPassword rewritten to Wilma document style** — same shell as every other full-page screen: hairline top bar + uppercase `ADMIN` masthead + big navy H1 + hairline email input with navy focus ring + 44 px navy CTA + hairline footer. The success state is a Wilma emerald callout card. Rounded-2xl card and KSYK-blue gone.",
+      "**FAQ page defaults to English** when the visitor hasn't set a language yet (matches Privacy / CookieConsent). Language toggle now persists to `localStorage.ksyk_language`, so a visitor who chooses Finnish on FAQ sees Finnish everywhere. All bottom-of-page labels (`Didn't find your answer?` / `Contact support` / `Privacy`) already localised; now actually reach the right default. `storage` event listener syncs changes made elsewhere.",
+      "**Easter eggs now OFF by default** and controllable from `/admin/settings` → Features → `Enable easter egg`. Previously the Konami listener + Ksyk-triggered eggs attached unconditionally; now they only mount when the admin toggle is `true`. Avoids surprise navigations in production. Default changed `true` → `false`.",
+      "**Rollback** — `git tag rollback-before-1-0-2` at prior HEAD. Revert: `git reset --hard rollback-before-1-0-2 && git push --force-with-lease origin main`.",
+      "Web version bumped `1.0.1` → `1.0.2`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Beta-tervetuloikkuna avautuu nyt heti ensikäynnillä, ja admin voi piilottaa sen kokonaan `/admin/settings`-sivulta.",
+      "Admin-salasanan unohtumissivu uusittu samaan Wilma-asiakirjatyyliin kuin muukin tuote.",
+      "FAQ-sivun oletus on nyt englanti; kielivalinta tallentuu ja synkkaantuu muiden sivujen kanssa.",
+      "Easter-eggit pois oletuksena. Admin voi kytkeä ne päälle `/admin/settings` → Ominaisuudet.",
+      "Palauta: `git reset --hard rollback-before-1-0-2`.",
+    ],
+  },
+  {
     version: "1.0.1",
     date: "October 2026",
     title: "Reset to 1.0.1 · root cause of Failed-to-fetch flood fixed · login gate off by default · UX cleanup",
     titleFi: "Versiointi nollattu 1.0.1 · Failed-to-fetch -tulvan juurisyy korjattu · kirjautumisportti pois oletuksena",
-    latest: true,
+    latest: false,
     highlights: [
       "**Version numbering reset to `1.0.1`.** Web `4.7.57` → `1.0.1`; Android `2.0.0-beta` (versionCode 102) → `1.0.1` (versionCode 103). Settings `About` shows `v1.0.1 · BETA` to make the beta status visible without a popup.",
       "**ROOT CAUSE of `TypeError: Failed to fetch` flood fixed.** 407 PostHog error-tracking events in 14 days traced back to `client/src/lib/rrwebRecorder.ts`: `void fetch(ENDPOINT, { keepalive: true })` with no `.catch`. The surrounding `try/catch` can't catch a rejected promise, so each failure (offline, DNS, body > ~64 KB keepalive cap during pagehide) hit `window.onunhandledrejection` and got reported. Fixed by: (1) serialising the body once and checking byte size — drop batches > 55 KB instead of letting Chrome throw; (2) using a new `safeFetchFireAndForget` helper that swallows network errors without producing an unhandled rejection; (3) tagging the global unhandled handler to skip `Failed to fetch` during pagehide and `dynamically imported module` failures (the stale-chunk reload path already handles those).",

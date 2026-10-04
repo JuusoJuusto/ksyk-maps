@@ -71,10 +71,13 @@ function markAndReport(id: string): boolean {
   return true;
 }
 
-export function useKsykEasterEggs() {
+export function useKsykEasterEggs(enabled: boolean = true) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    // v1.0.2 — admin toggle (enableEasterEgg).  When off, don't attach
+    // any key listeners / timers; everything stays dormant.
+    if (!enabled) return;
     // ── Reset epoch — if the user's local epoch is older than the
     //    registry's, wipe every per-browser "found" flag. That's the
     //    "reset the counter now" behaviour: bump EGG_RESET_EPOCH and
@@ -661,5 +664,5 @@ export function useKsykEasterEggs() {
       if (mobileTapTimer !== null) clearTimeout(mobileTapTimer);
       if (escTimer !== null) clearTimeout(escTimer);
     };
-  }, [setLocation]);
+  }, [setLocation, enabled]);
 }

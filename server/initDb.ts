@@ -233,6 +233,8 @@ export async function ensureSchema(): Promise<void> {
       -- dropped the values.  Add them idempotently.
       ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS show_get_app_popup boolean DEFAULT false;
       ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS get_app_url varchar DEFAULT '/download';
+      -- v1.0.2 — admin can hide the first-visit beta welcome banner.
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS show_beta_banner boolean DEFAULT true;
 
       CREATE TABLE IF NOT EXISTS push_tokens (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),

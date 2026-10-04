@@ -1,11 +1,9 @@
 /**
- * KSYK Maps — beta welcome message (v4.7.56).
+ * KSYK Maps — beta welcome message (v1.0.2).
  *
- * Shown once per visitor on first map load.  Explains the beta status
- * and where to report issues.  Finnish-only (per user) with an English
- * fallback for non-Finnish visitors.  Dismissible, remembers it via
- * localStorage.  Rendered as a Wilma-document dialog so it matches the
- * rest of the chrome.
+ * Shown on first visit, as soon as the dialog is painted (no map-ready
+ * wait).  Admin can disable it from `/admin/settings` via the
+ * `showBetaBanner` toggle.
  */
 
 import { useEffect, useState } from "react";
@@ -16,6 +14,10 @@ import { cn } from "@/lib/utils";
 
 const SEEN_KEY = "ksyk_beta_welcome_seen_v1";
 
+interface AppSettingsPartial {
+  showBetaBanner?: boolean;
+}
+
 export default function BetaWelcomeBanner() {
   const { i18n } = useTranslation();
   const isFi = i18n.language === "fi";
@@ -24,42 +26,25 @@ export default function BetaWelcomeBanner() {
   useEffect(() => {
     try {
       if (localStorage.getItem(SEEN_KEY) === "1") return;
-      // v1.0.1 — wait until the user has been on the page a few seconds
-      // AND the map has signaled it's ready AND they've interacted.  Was
-      // previously popping up at 1.5s on first paint which spooked users.
-      // The window event `ksyk:map-ready` is dispatched by CampusMap once
-      // the GL instance has rendered the first tile.
-      let mapReady = false;
-      let timeoutId: number | null = null;
+    } catch { return; }
 
-      const show = () => {
-        timeoutId = null;
-        if (localStorage.getItem(SEEN_KEY) === "1") return;
+    // v1.0.2 — admin can turn the banner off from `/admin/settings`.
+    // Default is ON (undefined / true both show it).  We open the
+    // dialog instantly once the fetch resolves; if the fetch fails we
+    // still open — the banner is a safe default.
+    let cancelled = false;
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((s: AppSettingsPartial | null) => {
+        if (cancelled) return;
+        if (s && s.showBetaBanner === false) return; // admin turned it off
         setOpen(true);
-      };
+      })
+      .catch(() => {
+        if (!cancelled) setOpen(true);
+      });
 
-      const onMapReady = () => {
-        mapReady = true;
-        // Give the user 6 extra seconds to look at the map before the
-        // welcome modal takes over.
-        timeoutId = window.setTimeout(show, 6000);
-      };
-      window.addEventListener("ksyk:map-ready", onMapReady);
-
-      // Fallback — if the map-ready event never fires (admin panel,
-      // offline, etc.), still show after 15 s.
-      const fallback = window.setTimeout(() => {
-        if (!mapReady) show();
-      }, 15_000);
-
-      return () => {
-        window.removeEventListener("ksyk:map-ready", onMapReady);
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        clearTimeout(fallback);
-      };
-    } catch {
-      /* localStorage unavailable — skip the banner silently */
-    }
+    return () => { cancelled = true; };
   }, []);
 
   const dismiss = () => {
@@ -74,10 +59,11 @@ export default function BetaWelcomeBanner() {
           "p-0 gap-0 overflow-hidden flex flex-col",
           "bg-white dark:bg-gray-950",
           "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
-          "border border-[#d5dae0] dark:border-[#2a3040]",
           "[&>button:first-of-type]:hidden",
-          "w-[min(94vw,32rem)] max-w-[32rem] max-h-[88dvh]",
-          "rounded-[8px]",
+          // Desktop (default): comfortable modal
+          "w-[min(94vw,32rem)] max-w-[32rem] max-h-[90dvh]",
+          "rounded-[8px] border border-[#d5dae0] dark:border-[#2a3040]",
+          // Mobile — full-height sheet with safe-area padding
           "max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0",
           "max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0",
           "max-sm:w-screen max-sm:h-[100dvh] max-sm:max-w-none max-sm:max-h-none",
@@ -97,7 +83,7 @@ export default function BetaWelcomeBanner() {
               <AlertTriangle className="h-3 w-3" strokeWidth={2.5} />
               {isFi ? "Beta-vaihe" : "Beta release"}
             </p>
-            <DialogTitle className="text-[20px] sm:text-[24px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
+            <DialogTitle className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
               {isFi ? "Tervetuloa KSYK Mapsiin" : "Welcome to KSYK Maps"}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -107,19 +93,18 @@ export default function BetaWelcomeBanner() {
           <button
             type="button"
             onClick={dismiss}
-            className="shrink-0 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="shrink-0 h-10 w-10 -mr-1.5 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95"
             aria-label={isFi ? "Sulje" : "Close"}
           >
-            <X className="h-4 w-4" strokeWidth={2.25} />
+            <X className="h-5 w-5" strokeWidth={2.25} />
           </button>
         </div>
 
         {/* Body */}
         <div
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 sm:py-6"
-          style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))" }}
         >
-          <div className="text-[14px] sm:text-[15px] leading-[1.7] text-gray-800 dark:text-gray-200 space-y-3">
+          <div className="text-[15px] sm:text-[16px] leading-[1.7] text-gray-800 dark:text-gray-200 space-y-3">
             {isFi ? (
               <>
                 <p>
@@ -164,7 +149,7 @@ export default function BetaWelcomeBanner() {
           </div>
         </div>
 
-        {/* Footer action */}
+        {/* Sticky footer action — always reachable even on short mobiles */}
         <div
           className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-3"
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
@@ -172,7 +157,7 @@ export default function BetaWelcomeBanner() {
           <button
             type="button"
             onClick={dismiss}
-            className="w-full h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full h-12 sm:h-11 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[14px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors active:scale-[0.98]"
           >
             {isFi ? "Jatka karttaan" : "Open the map"}
             <ArrowRight className="h-4 w-4 opacity-80" strokeWidth={2.25} />

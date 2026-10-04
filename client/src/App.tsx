@@ -101,9 +101,6 @@ function AccessibilityClasses() {
 function Router() {
   const [, setLocation] = useLocation();
 
-  useKonamiCode(() => setLocation("/konami-code-activated"));
-  useKsykEasterEggs();
-
   const { data: appSettings } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
@@ -120,6 +117,13 @@ function Router() {
     // clears within 90 s of the admin flipping the toggle.
     refetchInterval: 90_000,
   });
+
+  // v1.0.2 — Easter eggs are OPT-IN.  Admin must enable the toggle
+  // in `/admin/settings` → Features → `enableEasterEgg`.  When off we
+  // skip both the Konami listener and the ksyk-triggered egg hooks.
+  const easterEggsEnabled = appSettings?.enableEasterEgg === true;
+  useKonamiCode(() => { if (easterEggsEnabled) setLocation("/konami-code-activated"); });
+  useKsykEasterEggs(easterEggsEnabled);
 
   // Maintenance mode hides the public app — but admins still need to
   // get in to switch it off, so /admin* always bypasses.

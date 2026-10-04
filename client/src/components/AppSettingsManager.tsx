@@ -37,6 +37,7 @@ interface AppSettings {
   footerTextFi?: string | null;
   showGetAppPopup?: boolean;
   getAppUrl?: string | null;
+  showBetaBanner?: boolean;
   // v4.7.13 — Feature toggles for recently-shipped surfaces so admins
   // can turn things off without a deploy.
   enableSessionReplay?: boolean;      // rrweb recorder on public routes
@@ -61,13 +62,14 @@ const DEFAULT_SETTINGS: AppSettings = {
   enableSearch: true,
   enableAnimations: true,
   compactMode: false,
-  enableEasterEgg: true,
+  enableEasterEgg: false,
   maintenanceMode: false,
   maintenanceMessage: '',
   footerTextEn: '',
   footerTextFi: '',
   showGetAppPopup: false,
   getAppUrl: '/download',
+  showBetaBanner: true,
   enableSessionReplay: true,
   enableCampusEvents: true,
   enablePanoramaSpots: true,
@@ -390,6 +392,26 @@ export default function AppSettingsManager({ subtab, onSubtabChange }: AppSettin
                   className="text-sm"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Where the "Download" button in the popup takes the user.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* v1.0.2 — Beta welcome banner toggle */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Beta welcome popup</CardTitle>
+              <CardDescription>First-visit welcome dialog that explains the service is in beta. Only shown once per visitor.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Show beta welcome on first visit</p>
+                  <p className="text-xs text-muted-foreground">Turn off once we're out of beta</p>
+                </div>
+                <Switch
+                  checked={s.showBetaBanner !== false}
+                  onCheckedChange={(v) => update({ showBetaBanner: v })}
+                />
               </div>
             </CardContent>
           </Card>

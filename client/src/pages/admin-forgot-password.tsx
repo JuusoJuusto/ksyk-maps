@@ -1,22 +1,17 @@
 /**
- * KSYK Admin — Forgot Password.
+ * KSYK Admin — Forgot Password.  v1.0.2 Wilma polish.
  *
- * Reached from the "Forgot password?" link on the admin login screen.
- * POSTs to /api/auth/forgot-password with the entered email. The server
- * always returns success (avoid user-enumeration leaks) — actual reset
- * link goes out by email if the address matches an admin account.
- *
- * Matches the AdminLogin visual language (KSYK dark blue accent,
- * minimal glassy card) rather than the Wilma-style /forgot-password
- * page.
+ * Same document shell as FAQ / Privacy / Support / Settings / AdminLogin:
+ * hairline top header + uppercase masthead + big navy H1 + hairline
+ * sections + navy CTA + sticky footer meta.
  */
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail } from "lucide-react";
+import {
+  ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail, AlertCircle,
+} from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 
@@ -31,10 +26,7 @@ export default function AdminForgotPassword() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email.trim()) {
-      setError("Enter your admin email.");
-      return;
-    }
+    if (!email.trim()) { setError("Enter your admin email."); return; }
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -43,17 +35,11 @@ export default function AdminForgotPassword() {
         credentials: "include",
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          // Tells the server to emit an /admin/reset-password link in
-          // the email instead of the default /wilma/reset-password.
           resetPath: "/admin/reset-password",
         }),
       });
-      // Success is UI-only: the server returns success even for unknown
-      // emails to avoid enumeration. Show the "email sent" screen
-      // regardless so the UX matches the security model.
-      if (res.ok || res.status === 200) {
-        setSent(true);
-      } else {
+      if (res.ok || res.status === 200) setSent(true);
+      else {
         const body = await res.json().catch(() => ({}));
         setError(body?.message || "Request failed. Try again.");
       }
@@ -65,119 +51,132 @@ export default function AdminForgotPassword() {
   };
 
   return (
-    <div
-      className={cn(
-        "min-h-screen flex items-center justify-center p-4",
-        darkMode ? "bg-gray-950" : "bg-white",
-      )}
-    >
-      <div
-        className={cn(
-          "w-full max-w-md rounded-2xl border p-8",
-          darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <Lock className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500">
-              KSYK Admin
-            </p>
-            <h1 className={cn("text-[17px] font-semibold tracking-tight leading-none mt-0.5", darkMode ? "text-white" : "text-gray-900")}>
-              Reset password
-            </h1>
-          </div>
+    <div className={cn(
+      "min-h-screen flex flex-col",
+      darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900",
+    )}
+    style={{
+      paddingTop: "env(safe-area-inset-top, 0px)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    }}>
+      {/* Document header */}
+      <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
+        <div className="max-w-md mx-auto px-4 h-12 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setLocation("/admin")}
+            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            Sign in
+          </button>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400">
+            <Lock className="h-3 w-3" strokeWidth={2.5} />
+            Protected
+          </span>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-md mx-auto px-4 sm:px-5 py-8 sm:py-12 flex flex-col justify-center">
+        {/* Title block */}
+        <div className="mb-6 pb-4 border-b border-[#d5dae0] dark:border-[#2a3040]">
+          <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9] mb-1">
+            Admin
+          </p>
+          <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+            Reset password
+          </h1>
+          <p className="text-[13px] mt-1.5 text-gray-500 dark:text-gray-400">
+            Enter the email tied to your KSYK admin account. We'll send a link to set a new password.
+          </p>
         </div>
 
         {sent ? (
-          <>
-            <div className={cn("rounded-xl p-4 mb-4 border-2 flex items-start gap-3", "border-emerald-500/40 bg-emerald-500/5")}>
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <p className={cn("font-semibold text-sm", darkMode ? "text-emerald-300" : "text-emerald-800")}>
+          <div className="space-y-5">
+            <div className="rounded-[6px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 p-4 flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-emerald-600 dark:bg-emerald-500 text-white">
+                <CheckCircle2 className="h-4 w-4" strokeWidth={2.25} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-emerald-900 dark:text-emerald-100">
                   Check your email
                 </p>
-                <p className={cn("text-xs mt-1", darkMode ? "text-emerald-300/70" : "text-emerald-700/80")}>
-                  If <span className="font-mono">{email}</span> matches an admin account, we sent a link. It's valid for 1 hour.
+                <p className="text-[12px] text-emerald-800 dark:text-emerald-200/80 mt-1 leading-relaxed break-words">
+                  If <span className="font-mono font-semibold">{email}</span> matches an admin account, we sent a link. It's valid for 1 hour.
                 </p>
               </div>
             </div>
-            <Button
+            <button
               type="button"
               onClick={() => setLocation("/admin")}
-              className="w-full h-10 rounded-lg font-semibold gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full h-11 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] text-white text-[14px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
               Back to sign in
-            </Button>
-          </>
+            </button>
+          </div>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-4">
-            <p className={cn("text-xs", darkMode ? "text-gray-400" : "text-gray-500")}>
-              Enter the email tied to your KSYK admin account. We'll send a link that lets you set a new password.
-            </p>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-forgot-email" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="admin-forgot-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@ksyk.fi"
-                  className="pl-8 h-10 text-sm"
-                  data-testid="admin-forgot-email"
-                />
-              </div>
-            </div>
-
+          <form onSubmit={onSubmit} className="space-y-5">
             {error && (
-              <Alert variant="destructive" className="py-2">
-                <AlertDescription className="text-xs">{error}</AlertDescription>
-              </Alert>
+              <div className="rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" strokeWidth={2.25} />
+                <p className="text-[13px] font-semibold text-red-800 dark:text-red-200">{error}</p>
+              </div>
             )}
 
-            <Button
+            <div className="space-y-2">
+              <Label htmlFor="admin-forgot-email" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                <Mail className="h-3 w-3" strokeWidth={2.25} />
+                Email
+              </Label>
+              <Input
+                id="admin-forgot-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@ksyk.fi"
+                className="h-11 rounded-[6px] text-[15px] border-[#d5dae0] dark:border-[#2a3040] focus-visible:border-[#003d82] focus-visible:ring-2 focus-visible:ring-[#003d82]/20"
+                data-testid="admin-forgot-email"
+              />
+            </div>
+
+            <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-10 rounded-lg font-semibold gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
+              className="w-full h-11 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[14px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
               data-testid="admin-forgot-submit"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
                   Sending…
                 </>
               ) : (
                 <>
                   Send reset link
-                  <ArrowRight className="w-3.5 h-3.5 opacity-80" />
+                  <ArrowRight className="w-4 h-4" strokeWidth={2.25} />
                 </>
               )}
-            </Button>
+            </button>
 
             <button
               type="button"
               onClick={() => setLocation("/admin")}
-              className={cn(
-                "w-full text-[11px] font-medium flex items-center justify-center gap-1 transition-colors",
-                darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900",
-              )}
+              className="w-full text-[12px] font-semibold text-gray-500 dark:text-gray-400 hover:text-[#003d82] dark:hover:text-[#4a90d9] inline-flex items-center justify-center gap-1 transition-colors"
             >
-              <ArrowLeft className="w-3 h-3" />
+              <ArrowLeft className="w-3 h-3" strokeWidth={2.25} />
               Back to sign in
             </button>
           </form>
         )}
-      </div>
+
+        <p className="mt-8 pt-4 border-t border-[#d5dae0] dark:border-[#2a3040] text-[11px] text-center text-gray-500 dark:text-gray-500">
+          © {new Date().getFullYear()} KSYK Maps · Admin
+        </p>
+      </main>
     </div>
   );
 }

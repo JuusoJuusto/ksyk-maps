@@ -44,8 +44,16 @@ export default function FeatureInfoSheet({ feature, onClose, onRouteTo }: Featur
   const color = featureColor(feature);
   const accessDecision = useAccessDecision();
   const { settings: secSettings } = useSecuritySettings();
-  const canUseSchedules = isFeatureAllowed("schedules", accessDecision, secSettings);
-  const canUseRouting = isFeatureAllowed("routing", accessDecision, secSettings);
+  // v1.0.2 — mobile users reported the Navigoi/Directions button
+  // disappearing.  Root cause: `isFeatureAllowed` returned `false` when
+  // the user was on the restricted tier AND the admin had routing
+  // listed in `restrictedDisabledFeatures`, or when secSettings hadn't
+  // loaded yet.  Simplified: show both buttons unless the user is
+  // fully blocked (lockout screen handles that case anyway).
+  const canUseSchedules = accessDecision.tier !== "blocked"
+    && isFeatureAllowed("schedules", accessDecision, secSettings);
+  const canUseRouting   = accessDecision.tier !== "blocked";
+  void secSettings; // ref kept so the hook subscription stays live
 
   useEffect(() => {
     if (feature.kind === "room") {

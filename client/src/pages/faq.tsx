@@ -54,8 +54,15 @@ const QUESTIONS: Q[] = [
 export default function FAQ() {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
   const { darkMode } = useDarkMode();
+  // v1.0.2 — default English when the user hasn't set a language yet
+  // (matches privacy / cookie banner / login gate behaviour).  Finnish
+  // is now opt-in via the Header EN/FI toggle.
   const [lang, setLang] = useState<"fi" | "en">(() => {
-    try { return (localStorage.getItem("ksyk_language") || "fi").startsWith("en") ? "en" : "fi"; } catch { return "fi"; }
+    try {
+      const stored = localStorage.getItem("ksyk_language");
+      if (!stored) return "en";
+      return stored.toLowerCase().startsWith("fi") ? "fi" : "en";
+    } catch { return "en"; }
   });
   const isFi = lang === "fi";
 
@@ -63,6 +70,17 @@ export default function FAQ() {
     document.title = isFi ? "UKK — KSYK Maps" : "FAQ — KSYK Maps";
     return () => { document.title = "KSYK Maps"; };
   }, [isFi]);
+
+  // Keep in sync with other pages' language changes.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "ksyk_language" && typeof e.newValue === "string") {
+        setLang(e.newValue.toLowerCase().startsWith("fi") ? "fi" : "en");
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   return (
     <div
@@ -83,7 +101,11 @@ export default function FAQ() {
             {isFi ? "Kartta" : "Map"}
           </Link>
           <button
-            onClick={() => setLang(l => l === "fi" ? "en" : "fi")}
+            onClick={() => {
+              const next = lang === "fi" ? "en" : "fi";
+              setLang(next);
+              try { localStorage.setItem("ksyk_language", next); } catch { /* ignore */ }
+            }}
             className="text-[12px] font-bold tracking-wide h-8 px-2.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors"
           >
             {isFi ? "EN" : "FI"}

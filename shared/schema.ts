@@ -723,6 +723,9 @@ export const appSettings = pgTable("app_settings", {
   // toggle in /admin/settings never persisted.
   showGetAppPopup: boolean("show_get_app_popup").default(false),
   getAppUrl: varchar("get_app_url").default("/download"),
+  // v1.0.2 — admin can hide the first-visit beta welcome popup entirely.
+  // Default ON; admin flips to OFF once the public launch happens.
+  showBetaBanner: boolean("show_beta_banner").default(true),
   enableImportData: boolean("enable_import_data").default(true),
   enableBulkOperations: boolean("enable_bulk_operations").default(true),
   enableAdvancedFilters: boolean("enable_advanced_filters").default(true),
