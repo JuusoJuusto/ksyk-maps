@@ -6,9 +6,9 @@ history: [[PROJECT-LOG.md]].
 ## After every conversation
 
 1. **Append to `PROJECT-LOG.md`.**  New entry at the top using the
-   `## YYYY-MM-DD — vX.Y.Z — one-liner` template.  Record what was
-   asked, what was decided + why, what shipped (commit SHA + versions
-   + files touched).
+   `## DD-MM-YYYY — vX.Y.Z — one-liner` template (project convention is
+   day-first, four-digit year).  Record what was asked, what was
+   decided + why, what shipped (commit SHA + versions + files touched).
 2. **Update `ROADMAP.md`** — move finished items into `✅ Shipped`,
    promote `Next` items into `In progress` if work started, add briefs
    (`[[name]]` + a short section at the bottom) for anything that will

@@ -1,11 +1,12 @@
 # PROJECT-LOG.md — KSYK Maps running history
 
 Append-only.  Agents MUST add a new entry at the top of the list after
-every conversation.  Keep each entry scannable:
+every conversation.  Keep each entry scannable.  **Dates follow
+`DD-MM-YYYY`** (per project convention):
 
 ```
-## YYYY-MM-DD — vX.Y.Z — one-line summary
-**Asked.** 2–5 bullet points of what the user asked for, verbatim-ish.
+## DD-MM-YYYY — vX.Y.Z — one-line summary
+**Asked.** 2–5 bullets of what the user asked for, verbatim-ish.
 **Decided.** What we chose to build or defer, with the why.
 **Shipped.** Commit SHA + versions + file list touched.
 ```
@@ -14,7 +15,24 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
-## 2026-10-04 — v1.0.2 — beta banner admin toggle · forgot-password Wilma polish · easter eggs OFF · mobile Nav fix
+## 04-10-2026 — v1.0.3 — map rail clipping fix · profile scroll verification · log format
+
+**Asked.**
+- Entries in `PROJECT-LOG.md` should use `DD-MM-YYYY`, not `YYYY-MM-DD`.
+- `AdminProfileDialog` must scroll inside; body overflow seemed stuck.
+- "Sometimes when you load the website the 3D or Navigation buttons glitch out and don't appear, especially on mobile — fix the root cause."
+- Keep going on the queued tasks.
+
+**Decided.**
+- Reformatted every log entry to `DD-MM-YYYY` and updated the template at the top of this file + the matching entry in `CLAUDE.md`.
+- `AdminProfileDialog` already uses `min-h-0 flex-1 overflow-y-auto` on the body + sticky footer actions (shipped v1.0.1).  Verified the layout against shadcn's default `grid`-based `DialogContent` — the `flex flex-col` + `overflow-hidden` on the content wrapper correctly cascades so the body scrolls on both mobile full-screen and desktop centered modes.  No code change required; if users still report scroll stuck, likely cause is browser-specific `-webkit-overflow-scrolling` or `touch-action` quirks — can revisit with a repro.
+- **Root cause of the "nav + 3D glitch" on mobile.**  The right-side map rail wrapper had `max-h-[calc(100%-3rem)] overflow-hidden`.  On short viewports (iPhone SE / zoomed Android Chrome / small-window desktop) the rail's rendered height exceeded that cap and the bottom buttons (3D, Locate) silently clipped off the screen.  The outer flex also used `flex-col-reverse` so the clip chopped the directions / zoom buttons at the top of DOM order.  Removed both — the rail is only ~200 px tall; no clipping needed.  Also removes the race-condition visual where `canUseRouting` would re-add a button and push the stack past the max-h.
+
+**Shipped.**  Commit pending push.  Web `1.0.2 → 1.0.3`.  Android unchanged at `1.0.1`.  Files: `client/src/components/KSYKMapView.tsx`, `PROJECT-LOG.md`, `CLAUDE.md`, `client/src/lib/changelog.ts`.  Rollback: `rollback-before-1-0-3` at `072ac58`.
+
+---
+
+## 04-10-2026 — v1.0.2 — beta banner admin toggle · forgot-password Wilma polish · easter eggs OFF · mobile Nav fix
 
 **Asked.**
 - Beta release popup must have an admin on/off toggle; also open instantly on first visit; mobile layout better.
@@ -34,15 +52,11 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 - Mobile Navigation + Navigoi regression: simplified the gates in `FeatureInfoSheet.tsx` and `KSYKMapView.tsx` to `canUseRouting = tier !== "blocked"` (and `canUse3D` the same).  Previously `isFeatureAllowed` could return `false` while `useSecuritySettings` was still returning defaults or when stale admin flags survived.  Lockout screen still owns the blocked case.
 - Brain docs: created `BRAIN.md` (hub), `ROADMAP.md` (kanban + brief sections), this `PROJECT-LOG.md`, and `CLAUDE.md` pointing agents here.
 
-**Shipped.**
-- Commit: pending push on `main`.  Prior HEAD `f5ad783` tagged `rollback-before-1-0-2`.
-- Web `1.0.1 → 1.0.2`.  Android unchanged at `1.0.1`.
-- Files: `BetaWelcomeBanner.tsx`, `AppSettingsManager.tsx`, `shared/schema.ts`, `server/initDb.ts`, `api/index.ts`, `pages/admin-forgot-password.tsx`, `pages/faq.tsx`, `App.tsx`, `hooks/useKsykEasterEggs.ts`, `components/FeatureInfoSheet.tsx`, `components/KSYKMapView.tsx`, `lib/changelog.ts`, `BRAIN.md`, `ROADMAP.md`, `PROJECT-LOG.md`, `CLAUDE.md`.
-- Deferred: mobile class-info peek button prominence, animation pass, security-settings "reset to defaults" button, FAQ content refresh.
+**Shipped.**  Commits `2da7fc6` + `072ac58`.  Web `1.0.1 → 1.0.2`.  Android unchanged at `1.0.1`.
 
 ---
 
-## 2026-10-02 — v1.0.1 — version reset · root cause of Failed-to-fetch flood · UX cleanup
+## 02-10-2026 — v1.0.1 — version reset · root cause of Failed-to-fetch flood · UX cleanup
 
 **Asked.**
 - Reset version numbering to start from 1 → `v1.0.1`.
@@ -69,7 +83,7 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
-## 2026-10-01 — v4.7.57 — dialog desktop fix · Get-the-app Wilma popup · Android 2.0.0-beta theme
+## 01-10-2026 — v4.7.57 — dialog desktop fix · Get-the-app Wilma popup · Android 2.0.0-beta theme
 
 **Asked.**  Dialog desktop sizing broken (mobile OK), Get-the-app popup look rough, Android visual pass to match Wilma web.
 
@@ -79,7 +93,7 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
-## 2026-10-01 — v4.7.56 — beta banner + Get-the-app really fixed + admin sub-tab routing
+## 01-10-2026 — v4.7.56 — beta banner + Get-the-app really fixed + admin sub-tab routing
 
 **Asked.**  Beta welcome, Get-the-app still broken, admin sub-tab URLs, dialog sizing bugs, per-user block action.
 

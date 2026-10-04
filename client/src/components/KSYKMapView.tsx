@@ -742,8 +742,14 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
        *  soft shadow. Reads as one instrument, not five buttons. Order
        *  bottom-up: Directions, Zoom+, Zoom-, 3D, Locate. Compass and GPS
        *  float above as standalone chips because they auto-show/hide. */}
+      {/* v1.0.3 — removed max-h-[calc(100%-3rem)] + overflow-hidden
+       *  from this wrapper.  On short mobile viewports the parent height
+       *  calc + the inner rail height could silently clip the Navigation
+       *  or 3D buttons off the bottom, which matched the "nav + 3D don't
+       *  load on mobile" bug reports.  No clipping behaviour needed —
+       *  the rail is only ~200 px tall which fits every supported device. */}
       <div
-        className="absolute right-3 sm:right-4 z-30 flex flex-col-reverse gap-2 items-end max-h-[calc(100%-3rem)] overflow-hidden"
+        className="absolute right-3 sm:right-4 z-30 flex flex-col-reverse gap-2 items-end"
         style={{ bottom: "max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))" }}
       >
         {/* Main rail — Directions, zoom, 3D, locate stacked.  Wilma-style:

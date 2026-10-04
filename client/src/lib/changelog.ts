@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.2";
+export const APP_VERSION = "1.0.3";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.3",
+    date: "October 2026",
+    title: "Map rail clipping fix — mobile Nav + 3D buttons visible every load",
+    titleFi: "Kartan kontrolliparin leikkautuminen korjattu — nav + 3D näkyvät nyt mobiilissa luotettavasti",
+    latest: true,
+    highlights: [
+      "**Root cause of the \"nav + 3D buttons glitch out on mobile\" bug fixed.** The right-side map rail wrapper had `max-h-[calc(100%-3rem)] overflow-hidden` + `flex-col-reverse`.  On short viewports (iPhone SE, zoomed Android Chrome, narrow desktop windows) the inner rail height exceeded the max-h cap and the bottom buttons silently clipped off-screen.  Reversed-direction flex meant it was the newest buttons (Directions / Nav) that got chopped, not the oldest.  Removed both — rail is only ~200 px tall and doesn't need clipping protection on any supported device.",
+      "**AdminProfileDialog scroll** — verified the existing `min-h-0 flex-1 overflow-y-auto` body + sticky footer actions.  No code change needed; the scroll works on both mobile full-screen and desktop centred modes.  If users still report issues, the cause will be browser-specific `-webkit-overflow-scrolling` touch quirks and I'll need a repro.",
+      "**`PROJECT-LOG.md` reformatted to `DD-MM-YYYY`** per project convention.  `CLAUDE.md` template updated to match.",
+      "**Rollback** — `git tag rollback-before-1-0-3` at `072ac58`.  Revert: `git reset --hard rollback-before-1-0-3 && git push --force-with-lease origin main`.",
+      "Web `1.0.2 → 1.0.3`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Kartan oikean reunan kontrollipari leikkautui mobiilissa — iso navigaatio- + 3D-nappi jäivät piiloon lyhyillä näytöillä.  Korjattu poistamalla turha `max-h` + `overflow-hidden` + käänteinen flex-järjestys.",
+      "Admin-profiilidialogin vieritys varmistettu toimivaksi mobiilissa ja työpöydällä.",
+      "Projektin lokipäivämäärät nyt `DD-MM-YYYY`-muodossa.",
+      "Palauta: `git reset --hard rollback-before-1-0-3`.",
+    ],
+  },
+  {
     version: "1.0.2",
     date: "October 2026",
     title: "Beta banner admin toggle · forgot-password Wilma polish · easter eggs OFF by default · FAQ EN default",
     titleFi: "Beta-ikkunan admin-katkaisin · unohdin salasanan uusiksi · easter-eggit pois oletuksena",
-    latest: true,
+    latest: false,
     highlights: [
       "**Beta welcome banner now opens instantly** on first visit (removed the 6 s `ksyk:map-ready` wait). Admin can disable the entire banner from `/admin/settings` → Features → `Show beta welcome on first visit`. New `showBetaBanner` column in `app_settings` (default `true`), `ALTER TABLE ADD COLUMN IF NOT EXISTS` migration in `initDb.ts`, column whitelisted in the API `SETTINGS_COLUMNS`. Mobile layout gets safe-area-aware full-screen takeover and a 48 px CTA.",
       "**AdminForgotPassword rewritten to Wilma document style** — same shell as every other full-page screen: hairline top bar + uppercase `ADMIN` masthead + big navy H1 + hairline email input with navy focus ring + 44 px navy CTA + hairline footer. The success state is a Wilma emerald callout card. Rounded-2xl card and KSYK-blue gone.",
