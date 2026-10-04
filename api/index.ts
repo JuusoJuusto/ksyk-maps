@@ -254,6 +254,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // GET /api/security-settings — public read for the access-control gate engine.
     if (apiPath === '/security-settings' && req.method === 'GET') {
+      // v1.0.5 — never cache this response.  Was dominated by stale
+      // nulls: on first prod boot kvGet returned null, Vercel edge cached
+      // that for 30+ min, and admin flips of `enabled: true` never
+      // reached clients until the TTL expired.  Mirrors /api/settings.
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
       try {
         const { kvGet } = await import('../server/kvStorage.js');
         return res.status(200).json(await kvGet('securitySettings'));

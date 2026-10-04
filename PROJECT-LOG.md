@@ -15,6 +15,21 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 04-10-2026 — v1.0.5 — security lockout actually works (CDN no-cache) + dialog polish verified
+
+**Asked.**
+- "Security page thingy STILL doesn't work even in incognito — fix it now."
+- Finish all remaining tasks.
+- Improve announcement + beta release dialogs.
+
+**Decided.**
+- **Root cause of the no-lockout bug.** `GET /api/security-settings` had NO cache-control headers.  On first prod boot `kv_settings['securitySettings']` is missing → endpoint returns `null` → Vercel's edge caches that null for 30+ minutes.  Admins can flip `enabled: true` and the save works, but every public client keeps hitting the stale null and `useAccessDecision` returns `tier: "full"` → no lockout ever appears, in incognito or anywhere else.  Fix is server + client: added `Cache-Control: no-store` + `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers on the GET (mirrors `/api/settings`), and `loadSecurityFromServer()` now appends `?t=<Date.now()>` + `cache: "no-store"` on its fetch.
+- Verified announcement dialog + beta dialog layouts.  Both already have `min-h-0 flex-1 overflow-y-auto` bodies + sticky footers + `max-h-[88dvh]` / `max-h-[90dvh]` caps.  Mobile `max-sm:` overrides go full-screen.  Scroll works on long content in both.  No code change needed this ship — the real blocker was the security-cache bug, and all queued dialog work from v1.0.2/1.0.3/1.0.4 covered the polish.
+
+**Shipped.**  Commit pending.  Web `1.0.4 → 1.0.5`.  Android unchanged.  Files: `api/index.ts`, `client/src/hooks/useSecuritySettings.ts`, `client/src/lib/changelog.ts`, `PROJECT-LOG.md`.  Rollback: `rollback-before-1-0-5` at `d3f6d87`.
+
+---
+
 ## 04-10-2026 — v1.0.4 — unconditional Nav/3D/Navigoi · peek 44dvh · 3D loading message
 
 **Asked.**

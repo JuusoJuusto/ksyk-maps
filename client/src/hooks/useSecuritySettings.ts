@@ -41,7 +41,13 @@ if (typeof window !== "undefined") {
 export async function loadSecurityFromServer(): Promise<SecuritySettings | null> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
   try {
-    const r = await fetch("/api/security-settings", { credentials: "include" });
+    // v1.0.5 — cache-bust the fetch so stale CDN/edge responses can't
+    // leave the client with `enabled: false` after the admin has flipped
+    // it on.  Mirrors how /api/settings is fetched elsewhere.
+    const r = await fetch("/api/security-settings?t=" + Date.now(), {
+      credentials: "include",
+      cache: "no-store",
+    });
     if (!r.ok) return null;
     const data = await r.json();
     if (data && typeof data === "object") {

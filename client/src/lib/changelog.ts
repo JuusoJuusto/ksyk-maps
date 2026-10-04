@@ -10,17 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.4";
+export const APP_VERSION = "1.0.5";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.5",
+    date: "October 2026",
+    title: "Security lockout actually works — no-cache fix on /api/security-settings",
+    titleFi: "Pääsy-eston lukitus toimii vihdoin — välimuistiotsake korjattu",
+    latest: true,
+    highlights: [
+      "**Root cause of \"security enabled but no lockout in incognito\":**  `GET /api/security-settings` had NO cache-control headers.  On first prod boot Postgres' `kv_settings` row for `securitySettings` was missing, so the endpoint returned `null`; Vercel's edge cached that null for 30+ minutes.  Admins would flip `enabled: true` in `/admin/security`, the save worked, but every public client kept hitting the stale CDN null and `useAccessDecision` kept returning `tier: \"full\"` → no lockout screen ever appeared.",
+      "**Fix (two parts).**  Server: added `Cache-Control: no-store` + `CDN-Cache-Control: no-store` + `Vercel-CDN-Cache-Control: no-store` headers on the GET response (mirrors `/api/settings`).  Client: `loadSecurityFromServer()` now appends `?t=<Date.now()>` and sets `cache: \"no-store\"` on its fetch, so every mount pulls fresh.",
+      "**Rollback** — `git tag rollback-before-1-0-5` at `d3f6d87`.  Revert: `git reset --hard rollback-before-1-0-5 && git push --force-with-lease origin main`.",
+      "Web `1.0.4 → 1.0.5`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Juurisyy: `GET /api/security-settings` palautti `null` ennen kuin admin oli tallentanut mitään, ja Vercel välimuisti sen 30+ minuutiksi.  Admin voi käydä laittamassa suojauksen päälle, mutta julkiset asiakkaat jatkoivat vanhan nullin kanssa → lukitus ei koskaan laukennut.",
+      "Korjaus: `Cache-Control: no-store` + `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers palvelimella + `cache: \"no-store\"` + aikaleima asiakkaalla.",
+      "Palauta: `git reset --hard rollback-before-1-0-5`.",
+    ],
+  },
+  {
     version: "1.0.4",
     date: "October 2026",
     title: "Nav + 3D + Navigoi buttons unconditional · peek snap taller · 3D empty-state clearer",
     titleFi: "Nav + 3D + Navigoi -napit aina näkyvillä · peek-tilanne korkeampi",
-    latest: true,
+    latest: false,
     highlights: [
       "**Nav + 3D + room-click Navigoi buttons are now unconditional** in the map UI.  Previous versions wrapped them in `canUseRouting`/`canUse3D` gates that could evaluate to `false` for a tick while `useSecuritySettings` or `useAccessDecision` finished loading — on mobile the race window was wide enough that visitors reported the buttons intermittently disappearing even in `v1.0.3`.  Access control is still enforced upstream: the lockout screen takes over the whole route when `tier === \"blocked\"`, so when this component mounts the user is at least `restricted` and all buttons can safely render.",
       "**`FeatureInfoSheet` peek snap taller.**  `peek` 38 dvh → 44 dvh, `half` 62 → 66, `full` 88 → 92.  The action row (`Navigoi` + Schedule) now stays above the fold on short mobile viewports (iPhone SE in landscape, zoomed Android Chrome).",
