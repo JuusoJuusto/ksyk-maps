@@ -10,17 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.5";
+export const APP_VERSION = "1.0.6";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.6",
+    date: "October 2026",
+    title: "Admin auth: real reason on failed Save · builder re-checks sign-in",
+    titleFi: "Admin-kirjautuminen: oikea syy epäonnistuneelle tallennukselle · rakentaja tarkistaa kirjautumisen uudelleen",
+    latest: true,
+    highlights: [
+      "**Security Save no longer says \"Session expired\" for every 401.**  The server now returns a `reason` (`missing`, `malformed`, `bad_signature`, `expired`) with each admin 401.  The panel shows that reason and the server message.",
+      "**Admin 401s are diagnosable.**  Each rejection writes a `warn` log (reason + path, never the token) to PostHog Logs.  The client sends `admin_save_failed` with status, reason, token presence and seconds since sign-in.",
+      "**Builder re-checks sign-in.**  `useAdminAuth` runs again when the admin keys change in `localStorage` (sign-in in another tab) and when the tab becomes visible.  A builder that opened before sign-in no longer stays on \"Builder is admin-only\".  The re-check never downgrades an allowed builder.",
+      "**Rollback** — `git tag rollback-before-1-0-6` at `e0a899c`.  Revert: `git reset --hard rollback-before-1-0-6 && git push --force-with-lease origin main`.  No DB migration.",
+      "Web `1.0.5 → 1.0.6`.  Android unchanged at `1.0.1`.  `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Suojausasetusten tallennus näyttää nyt palvelimen todellisen syyn (puuttuva, virheellinen tai vanhentunut tunniste) eikä aina \"istunto vanhentunut\".",
+      "Rakentaja tarkistaa kirjautumisen uudelleen, kun kirjaudut toisessa välilehdessä tai palaat välilehdelle.",
+      "Palauta: `git reset --hard rollback-before-1-0-6`.",
+    ],
+  },
+  {
     version: "1.0.5",
     date: "October 2026",
     title: "Security lockout actually works — no-cache fix on /api/security-settings",
     titleFi: "Pääsy-eston lukitus toimii vihdoin — välimuistiotsake korjattu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Root cause of \"security enabled but no lockout in incognito\":**  `GET /api/security-settings` had NO cache-control headers.  On first prod boot Postgres' `kv_settings` row for `securitySettings` was missing, so the endpoint returned `null`; Vercel's edge cached that null for 30+ minutes.  Admins would flip `enabled: true` in `/admin/security`, the save worked, but every public client kept hitting the stale CDN null and `useAccessDecision` kept returning `tier: \"full\"` → no lockout screen ever appeared.",
       "**Fix (two parts).**  Server: added `Cache-Control: no-store` + `CDN-Cache-Control: no-store` + `Vercel-CDN-Cache-Control: no-store` headers on the GET response (mirrors `/api/settings`).  Client: `loadSecurityFromServer()` now appends `?t=<Date.now()>` and sets `cache: \"no-store\"` on its fetch, so every mount pulls fresh.",

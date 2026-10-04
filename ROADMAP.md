@@ -24,6 +24,7 @@ Hub: [[BRAIN.md]]
 - [[class-info-mobile-buttons]] — ensure schedule + room-schedule buttons are visible on mobile at `peek` snap
 - [[cookie-banner-l10n]] — EN default, bigger mobile touch targets
 - [[maintenance-page-polish]] — add KSYK logo, remove stray arrow
+- [[admin-session-loss]] — find what clears `ksyk_admin_*` keys right after sign-in (use `admin_save_failed` + "Admin auth rejected" logs from v1.0.6)
 - [[security-settings-reset]] — one-click "Reset to defaults" that forces all users into `restricted` tier
 - [[motion-pass]] — subtle enter/exit transitions on dialogs + sheets, respect `prefers-reduced-motion`
 - [[faq-content-review]] — refresh Finnish copy, add 3–5 new entries
@@ -39,6 +40,7 @@ Hub: [[BRAIN.md]]
 
 ## ✅ Shipped (recent)
 
+- v1.0.6 — admin 401s return a reason (shown on security Save, logged to PostHog), builder re-checks sign-in on storage / visibility
 - v1.0.1 — version reset, root cause of `Failed to fetch` flood fixed, student login gate opt-in, cookie banner EN default
 - v4.7.57 — dialog desktop sizing fix, Get-the-app Wilma redesign, Android 2.0.0-beta theme
 - v4.7.56 — beta banner, Get-the-app really fixed (DB column), admin sub-tab routing, per-user block action
@@ -188,3 +190,16 @@ Pre-flight checklist:
 4. Flip `app_settings.show_beta_banner` to `false`.
 5. Bump `APP_VERSION` to `1.1.0`, cut Android `1.1.0`.
 6. Tag `release-public-launch` for easy rollback.
+
+---
+
+## [[admin-session-loss]]
+
+On 01-10-2026 the owner signed in three times in about 3.5 minutes.  Each
+time, the next `/admin` or `/builder` visit found no `ksyk_admin_*` keys.
+No code path that clears them was confirmed (`AdminDashboard` wipe needs a
+>12 h `login_at`; `Header` logout needs a click).  v1.0.6 adds the
+evidence: the `admin_save_failed` event (`reason`, `has_token`,
+`seconds_since_login`) and the server log "Admin auth rejected (<reason>)".
+Next step: read those after the next failure.  `missing` points at the
+client; `bad_signature` points at `SESSION_SECRET` or the token issuer.

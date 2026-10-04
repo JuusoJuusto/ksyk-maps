@@ -24,27 +24,45 @@ function generateAdminToken(userId: string, role: string): string {
   return `${payload}.${sig}`;
 }
 
-function verifyAdminToken(token: string): { userId: string; role: string } | null {
+type AdminTokenFailure = 'malformed' | 'bad_signature' | 'expired';
+
+function checkAdminToken(token: string): { userId: string; role: string } | AdminTokenFailure {
   try {
     const dot = token.lastIndexOf('.');
-    if (dot === -1) return null;
+    if (dot === -1) return 'malformed';
     const payload = token.slice(0, dot);
-    const sig = token.slice(dot + 1);
-    const expected = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    const sig = Buffer.from(token.slice(dot + 1));
+    const expected = Buffer.from(crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url'));
+    if (sig.length !== expected.length || !crypto.timingSafeEqual(sig, expected)) return 'bad_signature';
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString());
-    if (parsed.exp < Date.now()) return null;
+    if (parsed.exp < Date.now()) return 'expired';
     return parsed;
-  } catch { return null; }
+  } catch { return 'malformed'; }
 }
 
+function verifyAdminToken(token: string): { userId: string; role: string } | null {
+  const result = checkAdminToken(token);
+  return typeof result === 'string' ? null : result;
+}
+
+// `reason` lets the admin UI show why it was rejected instead of a blanket
+// "session expired"; the log makes fresh-token rejections traceable.
 function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: string; role: string } | null {
   const header = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
   const token = header?.replace(/^Bearer\s+/i, '').trim();
-  if (!token) { res.status(401).json({ message: 'Admin authentication required' }); return null; }
-  const payload = verifyAdminToken(token);
-  if (!payload) { res.status(401).json({ message: 'Invalid or expired admin token' }); return null; }
-  return payload;
+  const result = token ? checkAdminToken(token) : 'missing';
+  if (typeof result !== 'string') return result;
+  const path = (req.url || '').split('?')[0];
+  emitLog(`Admin auth rejected (${result}) on ${req.method} ${path}`, {
+    severity: 'warn',
+    attributes: { reason: result, method: req.method || '', path },
+  });
+  void flushLogs().catch(() => {});
+  const message = result === 'missing' ? 'Admin authentication required'
+    : result === 'expired' ? 'Admin token expired'
+    : 'Invalid admin token';
+  res.status(401).json({ message, reason: result });
+  return null;
 }
 
 // Run once per cold start — creates kv_settings, campus_pois, room_aliases,

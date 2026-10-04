@@ -15,6 +15,20 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 04-10-2026 — v1.0.6 — admin auth: real 401 reason on Save · builder re-checks sign-in
+
+**Asked.**
+- Inbox report: the owner gets "Session expired" on security Save seconds after a fresh sign-in, and the builder shows "Builder is admin-only" to a signed-in owner.
+
+**Decided.**
+- The blanket "Session expired" toast hid the real cause.  `requireAdminAuth` now returns a `reason` (`missing` / `malformed` / `bad_signature` / `expired`) and logs each rejection to PostHog Logs (no token in the log).  The panel shows the reason and sends `admin_save_failed`.
+- Event data shows the client lost its `ksyk_admin_*` keys within about a minute of sign-in (the next `/admin` visit showed the login form).  No code path that clears them was confirmed.  The new log + event tell us next time whether the token was missing, bad, or expired.
+- `useAdminAuth` (builder) re-checks on `storage` events for the admin keys and on `visibilitychange`.  It only upgrades to "allowed", so a re-check never unmounts unsaved builder work.
+
+**Shipped.**  Draft PR.  Web `1.0.5 → 1.0.6`.  Android unchanged.  Files: `api/index.ts`, `client/src/components/SecuritySettingsPanel.tsx`, `client/src/hooks/useSecuritySettings.ts`, `client/src/pages/builder.tsx`, `client/src/lib/changelog.ts`, `PROJECT-LOG.md`, `ROADMAP.md`.  Rollback: `rollback-before-1-0-6` at `e0a899c`.  No DB migration.
+
+---
+
 ## 04-10-2026 — v1.0.5 — security lockout actually works (CDN no-cache) + dialog polish verified
 
 **Asked.**
