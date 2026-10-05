@@ -40,8 +40,10 @@ export function initSentry() {
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({
-          maskAllText: false,
-          blockAllMedia: false,
+          // Mask all text content so student names, schedules, and room data
+          // are never visible in session replays.
+          maskAllText: true,
+          blockAllMedia: true,
         }),
       ],
       // In production, sample 20 % of transactions and 100 % of error

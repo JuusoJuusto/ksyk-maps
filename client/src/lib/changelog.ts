@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.7";
+export const APP_VERSION = "1.0.8";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.8",
+    date: "September 2026",
+    title: "Production hardening — Sentry masking, health endpoint fix, ops docs, expanded tests",
+    titleFi: "Tuotantovahvistus — Sentry-peitto, terveystarkistuskorjaus, käyttöoppaat, laajennetut testit",
+    latest: true,
+    highlights: [
+      "**Sentry session replay masks all text** (`maskAllText: true`, `blockAllMedia: true`). Student names and schedule data can no longer appear in Sentry session recordings.",
+      "**Health endpoint no longer leaks error details.** `/api/health` 503 response no longer includes the raw database error message.",
+      "**Operations docs created.** `docs/PRODUCTION_CHECKLIST.md`, `docs/ANALYTICS.md`, `docs/OPERATIONS.md` — release gate, analytics event reference, architecture and rollback runbook.",
+      "**E2e smoke suite expanded.** Now covers health API, buildings/rooms APIs, search input validation, login rejection, rate-limit check, and admin auth wall.",
+      "**Rollback** — `git tag rollback-before-1-0-8` at `8dd287a`. Revert: `git reset --hard rollback-before-1-0-8 && git push --force-with-lease origin main`.",
+      "Web `1.0.7 → 1.0.8`. Android unchanged at `1.0.1`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "Sentry-istuntonauhoi peittää nyt kaiken tekstin ja median. Opiskelijoiden nimet eivät enää näy Sentry-nauhoituksissa.",
+      "Terveystarkistus ei enää vuoda tietokantavirhettä 503-vastauksessa.",
+      "Tuotantodokumentaatio luotu. Tarkistuslista, analytiikkaopas ja käyttöopas.",
+    ],
+  },
+  {
     version: "1.0.7",
     date: "October 2026",
     title: "Google Fonts un-blocked (~520 ms LCP win) · Map back-link removed from lockout screen",
     titleFi: "Google-fontit eivät enää blokkaa ensimmäistä piirtoa · 'Kartta'-paluulinkki pois lukitusnäytöltä",
-    latest: true,
+    latest: false,
     highlights: [
       "**Fonts stop blocking first paint.**  Lighthouse flagged `fonts.googleapis.com/css2?...` at 760 ms on the critical render path — the single biggest LCP delay.  Changed the stylesheet link to `media=\"print\" onload=\"this.media='all'\"` so the browser downloads the CSS asynchronously; FCP ships before the fonts resolve.  `<noscript>` fallback keeps non-JS clients working, `preconnect` to `fonts.googleapis.com` + `fonts.gstatic.com` stays so the handshake overlaps with HTML parse.  Expected savings: ~520 ms LCP per Lighthouse.",
       "**`← Kartta / ← Map` back-link removed from the access-restricted header.**  The lockout screen IS the gate — bouncing back to `/` just re-rendered the same lockout again (or flashed the map while the gate re-evaluated).  Header now only shows the uppercase `RESTRICTED` chip on the right; the owner escape hatch is still the `Admin` link in the footer.",

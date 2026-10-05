@@ -135,11 +135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wilma: process.env.WILMA_BASE_URL ? 'configured' : 'not-configured',
         ts: new Date().toISOString(),
       });
-    } catch (err) {
+    } catch {
       res.status(503).json({
         status: 'degraded',
         db: 'unreachable',
-        error: (err as Error).message,
         ts: new Date().toISOString(),
       });
     }

@@ -45,7 +45,19 @@ Also on GitHub at `main/TODO.md`.
 - **Files** — `client/src/components/CampusThreeDView.tsx`, `package.json`, `package-lock.json`, `changelog.ts`.
 - **Web bumped** `4.7.51` → `4.7.52`.
 
-## ✅ Just shipped (web 4.7.51 — brute-force login protection active)
+## ✅ Just shipped (web 1.0.8 — production hardening: Sentry masking, health fix, ops docs)
+
+- **Sentry session replay `maskAllText: true`, `blockAllMedia: true`.** Was `false`/`false` — could have captured student names and room data in error session recordings. Fixed in `client/src/lib/sentry.ts`.
+- **Health endpoint 503 no longer leaks `error.message`.** Removed from `server/routes.ts` 503 response body. `api/index.ts` was already clean.
+- **`docs/PRODUCTION_CHECKLIST.md`** — complete release gate checklist covering build, security, auth, DB, API, PostHog, Sentry, uptime, web, Android, map, Wilma, performance, privacy, deployment, rollback, support.
+- **`docs/ANALYTICS.md`** — PostHog setup, event naming, events table, properties, privacy rules, session replay config, feature flags, dashboards, test procedure.
+- **`docs/OPERATIONS.md`** — architecture diagram, deployment/rollback runbook, health checks, Uptime Kuma config, common failures, DB migrations, env vars reference, support process, credential rotation guidance.
+- **E2e smoke suite expanded.** `e2e/smoke.spec.ts` now covers: health API shape, buildings/rooms APIs, search length validation, login rejection (401 not 500), rapid-failure rate-limit, admin auth wall.
+- **Web bumped** `1.0.7` → `1.0.8`.
+
+---
+
+## ✅ Just shipped (web 1.0.7 — brute-force login protection active; git tag: 8dd287a)
 
 - **Per-account login lockout wired.** `checkRateLimit` / `recordLoginAttempt` in `server/rateLimiter.ts` were implemented but never called. Now called from `server/routes.ts` admin-login handler: `checkRateLimit` runs before any DB lookup and returns 429 if locked; `recordLoginAttempt(false)` fires on every failed attempt (user not found, wrong password); `recordLoginAttempt(true)` fires on success (resets counter). Both the owner and regular-user paths are covered.
 - **Web bumped** `4.7.50` → `4.7.51`.

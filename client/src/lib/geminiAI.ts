@@ -10,10 +10,70 @@
  */
 
 import { GoogleGenerativeAI, GenerativeModel, ChatSession } from "@google/generative-ai";
+import posthog from "./posthog";
 
 // Initialize Gemini AI
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+const createAiId = () => crypto.randomUUID();
+const processAiSessionId = createAiId();
+
+type GeminiUsage = {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+};
+
+function captureGeneration({
+  model,
+  input,
+  output,
+  traceId,
+  sessionId,
+  startedAt,
+  usage,
+  stream = false,
+  firstTokenAt,
+}: {
+  model: string;
+  input: unknown;
+  output: string;
+  traceId: string;
+  sessionId: string;
+  startedAt: number;
+  usage?: GeminiUsage;
+  stream?: boolean;
+  firstTokenAt?: number;
+}) {
+  const properties: Record<string, unknown> = {
+    $ai_trace_id: traceId,
+    $ai_session_id: sessionId,
+    $ai_model: model,
+    $ai_provider: "gemini",
+    $ai_input: [{ role: "user", content: input }],
+    $ai_output_choices: [{ role: "assistant", content: output }],
+    $ai_latency: (Date.now() - startedAt) / 1000,
+  };
+
+  if (usage?.promptTokenCount !== undefined) {
+    properties.$ai_input_tokens = usage.promptTokenCount;
+  }
+  if (usage?.candidatesTokenCount !== undefined) {
+    properties.$ai_output_tokens = usage.candidatesTokenCount;
+  }
+  if (stream) {
+    properties.$ai_stream = true;
+    if (firstTokenAt !== undefined) {
+      properties.$ai_time_to_first_token = (firstTokenAt - startedAt) / 1000;
+    }
+  }
+
+  try {
+    posthog.capture("$ai_generation", properties);
+  } catch {
+    // Observability must not affect the Gemini response path.
+  }
+}
 
 // Model configurations for different use cases
 export const MODELS = {
@@ -28,11 +88,24 @@ export const MODELS = {
 // ============================================
 
 export async function generateText(prompt: string, modelName: string = MODELS.FLASH): Promise<string> {
+  const traceId = createAiId();
+  const startedAt = Date.now();
+
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
     const result = await model.generateContent(prompt);
     const response = result.response;
-    return response.text();
+    const output = response.text();
+    captureGeneration({
+      model: modelName,
+      input: prompt,
+      output,
+      traceId,
+      sessionId: processAiSessionId,
+      startedAt,
+      usage: response.usageMetadata,
+    });
+    return output;
   } catch (error) {
     console.error("Error generating text:", error);
     throw error;
@@ -40,14 +113,32 @@ export async function generateText(prompt: string, modelName: string = MODELS.FL
 }
 
 export async function* streamText(prompt: string, modelName: string = MODELS.FLASH): AsyncGenerator<string> {
+  const traceId = createAiId();
+  const startedAt = Date.now();
+
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
     const result = await model.generateContentStream(prompt);
+    let output = "";
+    let firstTokenAt: number | undefined;
     
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
+      firstTokenAt ??= Date.now();
+      output += chunkText;
       yield chunkText;
     }
+
+    captureGeneration({
+      model: modelName,
+      input: prompt,
+      output,
+      traceId,
+      sessionId: processAiSessionId,
+      startedAt,
+      stream: true,
+      firstTokenAt,
+    });
   } catch (error) {
     console.error("Error streaming text:", error);
     throw error;
@@ -88,6 +179,9 @@ export async function generateFromMultimodal(
   content: MultimodalContent,
   modelName: string = MODELS.VISION
 ): Promise<string> {
+  const traceId = createAiId();
+  const startedAt = Date.now();
+
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
     const parts: any[] = [];
@@ -117,7 +211,24 @@ export async function generateFromMultimodal(
     }
 
     const result = await model.generateContent(parts);
-    return result.response.text();
+    const response = result.response;
+    const output = response.text();
+    captureGeneration({
+      model: modelName,
+      input: [
+        content.text && { type: "text", text: content.text },
+        content.image && { type: "image", mimeType: content.image.type },
+        content.video && { type: "video", mimeType: content.video.type },
+        content.audio && { type: "audio", mimeType: content.audio.type },
+        content.pdf && { type: "pdf", mimeType: "application/pdf" },
+      ].filter(Boolean),
+      output,
+      traceId,
+      sessionId: processAiSessionId,
+      startedAt,
+      usage: response.usageMetadata,
+    });
+    return output;
   } catch (error) {
     console.error("Error with multimodal generation:", error);
     throw error;
@@ -132,8 +243,11 @@ export class GeminiChat {
   private model: GenerativeModel;
   private chat: ChatSession;
   private history: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  private readonly sessionId = createAiId();
+  private readonly modelName: string;
 
   constructor(modelName: string = MODELS.FLASH, systemInstruction?: string) {
+    this.modelName = modelName;
     this.model = genAI.getGenerativeModel({ 
       model: modelName,
       systemInstruction: systemInstruction,
@@ -144,10 +258,23 @@ export class GeminiChat {
   }
 
   async sendMessage(message: string): Promise<string> {
+    const traceId = createAiId();
+    const startedAt = Date.now();
+
     try {
       const result = await this.chat.sendMessage(message);
       const response = result.response;
-      return response.text();
+      const output = response.text();
+      captureGeneration({
+        model: this.modelName,
+        input: message,
+        output,
+        traceId,
+        sessionId: this.sessionId,
+        startedAt,
+        usage: response.usageMetadata,
+      });
+      return output;
     } catch (error) {
       console.error("Error sending chat message:", error);
       throw error;
@@ -155,12 +282,31 @@ export class GeminiChat {
   }
 
   async* streamMessage(message: string): AsyncGenerator<string> {
+    const traceId = createAiId();
+    const startedAt = Date.now();
+
     try {
       const result = await this.chat.sendMessageStream(message);
+      let output = "";
+      let firstTokenAt: number | undefined;
       
       for await (const chunk of result.stream) {
-        yield chunk.text();
+        const chunkText = chunk.text();
+        firstTokenAt ??= Date.now();
+        output += chunkText;
+        yield chunkText;
       }
+
+      captureGeneration({
+        model: this.modelName,
+        input: message,
+        output,
+        traceId,
+        sessionId: this.sessionId,
+        startedAt,
+        stream: true,
+        firstTokenAt,
+      });
     } catch (error) {
       console.error("Error streaming chat message:", error);
       throw error;
@@ -188,6 +334,9 @@ export async function generateStructuredOutput<T>(
   schema: any,
   modelName: string = MODELS.FLASH
 ): Promise<T> {
+  const traceId = createAiId();
+  const startedAt = Date.now();
+
   try {
     const model = genAI.getGenerativeModel({ 
       model: modelName,
@@ -200,6 +349,15 @@ export async function generateStructuredOutput<T>(
     const result = await model.generateContent(prompt);
     const response = result.response;
     const jsonText = response.text();
+    captureGeneration({
+      model: modelName,
+      input: prompt,
+      output: jsonText,
+      traceId,
+      sessionId: processAiSessionId,
+      startedAt,
+      usage: response.usageMetadata,
+    });
     return JSON.parse(jsonText) as T;
   } catch (error) {
     console.error("Error generating structured output:", error);
