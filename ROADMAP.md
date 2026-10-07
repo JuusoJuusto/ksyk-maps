@@ -40,6 +40,7 @@ Hub: [[BRAIN.md]]
 
 ## ✅ Shipped (recent)
 
+- Android 1.0.2 — Teachers + Subjects CRUD in Android admin app; lyhenne/subject-code resolution in timetable screen via LookupStore
 - v1.0.9 — Wilma schedule enrichment: teacher nimenlyhennys field in admin, Subjects panel, schedule card resolves codes to full names
 - v1.0.8 — production hardening: Sentry masking, health fix, ops docs, expanded e2e tests
 - v1.0.7 — Google Fonts no longer render-blocking (saves ~520 ms LCP) + `← Map` back-link removed from the access-restricted screen

@@ -50,6 +50,21 @@ object AdminApi {
     }
 
     @Throws(AdminApiException::class)
+    fun put(path: String, jsonBody: String = "{}"): JsonElement {
+        val body = jsonBody.toRequestBody("application/json".toMediaType())
+        val req = Request.Builder()
+            .url("$baseUrl$path")
+            .put(body)
+            .apply { AdminSession.token?.let { tok -> header("Authorization", "Bearer $tok") } }
+            .header("X-Admin-Client", "KSYK-Maps-Admin/1.0")
+            .build()
+        val resp = client.newCall(req).execute()
+        val respBody = resp.body?.string() ?: ""
+        if (!resp.isSuccessful) throw AdminApiException(resp.code, respBody)
+        return json.parseToJsonElement(if (respBody.isBlank()) "null" else respBody)
+    }
+
+    @Throws(AdminApiException::class)
     fun delete(path: String): Unit {
         val req = Request.Builder()
             .url("$baseUrl$path")

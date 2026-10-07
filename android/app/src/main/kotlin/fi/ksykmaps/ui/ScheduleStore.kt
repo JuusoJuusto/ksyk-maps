@@ -139,6 +139,8 @@ internal fun buildWidgetJson(entries: List<ScheduleEntry>): String {
             // widget can't filter to the currently active period, so
             // they'd show lessons from every jakso stacked together.
             put("jaksoId", e.jaksoId)
+            put("subjectCode", e.subjectCode)
+            put("teacherAbbrev", e.teacherAbbrev)
         })
     }
     return arr.toString()
@@ -157,15 +159,17 @@ fun parseWidgetEntries(raw: String?): List<ScheduleEntry> {
         (0 until arr.length()).mapNotNull { i ->
             val o = arr.getJSONObject(i)
             ScheduleEntry(
-                id         = o.optString("id").ifBlank { "e${i}" },
-                dayOfWeek  = o.optInt("dayOfWeek", 0).takeIf { it in 1..7 } ?: return@mapNotNull null,
-                startHhmm  = o.optString("startHhmm"),
-                endHhmm    = o.optString("endHhmm"),
-                subject    = o.optString("subject"),
-                roomId     = o.optString("roomId"),
-                roomNumber = o.optString("roomNumber"),
-                teacher    = o.optString("teacher"),
-                jaksoId    = o.optString("jaksoId").ifBlank { "all" },
+                id            = o.optString("id").ifBlank { "e${i}" },
+                dayOfWeek     = o.optInt("dayOfWeek", 0).takeIf { it in 1..7 } ?: return@mapNotNull null,
+                startHhmm     = o.optString("startHhmm"),
+                endHhmm       = o.optString("endHhmm"),
+                subject       = o.optString("subject"),
+                roomId        = o.optString("roomId"),
+                roomNumber    = o.optString("roomNumber"),
+                teacher       = o.optString("teacher"),
+                jaksoId       = o.optString("jaksoId").ifBlank { "all" },
+                subjectCode   = o.optString("subjectCode"),
+                teacherAbbrev = o.optString("teacherAbbrev"),
             )
         }
     } catch (_: Throwable) { emptyList() }

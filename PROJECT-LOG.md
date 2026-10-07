@@ -15,6 +15,24 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — Android 1.0.2 — Teachers + Subjects pages in admin app + lyhenne system in timetable
+
+**Asked.**
+- Continue Android mobile work from last session: finish Teachers and Subjects pages in the Android admin app.
+- Implement the lyhenne (teacher abbreviation) resolution system in the main Android timetable screen.
+- Build the APK.
+
+**Decided.**
+- Admin app: `TeachersScreen.kt` (already created last session) + new `SubjectsScreen.kt` — both full Compose CRUD screens matching the web admin panel features; `AdminApi.kt` got the missing `put()` method; `MainActivity.kt` gets Teachers + Subjects nav destinations (Badge and MenuBook icons).
+- Main app: new `LookupStore.kt` singleton — fetches `/api/teachers` + `/api/subjects` on first load, exposes `resolveTeacher(abbrev)` and `resolveSubject(code)` with prefix-match for subject codes; `ScheduleEntry` gains `subjectCode: String = ""` and `teacherAbbrev: String = ""` (default-valued so old serialised data deserialises safely); `WilmaRefreshWorker.syncNow` reads `subjectCode` and `teacherAbbrev` from server JSON; `TimetableScreen` loads `LookupStore` after initial data fetch and passes resolvers into `TimelineRow` and `TodayGlanceCard`; `ScheduleStore.buildWidgetJson` + `parseWidgetEntries` updated for new fields.
+- Both `admin` and `app` Gradle builds passed clean (warnings only — deprecated PostHog API, AutoMirrored icon suggestion).
+- Android app version bumped `1.0.1 → 1.0.2` (versionCode 103 → 104).
+
+**Shipped.**
+- Files: `android/admin/.../ui/subjects/SubjectsScreen.kt` (new), `android/admin/.../data/AdminApi.kt`, `android/admin/.../MainActivity.kt`, `android/app/.../data/LookupStore.kt` (new), `android/app/.../ui/TimetableScreen.kt`, `android/app/.../ui/WilmaRefreshWorker.kt`, `android/app/.../ui/ScheduleStore.kt`, `android/app/build.gradle.kts`, `client/src/lib/changelog.ts`.
+
+---
+
 ## 07-10-2026 — v1.0.9 — Wilma schedule enrichment: teacher abbrev + subjects lookup
 
 **Asked.**

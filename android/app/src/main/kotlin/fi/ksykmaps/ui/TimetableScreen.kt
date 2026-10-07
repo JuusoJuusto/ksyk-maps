@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
 import fi.ksykmaps.data.Api
+import fi.ksykmaps.data.LookupStore
 import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,6 +53,8 @@ data class ScheduleEntry(
     val roomNumber: String = "",
     val teacher: String = "",
     val jaksoId: String = "all",  // "all" = every jakso; "j1"… = specific period
+    val subjectCode: String = "",   // e.g. "FY1.F" — resolves to full name via LookupStore
+    val teacherAbbrev: String = "", // e.g. "JLä" — resolves to full teacher name via LookupStore
 )
 
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7
@@ -105,6 +108,9 @@ fun TimetableScreen(
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
     var loading by remember { mutableStateOf(true) }
+    // Lookup maps for resolving Wilma codes to display names
+    var teacherResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var subjectResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
 
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
@@ -119,6 +125,12 @@ fun TimetableScreen(
         } catch (_: Exception) {
             rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
         }
+
+        // Load teacher + subject lookup tables for Wilma name resolution
+        try { LookupStore.ensureLoaded() } catch (_: Throwable) { /* display raw codes on failure */ }
+        teacherResolver = { abbrev -> LookupStore.resolveTeacher(abbrev) }
+        subjectResolver = { code -> LookupStore.resolveSubject(code) }
+
         loading = false
 
         // Auto-refresh Wilma on every screen open when the last sync was on a
@@ -349,6 +361,8 @@ fun TimetableScreen(
                         next = nextEntry,
                         nowMins = nowMins,
                         lang = lang,
+                        subjectResolver = subjectResolver,
+                        teacherResolver = teacherResolver,
                         onNavigate = { entry ->
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
@@ -373,6 +387,8 @@ fun TimetableScreen(
                         entry = entry,
                         isCurrent = entry == currentEntry,
                         lang = lang,
+                        subjectResolver = subjectResolver,
+                        teacherResolver = teacherResolver,
                         onDelete = {
                             runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
                             val updated = entries.filterNot { it.id == entry.id }
@@ -451,6 +467,8 @@ private fun TodayGlanceCard(
     next: ScheduleEntry?,
     nowMins: Int,
     lang: String,
+    subjectResolver: (String) -> String? = { null },
+    teacherResolver: (String) -> String? = { null },
     onNavigate: (ScheduleEntry) -> Unit,
 ) {
     Card(
@@ -461,7 +479,11 @@ private fun TodayGlanceCard(
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (current != null) {
-                val subColor = subjectColor(current.subject)
+                val displaySubject = subjectResolver(current.subjectCode).takeIf { current.subjectCode.isNotBlank() }
+                    ?: current.subject
+                val displayTeacher = teacherResolver(current.teacherAbbrev).takeIf { current.teacherAbbrev.isNotBlank() }
+                    ?: current.teacher
+                val subColor = subjectColor(displaySubject)
                 val remaining = (hhmm(current.endHhmm) - nowMins).coerceAtLeast(0)
                 Row(
                     Modifier.fillMaxWidth(),
@@ -491,7 +513,7 @@ private fun TodayGlanceCard(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            current.subject,
+                            displaySubject,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                         )
@@ -501,8 +523,8 @@ private fun TodayGlanceCard(
                                 append("${current.startHhmm}–${current.endHhmm}")
                                 if (current.roomNumber.isNotBlank())
                                     append("  ·  ${if (lang == "fi") "Luokka" else "Room"} ${current.roomNumber}")
-                                if (current.teacher.isNotBlank())
-                                    append("  ·  ${current.teacher}")
+                                if (displayTeacher.isNotBlank())
+                                    append("  ·  $displayTeacher")
                             },
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -579,7 +601,8 @@ private fun TodayGlanceCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            next.subject,
+                            subjectResolver(next.subjectCode).takeIf { next.subjectCode.isNotBlank() }
+                                ?: next.subject,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
                         )
@@ -609,11 +632,17 @@ private fun TimelineRow(
     entry: ScheduleEntry,
     isCurrent: Boolean,
     lang: String,
+    subjectResolver: (String) -> String? = { null },
+    teacherResolver: (String) -> String? = { null },
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val sColor = subjectColor(entry.subject)
+    val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
+        ?: entry.subject
+    val displayTeacher = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+        ?: entry.teacher
+    val sColor = subjectColor(displaySubject)
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -664,7 +693,7 @@ private fun TimelineRow(
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        entry.subject,
+                        displaySubject,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -686,7 +715,7 @@ private fun TimelineRow(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        if (entry.teacher.isNotBlank()) {
+                        if (displayTeacher.isNotBlank()) {
                             if (entry.roomNumber.isNotBlank()) {
                                 Text(
                                     " · ",
@@ -695,7 +724,7 @@ private fun TimelineRow(
                                 )
                             }
                             Text(
-                                entry.teacher,
+                                displayTeacher,
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

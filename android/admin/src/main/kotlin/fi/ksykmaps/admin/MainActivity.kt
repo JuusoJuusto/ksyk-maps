@@ -19,6 +19,8 @@ import fi.ksykmaps.admin.ui.login.AdminLoginScreen
 import fi.ksykmaps.admin.ui.logs.LogsScreen
 import fi.ksykmaps.admin.ui.rooms.RoomsScreen
 import fi.ksykmaps.admin.ui.settings.AdminSettingsScreen
+import fi.ksykmaps.admin.ui.subjects.SubjectsScreen
+import fi.ksykmaps.admin.ui.teachers.TeachersScreen
 import fi.ksykmaps.admin.ui.theme.AdminTheme
 import fi.ksykmaps.admin.ui.wifi.WifiPositioningScreen
 
@@ -40,6 +42,8 @@ private val DESTS = listOf(
     NavDest("dashboard", "Dashboard", Icons.Outlined.Dashboard),
     NavDest("wifi",      "Wi-Fi",     Icons.Outlined.Wifi),
     NavDest("rooms",     "Rooms",     Icons.Outlined.MeetingRoom),
+    NavDest("teachers",  "Teachers",  Icons.Outlined.Badge),
+    NavDest("subjects",  "Subjects",  Icons.Outlined.MenuBook),
     NavDest("logs",      "Logs",      Icons.Outlined.Description),
     NavDest("settings",  "Settings",  Icons.Outlined.Settings),
 )
@@ -103,6 +107,8 @@ private fun AdminContent(currentId: String, onNavigate: (String) -> Unit, onSign
         "dashboard" -> DashboardScreen(onNavigate = onNavigate)
         "wifi"      -> WifiPositioningScreen()
         "rooms"     -> RoomsScreen()
+        "teachers"  -> TeachersScreen()
+        "subjects"  -> SubjectsScreen()
         "logs"      -> LogsScreen()
         "settings"  -> AdminSettingsScreen(onSignOut = onSignOut)
     }

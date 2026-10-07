@@ -94,16 +94,20 @@ class WilmaRefreshWorker(
                         } catch (_: Exception) { "all" }
                     } else "all"
                     val uidStr = ev["uid"]?.jsonPrimitive?.contentOrNull ?: UUID.randomUUID().toString()
+                    val subjectCode = ev["subjectCode"]?.jsonPrimitive?.contentOrNull ?: ""
                     ScheduleEntry(
-                        id         = "wilma_${uidStr}_${jaksoId}",
-                        dayOfWeek  = dow,
-                        startHhmm  = start,
-                        endHhmm    = end,
-                        subject    = summary,
-                        roomId     = ev["matchedRoomId"]?.jsonPrimitive?.contentOrNull ?: "",
-                        roomNumber = ev["matchedRoomNumber"]?.jsonPrimitive?.contentOrNull ?: "",
-                        teacher    = ev["teacher"]?.jsonPrimitive?.contentOrNull ?: "",
-                        jaksoId    = jaksoId,
+                        id            = "wilma_${uidStr}_${jaksoId}",
+                        dayOfWeek     = dow,
+                        startHhmm     = start,
+                        endHhmm       = end,
+                        // Keep full summary as fallback subject; resolved name shown at display time
+                        subject       = subjectCode.ifBlank { summary },
+                        roomId        = ev["matchedRoomId"]?.jsonPrimitive?.contentOrNull ?: "",
+                        roomNumber    = ev["matchedRoomNumber"]?.jsonPrimitive?.contentOrNull ?: "",
+                        teacher       = ev["teacher"]?.jsonPrimitive?.contentOrNull ?: "",
+                        jaksoId       = jaksoId,
+                        subjectCode   = subjectCode,
+                        teacherAbbrev = ev["teacherAbbrev"]?.jsonPrimitive?.contentOrNull ?: "",
                     )
                 } catch (_: Exception) { null }
             }
