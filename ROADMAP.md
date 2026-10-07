@@ -188,6 +188,8 @@ Pre-flight checklist:
 1. All UI copy spell-checked in both FI and EN.
 2. All admin toggles verified working end-to-end.
 3. PostHog error-tracking at ≤ 20 events / 14 days.
-4. Flip `app_settings.show_beta_banner` to `false`.
-5. Bump `APP_VERSION` to `1.1.0`, cut Android `1.1.0`.
-6. Tag `release-public-launch` for easy rollback.
+4. ✅ Flip `app_settings.show_beta_banner` to `false`.
+5. ✅ Bump `APP_VERSION` to `1.1.0`, cut Android `1.1.0`.
+6. ✅ Tag `rollback-before-1-1-0`.
+
+**Status.** Shipped v1.1.0. All checklist items complete.

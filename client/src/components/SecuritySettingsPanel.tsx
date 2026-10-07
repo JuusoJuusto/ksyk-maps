@@ -6,7 +6,7 @@
  * real traffic (dry-run mode).
  */
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useSecuritySettings, saveSecurityToServer, loadSecurityFromServer } from "@/hooks/useSecuritySettings";
