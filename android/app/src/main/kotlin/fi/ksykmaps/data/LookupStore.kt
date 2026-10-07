@@ -8,14 +8,15 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
 private data class TeacherInfo(val name: String, val wilmaProfileUrl: String?)
+private data class SubjectInfo(val name: String, val color: String?)
 
 /** In-memory cache of teacher abbreviation → full name and subject code → display name.
  *  Loaded once per process via [ensureLoaded]; safe to call concurrently. */
 object LookupStore {
     // abbrev → TeacherInfo(name, wilmaProfileUrl?)
     private var teacherMap: Map<String, TeacherInfo> = emptyMap()
-    // prefix-code → Finnish name (e.g. "FY1" → "Fysiikka 1")
-    private var subjectMap: Map<String, String> = emptyMap()
+    // prefix-code → SubjectInfo(name, color?)
+    private var subjectMap: Map<String, SubjectInfo> = emptyMap()
 
     private var loaded = false
 
@@ -41,10 +42,11 @@ object LookupStore {
                 subjectMap = (subjects as? JsonArray)
                     ?.mapNotNull { it as? JsonObject }
                     ?.mapNotNull { o ->
-                        val code = (o["code"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                        val code  = (o["code"]  as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
                             ?: return@mapNotNull null
-                        val name = (o["name"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-                        code to name
+                        val name  = (o["name"]  as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                        val color = (o["color"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                        code to SubjectInfo(name, color)
                     }?.toMap() ?: emptyMap()
             } catch (_: Throwable) { /* keep empty on network failure */ }
 
@@ -68,6 +70,17 @@ object LookupStore {
      *  Tries exact match first, then prefix match on "CODE." or "CODE ". */
     fun resolveSubject(code: String): String? {
         if (code.isBlank()) return null
+        subjectInfo(code)?.let { return it.name }
+        return null
+    }
+
+    /** Resolve a Wilma subject code to its assigned hex color string, or null for hash-based fallback. */
+    fun resolveSubjectColor(code: String): String? {
+        if (code.isBlank()) return null
+        return subjectInfo(code)?.color
+    }
+
+    private fun subjectInfo(code: String): SubjectInfo? {
         subjectMap[code]?.let { return it }
         for ((k, v) in subjectMap) {
             if (code.startsWith("$k.") || code.startsWith("$k ")) return v

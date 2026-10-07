@@ -105,6 +105,7 @@ interface Course {
   code: string;
   name: string;
   nameEn?: string;
+  color?: string;
 }
 
 interface Announcement {
@@ -966,7 +967,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
   });
 
   // Courses management state
-  const [newCourse, setNewCourse] = useState({ code: "", name: "", nameEn: "" });
+  const [newCourse, setNewCourse] = useState({ code: "", name: "", nameEn: "", color: "" });
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [confirmDeleteCourseId, setConfirmDeleteCourseId] = useState<string | null>(null);
   
@@ -1169,7 +1170,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
   });
 
   const createCourseMutation = useMutation({
-    mutationFn: async (course: { code: string; name: string; nameEn?: string }) => {
+    mutationFn: async (course: { code: string; name: string; nameEn?: string; color?: string }) => {
       const r = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAdminHeaders() },
@@ -1181,12 +1182,27 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
-      setNewCourse({ code: "", name: "", nameEn: "" });
+      setNewCourse({ code: "", name: "", nameEn: "", color: "" });
       setShowCourseForm(false);
     },
     onError: (e: any) => {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     },
+  });
+
+  const updateCourseColorMutation = useMutation({
+    mutationFn: async ({ id, color }: { id: string; color: string | null }) => {
+      const r = await fetch(`/api/subjects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ color }),
+      });
+      if (!r.ok) throw new Error("Failed to update course color");
+      return r.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["courses"] }),
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const deleteCourseMutation = useMutation({
@@ -2557,7 +2573,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
             <CardContent className="space-y-3">
               {showCourseForm && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40 p-4 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <Label className="text-xs mb-1 block">Course code *</Label>
                       <Input
@@ -2584,10 +2600,22 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                         placeholder="Physics 1"
                       />
                     </div>
+                    <div>
+                      <Label className="text-xs mb-1 block">Color</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={newCourse.color || "#3B82F6"}
+                          onChange={(e) => setNewCourse({ ...newCourse, color: e.target.value })}
+                          className="h-9 w-12 rounded cursor-pointer border border-input p-0.5"
+                        />
+                        <span className="text-xs text-muted-foreground font-mono">{newCourse.color || "auto"}</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm" className="h-8 text-xs"
-                      onClick={() => { setShowCourseForm(false); setNewCourse({ code: "", name: "", nameEn: "" }); }}>
+                      onClick={() => { setShowCourseForm(false); setNewCourse({ code: "", name: "", nameEn: "", color: "" }); }}>
                       Cancel
                     </Button>
                     <Button size="sm" className="h-8 px-4 rounded-xl text-[13px] bg-blue-600 hover:bg-blue-700 text-white"
@@ -2597,7 +2625,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                           toast({ title: "Course code and Finnish name are required", variant: "destructive" });
                           return;
                         }
-                        createCourseMutation.mutate({ code: newCourse.code.trim(), name: newCourse.name.trim(), nameEn: newCourse.nameEn.trim() || undefined });
+                        createCourseMutation.mutate({ code: newCourse.code.trim(), name: newCourse.name.trim(), nameEn: newCourse.nameEn.trim() || undefined, color: newCourse.color || undefined });
                       }}>
                       {createCourseMutation.isPending
                         ? <><span className="h-3 w-3 mr-1.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />Saving…</>
@@ -2616,6 +2644,18 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                   {(courses as Course[]).map((course) => (
                     <div key={course.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <div className="flex items-center gap-2.5 min-w-0">
+                        <label className="shrink-0 cursor-pointer" title="Change color">
+                          <input
+                            type="color"
+                            value={course.color || "#3B82F6"}
+                            onChange={(e) => updateCourseColorMutation.mutate({ id: course.id, color: e.target.value })}
+                            className="sr-only"
+                          />
+                          <span
+                            className="inline-block h-4 w-4 rounded-full border border-white/60 shadow-sm"
+                            style={{ background: course.color || "#3B82F6" }}
+                          />
+                        </label>
                         <span className="shrink-0 inline-flex items-center rounded-[3px] border border-[#d5dae0] dark:border-[#2a3040] px-1.5 py-0 text-[11px] font-mono font-bold text-[#003d82] dark:text-[#4a90d9]">
                           {course.code}
                         </span>

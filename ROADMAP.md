@@ -40,6 +40,7 @@ Hub: [[BRAIN.md]]
 
 ## ✅ Shipped (recent)
 
+- v1.0.11 + Android 1.0.4 — MapLibre crash fix, per-course color picker, class info sheet on tap, finished-class strikethrough + fade
 - v1.0.10 + Android 1.0.3 — Courses own tab, Wilma profile URL field on staff, "Wilma abbreviation" label rename, Android Courses page, profile link in timetable
 - Android 1.0.2 — Teachers + Courses CRUD in Android admin app; lyhenne/subject-code resolution in timetable screen via LookupStore
 - v1.0.9 — Wilma schedule enrichment: teacher nimenlyhennys field in admin, Subjects panel, schedule card resolves codes to full names

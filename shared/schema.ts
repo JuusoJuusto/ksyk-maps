@@ -179,6 +179,7 @@ export const subjects = pgTable("subjects", {
   code: varchar("code").notNull().unique(),
   name: varchar("name").notNull(),
   nameEn: varchar("name_en"),
+  color: varchar("color"), // hex e.g. "#3B82F6"; null = use hash-based fallback
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

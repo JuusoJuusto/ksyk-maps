@@ -110,10 +110,12 @@ fun TimetableScreen(
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
     var loading by remember { mutableStateOf(true) }
-    // Lookup maps for resolving Wilma codes to display names and profile URLs
-    var teacherResolver    by remember { mutableStateOf<(String) -> String?>({ null }) }
-    var teacherUrlResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
-    var subjectResolver    by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var infoEntry by remember { mutableStateOf<ScheduleEntry?>(null) }
+    // Lookup maps for resolving Wilma codes to display names, URLs, and colors
+    var teacherResolver      by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var teacherUrlResolver   by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var subjectResolver      by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var subjectColorResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
 
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
@@ -131,9 +133,10 @@ fun TimetableScreen(
 
         // Load teacher + subject lookup tables for Wilma name resolution
         try { LookupStore.ensureLoaded() } catch (_: Throwable) { /* display raw codes on failure */ }
-        teacherResolver    = { abbrev -> LookupStore.resolveTeacher(abbrev) }
-        teacherUrlResolver = { abbrev -> LookupStore.resolveTeacherUrl(abbrev) }
-        subjectResolver    = { code -> LookupStore.resolveSubject(code) }
+        teacherResolver      = { abbrev -> LookupStore.resolveTeacher(abbrev) }
+        teacherUrlResolver   = { abbrev -> LookupStore.resolveTeacherUrl(abbrev) }
+        subjectResolver      = { code -> LookupStore.resolveSubject(code) }
+        subjectColorResolver = { code -> LookupStore.resolveSubjectColor(code) }
 
         loading = false
 
@@ -390,10 +393,14 @@ fun TimetableScreen(
                     TimelineRow(
                         entry = entry,
                         isCurrent = entry == currentEntry,
+                        isToday = isToday,
+                        nowMins = nowMins,
                         lang = lang,
                         subjectResolver = subjectResolver,
+                        subjectColorResolver = subjectColorResolver,
                         teacherResolver = teacherResolver,
                         teacherUrlResolver = teacherUrlResolver,
+                        onTap = { infoEntry = entry },
                         onDelete = {
                             runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
                             val updated = entries.filterNot { it.id == entry.id }
@@ -462,6 +469,26 @@ fun TimetableScreen(
                 showAdd = false; editEntry = null
             },
             onDismiss = { showAdd = false; editEntry = null },
+        )
+    }
+
+    infoEntry?.let { entry ->
+        ClassInfoSheet(
+            entry = entry,
+            lang = lang,
+            subjectResolver = subjectResolver,
+            subjectColorResolver = subjectColorResolver,
+            teacherResolver = teacherResolver,
+            teacherUrlResolver = teacherUrlResolver,
+            onNavigate = {
+                infoEntry = null
+                if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
+            },
+            onEdit = {
+                infoEntry = null
+                editEntry = entry
+            },
+            onDismiss = { infoEntry = null },
         )
     }
 }
@@ -636,20 +663,30 @@ private fun TodayGlanceCard(
 private fun TimelineRow(
     entry: ScheduleEntry,
     isCurrent: Boolean,
+    isToday: Boolean,
+    nowMins: Int,
     lang: String,
     subjectResolver: (String) -> String? = { null },
+    subjectColorResolver: (String) -> String? = { null },
     teacherResolver: (String) -> String? = { null },
     teacherUrlResolver: (String) -> String? = { null },
+    onTap: () -> Unit,
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val displaySubject  = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
+    val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
         ?: entry.subject
-    val displayTeacher  = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+    val displayTeacher = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
         ?: entry.teacher
-    val teacherUrl      = teacherUrlResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
-    val sColor = subjectColor(displaySubject)
+    val teacherUrl = teacherUrlResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+    val sColor = subjectColorResolver(entry.subjectCode)
+        ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
+        ?: subjectColor(displaySubject)
+    // A class is "done" when today and its end time has passed
+    val isDone = isToday && hhmm(entry.endHhmm) <= nowMins
+    val contentAlpha = if (isDone) 0.4f else 1f
+
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -663,13 +700,13 @@ private fun TimelineRow(
                 entry.startHhmm,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isCurrent) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
+                color = (if (isCurrent) MaterialTheme.colorScheme.primary
+                         else MaterialTheme.colorScheme.onSurface).copy(alpha = contentAlpha),
             )
             Text(
                 entry.endHhmm,
                 fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
             )
         }
         Spacer(Modifier.width(14.dp))
@@ -677,7 +714,7 @@ private fun TimelineRow(
         Card(
             Modifier
                 .weight(1f)
-                .clickable { onEdit() },
+                .clickable { onTap() },
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isCurrent) sColor.copy(alpha = 0.12f)
@@ -695,7 +732,7 @@ private fun TimelineRow(
                         .width(4.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(2.dp))
-                        .background(sColor)
+                        .background(sColor.copy(alpha = contentAlpha))
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -703,7 +740,8 @@ private fun TimelineRow(
                         displaySubject,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
+                        textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                     )
                     Row(
                         Modifier.padding(top = 2.dp),
@@ -713,13 +751,13 @@ private fun TimelineRow(
                             Icon(
                                 Icons.Outlined.MeetingRoom, null,
                                 Modifier.size(12.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                             )
                             Spacer(Modifier.width(3.dp))
                             Text(
                                 entry.roomNumber,
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                             )
                         }
                         if (displayTeacher.isNotBlank()) {
@@ -727,14 +765,14 @@ private fun TimelineRow(
                                 Text(
                                     " · ",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                                 )
                             }
                             Text(
                                 displayTeacher,
                                 fontSize = 12.sp,
-                                color = if (teacherUrl != null) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = (if (teacherUrl != null) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = contentAlpha),
                             )
                         }
                     }
@@ -748,23 +786,7 @@ private fun TimelineRow(
                             Icons.Outlined.Navigation,
                             contentDescription = if (lang == "fi") "Navigoi" else "Navigate",
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-                if (teacherUrl != null) {
-                    val ctx2 = LocalContext.current
-                    IconButton(
-                        onClick = {
-                            ctx2.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(teacherUrl)))
-                        },
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.OpenInNew,
-                            contentDescription = if (lang == "fi") "Avaa Wilmassa" else "Open in Wilma",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = contentAlpha),
                         )
                     }
                 }
@@ -776,9 +798,181 @@ private fun TimelineRow(
                         Icons.Outlined.Delete,
                         contentDescription = if (lang == "fi") "Poista" else "Delete",
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClassInfoSheet(
+    entry: ScheduleEntry,
+    lang: String,
+    subjectResolver: (String) -> String? = { null },
+    subjectColorResolver: (String) -> String? = { null },
+    teacherResolver: (String) -> String? = { null },
+    teacherUrlResolver: (String) -> String? = { null },
+    onNavigate: () -> Unit,
+    onEdit: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val ctx = LocalContext.current
+    val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
+        ?: entry.subject
+    val displayTeacher = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+        ?: entry.teacher
+    val teacherUrl = teacherUrlResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+    val sColor = subjectColorResolver(entry.subjectCode)
+        ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
+        ?: subjectColor(displaySubject)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Color accent bar + subject title
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .width(5.dp)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(sColor)
+                )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    displaySubject,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Time row
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.Schedule, null,
+                    Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "${entry.startHhmm} – ${entry.endHhmm}",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+            }
+
+            // Room row (if set)
+            if (entry.roomNumber.isNotBlank()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.MeetingRoom, null,
+                        Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        if (lang == "fi") "Luokka ${entry.roomNumber}" else "Room ${entry.roomNumber}",
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (entry.roomId.isNotBlank()) {
+                        FilledTonalButton(
+                            onClick = onNavigate,
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Outlined.Navigation, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (lang == "fi") "Navigoi" else "Navigate",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Teacher row (if set)
+            if (displayTeacher.isNotBlank()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.Person, null,
+                        Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        displayTeacher,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (teacherUrl != null) {
+                        FilledTonalButton(
+                            onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(teacherUrl))) },
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Outlined.OpenInNew, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (lang == "fi") "Wilma" else "Wilma",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Edit button
+            OutlinedButton(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (lang == "fi") "Muokkaa tuntia" else "Edit lesson")
             }
         }
     }

@@ -13,6 +13,8 @@ import io.sentry.android.core.SentryAndroid
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.AppLog
 import fi.ksykmaps.ui.refreshServerMapDefaults
+import org.maplibre.android.MapLibre
+import org.maplibre.android.WellKnownTileServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +52,9 @@ class KsykApp : Application() {
         runCatching { installCrashHandler() }
         runCatching { initSentry() }
         runCatching { initPostHog() }
+        // Must be called before any MapView is inflated — historically we
+        // missed this and got MapLibreConfigurationException on first map open.
+        runCatching { MapLibre.getInstance(this, "", WellKnownTileServer.MapLibre) }
         runCatching { createNotificationChannels() }
         runCatching { prefetchMapData() }
         runCatching { registerFcmToken() }

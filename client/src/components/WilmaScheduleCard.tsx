@@ -21,16 +21,29 @@ type Tab = "today" | "week" | "settings";
 
 type TeacherInfo = { name: string; url?: string };
 type TeacherMap = Map<string, TeacherInfo>; // abbrev → { name, url? }
-type SubjectMap = Map<string, string>; // code → name
+type SubjectInfo = { name: string; color?: string };
+type SubjectMap = Map<string, SubjectInfo>; // code → { name, color? }
 
-function resolveSubjectName(code: string, map: SubjectMap): string | null {
+function resolveSubject(code: string, map: SubjectMap): SubjectInfo | null {
   if (!code) return null;
   if (map.has(code)) return map.get(code)!;
-  // Prefix match: map key "FY" matches code "FY1.F"
+  // Prefix match: map key "FY1" matches code "FY1.F"
   for (const [k, v] of map) {
     if (code.startsWith(k + ".") || code.startsWith(k + " ")) return v;
   }
   return null;
+}
+
+// Hash-based fallback palette (matches Android)
+const SUBJECT_PALETTE = [
+  "#3B82F6","#8B5CF6","#10B981","#EF4444",
+  "#F59E0B","#06B6D4","#EC4899","#84CC16",
+  "#6366F1","#F97316",
+];
+function subjectColorFallback(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+  return SUBJECT_PALETTE[Math.abs(h) % SUBJECT_PALETTE.length];
 }
 
 interface Props {
@@ -85,9 +98,9 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
 
     fetch("/api/subjects")
       .then(r => r.ok ? r.json() : [])
-      .then((subs: { code: string; name: string }[]) => {
-        const m = new Map<string, string>();
-        for (const s of subs) m.set(s.code, s.name);
+      .then((subs: { code: string; name: string; color?: string }[]) => {
+        const m = new Map<string, SubjectInfo>();
+        for (const s of subs) m.set(s.code, { name: s.name, color: s.color ?? undefined });
         setSubjectMap(m);
       })
       .catch(() => {});
@@ -286,13 +299,14 @@ function LessonCard({
       {event ? (
         <div className="flex flex-col gap-1">
           {(() => {
-            const resolvedName = subjectMap && event.subjectCode
-              ? resolveSubjectName(event.subjectCode, subjectMap)
-              : null;
+            const info = subjectMap && event.subjectCode ? resolveSubject(event.subjectCode, subjectMap) : null;
+            const displayName = info?.name ?? event.summary;
+            const sColor = info?.color ?? subjectColorFallback(displayName);
             return (
-              <p className="font-semibold text-sm leading-tight">
-                {resolvedName ?? event.summary}
-              </p>
+              <div className="flex items-center gap-2">
+                <div className="w-1 self-stretch rounded-full shrink-0" style={{ background: sColor }} />
+                <p className="font-semibold text-sm leading-tight">{displayName}</p>
+              </div>
             );
           })()}
           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
@@ -349,18 +363,19 @@ function TimetableRow({
   teacherMap?: TeacherMap;
   subjectMap?: SubjectMap;
 }) {
-  const resolvedSubject = subjectMap && event.subjectCode
-    ? resolveSubjectName(event.subjectCode, subjectMap)
-    : null;
+  const subjectInfo = subjectMap && event.subjectCode ? resolveSubject(event.subjectCode, subjectMap) : null;
+  const displayName = subjectInfo?.name ?? event.summary;
+  const sColor = subjectInfo?.color ?? subjectColorFallback(displayName);
   const teacherInfo = teacherMap && event.teacherAbbrev ? teacherMap.get(event.teacherAbbrev) : null;
   const teacherDisplay = teacherInfo?.name ?? event.teacherAbbrev ?? null;
   const teacherUrl = teacherInfo?.url ?? null;
 
   return (
     <div className="flex items-center gap-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60 px-2.5 py-1.5">
+      <div className="w-1 self-stretch rounded-full shrink-0" style={{ background: sColor }} />
       <span className="text-xs text-slate-500 w-10 shrink-0 font-mono">{event.startHhmm}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{resolvedSubject ?? event.summary}</p>
+        <p className="text-sm font-medium truncate">{displayName}</p>
         <div className="flex items-center gap-2">
           {event.matchedRoomNumber && (
             <p className="text-xs text-slate-500">Room {event.matchedRoomNumber}</p>

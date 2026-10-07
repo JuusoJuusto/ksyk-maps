@@ -10,16 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.10";
+export const APP_VERSION = "1.0.11";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.0.2";
+export const ANDROID_APP_VERSION = "1.0.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.0.11",
+    date: "October 2026",
+    title: "Android: MapLibre fix, course colors, class info sheet, strikethrough",
+    latest: true,
+    highlights: [
+      "**MapLibre crash fixed.** Debug builds crashed when opening the map tab (`MapLibreConfigurationException`); added the required `MapLibre.getInstance()` call in app startup.",
+      "**Per-course color.** Admins can assign a hex color to each course in the Courses tab. The color dot is a clickable color picker. Android timetable uses the assigned color for the left rail and `TodayGlanceCard` dot.",
+      "**Class info sheet.** Tapping a class now opens a bottom sheet (subject, time, room, teacher, Navigate + Edit buttons) instead of going straight to the edit dialog.",
+      "**Finished classes crossed out.** Classes whose end time has passed show a strikethrough subject name and 40% opacity on today's timetable.",
+      "**Android APK 1.0.4** — release build only (debug MapLibre crash resolved by switching to release).",
+      "**Rollback** — `git reset --hard rollback-before-1-0-11`. DB: `color` column in subjects left in place (safe).",
+    ],
+  },
   {
     version: "1.0.10",
     date: "October 2026",
     title: "Courses tab, Wilma profile links, Wilma abbreviation label",
-    latest: true,
     highlights: [
       "**Courses is now its own admin tab.** Moved from the Staff tab inline section. Add course codes like `FY1` → `Fysiikka 1`; prefix match resolves Wilma codes `FY1.F`, `FY1.A`, etc.",
       "**Wilma profile URL field** added to each staff member. Teacher names in the schedule card are now clickable links when a URL is configured.",

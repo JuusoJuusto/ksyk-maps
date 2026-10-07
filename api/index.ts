@@ -1859,21 +1859,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // POST /api/subjects — admin create
+    // POST /api/subjects — admin create/upsert
     if (apiPath === '/subjects' && req.method === 'POST') {
       if (!requireAdminAuth(req, res)) return;
-      const { code, name, nameEn } = req.body || {};
+      const { code, name, nameEn, color } = req.body || {};
       if (!code || !name) return res.status(400).json({ message: 'code and name are required' });
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { subjects: subjectsTable } = await import('../shared/schema.js');
         const rows = await pgDb.insert(subjectsTable)
-          .values({ code: String(code).trim().toUpperCase(), name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null })
-          .onConflictDoUpdate({ target: subjectsTable.code, set: { name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null, updatedAt: new Date() } })
+          .values({ code: String(code).trim().toUpperCase(), name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null, color: color ? String(color).trim() : null })
+          .onConflictDoUpdate({ target: subjectsTable.code, set: { name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null, color: color ? String(color).trim() : null, updatedAt: new Date() } })
           .returning();
         return res.status(201).json(rows[0]);
       } catch (err: any) {
         return res.status(500).json({ message: err?.message || 'Failed to save subject' });
+      }
+    }
+
+    // PATCH /api/subjects/:id — admin update (color only for now)
+    {
+      const m = apiPath.match(/^\/subjects\/([^/]+)$/);
+      if (m && req.method === 'PATCH') {
+        if (!requireAdminAuth(req, res)) return;
+        const { color } = req.body || {};
+        try {
+          const { db: pgDb } = await import('../server/db.js');
+          const { subjects: subjectsTable } = await import('../shared/schema.js');
+          const { eq } = await import('drizzle-orm');
+          const rows = await pgDb.update(subjectsTable)
+            .set({ color: color ? String(color).trim() : null, updatedAt: new Date() })
+            .where(eq(subjectsTable.id, m[1]))
+            .returning();
+          return res.status(200).json(rows[0]);
+        } catch (err: any) {
+          return res.status(500).json({ message: err?.message || 'Failed to update subject' });
+        }
       }
     }
 
