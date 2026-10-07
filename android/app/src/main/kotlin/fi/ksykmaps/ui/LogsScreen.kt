@@ -152,7 +152,7 @@ fun LogsScreen(onBack: () -> Unit) {
             ) {
                 LevelChip(label = if (isFi) "Kaikki" else "All", color = MaterialTheme.colorScheme.primary,
                           selected = levelFilter == null) { levelFilter = null }
-                LevelChip(label = "INFO", color = Color(0xFF003D82),
+                LevelChip(label = "INFO", color = Color(0xFF3B82F6),
                           selected = levelFilter == AppLog.Level.INFO) { levelFilter = AppLog.Level.INFO }
                 LevelChip(label = "WARN", color = Color(0xFFF59E0B),
                           selected = levelFilter == AppLog.Level.WARN) { levelFilter = AppLog.Level.WARN }
@@ -231,7 +231,7 @@ private fun LogRow(e: AppLog.Entry) {
     val color = when (e.level) {
         AppLog.Level.ERROR -> Color(0xFFEF4444)
         AppLog.Level.WARN -> Color(0xFFF59E0B)
-        AppLog.Level.INFO -> Color(0xFF003D82)
+        AppLog.Level.INFO -> Color(0xFF3B82F6)
         AppLog.Level.DEBUG -> Color(0xFF64748B)
     }
     val time = try {

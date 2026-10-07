@@ -1763,8 +1763,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Staff endpoint
     if (apiPath === '/staff' && req.method === 'GET') {
-      const staff = await storage.getStaff();
-      return res.status(200).json(staff);
+      try {
+        const staff = await storage.getStaff();
+        return res.status(200).json(staff);
+      } catch (err: any) {
+        return res.status(500).json({ message: err?.message || 'Failed to fetch staff' });
+      }
     }
 
     // ── Staff CRUD (admin) ───────────────────────────────────────────

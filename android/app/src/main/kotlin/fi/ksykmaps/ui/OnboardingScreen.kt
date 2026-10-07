@@ -53,7 +53,7 @@ private fun markOnboardingDone(ctx: Context) {
         .edit().putBoolean(KEY_DONE, true).apply()
 }
 
-private val ONBOARD_BLUE   = Color(0xFF003D82)
+private val ONBOARD_BLUE   = Color(0xFF3B82F6)
 private val ONBOARD_VIOLET = Color(0xFF8B5CF6)
 private val ONBOARD_GREEN  = Color(0xFF10B981)
 

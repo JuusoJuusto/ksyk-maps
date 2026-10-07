@@ -386,14 +386,20 @@ function extractTeacher(description: string): string {
 }
 
 /**
- * Extract the teacher abbreviation from the Wilma summary parenthesis.
- * Summary format: "FY1.F (JLä) K13" → "JLä"
- * Returns empty string when no parenthesised token is found.
+ * Extract the teacher abbreviation from a Wilma summary string.
+ * Format: "FY1.F (JLä) (K13)" — teacher abbrev has lowercase letters;
+ * class codes like "K13" or "K13 Niinistö" are all-uppercase/digits (first token).
+ * Iterates all (...) groups and returns the first whose opening token has
+ * at least one lowercase letter (a–z, ä, ö, å).
  */
 function extractTeacherAbbrev(summary: string): string {
   if (!summary) return '';
-  const m = summary.match(/\(([^)]+)\)/);
-  return m ? m[1].trim() : '';
+  const hasLower = /[a-zäöå]/;
+  for (const m of summary.matchAll(/\(([^)]+)\)/g)) {
+    const firstToken = m[1].trim().split(/\s+/)[0];
+    if (firstToken && hasLower.test(firstToken)) return firstToken;
+  }
+  return '';
 }
 
 /**

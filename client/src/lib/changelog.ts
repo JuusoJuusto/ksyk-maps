@@ -10,17 +10,36 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.1.1";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.0";
+export const ANDROID_APP_VERSION = "1.1.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.1",
+    date: "October 2026",
+    title: "Bug fixes",
+    titleFi: "Korjauksia",
+    latest: true,
+    highlights: [
+      "**Staff admin 401 fixed.** Create / edit / delete staff members no longer return 401 — admin auth header was missing from the mutations.",
+      "**Staff + subjects 500 fixed.** `abbrev`, `wilma_profile_url` columns and the `subjects` table are now created on cold start so GET /api/staff and GET /api/subjects no longer fail on fresh deployments.",
+      "**iCal teacher fix.** Wilma schedule entries like `FY1.F (JLä) (K13)` now correctly show `JLä` as the teacher; class codes like `K13` are no longer mistaken for teacher abbreviations.",
+      "**Android colors reverted.** Screen accent color reverted to blue (#3B82F6) from the navy pass in v1.1.0.",
+    ],
+    highlightsFi: [
+      "**Henkilökunnan hallinta korjattu.** Luonti, muokkaus ja poisto eivät enää palauta 401-virhettä.",
+      "**Staff + subjects 500 korjattu.** Puuttuvat sarakkeet luodaan nyt automaattisesti käynnistyksen yhteydessä.",
+      "**iCal-opettajatulkinta korjattu.** Luokkakoodi (esim. K13) ei enää esiinny opettajana lukujärjestyksessä.",
+      "**Android-värit palautettu.** Korostusväri on taas sininen (#3B82F6).",
+    ],
+  },
   {
     version: "1.1.0",
     date: "October 2026",
     title: "Public launch",
     titleFi: "Julkinen lanseeraus",
-    latest: true,
+    latest: false,
     highlights: [
       "**Public launch.** Beta banner removed by default; the app is now open to all students.",
       "**Admin: Floor labels + GPS toggles.** New map-overlay switches in Settings → Features to show/hide room labels and the blue-dot GPS locator.",

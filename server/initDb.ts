@@ -236,6 +236,26 @@ export async function ensureSchema(): Promise<void> {
       -- v1.0.2 — admin can hide the first-visit beta welcome banner.
       ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS show_beta_banner boolean DEFAULT true;
 
+      -- v1.0.9 — teacher abbreviation + Wilma profile URL on staff rows.
+      ALTER TABLE staff ADD COLUMN IF NOT EXISTS abbrev varchar;
+      ALTER TABLE staff ADD COLUMN IF NOT EXISTS wilma_profile_url varchar;
+
+      -- v1.0.9 — subject / course lookup table for Wilma schedule resolution.
+      CREATE TABLE IF NOT EXISTS subjects (
+        id         varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+        code       varchar   NOT NULL UNIQUE,
+        name       varchar   NOT NULL,
+        name_en    varchar,
+        color      varchar,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_subjects_code ON subjects (code);
+
+      -- v1.1.0 — map overlay toggles (floor labels, GPS dot).
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS enable_floor_labels boolean DEFAULT true;
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS enable_gps boolean DEFAULT true;
+
       CREATE TABLE IF NOT EXISTS push_tokens (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id     varchar,

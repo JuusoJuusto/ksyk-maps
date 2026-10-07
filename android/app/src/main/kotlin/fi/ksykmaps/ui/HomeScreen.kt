@@ -56,7 +56,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 private val HOME_SUBJECT_PALETTE = listOf(
-    0xFF003D82L, 0xFF8B5CF6L, 0xFF10B981L, 0xFFEF4444L,
+    0xFF3B82F6L, 0xFF8B5CF6L, 0xFF10B981L, 0xFFEF4444L,
     0xFFf59E0BL, 0xFF06B6D4L, 0xFFEC4899L, 0xFF84CC16L,
     0xFF6366F1L, 0xFFF97316L,
 )
@@ -357,7 +357,7 @@ fun HomeScreen(
                                         icon = Icons.Outlined.MeetingRoom,
                                         value = rooms.toString(),
                                         label = if (lang == "fi") "Luokat" else "Rooms",
-                                        accent = Color(0xFF003D82),
+                                        accent = Color(0xFF3B82F6),
                                         onClick = onOpenRooms,
                                     )
                                     StatPill(

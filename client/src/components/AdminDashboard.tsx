@@ -1097,7 +1097,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     mutationFn: async (staff: any) => {
       const response = await fetch("/api/staff", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         credentials: "include",
         body: JSON.stringify(staff),
       });
@@ -1132,7 +1132,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     mutationFn: async ({ id, ...staff }: any) => {
       const response = await fetch(`/api/staff/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         credentials: "include",
         body: JSON.stringify(staff),
       });
@@ -1150,6 +1150,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/staff/${id}`, {
         method: "DELETE",
+        headers: getAdminHeaders(),
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete staff member");
