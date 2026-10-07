@@ -15,6 +15,29 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — v1.0.12 — motion pass, FAQ +3 entries, ROADMAP cleanup
+
+**Asked.** Continue and finish all tasks from the roadmap.
+
+**Decided.**
+- Motion pass: standardized all dialog/sheet animations to 180ms ease-out open / 140ms ease-in close. Changed `dialog.tsx` (was flat 200ms), `sheet.tsx` (was 500ms/300ms), `.ksyk-bottom-sheet` CSS (was 300ms/200ms), `.map-room-sheet` desktop (was 240ms). Existing global `prefers-reduced-motion: reduce` block already covers all.
+- FAQ +3 entries: "Does the app work offline?", "How do I navigate to a classroom?", "What do timetable colors mean?" — all bilingual FI/EN.
+- Security reset button: already implemented in `SecuritySettingsPanel.tsx` (audit confirmed).
+- Announcement dialog scroll: already correctly implemented with `min-h-0 flex-1 overflow-y-auto` (audit confirmed).
+- Critical CSS inline: deferred — complex build-step, only "Next" item left.
+- ROADMAP: all stale "Now"/"In progress" items moved to ✅ Shipped.
+
+**Shipped.** Commit `1c5f2e0` · web `v1.0.12`
+- `client/src/components/ui/dialog.tsx` — 180ms/140ms timing
+- `client/src/components/ui/sheet.tsx` — 180ms/140ms timing
+- `client/src/index.css` — bottom sheet + map-room-sheet timing update
+- `client/src/pages/faq.tsx` — 3 new bilingual Q&A entries
+- `client/src/lib/changelog.ts` — APP_VERSION 1.0.12
+- `ROADMAP.md` — board cleanup
+- Rollback tag: `rollback-before-1-0-12` → `13569a1`
+
+---
+
 ## 07-10-2026 — v1.0.11 + Android 1.0.4 — MapLibre crash fix, course colors, class info sheet, strikethrough
 
 **Asked.**
