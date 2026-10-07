@@ -62,7 +62,7 @@ data class ScheduleEntry(
 private fun todayDow(): Int = LocalDate.now().dayOfWeek.value // Mon=1, Sun=7
 
 private val SUBJECT_PALETTE = listOf(
-    0xFF3B82F6, 0xFF8B5CF6, 0xFF10B981, 0xFFEF4444,
+    0xFF003D82, 0xFF8B5CF6, 0xFF10B981, 0xFFEF4444,
     0xFFf59E0B, 0xFF06B6D4, 0xFFEC4899, 0xFF84CC16,
     0xFF6366F1, 0xFFF97316,
 )

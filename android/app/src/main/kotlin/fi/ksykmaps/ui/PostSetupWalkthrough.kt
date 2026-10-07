@@ -82,7 +82,7 @@ private data class Page(
 private val PAGES = listOf(
     Page(
         icon = Icons.Outlined.Dashboard,
-        accent = Color(0xFF3B82F6),
+        accent = Color(0xFF003D82),
         titleFi = "Etusivu",
         titleEn = "Home",
         bodyFi = "Yhdellä silmäyksellä koko koulupäivä.",

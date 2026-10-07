@@ -99,6 +99,11 @@ export interface SecuritySettings {
   /** Pending access requests submitted from the lockout screen. */
   accessRequests: AccessRequest[];
 
+  /* ── Routing prefs ──────────────────────────────────────────────── */
+  /** When true, the routing engine is forced to use accessible-only paths
+   *  for all users, not just wheelchair profiles. */
+  enforceAccessibleRoutingOnly: boolean;
+
   /* ── Misc ───────────────────────────────────────────────────────── */
   /** Custom message shown on the lockout screen. */
   lockoutMessage: string;
@@ -144,6 +149,7 @@ export const DEFAULT_SECURITY_SETTINGS: SecuritySettings = {
   },
   userExceptions: [],
   accessRequests: [],
+  enforceAccessibleRoutingOnly: false,
   lockoutMessage:
     "The KSYK Map is currently unavailable. Please sign in with your @ksyk.fi account or contact campus admin for access.",
   dryRun: false,
@@ -164,6 +170,9 @@ export function loadSecuritySettings(): SecuritySettings {
         ...DEFAULT_SECURITY_SETTINGS.restrictedDisabledFeatures,
         ...(parsed.restrictedDisabledFeatures ?? {}),
       },
+      // scalar new in v1.1.0 — already spread from parsed above; explicit
+      // fallback keeps TS happy if the stored blob predates this field.
+      enforceAccessibleRoutingOnly: parsed.enforceAccessibleRoutingOnly ?? false,
     };
   } catch {
     return { ...DEFAULT_SECURITY_SETTINGS };

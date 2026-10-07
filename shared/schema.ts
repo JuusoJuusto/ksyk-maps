@@ -741,7 +741,10 @@ export const appSettings = pgTable("app_settings", {
   getAppUrl: varchar("get_app_url").default("/download"),
   // v1.0.2 — admin can hide the first-visit beta welcome popup entirely.
   // Default ON; admin flips to OFF once the public launch happens.
-  showBetaBanner: boolean("show_beta_banner").default(true),
+  showBetaBanner: boolean("show_beta_banner").default(false),
+  // v1.1.0 — admin toggles for map overlays
+  enableFloorLabels: boolean("enable_floor_labels").default(true),
+  enableGPS: boolean("enable_gps").default(true),
   enableImportData: boolean("enable_import_data").default(true),
   enableBulkOperations: boolean("enable_bulk_operations").default(true),
   enableAdvancedFilters: boolean("enable_advanced_filters").default(true),

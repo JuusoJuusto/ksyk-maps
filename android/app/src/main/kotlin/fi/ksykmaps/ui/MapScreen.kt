@@ -1816,7 +1816,7 @@ private fun DetailSheet(
             // Category icon bubble — Apple Maps place card iconography.
             val roomType = (room?.get("type") as? JsonPrimitive)?.contentOrNull ?: ""
             val (icon, tint) = when {
-                room == null -> Icons.Outlined.Business to Color(0xFF3B82F6)
+                room == null -> Icons.Outlined.Business to Color(0xFF003D82)
                 roomType.contains("toilet", ignoreCase = true) || roomType.contains("wc", ignoreCase = true) -> Icons.Outlined.Wc to Color(0xFF06B6D4)
                 roomType.contains("lab", ignoreCase = true) -> Icons.Outlined.Science to Color(0xFF8B5CF6)
                 roomType.contains("gym", ignoreCase = true) || roomType.contains("liikunta", ignoreCase = true) -> Icons.Outlined.FitnessCenter to Color(0xFF10B981)

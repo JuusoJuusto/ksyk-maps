@@ -6,7 +6,8 @@
  * real traffic (dry-run mode).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useSecuritySettings, saveSecurityToServer, loadSecurityFromServer } from "@/hooks/useSecuritySettings";
 import { getAdminHeaders } from "@/lib/adminAuth";
@@ -32,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Shield, Clock, Wifi, Mail, UserCheck, Plus, Trash2, Save,
   Calendar, AlertTriangle, CheckCircle2, FlaskConical, Inbox,
-  XCircle, RotateCcw,
+  XCircle, RotateCcw, Accessibility,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +63,11 @@ export default function SecuritySettingsPanel() {
   const { settings, setAll, reset } = useSecuritySettings();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+
+  const { data: msStatus } = useQuery<{ configured: boolean; tenant: string }>({
+    queryKey: ["/api/auth/microsoft/status"],
+    staleTime: 60_000,
+  });
 
   /** Edit local draft so we can save / discard atomically. */
   const [draft, setDraft] = useState<SecuritySettings>(settings);
@@ -243,6 +249,21 @@ export default function SecuritySettingsPanel() {
         </CardHeader>
         {draft.loginGateEnabled && (
           <CardContent className="space-y-4">
+            {/* Microsoft OAuth status */}
+            <div className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] ${
+              msStatus?.configured
+                ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+            }`}>
+              {msStatus?.configured
+                ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+              <span>
+                {msStatus?.configured
+                  ? `Microsoft OAuth configured (tenant: ${msStatus.tenant})`
+                  : "Microsoft OAuth not configured — set AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_REDIRECT_URI env vars."}
+              </span>
+            </div>
             <DomainEditor
               domains={draft.allowedEmailDomains}
               onChange={(d) => patch("allowedEmailDomains", d)}
@@ -413,6 +434,16 @@ export default function SecuritySettingsPanel() {
             rows={3}
             className="w-full text-[14px] p-2.5 border border-gray-200 dark:border-gray-800 bg-background rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
           />
+          <label className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 cursor-pointer">
+            <Accessibility className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-medium text-gray-900 dark:text-white">Accessible routes only</p>
+              <p className="text-[12px] text-muted-foreground">
+                Forces wheelchair-accessible paths for all users, not just individual profiles.
+              </p>
+            </div>
+            <Switch checked={!!draft.enforceAccessibleRoutingOnly} onCheckedChange={(v) => patch("enforceAccessibleRoutingOnly", v)} />
+          </label>
           <label className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 cursor-pointer">
             <FlaskConical className="h-[18px] w-[18px] text-gray-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1 min-w-0">

@@ -398,7 +398,7 @@ private fun AdminOverviewSection(isFi: Boolean, scope: kotlinx.coroutines.Corout
                     icon = Icons.Outlined.Business,
                     value = stats.buildings.toString(),
                     label = if (isFi) "Rakennukset" else "Buildings",
-                    color = Color(0xFF3B82F6),
+                    color = Color(0xFF003D82),
                 )
                 StatTile(
                     modifier = Modifier.weight(1f),
@@ -824,7 +824,7 @@ private fun ApRow(ssid: String, bssid: String, rssi: Int) {
     }
     val color = when (strength) {
         4 -> Color(0xFF10B981)
-        3 -> Color(0xFF3B82F6)
+        3 -> Color(0xFF003D82)
         2 -> Color(0xFFF59E0B)
         else -> Color(0xFFEF4444)
     }
@@ -1147,7 +1147,7 @@ private fun AdminActionsSection(
         item {
             ActionCard(
                 icon = Icons.Outlined.Dashboard,
-                iconColor = Color(0xFF3B82F6),
+                iconColor = Color(0xFF003D82),
                 title = if (isFi) "Avaa hallintapaneeli" else "Open web admin",
                 subtitle = if (isFi) "Kaikki työpöytäominaisuudet selaimessa"
                            else "Full desktop admin dashboard",
@@ -1464,7 +1464,7 @@ private fun AdminActionsSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Info, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.Info, null, tint = Color(0xFF003D82), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(if (isFi) "Versiotiedot" else "Build info",
                         fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
@@ -1702,7 +1702,7 @@ private fun AdminAnnouncementsSection(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         if (editingId != null) Icons.Outlined.Edit else Icons.Outlined.Campaign,
-                        null, tint = Color(0xFF3B82F6), modifier = Modifier.size(22.dp),
+                        null, tint = Color(0xFF003D82), modifier = Modifier.size(22.dp),
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
@@ -1729,7 +1729,7 @@ private fun AdminAnnouncementsSection(
                 // Type chips
                 Text(if (isFi) "Tyyppi" else "Type", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    listOf("info" to Color(0xFF3B82F6), "warning" to Color(0xFFF59E0B), "urgent" to Color(0xFFEF4444), "event" to Color(0xFF8B5CF6)).forEach { (t, c) ->
+                    listOf("info" to Color(0xFF003D82), "warning" to Color(0xFFF59E0B), "urgent" to Color(0xFFEF4444), "event" to Color(0xFF8B5CF6)).forEach { (t, c) ->
                         val label = when (t) { "info" -> if (isFi) "Tieto" else "Info"; "warning" -> if (isFi) "Varoitus" else "Warning"; "urgent" -> if (isFi) "Kiireellinen" else "Urgent"; else -> if (isFi) "Tapahtuma" else "Event" }
                         val isSel = type == t
                         Box(Modifier.clip(RoundedCornerShape(14.dp)).background(if (isSel) c else c.copy(alpha = 0.12f)).clickable { type = t }.padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -1855,7 +1855,7 @@ private fun AdminAnnouncementsSection(
             val initActive = (a["active"] as? JsonPrimitive)?.booleanOrNull ?: true
             var itemActive by remember(id, initActive) { mutableStateOf(initActive) }
             var togglingActive by remember { mutableStateOf(false) }
-            val accent = when (tpe.lowercase()) { "urgent" -> Color(0xFFEF4444); "warning" -> Color(0xFFF59E0B); "event" -> Color(0xFF8B5CF6); else -> Color(0xFF3B82F6) }
+            val accent = when (tpe.lowercase()) { "urgent" -> Color(0xFFEF4444); "warning" -> Color(0xFFF59E0B); "event" -> Color(0xFF8B5CF6); else -> Color(0xFF003D82) }
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                     .background(if (itemActive) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainerLowest)
@@ -1929,7 +1929,7 @@ private fun AnnouncementPreviewCard(
     title: String, body: String, type: String, pinned: Boolean,
     audience: String, startDate: String?, endDate: String?, isFi: Boolean,
 ) {
-    val accent = when (type.lowercase()) { "urgent" -> Color(0xFFEF4444); "warning" -> Color(0xFFF59E0B); "event" -> Color(0xFF8B5CF6); else -> Color(0xFF3B82F6) }
+    val accent = when (type.lowercase()) { "urgent" -> Color(0xFFEF4444); "warning" -> Color(0xFFF59E0B); "event" -> Color(0xFF8B5CF6); else -> Color(0xFF003D82) }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(14.dp),

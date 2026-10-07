@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Globe, Bell, Wrench, Save, AlertTriangle, Settings,
   RefreshCw, Eye, EyeOff, Egg, Sparkles, Video, Calendar, Camera, Flame, Megaphone,
+  Tag, LocateFixed,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAdminHeaders } from '@/lib/adminAuth';
@@ -424,8 +425,31 @@ export default function AppSettingsManager({ subtab, onSubtabChange }: AppSettin
         <TabsContent value="features" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Map overlays</CardTitle>
+              <CardDescription>Layers and indicators rendered on the campus map.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <FeatureRow
+                icon={Tag}
+                title="Floor labels"
+                subtitle="Show room-number labels on the floor plan. Turn off for a cleaner map."
+                checked={(s as any).enableFloorLabels !== false}
+                onChange={(v) => update({ enableFloorLabels: v } as any)}
+              />
+              <FeatureRow
+                icon={LocateFixed}
+                title="GPS / blue-dot"
+                subtitle="Show the user's real-time location on the map. Disable to suppress the browser permission prompt."
+                checked={(s as any).enableGPS !== false}
+                onChange={(v) => update({ enableGPS: v } as any)}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm">Public map features</CardTitle>
-              <CardDescription>Layers and overlays students see on the main campus map.</CardDescription>
+              <CardDescription>Pins and overlays students see on the main campus map.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <FeatureRow

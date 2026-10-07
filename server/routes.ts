@@ -2640,6 +2640,15 @@ https://ksykmaps.fi
   // Real implementation will use msal-node + Azure AD. For now we accept a
   // dev callback that takes ?email= so the access engine can be exercised
   // end-to-end while the OAuth app is being provisioned.
+  // Returns whether Microsoft OAuth is configured so the admin panel can
+  // show a status badge without exposing the actual credential values.
+  app.get('/api/auth/microsoft/status', (_req, res) => {
+    res.json({
+      configured: !!process.env.AZURE_CLIENT_ID,
+      tenant: process.env.AZURE_TENANT_ID || 'common',
+    });
+  });
+
   app.get('/api/auth/microsoft/start', (req, res) => {
     const azureClientId = process.env.AZURE_CLIENT_ID;
     const azureTenant = process.env.AZURE_TENANT_ID || 'common';

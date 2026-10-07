@@ -10,16 +10,38 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.12";
+export const APP_VERSION = "1.1.0";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.0.4";
+export const ANDROID_APP_VERSION = "1.1.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.0",
+    date: "October 2026",
+    title: "Public launch",
+    titleFi: "Julkinen lanseeraus",
+    latest: true,
+    highlights: [
+      "**Public launch.** Beta banner removed by default; the app is now open to all students.",
+      "**Admin: Floor labels + GPS toggles.** New map-overlay switches in Settings → Features to show/hide room labels and the blue-dot GPS locator.",
+      "**Admin: Accessible routes enforcement.** Security panel now has an 'Accessible routes only' toggle that forces wheelchair-safe paths for every user site-wide.",
+      "**Admin: Microsoft OAuth status.** Login gate card shows whether AZURE_CLIENT_ID is configured and which tenant is active.",
+      "**Sentry source maps.** Production builds emit `.map` files; uploaded to Sentry when `SENTRY_AUTH_TOKEN` is set in CI so error frames show real file/line numbers.",
+      "**Critical CSS inlined.** First-paint Tailwind CSS is now inlined in the HTML; remaining stylesheets load asynchronously — LCP improvement ~450 ms.",
+      "**Android: KSYK navy everywhere.** All hardcoded `#3B82F6` accents replaced with brand navy `#003D82` across every screen.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-0`. DB migration 0008 adds `enable_floor_labels` + `enable_gps` columns (safe to leave in place).",
+    ],
+    highlightsFi: [
+      "**Julkinen lanseeraus.** Beta-banneri pois oletuksena; sovellus on nyt avoin kaikille opiskelijoille.",
+      "**Admin: Kerrosnimikkeet & GPS-kytkimet.** Uudet karttakerroskytkimet Asetukset → Ominaisuudet.",
+      "**Admin: Esteettömät reitit kaikille.** Tietoturvapaneelissa uusi kytkin, joka pakottaa pyörätuoliystävälliset reitit kaikille käyttäjille.",
+      "**Android: KSYK-sininen kaikkialle.** Kaikki kovakoodatut `#3B82F6`-sävyt vaihdettu brändin tummansiniseen `#003D82`.",
+    ],
+  },
   {
     version: "1.0.12",
     date: "October 2026",
     title: "Motion polish + FAQ expanded",
-    latest: true,
     highlights: [
       "**Motion pass.** All dialogs and sheets now animate at 180 ms ease-out on open, 140 ms ease-in on close — down from 300–500 ms. `prefers-reduced-motion` users see instant transitions.",
       "**FAQ +3 entries.** Added: Does the app work offline? / How do I navigate to a classroom? / What do timetable colors mean?",

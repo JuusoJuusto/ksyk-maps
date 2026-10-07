@@ -208,7 +208,7 @@ fun SettingsScreen(
                     RowDivider()
                     LinkGroupRow(
                         icon = Icons.Outlined.Reorder,
-                        iconTint = Color(0xFF3B82F6),
+                        iconTint = Color(0xFF003D82),
                         title = if (isFi) "Muokkaa etusivua" else "Customize home",
                         subtitle = if (isFi) "Piilota tai järjestä osiot uudelleen"
                                    else "Hide or reorder home sections",
@@ -867,7 +867,7 @@ private fun LanguageRow(isFi: Boolean, onSelect: (String) -> Unit) {
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBubble(icon = Icons.Outlined.Language, tint = Color(0xFF3B82F6))
+        IconBubble(icon = Icons.Outlined.Language, tint = Color(0xFF003D82))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(

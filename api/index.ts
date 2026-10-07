@@ -2467,6 +2467,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         'showGetAppPopup', 'getAppUrl',
         // v1.0.2 — admin can hide the first-visit beta welcome banner.
         'showBetaBanner',
+        // v1.1.0 — map overlay toggles
+        'enableFloorLabels', 'enableGPS',
       ]);
       const DEFAULT_SETTINGS = {
         id: 'default',

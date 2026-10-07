@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCampusData } from "@/hooks/useCampusData";
 import { trackFeatureUse } from "@/lib/analytics";
+import { useSecuritySettings } from "@/hooks/useSecuritySettings";
 
 interface NavigationPanelProps {
   map: MaplibreMap | null;
@@ -119,7 +120,10 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
 
   const [from, setFrom] = useState<Endpoint | null>(null);
   const [to, setTo] = useState<Endpoint | null>(null);
+  const { settings: secSettings } = useSecuritySettings();
   const [accessibleOnly, setAccessibleOnly] = useState(false);
+  // If admin has enforced accessible routes site-wide, force-override the toggle.
+  const effectiveAccessibleOnly = accessibleOnly || !!secSettings.enforceAccessibleRoutingOnly;
   // Active step in the turn-by-turn timeline. Advances when the user
   // taps a step (which also flies the map there) so users can follow
   // along visually — the current step gets a highlighted ring + the
@@ -214,7 +218,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
     const sB = snapEndpoint(to);
     // Attempt A* if we have a snap on both sides.
     if (sA && sB && sA.nodeId !== sB.nodeId) {
-      const profile = accessibleOnly ? PROFILE_WHEELCHAIR : PROFILE_DEFAULT;
+      const profile = effectiveAccessibleOnly ? PROFILE_WHEELCHAIR : PROFILE_DEFAULT;
       const path = findPath(graph.graph, sA.nodeId, sB.nodeId, profile);
       if (path) {
         // Prepend/append the real endpoint centroid so the drawn
@@ -246,7 +250,7 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
       floors: [] as number[],
       navRoute: null,
     };
-  }, [from, to, graph, accessibleOnly, snapEndpoint]);
+  }, [from, to, graph, effectiveAccessibleOnly, snapEndpoint]);
 
   // v4.7.11 — route completion telemetry. Fires once per unique
   // (fromId → toId) pair per session when a graph route resolves.
@@ -269,10 +273,10 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
         toLabel: endpointLabel(to),
         distanceMeters: Math.round(route.distanceMeters),
         floors: route.floors,
-        accessibleOnly,
+        accessibleOnly: effectiveAccessibleOnly,
       });
     } catch { /* non-fatal */ }
-  }, [route, from, to, accessibleOnly]);
+  }, [route, from, to, effectiveAccessibleOnly]);
 
   // Derive turn-by-turn hints from the underlying nav route (graph
   // routes only — straight-line fallback has nothing to narrate).

@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 export default defineConfig({
   plugins: [
@@ -26,6 +28,49 @@ export default defineConfig({
           ),
         ]
       : []),
+    // Inline critical CSS so the two render-blocking stylesheet fetches
+    // (300 ms + 150 ms per Lighthouse) stop blocking LCP.
+    // Only runs during a real production build to keep dev HMR fast.
+    {
+      name: "critical-css",
+      apply: "build",
+      async closeBundle() {
+        // critters ships types in src/index.d.ts but its package.json
+        // "exports" map hides them from the TS resolver.  @ts-ignore is
+        // the correct workaround until the package ships its own .d.ts.
+        // @ts-ignore
+        const Critters = (await import("critters")).default;
+        const distDir = path.resolve(import.meta.dirname, "dist/public");
+        const htmlPath = path.join(distDir, "index.html");
+        if (!fs.existsSync(htmlPath)) return;
+        const critters = new Critters({
+          path: distDir,
+          publicPath: "/",
+          // Non-critical stylesheets are loaded asynchronously; critters
+          // rewrites <link rel="stylesheet"> to load with media="print"
+          // and the onload trick, then a <noscript> fallback.
+          preload: "swap",
+          inlineFonts: false,
+          pruneSource: false,
+          logLevel: "warn",
+        });
+        const result = await critters.process(fs.readFileSync(htmlPath, "utf-8"));
+        fs.writeFileSync(htmlPath, result);
+      },
+    },
+    // Upload source maps to Sentry only when the auth token is present
+    // (typically set in CI/CD). Local builds still emit .map files but
+    // never upload — no token, no upload, build succeeds either way.
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG ?? "ksyk-maps",
+            project: process.env.SENTRY_PROJECT ?? "javascript-react",
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            sourcemaps: { filesToDeleteAfterUpload: ["dist/public/**/*.map"] },
+          }),
+        ]
+      : []),
   ],
   resolve: {
     alias: {
@@ -47,6 +92,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Source maps allow Sentry to show real file/line numbers in error reports.
+    // Upload only happens when SENTRY_AUTH_TOKEN is set (CI/CD); local builds
+    // still emit .map files but never upload them.
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
