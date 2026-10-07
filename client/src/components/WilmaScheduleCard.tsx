@@ -19,6 +19,19 @@ import WilmaConnectPanel from "@/components/WilmaConnectPanel";
 
 type Tab = "today" | "week" | "settings";
 
+type TeacherMap = Map<string, string>; // abbrev → "First Last"
+type SubjectMap = Map<string, string>; // code → name
+
+function resolveSubjectName(code: string, map: SubjectMap): string | null {
+  if (!code) return null;
+  if (map.has(code)) return map.get(code)!;
+  // Prefix match: map key "FY" matches code "FY1.F"
+  for (const [k, v] of map) {
+    if (code.startsWith(k + ".") || code.startsWith(k + " ")) return v;
+  }
+  return null;
+}
+
 interface Props {
   onNavigateToRoom?: (roomId: string) => void;
   onClose?: () => void;
@@ -32,6 +45,8 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(() => getCacheAge());
+  const [teacherMap, setTeacherMap] = useState<TeacherMap>(new Map());
+  const [subjectMap, setSubjectMap] = useState<SubjectMap>(new Map());
 
   const refresh = useCallback(async (force = false) => {
     if (force) clearCache();
@@ -53,6 +68,28 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
     if (events.length === 0 || !getCacheAge()) {
       refresh();
     }
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/teachers")
+      .then(r => r.ok ? r.json() : [])
+      .then((teachers: { firstName: string; lastName: string; abbrev?: string }[]) => {
+        const m = new Map<string, string>();
+        for (const t of teachers) {
+          if (t.abbrev) m.set(t.abbrev, `${t.firstName} ${t.lastName}`);
+        }
+        setTeacherMap(m);
+      })
+      .catch(() => {});
+
+    fetch("/api/subjects")
+      .then(r => r.ok ? r.json() : [])
+      .then((subs: { code: string; name: string }[]) => {
+        const m = new Map<string, string>();
+        for (const s of subs) m.set(s.code, s.name);
+        setSubjectMap(m);
+      })
+      .catch(() => {});
   }, []);
 
   const current = getCurrentLesson(events);
@@ -145,6 +182,8 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                   event={current}
                   emptyText="No lesson right now"
                   onNavigate={onNavigateToRoom}
+                  teacherMap={teacherMap}
+                  subjectMap={subjectMap}
                 />
 
                 {/* NEXT card */}
@@ -154,6 +193,8 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                   event={next}
                   emptyText="No more lessons today"
                   onNavigate={onNavigateToRoom}
+                  teacherMap={teacherMap}
+                  subjectMap={subjectMap}
                 />
 
                 {/* Today's rest */}
@@ -163,7 +204,7 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                       Today's schedule
                     </p>
                     {today.map(ev => (
-                      <TimetableRow key={ev.uid} event={ev} onNavigate={onNavigateToRoom} />
+                      <TimetableRow key={ev.uid} event={ev} onNavigate={onNavigateToRoom} teacherMap={teacherMap} subjectMap={subjectMap} />
                     ))}
                   </div>
                 )}
@@ -188,7 +229,7 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
                     </p>
                     <div className="flex flex-col gap-1">
                       {day.map(ev => (
-                        <TimetableRow key={ev.uid + ev.dayOfWeek} event={ev} onNavigate={onNavigateToRoom} />
+                        <TimetableRow key={ev.uid + ev.dayOfWeek} event={ev} onNavigate={onNavigateToRoom} teacherMap={teacherMap} subjectMap={subjectMap} />
                       ))}
                     </div>
                   </div>
@@ -228,20 +269,31 @@ export default function WilmaScheduleCard({ onNavigateToRoom, onClose }: Props) 
 // -------------------------------------------------------------------
 
 function LessonCard({
-  label, labelColor, event, emptyText, onNavigate,
+  label, labelColor, event, emptyText, onNavigate, teacherMap, subjectMap,
 }: {
   label: string;
   labelColor: string;
   event: CalendarEvent | null;
   emptyText: string;
   onNavigate?: (roomId: string) => void;
+  teacherMap?: TeacherMap;
+  subjectMap?: SubjectMap;
 }) {
   return (
     <div className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
       <p className={`text-xs font-bold tracking-widest ${labelColor} mb-1`}>{label}</p>
       {event ? (
         <div className="flex flex-col gap-1">
-          <p className="font-semibold text-sm leading-tight">{event.summary}</p>
+          {(() => {
+            const resolvedName = subjectMap && event.subjectCode
+              ? resolveSubjectName(event.subjectCode, subjectMap)
+              : null;
+            return (
+              <p className="font-semibold text-sm leading-tight">
+                {resolvedName ?? event.summary}
+              </p>
+            );
+          })()}
           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
             {event.matchedRoomNumber && (
               <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -253,7 +305,13 @@ function LessonCard({
               </span>
             )}
             <span className="text-xs text-slate-500 dark:text-slate-400">{event.startHhmm}–{event.endHhmm}</span>
-            {event.teacher && <span className="text-xs text-slate-500">{event.teacher}</span>}
+            {(() => {
+              const resolved = teacherMap && event.teacherAbbrev
+                ? teacherMap.get(event.teacherAbbrev)
+                : null;
+              const display = resolved ?? event.teacher ?? null;
+              return display ? <span className="text-xs text-slate-500">{display}</span> : null;
+            })()}
           </div>
           {event.matchedRoomId && onNavigate && (
             <button
@@ -280,19 +338,34 @@ function LessonCard({
 }
 
 function TimetableRow({
-  event, onNavigate,
+  event, onNavigate, teacherMap, subjectMap,
 }: {
   event: CalendarEvent;
   onNavigate?: (roomId: string) => void;
+  teacherMap?: TeacherMap;
+  subjectMap?: SubjectMap;
 }) {
+  const resolvedSubject = subjectMap && event.subjectCode
+    ? resolveSubjectName(event.subjectCode, subjectMap)
+    : null;
+  const resolvedTeacher = teacherMap && event.teacherAbbrev
+    ? teacherMap.get(event.teacherAbbrev)
+    : null;
+  const teacherDisplay = resolvedTeacher ?? event.teacherAbbrev ?? null;
+
   return (
     <div className="flex items-center gap-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60 px-2.5 py-1.5">
       <span className="text-xs text-slate-500 w-10 shrink-0 font-mono">{event.startHhmm}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{event.summary}</p>
-        {event.matchedRoomNumber && (
-          <p className="text-xs text-slate-500">Room {event.matchedRoomNumber}</p>
-        )}
+        <p className="text-sm font-medium truncate">{resolvedSubject ?? event.summary}</p>
+        <div className="flex items-center gap-2">
+          {event.matchedRoomNumber && (
+            <p className="text-xs text-slate-500">Room {event.matchedRoomNumber}</p>
+          )}
+          {teacherDisplay && (
+            <p className="text-xs text-slate-400 truncate">{teacherDisplay}</p>
+          )}
+        </div>
       </div>
       {event.matchedRoomId && onNavigate && (
         <button

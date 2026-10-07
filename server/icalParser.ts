@@ -46,6 +46,10 @@ export interface ExpandedEvent {
   endHhmm: string;
   dayOfWeek: number; // 1=Mon … 7=Sun
   teacher: string;
+  /** Abbreviation extracted from (XYZ) in the summary, e.g. "JLä". */
+  teacherAbbrev: string;
+  /** Course/subject code extracted from the summary before any "(…)", e.g. "FY1.F". */
+  subjectCode: string;
   type: 'lesson' | 'reservation' | 'other';
   isAllDay: boolean;
 }
@@ -339,6 +343,8 @@ function toExpanded(ev: RawEvent, start: Date, end: Date): ExpandedEvent | null 
     endHhmm: hhmm(end),
     dayOfWeek,
     teacher: extractTeacher(ev.description),
+    teacherAbbrev: extractTeacherAbbrev(ev.summary),
+    subjectCode: extractSubjectCode(ev.summary),
     type: classifyEvent(ev),
     isAllDay: false,
   };
@@ -377,4 +383,27 @@ function extractTeacher(description: string): string {
   }
   const firstLine = description.split(/\\n|\n/).find(l => l.trim());
   return firstLine?.trim() ?? '';
+}
+
+/**
+ * Extract the teacher abbreviation from the Wilma summary parenthesis.
+ * Summary format: "FY1.F (JLä) K13" → "JLä"
+ * Returns empty string when no parenthesised token is found.
+ */
+function extractTeacherAbbrev(summary: string): string {
+  if (!summary) return '';
+  const m = summary.match(/\(([^)]+)\)/);
+  return m ? m[1].trim() : '';
+}
+
+/**
+ * Extract the course/subject code from the Wilma summary — the part
+ * before any " (…)" parenthesis group.
+ * "FY1.F (JLä) K13" → "FY1.F"
+ * "Matematiikka MA2 (PVi) A201" → "Matematiikka MA2" (full prefix kept)
+ */
+function extractSubjectCode(summary: string): string {
+  if (!summary) return '';
+  const beforeParen = summary.split('(')[0].trim();
+  return beforeParen;
 }

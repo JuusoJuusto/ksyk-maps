@@ -15,6 +15,25 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — v1.0.9 — Wilma schedule enrichment: teacher abbrev + subjects lookup
+
+**Asked.**
+- Mobile app schedule card shows Wilma lessons like `FY1.F (JLä) K13`. Add a **Nimenlyhennys** (abbrev) field to staff in the admin panel so `JLä` can be resolved to the full teacher name.
+- Add a **Subjects** section to the admin Staff tab where admins map course codes (e.g. `FY1.F`) to Finnish/English subject names.
+- When the schedule card renders a lesson, resolve the abbreviation and code to human-readable names.
+
+**Decided.**
+- **iCal parser** (`server/icalParser.ts`) already extracts the parenthesis token as `teacherAbbrev` and the prefix before `(` as `subjectCode` from the Wilma SUMMARY field; added `teacherAbbrev`/`subjectCode` to `ExpandedEvent` + `CalendarEvent` interfaces.
+- **DB schema**: `abbrev varchar` column on `staff` table + new `subjects` table (code, name, name_en); migration `0005_teachers_subjects.sql`.
+- **API**: `GET /api/teachers` (public, active staff with abbrev set), `GET /api/subjects` (public), `POST /api/subjects` (admin upsert), `DELETE /api/subjects/:id` (admin), `POST/PUT/DELETE /api/staff` (admin CRUD incl. abbrev).
+- **Admin panel** (`AdminDashboard.tsx`): added `abbrev` input to the staff form (labelled "Nimenlyhennys (Wilma code)"); abbrev shown as a small code badge next to the staff member's name in the list. Added a **Subjects** card below the staff list with inline add-form and per-row delete.
+- **Schedule card** (`WilmaScheduleCard.tsx`): fetches `/api/teachers` + `/api/subjects` on mount, builds lookup Maps; `LessonCard` and `TimetableRow` resolve subject codes (exact + prefix match) and teacher abbreviations before display; falls back to raw `event.summary` / `event.teacher` if unresolved.
+- Resolution is kept client-side: the server parser stays stateless and the schedule card owns the enrichment.
+
+**Shipped.**  Web `1.0.8 → 1.0.9`.  Files: `shared/schema.ts`, `migrations/0005_teachers_subjects.sql`, `server/icalParser.ts`, `client/src/lib/wilmaCalendar.ts`, `api/index.ts`, `client/src/components/AdminDashboard.tsx`, `client/src/components/WilmaScheduleCard.tsx`, `client/src/lib/changelog.ts`.  `tsc` clean, Vite production build verified.  Rollback: `git reset --hard rollback-before-1-0-9`. DB migration is backward-safe (additive only).
+
+---
+
 ## 05-10-2026 — v1.0.7 — Google Fonts un-blocked (~520 ms LCP) · Map back-link removed from lockout
 
 **Asked.**

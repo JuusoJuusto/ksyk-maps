@@ -1766,7 +1766,132 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const staff = await storage.getStaff();
       return res.status(200).json(staff);
     }
-    
+
+    // ── Staff CRUD (admin) ───────────────────────────────────────────
+    // POST /api/staff — create a new staff member
+    if (apiPath === '/staff' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      const body = req.body || {};
+      try {
+        const member = await storage.createStaffMember({
+          firstName: String(body.firstName || ''),
+          lastName: String(body.lastName || ''),
+          email: body.email || null,
+          phone: body.phone || null,
+          position: body.position || null,
+          positionEn: body.positionEn || null,
+          positionFi: body.positionFi || null,
+          department: body.department || null,
+          departmentEn: body.departmentEn || null,
+          departmentFi: body.departmentFi || null,
+          abbrev: body.abbrev || null,
+          isActive: typeof body.isActive === 'boolean' ? body.isActive : true,
+        } as any);
+        return res.status(201).json(member);
+      } catch (err: any) {
+        return res.status(500).json({ message: err?.message || 'Failed to create staff' });
+      }
+    }
+
+    // PATCH /api/staff/:id — update a staff member (admin)
+    {
+      const m = apiPath.match(/^\/staff\/([^/]+)$/);
+      if (m && (req.method === 'PATCH' || req.method === 'PUT')) {
+        if (!requireAdminAuth(req, res)) return;
+        const body = req.body || {};
+        const safe: Record<string, any> = {};
+        const ALLOWED = ['firstName','lastName','email','phone','position','positionEn','positionFi',
+          'department','departmentEn','departmentFi','abbrev','isActive','bio','bioEn','bioFi'];
+        for (const k of ALLOWED) {
+          if (k in body) safe[k] = body[k];
+        }
+        try {
+          const updated = await storage.updateStaffMember(m[1], safe as any);
+          return res.status(200).json(updated);
+        } catch (err: any) {
+          return res.status(500).json({ message: err?.message || 'Failed to update staff' });
+        }
+      }
+      // DELETE /api/staff/:id (admin)
+      if (m && req.method === 'DELETE') {
+        if (!requireAdminAuth(req, res)) return;
+        try {
+          await storage.deleteStaffMember(m[1]);
+          return res.status(200).json({ success: true });
+        } catch (err: any) {
+          return res.status(500).json({ message: err?.message || 'Failed to delete staff' });
+        }
+      }
+    }
+
+    // ── Teachers — public endpoint for schedule card ─────────────────
+    // GET /api/teachers — returns all active staff that have an abbrev set
+    if (apiPath === '/teachers' && req.method === 'GET') {
+      try {
+        const all = await storage.getStaff();
+        const teachers = all
+          .filter((s: any) => s.isActive !== false)
+          .map((s: any) => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            abbrev: s.abbrev || null,
+          }));
+        return res.status(200).json(teachers);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // ── Subjects ─────────────────────────────────────────────────────
+    // GET /api/subjects — public read
+    if (apiPath === '/subjects' && req.method === 'GET') {
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { subjects: subjectsTable } = await import('../shared/schema.js');
+        const { asc } = await import('drizzle-orm');
+        const rows = await pgDb.select().from(subjectsTable).orderBy(asc(subjectsTable.code));
+        return res.status(200).json(rows);
+      } catch {
+        return res.status(200).json([]);
+      }
+    }
+
+    // POST /api/subjects — admin create
+    if (apiPath === '/subjects' && req.method === 'POST') {
+      if (!requireAdminAuth(req, res)) return;
+      const { code, name, nameEn } = req.body || {};
+      if (!code || !name) return res.status(400).json({ message: 'code and name are required' });
+      try {
+        const { db: pgDb } = await import('../server/db.js');
+        const { subjects: subjectsTable } = await import('../shared/schema.js');
+        const rows = await pgDb.insert(subjectsTable)
+          .values({ code: String(code).trim().toUpperCase(), name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null })
+          .onConflictDoUpdate({ target: subjectsTable.code, set: { name: String(name).trim(), nameEn: nameEn ? String(nameEn).trim() : null, updatedAt: new Date() } })
+          .returning();
+        return res.status(201).json(rows[0]);
+      } catch (err: any) {
+        return res.status(500).json({ message: err?.message || 'Failed to save subject' });
+      }
+    }
+
+    // DELETE /api/subjects/:id — admin delete
+    {
+      const m = apiPath.match(/^\/subjects\/([^/]+)$/);
+      if (m && req.method === 'DELETE') {
+        if (!requireAdminAuth(req, res)) return;
+        try {
+          const { db: pgDb } = await import('../server/db.js');
+          const { subjects: subjectsTable } = await import('../shared/schema.js');
+          const { eq } = await import('drizzle-orm');
+          await pgDb.delete(subjectsTable).where(eq(subjectsTable.id, m[1]));
+          return res.status(200).json({ success: true });
+        } catch (err: any) {
+          return res.status(500).json({ message: err?.message || 'Failed to delete subject' });
+        }
+      }
+    }
+
     // Announcements endpoints
     if (apiPath.startsWith('/announcements')) {
       // Whitelist matches the announcements table in shared/schema.ts.
@@ -4153,6 +4278,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
               summary: ev.summary,
               location: ev.location,
               teacher: ev.teacher,
+              teacherAbbrev: ev.teacherAbbrev,
+              subjectCode: ev.subjectCode,
               date: ev.date,
               localDate: ev.localDate,
               startHhmm: ev.startHhmm,

@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.8";
+export const APP_VERSION = "1.0.9";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.9",
+    date: "October 2026",
+    title: "Wilma schedule enrichment — teacher names and subject lookup",
+    titleFi: "Wilma-lukujärjestysrikastus — opettajien nimet ja ainehaku",
+    latest: true,
+    highlights: [
+      "**Teacher abbreviation (nimenlyhennys) field** added to staff in the admin panel. Map Wilma codes like `JLä` to full teacher names.",
+      "**Subjects section** added to the Staff admin tab. Map course codes (e.g. `FY1.F`) to Finnish/English subject names shown in the schedule card.",
+      "**Schedule card now shows resolved names.** The NOW/NEXT lesson card and the timetable rows display the full subject name and teacher name when configured.",
+      "**iCal parser extracts `teacherAbbrev` and `subjectCode`** from Wilma SUMMARY field (`FY1.F (JLä) K13` → code `FY1.F`, abbrev `JLä`).",
+      "**Rollback** — `git tag rollback-before-1-0-9` at the previous HEAD. Revert: `git reset --hard rollback-before-1-0-9`. The `abbrev` column and `subjects` table are safe to leave in the DB.",
+      "Web `1.0.8 → 1.0.9`. Android unchanged at `1.0.1`. `tsc` clean.",
+    ],
+    highlightsFi: [
+      "**Nimenlyhennys-kenttä** lisätty henkilökunnalle hallintapaneelissa. Liitä Wilma-lyhenne (esim. `JLä`) opettajan koko nimeen.",
+      "**Aineet-osio** lisätty Henkilökunta-välilehteen. Liitä kurssikoodit (esim. `FY1.F`) suomen-/englanninkielisiin aineisiin.",
+      "**Aikataululukortti näyttää selvitetyt nimet.** NYT/SEURAAVA-kortit ja päiväohjelmarivit näyttävät koko aineen ja opettajan nimen.",
+    ],
+  },
+  {
     version: "1.0.8",
     date: "September 2026",
     title: "Production hardening — Sentry masking, health endpoint fix, ops docs, expanded tests",
     titleFi: "Tuotantovahvistus — Sentry-peitto, terveystarkistuskorjaus, käyttöoppaat, laajennetut testit",
-    latest: true,
+    latest: false,
     highlights: [
       "**Sentry session replay masks all text** (`maskAllText: true`, `blockAllMedia: true`). Student names and schedule data can no longer appear in Sentry session recordings.",
       "**Health endpoint no longer leaks error details.** `/api/health` 503 response no longer includes the raw database error message.",

@@ -15,6 +15,10 @@ export interface CalendarEvent {
   summary: string;
   location: string;
   teacher: string;
+  /** Teacher abbreviation from "(JLä)" in the Wilma summary. */
+  teacherAbbrev: string;
+  /** Course/subject code from the summary before the parenthesis, e.g. "FY1.F". */
+  subjectCode: string;
   date: string;           // ISO date string
   startHhmm: string;      // "HH:mm"
   endHhmm: string;        // "HH:mm"

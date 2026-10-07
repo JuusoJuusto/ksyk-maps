@@ -163,7 +163,20 @@ export const staff = pgTable("staff", {
   bio: text("bio"),
   bioEn: text("bio_en"),
   bioFi: text("bio_fi"),
+  /** Teacher abbreviation used in Wilma schedules, e.g. "JLä". */
+  abbrev: varchar("abbrev"),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subjects — course/subject codes used in Wilma schedules.
+// code is the prefix that appears in course codes (e.g. "FY" for FY1.F).
+export const subjects = pgTable("subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code").notNull().unique(),
+  name: varchar("name").notNull(),
+  nameEn: varchar("name_en"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -990,6 +1003,9 @@ export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export const insertSubjectSchema = createInsertSchema(subjects).omit({ id: true, createdAt: true, updatedAt: true });
+export type Subject = typeof subjects.$inferSelect;
+export type InsertSubject = z.infer<typeof insertSubjectSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Announcement = typeof announcements.$inferSelect;
