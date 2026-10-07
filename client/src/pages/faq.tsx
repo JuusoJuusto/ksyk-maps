@@ -49,6 +49,24 @@ const QUESTIONS: Q[] = [
     qEn: "Can I use the app without logging in?",
     aEn: "Yes. Map, room search, lunch, and HSL times all work without an account. You only need Wilma credentials if you want your own timetable auto-imported.",
   },
+  {
+    q: "Toimiiko sovellus ilman yhteyttä?",
+    a: "Suurimmaksi osaksi kyllä. Kartta, luokkahuoneet, lukujärjestys ja viimeisin lounaslista avautuvat välimuistista. Reaaliaikaiset tiedot (uudet ilmoitukset, HSL-aikataulut) vaativat yhteyden.",
+    qEn: "Does the app work offline?",
+    aEn: "Mostly yes. The map, rooms, timetable, and the latest lunch menu all open from cache. Real-time data (new announcements, HSL times) requires a connection.",
+  },
+  {
+    q: "Miten navigoin luokkaan?",
+    a: "Napauta karttanäkymässä huonetta → napauta 'Navigoi'-painiketta infokortissa. Sovellus laskee reitin nykyisestä sijainnistasi. Voit myös navigoida suoraan lukujärjestyksestä napauttamalla tunnin korttia → 'Navigoi'.",
+    qEn: "How do I navigate to a classroom?",
+    aEn: "Tap a room on the map → tap the 'Navigate' button in the info card. The app calculates a route from your current location. You can also navigate directly from the timetable by tapping a lesson card → 'Navigate'.",
+  },
+  {
+    q: "Mitä lukujärjestyksen värit tarkoittavat?",
+    a: "Jokainen kurssi saa oman värin (opettajan asettama hallintapaneelista). Väri toistuu vasemmassa kylkipalkissa ja nyt/seuraavaksi-kortissa. Yliviivatut ja himmennetyt tunnit ovat jo loppuneet tänään.",
+    qEn: "What do the timetable colors mean?",
+    aEn: "Each course gets its own color (set by your admin in the Courses panel). The color repeats in the left accent rail and the now/next card. Crossed-out and faded lessons have already ended today.",
+  },
 ];
 
 export default function FAQ() {

@@ -8,25 +8,14 @@ Hub: [[BRAIN.md]]
 
 ## 🎯 Now (this week)
 
-- [[mobile-nav-regression]] — mobile Navigation + Navigoi buttons disappearing
-- [[announcement-dialog-polish]] — long-content scroll + mobile layout
-- [[admin-profile-scroll]] — profile dialog scroll + sticky footer actions
-- [[beta-banner-toggle]] — admin on/off from `/admin/settings`
-- [[forgot-password-polish]] — Wilma document pattern
+_(empty — all items shipped)_
 
 ## 🚧 In progress
 
-- [[faq-i18n]] — default English, bilingual action labels
-- [[easter-egg-admin-toggle]] — default OFF, wired through App.tsx
+_(empty)_
 
 ## 📋 Next (near-term)
 
-- [[class-info-mobile-buttons]] — ensure schedule + room-schedule buttons are visible on mobile at `peek` snap
-- [[cookie-banner-l10n]] — EN default, bigger mobile touch targets
-- [[maintenance-page-polish]] — add KSYK logo, remove stray arrow
-- [[security-settings-reset]] — one-click "Reset to defaults" that forces all users into `restricted` tier
-- [[motion-pass]] — subtle enter/exit transitions on dialogs + sheets, respect `prefers-reduced-motion`
-- [[faq-content-review]] — refresh Finnish copy, add 3–5 new entries
 - [[critical-css-inline]] — inline the first-paint Tailwind/MapLibre CSS so the two render-blocking `/assets/*.css` fetches (300 ms + 150 ms per Lighthouse) stop blocking LCP.  Needs a build-step critical-CSS extraction plugin.
 
 ## 🔮 Future
@@ -40,6 +29,7 @@ Hub: [[BRAIN.md]]
 
 ## ✅ Shipped (recent)
 
+- v1.0.12 — motion pass: 180 ms ease-out open / 140 ms ease-in close on all dialogs + sheets; 3 new FAQ entries (offline, navigation, timetable colors)
 - v1.0.11 + Android 1.0.4 — MapLibre crash fix, per-course color picker, class info sheet on tap, finished-class strikethrough + fade
 - v1.0.10 + Android 1.0.3 — Courses own tab, Wilma profile URL field on staff, "Wilma abbreviation" label rename, Android Courses page, profile link in timetable
 - Android 1.0.2 — Teachers + Courses CRUD in Android admin app; lyhenne/subject-code resolution in timetable screen via LookupStore
@@ -95,6 +85,9 @@ already uses `max-h-[88dvh]` + `flex flex-col` + body `min-h-0 flex-1 overflow-y
 which is correct cross-browser.  If users still report clipping,
 investigate CSS cascade conflicts with shadcn's default DialogContent
 `grid` display.
+
+**Status.** Verified correct in v1.0.12 — `AnnouncementBanner.tsx` uses
+`overflow-hidden flex flex-col` + inner `min-h-0 flex-1 overflow-y-auto`.
 
 ---
 
@@ -180,6 +173,8 @@ Audit every Dialog / Sheet / Tooltip / Toast for consistent 180 ms ease-out
 on open, 140 ms ease-in on close.  Respect `prefers-reduced-motion`.
 `FeatureInfoSheet` already uses the `.map-room-sheet` animation; broaden
 to the new Wilma dialogs.
+
+**Status.** Shipped v1.0.12. `dialog.tsx`: `data-[state=open]:duration-[180ms] ease-out / data-[state=closed]:duration-[140ms] ease-in`. `sheet.tsx`: same. `.ksyk-bottom-sheet` CSS: 180 ms ease-out / 140 ms ease-in. Existing global `prefers-reduced-motion: reduce` block strips all durations to 0.01ms.
 
 ---
 

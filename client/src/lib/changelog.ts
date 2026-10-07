@@ -10,16 +10,27 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.0.11";
+export const APP_VERSION = "1.0.12";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.0.4";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.12",
+    date: "October 2026",
+    title: "Motion polish + FAQ expanded",
+    latest: true,
+    highlights: [
+      "**Motion pass.** All dialogs and sheets now animate at 180 ms ease-out on open, 140 ms ease-in on close — down from 300–500 ms. `prefers-reduced-motion` users see instant transitions.",
+      "**FAQ +3 entries.** Added: Does the app work offline? / How do I navigate to a classroom? / What do timetable colors mean?",
+      "**Rollback** — `git reset --hard rollback-before-1-0-12`. No DB changes.",
+    ],
+  },
+  {
     version: "1.0.11",
     date: "October 2026",
     title: "Android: MapLibre fix, course colors, class info sheet, strikethrough",
-    latest: true,
+    latest: false,
     highlights: [
       "**MapLibre crash fixed.** Debug builds crashed when opening the map tab (`MapLibreConfigurationException`); added the required `MapLibre.getInstance()` call in app startup.",
       "**Per-course color.** Admins can assign a hex color to each course in the Courses tab. The color dot is a clickable color picker. Android timetable uses the assigned color for the left rail and `TodayGlanceCard` dot.",

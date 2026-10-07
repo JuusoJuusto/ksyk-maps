@@ -806,7 +806,7 @@
 /* ── FeatureInfoSheet — desktop variant uses fadeInUp ────────────── */
 @media (min-width: 640px) {
   .map-room-sheet {
-    animation: fadeInUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: fadeInUp 180ms cubic-bezier(0, 0, 0.2, 1) both;
   }
 }
 
@@ -875,9 +875,9 @@
   /* "both" fill-mode applies the `from` state immediately — no flash before
    * the animation starts — then holds the `to` state after it ends. */
   .ksyk-bottom-sheet[data-state="open"] {
-    animation: ksyk-slide-up 300ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
+    animation: ksyk-slide-up 180ms cubic-bezier(0, 0, 0.2, 1) both !important;
   }
   .ksyk-bottom-sheet[data-state="closed"] {
-    animation: ksyk-slide-down 200ms ease-in both !important;
+    animation: ksyk-slide-down 140ms cubic-bezier(0.4, 0, 1, 1) both !important;
   }
 }
