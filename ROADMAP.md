@@ -16,19 +16,15 @@ _(empty)_
 
 ## 📋 Next (near-term)
 
-- [[critical-css-inline]] — inline the first-paint Tailwind/MapLibre CSS so the two render-blocking `/assets/*.css` fetches (300 ms + 150 ms per Lighthouse) stop blocking LCP.  Needs a build-step critical-CSS extraction plugin.
+_(empty)_
 
 ## 🔮 Future
 
-- [[android-wilma-visual-pass]] — full Compose theme rewrite to match web Wilma (shipped partial in v4.7.57)
-- [[admin-settings-expansion]] — more granular toggles (floor labels, GPS, offline mode)
-- [[public-launch]] — flip `showBetaBanner` off, bump to `1.1.0`
-- [[sentry-sourcemaps]] — proper source-map upload so error-tracking frames aren't minified
-- [[accessible-routes-prefs]] — admin can enforce accessible-only routing site-wide
-- [[microsoft-sso-domains]] — admin can add additional allowed email domains
+_(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.0 — public launch: beta banner off, floor labels + GPS toggles, accessible-routes enforcement, Microsoft OAuth status, Sentry sourcemaps, Critical CSS, Android navy visual pass
 - v1.0.12 — motion pass: 180 ms ease-out open / 140 ms ease-in close on all dialogs + sheets; 3 new FAQ entries (offline, navigation, timetable colors)
 - v1.0.11 + Android 1.0.4 — MapLibre crash fix, per-course color picker, class info sheet on tap, finished-class strikethrough + fade
 - v1.0.10 + Android 1.0.3 — Courses own tab, Wilma profile URL field on staff, "Wilma abbreviation" label rename, Android Courses page, profile link in timetable

@@ -15,6 +15,36 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — v1.1.0 — public launch: all 7 remaining roadmap items
+
+**Asked.** "BUILD ALL OF THE REMAINING TASKS NOW" — implement all roadmap items in the Future/Next columns.
+
+**Decided.**
+- Public launch: flip `showBetaBanner` default to `false` + migration 0008 + bump to 1.1.0
+- Admin settings expansion: `enableFloorLabels` + `enableGPS` columns in appSettings schema + API whitelist + AppSettingsManager UI cards
+- Accessible routes prefs: `enforceAccessibleRoutingOnly` field in SecuritySettings type + DEFAULT + deep-merge in loadSecuritySettings + toggle in SecuritySettingsPanel + NavigationPanel now reads the flag via `useSecuritySettings` and derives `effectiveAccessibleOnly`
+- Microsoft SSO domains: existing DomainEditor + new `/api/auth/microsoft/status` endpoint + status badge in SecuritySettingsPanel login-gate card
+- Sentry sourcemaps: `sourcemap: true` in vite.config.ts + `@sentry/vite-plugin` installed + conditionally active when `SENTRY_AUTH_TOKEN` is set
+- Critical CSS: `critters` installed + custom `critical-css` Vite post-build plugin inlines first-paint CSS via Critters, defers non-critical stylesheets
+- Android visual pass: replaced all `Color(0xFF3B82F6)` Tailwind-blue with brand navy `Color(0xFF003D82)` across AdminPanelScreen, HomeScreen, LogsScreen, MapScreen, OnboardingScreen, PostSetupWalkthrough, SettingsScreen, TimetableScreen. Android versionCode 107, versionName 1.1.0
+
+**Shipped.** Commit `8994e35` · web v1.1.0 · Android build 1.1.0 (APK building)
+- `shared/schema.ts` — showBetaBanner default false, enableFloorLabels + enableGPS columns
+- `migrations/0008_public_launch.sql` — new migration
+- `api/index.ts` — SETTINGS_COLUMNS whitelist + enableFloorLabels/enableGPS
+- `client/src/lib/securitySettings.ts` — enforceAccessibleRoutingOnly field + default + deep-merge
+- `client/src/components/SecuritySettingsPanel.tsx` — accessible-routes toggle + Microsoft status badge
+- `client/src/components/NavigationPanel.tsx` — effectiveAccessibleOnly from secSettings
+- `client/src/components/AppSettingsManager.tsx` — Floor labels + GPS FeatureRow cards
+- `vite.config.ts` — sourcemap: true + sentryVitePlugin + critters critical-css plugin
+- `client/src/lib/changelog.ts` — APP_VERSION 1.1.0, ANDROID_APP_VERSION 1.1.0
+- `server/routes.ts` — /api/auth/microsoft/status endpoint
+- `android/app/build.gradle.kts` — versionCode 107, versionName 1.1.0
+- Android screens — 0xFF3B82F6 → 0xFF003D82 across all 8 screen files
+- Rollback: `git reset --hard rollback-before-1-1-0`. Migration 0008 safe to leave in place.
+
+---
+
 ## 07-10-2026 — v1.0.12 — motion pass, FAQ +3 entries, ROADMAP cleanup
 
 **Asked.** Continue and finish all tasks from the roadmap.
