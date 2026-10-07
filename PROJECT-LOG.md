@@ -15,6 +15,39 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — v1.0.11 + Android 1.0.4 — MapLibre crash fix, course colors, class info sheet, strikethrough
+
+**Asked.**
+- Fix MapLibre crash: `MapLibreConfigurationException` when opening the map tab
+- Build release APK only (debug MapLibre crash was the reason)
+- Fix crash when clicking a class in the timetable
+- Make tapping a class open a class info page/sheet (not edit dialog)
+- Per-course color in admin Courses tab; use in Android timetable
+- Cross out/strikethrough finished classes in timetable tab
+
+**Decided.**
+- MapLibre crash: missing `MapLibre.getInstance()` call in `KsykApp.onCreate()` — added with `runCatching` wrapper
+- Class info sheet: new `ClassInfoSheet` composable (ModalBottomSheet) shows subject, time, room, teacher, Navigate + Edit buttons; click on TimelineRow now calls `onTap` → `infoEntry` instead of `onEdit`
+- Course color: `color varchar` column in subjects table (migration 0007); PATCH `/api/subjects/:id` endpoint; admin Courses tab inline color picker (hidden `<input type="color">` behind a swatch dot); web WilmaScheduleCard uses color for left rail accent
+- Strikethrough: `TimelineRow` receives `isToday` + `nowMins`; when `endHhmm <= nowMins` and `isToday`, applies `TextDecoration.LineThrough` on subject text + `alpha = 0.4f` on all elements
+- Release build: `./gradlew :app:assembleRelease` — APK at `android/app/build/outputs/apk/release/ksykmaps-release-1.0.4.apk`
+
+**Shipped.** Commit `06896e3` · web `v1.0.11` · Android `1.0.4`
+- `android/app/src/main/kotlin/fi/ksykmaps/KsykApp.kt` — MapLibre init
+- `android/app/src/main/kotlin/fi/ksykmaps/data/LookupStore.kt` — SubjectInfo + color
+- `android/app/src/main/kotlin/fi/ksykmaps/ui/TimetableScreen.kt` — ClassInfoSheet, strikethrough, color resolver
+- `android/app/build.gradle.kts` — 1.0.3 → 1.0.4, versionCode 105 → 106
+- `shared/schema.ts` — `color` column on subjects
+- `migrations/0007_subjects_color.sql` — ALTER TABLE subjects ADD COLUMN color varchar
+- `api/index.ts` — POST /api/subjects passes color; new PATCH /api/subjects/:id
+- `client/src/components/AdminDashboard.tsx` — color picker in Courses tab
+- `client/src/components/WilmaScheduleCard.tsx` — left-rail color dot using course color
+- `client/src/lib/changelog.ts` — APP_VERSION 1.0.11, ANDROID_APP_VERSION 1.0.4
+- `ROADMAP.md`, `CHANGELOG.md` updated
+- Rollback tag: `rollback-before-1-0-11` → `c7666bf`
+
+---
+
 ## 07-10-2026 — v1.0.10 + Android 1.0.3 — Courses tab, Wilma profile URLs, label rename
 
 **Asked.**
