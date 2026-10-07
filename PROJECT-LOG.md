@@ -15,6 +15,35 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 08-10-2026 — v1.1.1 — staff 401/500, iCal teacher fix, Android color revert
+
+**Asked.**
+- Fix 401 on POST/PUT/DELETE /api/staff (admin auth header missing from mutations)
+- Fix 500 on GET /api/staff and GET /api/subjects (DB columns/table missing on cold start)
+- Fix iCal parsing: class codes like `K13` appearing in the teacher field instead of teacher abbrevs like `JLä`
+- Revert Android accent color from KSYK navy back to Tailwind blue-500
+
+**Decided.**
+- `AdminDashboard.tsx`: added `...getAdminHeaders()` to `createStaffMutation`, `updateStaffMutation`, and `deleteStaffMutation`. Root cause: fetch calls only had `Content-Type` header.
+- `server/initDb.ts`: added `ALTER TABLE staff ADD COLUMN IF NOT EXISTS abbrev/wilma_profile_url`, `CREATE TABLE IF NOT EXISTS subjects (...)`, `ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS enable_floor_labels/enable_gps`. These columns are defined in Drizzle schema and used by storage queries but were never added to the auto-init block, causing 500 on first request to a fresh DB.
+- `api/index.ts` GET /api/staff: added try/catch to return a structured 500 instead of an unhandled exception.
+- `server/icalParser.ts` `extractTeacherAbbrev`: rewrote to iterate all `(...)` groups and return the first token that contains a lowercase letter (teacher abbrevs like `JLä`), skipping all-caps tokens like `K13` (class codes) or `K13 Niinistö` (class + optional name).
+- Android: reverted all `Color(0xFF003D82)` back to `Color(0xFF3B82F6)` in OnboardingScreen, LogsScreen, AdminPanelScreen, HomeScreen, MapScreen, SettingsScreen, PostSetupWalkthrough, TimetableScreen. theme.kt and colors.xml (which define the Material You theme primary) left as navy.
+
+**Shipped.** Commit `badf3a1` · Web v1.1.1 · Android versionCode 108 versionName 1.1.1
+- `server/initDb.ts`
+- `server/icalParser.ts`
+- `api/index.ts`
+- `client/src/components/AdminDashboard.tsx`
+- `client/src/lib/changelog.ts`
+- `android/app/build.gradle.kts`
+- `android/app/src/main/kotlin/fi/ksykmaps/ui/{OnboardingScreen,LogsScreen,AdminPanelScreen,HomeScreen,MapScreen,SettingsScreen,PostSetupWalkthrough,TimetableScreen}.kt`
+
+Rollback: `git reset --hard rollback-before-1-1-1`
+DB: new columns all added with `IF NOT EXISTS` — safe, no manual cleanup needed on rollback.
+
+---
+
 ## 07-10-2026 — v1.1.0 — public launch: all 7 remaining roadmap items
 
 **Asked.** "BUILD ALL OF THE REMAINING TASKS NOW" — implement all roadmap items in the Future/Next columns.
