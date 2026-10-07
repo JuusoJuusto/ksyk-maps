@@ -43,7 +43,7 @@ private val DESTS = listOf(
     NavDest("wifi",      "Wi-Fi",     Icons.Outlined.Wifi),
     NavDest("rooms",     "Rooms",     Icons.Outlined.MeetingRoom),
     NavDest("teachers",  "Teachers",  Icons.Outlined.Badge),
-    NavDest("subjects",  "Subjects",  Icons.Outlined.MenuBook),
+    NavDest("subjects",  "Courses",   Icons.Outlined.MenuBook),
     NavDest("logs",      "Logs",      Icons.Outlined.Description),
     NavDest("settings",  "Settings",  Icons.Outlined.Settings),
 )

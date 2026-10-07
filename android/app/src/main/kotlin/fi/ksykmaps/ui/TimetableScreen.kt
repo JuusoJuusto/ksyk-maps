@@ -25,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.LookupStore
 import com.posthog.PostHog
@@ -108,9 +110,10 @@ fun TimetableScreen(
     val wilmaConnected = remember { mutableStateOf(getStoredWilmaUrl(ctx) != null) }
     val wilmaCount = remember { mutableStateOf(0) }
     var loading by remember { mutableStateOf(true) }
-    // Lookup maps for resolving Wilma codes to display names
-    var teacherResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
-    var subjectResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
+    // Lookup maps for resolving Wilma codes to display names and profile URLs
+    var teacherResolver    by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var teacherUrlResolver by remember { mutableStateOf<(String) -> String?>({ null }) }
+    var subjectResolver    by remember { mutableStateOf<(String) -> String?>({ null }) }
 
     LaunchedEffect(Unit) {
         entries = loadEntries(ctx)
@@ -128,8 +131,9 @@ fun TimetableScreen(
 
         // Load teacher + subject lookup tables for Wilma name resolution
         try { LookupStore.ensureLoaded() } catch (_: Throwable) { /* display raw codes on failure */ }
-        teacherResolver = { abbrev -> LookupStore.resolveTeacher(abbrev) }
-        subjectResolver = { code -> LookupStore.resolveSubject(code) }
+        teacherResolver    = { abbrev -> LookupStore.resolveTeacher(abbrev) }
+        teacherUrlResolver = { abbrev -> LookupStore.resolveTeacherUrl(abbrev) }
+        subjectResolver    = { code -> LookupStore.resolveSubject(code) }
 
         loading = false
 
@@ -389,6 +393,7 @@ fun TimetableScreen(
                         lang = lang,
                         subjectResolver = subjectResolver,
                         teacherResolver = teacherResolver,
+                        teacherUrlResolver = teacherUrlResolver,
                         onDelete = {
                             runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
                             val updated = entries.filterNot { it.id == entry.id }
@@ -634,14 +639,16 @@ private fun TimelineRow(
     lang: String,
     subjectResolver: (String) -> String? = { null },
     teacherResolver: (String) -> String? = { null },
+    teacherUrlResolver: (String) -> String? = { null },
     onDelete: () -> Unit,
     onNavigate: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
+    val displaySubject  = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
         ?: entry.subject
-    val displayTeacher = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
+    val displayTeacher  = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
         ?: entry.teacher
+    val teacherUrl      = teacherUrlResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
     val sColor = subjectColor(displaySubject)
     Row(
         Modifier.fillMaxWidth(),
@@ -726,7 +733,8 @@ private fun TimelineRow(
                             Text(
                                 displayTeacher,
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (teacherUrl != null) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -740,6 +748,22 @@ private fun TimelineRow(
                             Icons.Outlined.Navigation,
                             contentDescription = if (lang == "fi") "Navigoi" else "Navigate",
                             modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                if (teacherUrl != null) {
+                    val ctx2 = LocalContext.current
+                    IconButton(
+                        onClick = {
+                            ctx2.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(teacherUrl)))
+                        },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.OpenInNew,
+                            contentDescription = if (lang == "fi") "Avaa Wilmassa" else "Open in Wilma",
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }

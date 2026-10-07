@@ -26,6 +26,7 @@ private data class StaffMember(
     val position: String?,
     val department: String?,
     val isActive: Boolean,
+    val wilmaProfileUrl: String?,
 ) {
     val fullName get() = "$firstName $lastName"
 }
@@ -47,13 +48,14 @@ fun TeachersScreen() {
         staff = arr.mapNotNull { el ->
             val o = el as? JsonObject ?: return@mapNotNull null
             StaffMember(
-                id         = (o["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
-                firstName  = (o["firstName"] as? JsonPrimitive)?.contentOrNull ?: "",
-                lastName   = (o["lastName"] as? JsonPrimitive)?.contentOrNull ?: "",
-                abbrev     = (o["abbrev"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
-                position   = (o["position"] as? JsonPrimitive)?.contentOrNull,
-                department = (o["department"] as? JsonPrimitive)?.contentOrNull,
-                isActive   = (o["isActive"] as? JsonPrimitive)?.booleanOrNull ?: true,
+                id              = (o["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
+                firstName       = (o["firstName"] as? JsonPrimitive)?.contentOrNull ?: "",
+                lastName        = (o["lastName"] as? JsonPrimitive)?.contentOrNull ?: "",
+                abbrev          = (o["abbrev"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
+                position        = (o["position"] as? JsonPrimitive)?.contentOrNull,
+                department      = (o["department"] as? JsonPrimitive)?.contentOrNull,
+                isActive        = (o["isActive"] as? JsonPrimitive)?.booleanOrNull ?: true,
+                wilmaProfileUrl = (o["wilmaProfileUrl"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
             )
         }.sortedWith(compareBy({ !it.isActive }, { it.lastName }, { it.firstName }))
     }
@@ -153,6 +155,7 @@ fun TeachersScreen() {
                                 if (form.abbrev != null) put("abbrev", form.abbrev) else put("abbrev", "")
                                 if (form.position != null) put("position", form.position)
                                 if (form.department != null) put("department", form.department)
+                                if (form.wilmaProfileUrl != null) put("wilmaProfileUrl", form.wilmaProfileUrl) else put("wilmaProfileUrl", "")
                                 put("isActive", form.isActive)
                             }.toString()
                             if (editTarget != null) {
@@ -252,17 +255,19 @@ private data class StaffForm(
     val position: String?,
     val department: String?,
     val isActive: Boolean,
+    val wilmaProfileUrl: String?,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StaffDialog(initial: StaffMember?, onDismiss: () -> Unit, onSave: (StaffForm) -> Unit) {
-    var firstName  by remember { mutableStateOf(initial?.firstName ?: "") }
-    var lastName   by remember { mutableStateOf(initial?.lastName ?: "") }
-    var abbrev     by remember { mutableStateOf(initial?.abbrev ?: "") }
-    var position   by remember { mutableStateOf(initial?.position ?: "") }
-    var department by remember { mutableStateOf(initial?.department ?: "") }
-    var isActive   by remember { mutableStateOf(initial?.isActive ?: true) }
+    var firstName       by remember { mutableStateOf(initial?.firstName ?: "") }
+    var lastName        by remember { mutableStateOf(initial?.lastName ?: "") }
+    var abbrev          by remember { mutableStateOf(initial?.abbrev ?: "") }
+    var wilmaProfileUrl by remember { mutableStateOf(initial?.wilmaProfileUrl ?: "") }
+    var position        by remember { mutableStateOf(initial?.position ?: "") }
+    var department      by remember { mutableStateOf(initial?.department ?: "") }
+    var isActive        by remember { mutableStateOf(initial?.isActive ?: true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -290,9 +295,19 @@ private fun StaffDialog(initial: StaffMember?, onDismiss: () -> Unit, onSave: (S
                 OutlinedTextField(
                     value = abbrev,
                     onValueChange = { if (it.length <= 10) abbrev = it },
-                    label = { Text("Nimenlyhennys (Wilma code)") },
+                    label = { Text("Wilma abbreviation") },
                     placeholder = { Text("JLä") },
-                    supportingText = { Text("e.g. JLä — shown as (JLä) in Wilma summary") },
+                    supportingText = { Text("Shown as (JLä) in Wilma schedule summaries") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                )
+                OutlinedTextField(
+                    value = wilmaProfileUrl,
+                    onValueChange = { wilmaProfileUrl = it },
+                    label = { Text("Wilma profile URL") },
+                    placeholder = { Text("https://ksyk.inschool.fi/profiles/...") },
+                    supportingText = { Text("Link opens from schedule card teacher name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -330,12 +345,13 @@ private fun StaffDialog(initial: StaffMember?, onDismiss: () -> Unit, onSave: (S
                 onClick = {
                     if (firstName.isBlank() || lastName.isBlank()) return@Button
                     onSave(StaffForm(
-                        firstName  = firstName.trim(),
-                        lastName   = lastName.trim(),
-                        abbrev     = abbrev.trim().takeIf { it.isNotBlank() },
-                        position   = position.trim().takeIf { it.isNotBlank() },
-                        department = department.trim().takeIf { it.isNotBlank() },
-                        isActive   = isActive,
+                        firstName       = firstName.trim(),
+                        lastName        = lastName.trim(),
+                        abbrev          = abbrev.trim().takeIf { it.isNotBlank() },
+                        position        = position.trim().takeIf { it.isNotBlank() },
+                        department      = department.trim().takeIf { it.isNotBlank() },
+                        isActive        = isActive,
+                        wilmaProfileUrl = wilmaProfileUrl.trim().takeIf { it.isNotBlank() },
                     ))
                 },
             ) { Text(if (initial != null) "Update" else "Add") }

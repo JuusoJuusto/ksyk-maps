@@ -15,6 +15,27 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 07-10-2026 — v1.0.10 + Android 1.0.3 — Courses tab, Wilma profile URLs, label rename
+
+**Asked.**
+- Change "Nimenlyhennys (Wilma code)" label to English ("Wilma abbreviation").
+- Remove subjects from the Staff tab and make it a separate page called "Courses" (because FY1, FY2, FY3 are individual courses of the same subject).
+- Add "open teacher profile in Wilma" link — an admin-configurable URL per teacher, clickable from the schedule card.
+- Push to main.
+
+**Decided.**
+- DB migration `0006_staff_wilma_url.sql`: add `wilma_profile_url varchar` column to staff.
+- API: `wilmaProfileUrl` added to staff POST/PATCH handlers and to `/api/teachers` response.
+- Web: `AdminDashboard.tsx` — new `courses` tab slug + nav item; subjects panel removed from `staff` tab; full Courses CRUD moved to own tab with updated placeholder `FY1` and description; `Staff.wilmaProfileUrl` interface + form field; label renamed. `WilmaScheduleCard.tsx` — `TeacherMap` now `Map<string, {name,url?}>`; teacher display becomes `<a>` when URL present, plain text otherwise.
+- Android admin: `TeachersScreen.kt` — label renamed, `wilmaProfileUrl` field added to form + JSON save; `SubjectsScreen.kt` — fully rewritten to "Courses" display names, correct API paths kept.
+- Android main: `LookupStore.kt` — stores `wilmaProfileUrl` per teacher, exposes `resolveTeacherUrl(abbrev)`; `TimetableScreen.kt` — `teacherUrlResolver` wired up, teacher text uses `primary` colour when URL set, `OpenInNew` icon button fires `Intent.ACTION_VIEW`.
+- Both Gradle builds clean. Web `tsc` clean. APP_VERSION `1.0.9 → 1.0.10`. Android `1.0.2 → 1.0.3` (versionCode 104 → 105).
+
+**Shipped.**
+- Files: `migrations/0006_staff_wilma_url.sql`, `shared/schema.ts`, `api/index.ts`, `client/src/components/AdminDashboard.tsx`, `client/src/components/WilmaScheduleCard.tsx`, `client/src/lib/changelog.ts`, `android/admin/.../ui/subjects/SubjectsScreen.kt`, `android/admin/.../ui/teachers/TeachersScreen.kt`, `android/admin/.../MainActivity.kt`, `android/app/.../data/LookupStore.kt`, `android/app/.../ui/TimetableScreen.kt`, `android/app/build.gradle.kts`.
+
+---
+
 ## 07-10-2026 — Android 1.0.2 — Teachers + Subjects pages in admin app + lyhenne system in timetable
 
 **Asked.**

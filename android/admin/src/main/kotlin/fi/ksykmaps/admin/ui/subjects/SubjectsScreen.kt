@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
-private data class Subject(
+private data class Course(
     val id: String,
     val code: String,
     val name: String,
@@ -29,19 +29,19 @@ private data class Subject(
 @Composable
 fun SubjectsScreen() {
     val scope = rememberCoroutineScope()
-    var subjects by remember { mutableStateOf<List<Subject>>(emptyList()) }
+    var courses by remember { mutableStateOf<List<Course>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showAdd by remember { mutableStateOf(false) }
-    var editTarget by remember { mutableStateOf<Subject?>(null) }
-    var deleteTarget by remember { mutableStateOf<Subject?>(null) }
+    var editTarget by remember { mutableStateOf<Course?>(null) }
+    var deleteTarget by remember { mutableStateOf<Course?>(null) }
 
     suspend fun load() = withContext(Dispatchers.IO) {
         val arr = AdminApi.get("/subjects") as? JsonArray ?: return@withContext
-        subjects = arr.mapNotNull { el ->
+        courses = arr.mapNotNull { el ->
             val o = el as? JsonObject ?: return@mapNotNull null
-            Subject(
+            Course(
                 id     = (o["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
                 code   = (o["code"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
                 name   = (o["name"] as? JsonPrimitive)?.contentOrNull ?: "",
@@ -58,7 +58,7 @@ fun SubjectsScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Subjects", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Courses", fontWeight = FontWeight.SemiBold) },
                 actions = {
                     IconButton(onClick = {
                         refreshing = true
@@ -68,14 +68,14 @@ fun SubjectsScreen() {
                         }
                     }) { Icon(Icons.Outlined.Refresh, "Refresh") }
                     IconButton(onClick = { editTarget = null; showAdd = true }) {
-                        Icon(Icons.Outlined.Add, "Add subject")
+                        Icon(Icons.Outlined.Add, "Add course")
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { editTarget = null; showAdd = true }) {
-                Icon(Icons.Outlined.Add, "Add subject")
+                Icon(Icons.Outlined.Add, "Add course")
             }
         },
     ) { pad ->
@@ -100,7 +100,7 @@ fun SubjectsScreen() {
             ) {
                 item {
                     Text(
-                        "${subjects.size} subject codes · used to resolve Wilma schedule summaries",
+                        "${courses.size} course codes · used to resolve Wilma schedule summaries",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp),
@@ -113,17 +113,17 @@ fun SubjectsScreen() {
                     }
                 }
 
-                items(subjects, key = { it.id }) { subject ->
-                    SubjectRow(
-                        subject = subject,
-                        onEdit = { editTarget = subject; showAdd = true },
-                        onDelete = { deleteTarget = subject },
+                items(courses, key = { it.id }) { course ->
+                    CourseRow(
+                        course = course,
+                        onEdit = { editTarget = course; showAdd = true },
+                        onDelete = { deleteTarget = course },
                     )
                 }
 
-                if (subjects.isEmpty() && error == null) item {
+                if (courses.isEmpty() && error == null) item {
                     Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
-                        Text("No subjects yet. Tap + to add.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("No courses yet. Tap + to add.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -131,7 +131,7 @@ fun SubjectsScreen() {
     }
 
     if (showAdd) {
-        SubjectDialog(
+        CourseDialog(
             initial = editTarget,
             onDismiss = { showAdd = false; editTarget = null },
             onSave = { code, name, nameEn ->
@@ -161,7 +161,7 @@ fun SubjectsScreen() {
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
             title = { Text("Delete ${deleteTarget!!.code}?") },
-            text = { Text("Subject code \"${deleteTarget!!.code}\" and its name mapping will be removed.") },
+            text = { Text("Course code \"${deleteTarget!!.code}\" and its name mapping will be removed.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -183,7 +183,7 @@ fun SubjectsScreen() {
 }
 
 @Composable
-private fun SubjectRow(subject: Subject, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun CourseRow(course: Course, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(
@@ -193,7 +193,7 @@ private fun SubjectRow(subject: Subject, onEdit: () -> Unit, onDelete: () -> Uni
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        subject.code.take(3).uppercase(),
+                        course.code.take(3).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -203,12 +203,12 @@ private fun SubjectRow(subject: Subject, onEdit: () -> Unit, onDelete: () -> Uni
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(subject.code, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(course.code, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(subject.name, style = MaterialTheme.typography.bodyMedium)
+                    Text(course.name, style = MaterialTheme.typography.bodyMedium)
                 }
-                if (subject.nameEn != null) {
-                    Text(subject.nameEn, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (course.nameEn != null) {
+                    Text(course.nameEn, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
@@ -223,8 +223,8 @@ private fun SubjectRow(subject: Subject, onEdit: () -> Unit, onDelete: () -> Uni
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubjectDialog(
-    initial: Subject?,
+private fun CourseDialog(
+    initial: Course?,
     onDismiss: () -> Unit,
     onSave: (code: String, name: String, nameEn: String?) -> Unit,
 ) {
@@ -234,15 +234,15 @@ private fun SubjectDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial != null) "Edit Subject" else "Add Subject") },
+        title = { Text(if (initial != null) "Edit Course" else "Add Course") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = code,
                     onValueChange = { if (it.length <= 20) code = it },
-                    label = { Text("Subject code *") },
-                    placeholder = { Text("FY") },
-                    supportingText = { Text("Wilma prefix, e.g. FY matches FY1.F, FY2.A …") },
+                    label = { Text("Course code *") },
+                    placeholder = { Text("FY1") },
+                    supportingText = { Text("Wilma code, e.g. FY1 matches FY1.F, FY1.A …") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -251,7 +251,7 @@ private fun SubjectDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Finnish name *") },
-                    placeholder = { Text("Fysiikka") },
+                    placeholder = { Text("Fysiikka 1") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -260,7 +260,7 @@ private fun SubjectDialog(
                     value = nameEn,
                     onValueChange = { nameEn = it },
                     label = { Text("English name (optional)") },
-                    placeholder = { Text("Physics") },
+                    placeholder = { Text("Physics 1") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,

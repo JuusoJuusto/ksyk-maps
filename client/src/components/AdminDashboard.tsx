@@ -96,10 +96,11 @@ interface Staff {
   position?: string;
   department?: string;
   abbrev?: string;
+  wilmaProfileUrl?: string;
   isActive: boolean;
 }
 
-interface Subject {
+interface Course {
   id: string;
   code: string;
   name: string;
@@ -129,7 +130,7 @@ const ADMIN_BASE = "/admin";
 // concept).
 const TAB_SLUGS = [
   "overview","security","users","campus-map",
-  "tickets","insights","staff","announcements","notifications","beacons","2fa","settings",
+  "tickets","insights","staff","courses","announcements","notifications","beacons","2fa","settings",
 ] as const;
 type TabSlug = typeof TAB_SLUGS[number];
 
@@ -951,6 +952,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     email: "",
     phone: "",
     abbrev: "",
+    wilmaProfileUrl: "",
     position: "",
     positionEn: "",
     positionFi: "",
@@ -963,10 +965,10 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     isActive: true
   });
 
-  // Subjects management state
-  const [newSubject, setNewSubject] = useState({ code: "", name: "", nameEn: "" });
-  const [showSubjectForm, setShowSubjectForm] = useState(false);
-  const [confirmDeleteSubjectId, setConfirmDeleteSubjectId] = useState<string | null>(null);
+  // Courses management state
+  const [newCourse, setNewCourse] = useState({ code: "", name: "", nameEn: "" });
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [confirmDeleteCourseId, setConfirmDeleteCourseId] = useState<string | null>(null);
   
   // Get current user from localStorage
   const getCurrentUser = () => {
@@ -1110,6 +1112,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
         email: "",
         phone: "",
         abbrev: "",
+        wilmaProfileUrl: "",
         position: "",
         positionEn: "",
         positionFi: "",
@@ -1155,49 +1158,49 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     },
   });
 
-  // Subjects query + mutations
-  const { data: subjects = [] } = useQuery<Subject[]>({
-    queryKey: ["subjects"],
+  // Courses query + mutations (uses /api/subjects endpoint internally)
+  const { data: courses = [] } = useQuery<Course[]>({
+    queryKey: ["courses"],
     queryFn: async () => {
       const r = await fetch("/api/subjects");
-      if (!r.ok) throw new Error("Failed to fetch subjects");
+      if (!r.ok) throw new Error("Failed to fetch courses");
       return r.json();
     },
   });
 
-  const createSubjectMutation = useMutation({
-    mutationFn: async (subject: { code: string; name: string; nameEn?: string }) => {
+  const createCourseMutation = useMutation({
+    mutationFn: async (course: { code: string; name: string; nameEn?: string }) => {
       const r = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         credentials: "include",
-        body: JSON.stringify(subject),
+        body: JSON.stringify(course),
       });
-      if (!r.ok) throw new Error("Failed to save subject");
+      if (!r.ok) throw new Error("Failed to save course");
       return r.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-      setNewSubject({ code: "", name: "", nameEn: "" });
-      setShowSubjectForm(false);
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      setNewCourse({ code: "", name: "", nameEn: "" });
+      setShowCourseForm(false);
     },
     onError: (e: any) => {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 
-  const deleteSubjectMutation = useMutation({
+  const deleteCourseMutation = useMutation({
     mutationFn: async (id: string) => {
       const r = await fetch(`/api/subjects/${id}`, {
         method: "DELETE",
         headers: getAdminHeaders(),
         credentials: "include",
       });
-      if (!r.ok) throw new Error("Failed to delete subject");
+      if (!r.ok) throw new Error("Failed to delete course");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-      setConfirmDeleteSubjectId(null);
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      setConfirmDeleteCourseId(null);
     },
   });
 
@@ -1244,6 +1247,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     { value: "tickets",        label: "Tickets",          Icon: Ticket },
     { value: "insights",       label: "Analytics & Logs", Icon: TrendingUp },
     { value: "staff",          label: "Staff",            Icon: IdCard },
+    { value: "courses",        label: "Courses",          Icon: Layers },
     { value: "announcements",  label: "Announcements",    Icon: Megaphone },
     { value: "notifications",  label: "Notifications",    Icon: Bell },
     ...(isOwner ? [{ value: "security", label: "Security",  Icon: Shield }]   : []),
@@ -1255,7 +1259,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
 
   const NAV_GROUPS: { label: string; values: string[] }[] = [
     { label: "Overview",  values: ["overview"] },
-    { label: "Content",   values: ["announcements", "notifications", "staff", "tickets"] },
+    { label: "Content",   values: ["announcements", "notifications", "staff", "courses", "tickets"] },
     { label: "Map",       values: ["campus-map", "__builder"] },
     { label: "Insights",  values: ["insights"] },
     ...(isOwner ? [{ label: "System", values: ["security", "users", "beacons", "2fa", "settings"] }] : []),
@@ -2266,7 +2270,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs mb-1 block">Nimenlyhennys (Wilma code)</Label>
+                    <Label className="text-xs mb-1 block">Wilma abbreviation</Label>
                     <Input
                       value={editingStaff ? editingStaff.abbrev || "" : newStaff.abbrev}
                       onChange={(e) => {
@@ -2279,7 +2283,23 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                       placeholder="JLä"
                       maxLength={10}
                     />
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Abbreviation shown in (…) in Wilma schedule</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Shown as (JLä) in Wilma schedule summaries</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Wilma profile URL</Label>
+                    <Input
+                      type="url"
+                      value={editingStaff ? editingStaff.wilmaProfileUrl || "" : newStaff.wilmaProfileUrl}
+                      onChange={(e) => {
+                        if (editingStaff) {
+                          setEditingStaff({ ...editingStaff, wilmaProfileUrl: e.target.value });
+                        } else {
+                          setNewStaff({ ...newStaff, wilmaProfileUrl: e.target.value });
+                        }
+                      }}
+                      placeholder="https://ksyk.inschool.fi/profiles/..."
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Link opens from schedule card teacher name</p>
                   </div>
                 </div>
 
@@ -2434,7 +2454,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                   onClick={() => {
                     setShowStaffForm(true);
                     setEditingStaff(null);
-                    setNewStaff({ firstName: "", lastName: "", email: "", phone: "", abbrev: "", position: "", positionEn: "", positionFi: "", department: "", departmentEn: "", departmentFi: "", bio: "", bioEn: "", bioFi: "", isActive: true });
+                    setNewStaff({ firstName: "", lastName: "", email: "", phone: "", abbrev: "", wilmaProfileUrl: "", position: "", positionEn: "", positionFi: "", department: "", departmentEn: "", departmentFi: "", bio: "", bioEn: "", bioFi: "", isActive: true });
                   }}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />
@@ -2512,71 +2532,74 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
               )}
             </CardContent>
           </Card>
-          {/* Subjects panel — map Wilma subject codes to full names */}
+        </TabsContent>
+
+        <TabsContent value="courses" className="mt-0 space-y-6">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold">Subjects</CardTitle>
+                  <CardTitle className="text-sm font-semibold">Courses</CardTitle>
                   <CardDescription className="text-xs mt-0.5">
-                    Maps Wilma subject codes (e.g. <span className="font-mono">FY1.F</span>) to Finnish/English names shown in the schedule card.
+                    Map Wilma course codes (e.g. <span className="font-mono">FY1</span>) to Finnish/English names shown in the schedule card. Prefix match: <span className="font-mono">FY1</span> matches <span className="font-mono">FY1.F</span>, <span className="font-mono">FY1.A</span>, etc.
                   </CardDescription>
                 </div>
                 <Button
                   size="sm"
                   className="h-8 bg-blue-600 hover:bg-blue-700 text-xs shrink-0"
-                  onClick={() => setShowSubjectForm((v) => !v)}
+                  onClick={() => setShowCourseForm((v) => !v)}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />
-                  Add Subject
+                  Add Course
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {showSubjectForm && (
+              {showCourseForm && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40 p-4 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <Label className="text-xs mb-1 block">Code *</Label>
+                      <Label className="text-xs mb-1 block">Course code *</Label>
                       <Input
-                        value={newSubject.code}
-                        onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
-                        placeholder="FY1.F"
+                        value={newCourse.code}
+                        onChange={(e) => setNewCourse({ ...newCourse, code: e.target.value })}
+                        placeholder="FY1"
                         maxLength={20}
                       />
+                      <p className="text-[10px] text-muted-foreground mt-0.5">e.g. FY1, MA3, ÄI2</p>
                     </div>
                     <div>
                       <Label className="text-xs mb-1 block">Name (FI) *</Label>
                       <Input
-                        value={newSubject.name}
-                        onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                        placeholder="Fysiikka"
+                        value={newCourse.name}
+                        onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
+                        placeholder="Fysiikka 1"
                       />
                     </div>
                     <div>
                       <Label className="text-xs mb-1 block">Name (EN)</Label>
                       <Input
-                        value={newSubject.nameEn}
-                        onChange={(e) => setNewSubject({ ...newSubject, nameEn: e.target.value })}
-                        placeholder="Physics"
+                        value={newCourse.nameEn}
+                        onChange={(e) => setNewCourse({ ...newCourse, nameEn: e.target.value })}
+                        placeholder="Physics 1"
                       />
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm" className="h-8 text-xs"
-                      onClick={() => { setShowSubjectForm(false); setNewSubject({ code: "", name: "", nameEn: "" }); }}>
+                      onClick={() => { setShowCourseForm(false); setNewCourse({ code: "", name: "", nameEn: "" }); }}>
                       Cancel
                     </Button>
                     <Button size="sm" className="h-8 px-4 rounded-xl text-[13px] bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={createSubjectMutation.isPending}
+                      disabled={createCourseMutation.isPending}
                       onClick={() => {
-                        if (!newSubject.code.trim() || !newSubject.name.trim()) {
-                          toast({ title: "Code and Finnish name are required", variant: "destructive" });
+                        if (!newCourse.code.trim() || !newCourse.name.trim()) {
+                          toast({ title: "Course code and Finnish name are required", variant: "destructive" });
                           return;
                         }
-                        createSubjectMutation.mutate({ code: newSubject.code.trim(), name: newSubject.name.trim(), nameEn: newSubject.nameEn.trim() || undefined });
+                        createCourseMutation.mutate({ code: newCourse.code.trim(), name: newCourse.name.trim(), nameEn: newCourse.nameEn.trim() || undefined });
                       }}>
-                      {createSubjectMutation.isPending
+                      {createCourseMutation.isPending
                         ? <><span className="h-3 w-3 mr-1.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />Saving…</>
                         : <><Save className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.75} />Save</>}
                     </Button>
@@ -2584,35 +2607,35 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                 </div>
               )}
 
-              {subjects.length === 0 && !showSubjectForm ? (
+              {courses.length === 0 && !showCourseForm ? (
                 <p className="text-sm text-muted-foreground text-center py-6">
-                  No subjects yet — add one to enrich the Wilma schedule card.
+                  No courses yet — add one to enrich the Wilma schedule card.
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {(subjects as Subject[]).map((sub) => (
-                    <div key={sub.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  {(courses as Course[]).map((course) => (
+                    <div key={course.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="shrink-0 inline-flex items-center rounded-[3px] border border-[#d5dae0] dark:border-[#2a3040] px-1.5 py-0 text-[11px] font-mono font-bold text-[#003d82] dark:text-[#4a90d9]">
-                          {sub.code}
+                          {course.code}
                         </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{sub.name}</p>
-                          {sub.nameEn && <p className="text-xs text-muted-foreground truncate">{sub.nameEn}</p>}
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{course.name}</p>
+                          {course.nameEn && <p className="text-xs text-muted-foreground truncate">{course.nameEn}</p>}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-1">
-                        {confirmDeleteSubjectId === sub.id ? (
+                        {confirmDeleteCourseId === course.id ? (
                           <>
                             <span className="text-xs text-red-600 dark:text-red-400 font-medium">Delete?</span>
                             <Button size="sm" className="h-7 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
-                              onClick={() => deleteSubjectMutation.mutate(sub.id)}>Yes</Button>
+                              onClick={() => deleteCourseMutation.mutate(course.id)}>Yes</Button>
                             <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
-                              onClick={() => setConfirmDeleteSubjectId(null)}>No</Button>
+                              onClick={() => setConfirmDeleteCourseId(null)}>No</Button>
                           </>
                         ) : (
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            onClick={() => setConfirmDeleteSubjectId(sub.id)}>
+                            onClick={() => setConfirmDeleteCourseId(course.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}

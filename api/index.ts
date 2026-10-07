@@ -1785,6 +1785,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           departmentEn: body.departmentEn || null,
           departmentFi: body.departmentFi || null,
           abbrev: body.abbrev || null,
+          wilmaProfileUrl: body.wilmaProfileUrl || null,
           isActive: typeof body.isActive === 'boolean' ? body.isActive : true,
         } as any);
         return res.status(201).json(member);
@@ -1801,7 +1802,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const body = req.body || {};
         const safe: Record<string, any> = {};
         const ALLOWED = ['firstName','lastName','email','phone','position','positionEn','positionFi',
-          'department','departmentEn','departmentFi','abbrev','isActive','bio','bioEn','bioFi'];
+          'department','departmentEn','departmentFi','abbrev','wilmaProfileUrl','isActive','bio','bioEn','bioFi'];
         for (const k of ALLOWED) {
           if (k in body) safe[k] = body[k];
         }
@@ -1836,6 +1837,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             firstName: s.firstName,
             lastName: s.lastName,
             abbrev: s.abbrev || null,
+            wilmaProfileUrl: s.wilmaProfileUrl || null,
           }));
         return res.status(200).json(teachers);
       } catch {

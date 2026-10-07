@@ -165,6 +165,8 @@ export const staff = pgTable("staff", {
   bioFi: text("bio_fi"),
   /** Teacher abbreviation used in Wilma schedules, e.g. "JLä". */
   abbrev: varchar("abbrev"),
+  /** Direct link to this teacher's Wilma profile page. */
+  wilmaProfileUrl: varchar("wilma_profile_url"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

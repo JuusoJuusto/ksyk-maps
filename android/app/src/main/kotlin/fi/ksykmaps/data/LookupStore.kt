@@ -7,12 +7,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+private data class TeacherInfo(val name: String, val wilmaProfileUrl: String?)
+
 /** In-memory cache of teacher abbreviation → full name and subject code → display name.
  *  Loaded once per process via [ensureLoaded]; safe to call concurrently. */
 object LookupStore {
-    // abbrev → "First Last"
-    private var teacherMap: Map<String, String> = emptyMap()
-    // prefix-code → Finnish name (e.g. "FY" → "Fysiikka")
+    // abbrev → TeacherInfo(name, wilmaProfileUrl?)
+    private var teacherMap: Map<String, TeacherInfo> = emptyMap()
+    // prefix-code → Finnish name (e.g. "FY1" → "Fysiikka 1")
     private var subjectMap: Map<String, String> = emptyMap()
 
     private var loaded = false
@@ -29,7 +31,8 @@ object LookupStore {
                             ?: return@mapNotNull null
                         val first = (o["firstName"] as? JsonPrimitive)?.contentOrNull ?: ""
                         val last  = (o["lastName"]  as? JsonPrimitive)?.contentOrNull ?: ""
-                        abbrev to "$first $last".trim()
+                        val url   = (o["wilmaProfileUrl"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                        abbrev to TeacherInfo("$first $last".trim(), url)
                     }?.toMap() ?: emptyMap()
             } catch (_: Throwable) { /* keep empty on network failure */ }
 
@@ -52,7 +55,13 @@ object LookupStore {
     /** Resolve a Wilma abbreviation (e.g. "JLä") to a teacher's full name. */
     fun resolveTeacher(abbrev: String): String? {
         if (abbrev.isBlank()) return null
-        return teacherMap[abbrev]
+        return teacherMap[abbrev]?.name
+    }
+
+    /** Resolve a Wilma abbreviation to the teacher's Wilma profile URL if configured. */
+    fun resolveTeacherUrl(abbrev: String): String? {
+        if (abbrev.isBlank()) return null
+        return teacherMap[abbrev]?.wilmaProfileUrl
     }
 
     /** Resolve a Wilma subject code (e.g. "FY1.F") to its display name.
