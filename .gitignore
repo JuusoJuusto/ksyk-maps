@@ -34,6 +34,8 @@ serviceAccountKey.json
 !WILMA-KSYKMAPS-*.md
 !KSYKMAPS-*.md
 !SYSTEM-OVERHAUL-*.md
+!CHANGELOG.md
+!BRAIN.md
 
 # IDE
 .vscode/*
