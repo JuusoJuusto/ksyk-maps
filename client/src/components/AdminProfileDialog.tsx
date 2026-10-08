@@ -1,13 +1,5 @@
-/**
- * KSYK Maps — admin profile dialog (v4.7.49).
- *
- * Opens when the admin taps their user chip in the sidebar / mobile
- * top bar.  Provides name + email + password change in a single
- * Wilma-style document dialog.  All fields are optional — server
- * merges only the ones the user typed into.
- */
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -95,11 +87,6 @@ export default function AdminProfileDialog({
         body: JSON.stringify(changes),
       });
 
-      // Server endpoint isn't wired everywhere yet (Vercel serverless
-      // doesn't ship this route as of v4.7.49).  Fall back to a local
-      // update for display-only fields so the change still sticks in
-      // the current session — real persistence lands once the API
-      // endpoint is deployed.
       if (res.status === 404 || res.status === 405) {
         if (changes.currentPassword || changes.newPassword) {
           throw new Error("Password change not available yet.");
@@ -132,214 +119,232 @@ export default function AdminProfileDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          // v4.7.57 — leave the shadcn default centered-positioning
-          // alone (fixed left-50% top-50% translate -50/-50 max-w-lg).
-          // Override its layout but NOT its position on desktop; only
-          // flip to full-screen on mobile (<640px).
-          "p-0 gap-0 overflow-hidden flex flex-col",
-          "bg-white dark:bg-gray-950",
-          "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
-          "border border-[#d5dae0] dark:border-[#2a3040]",
-          "border-t-[3px] border-t-[#003d82]",
-          "[&>button:first-of-type]:hidden",
-          // Desktop (default + sm+): comfortable size
-          "w-[min(94vw,40rem)] max-w-[40rem] max-h-[88dvh]",
-          "rounded-[8px]",
-          // Mobile (<640px): full-screen takeover.  max-sm: breakpoint
-          // reaches below sm.
-          "max-sm:fixed max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0",
-          "max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0",
-          "max-sm:w-screen max-sm:h-[100dvh] max-sm:max-w-none max-sm:max-h-none",
-          "max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0",
-        )}
-      >
-        {/* Header */}
-        <div
-          className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4 sm:py-5 flex items-start justify-between gap-3"
-          style={{ paddingTop: "max(1rem, env(safe-area-inset-top, 1rem))" }}
-        >
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
-              {roleLabel}
-            </p>
-            <DialogTitle className="text-[20px] sm:text-[24px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-0.5">
-              Profile settings
-            </DialogTitle>
-            <DialogDescription className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
-              Update your display name, email, or password.
-            </DialogDescription>
-          </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="shrink-0 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" strokeWidth={2.25} />
-          </button>
-        </div>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        {/* Backdrop */}
+        <DialogPrimitive.Overlay
+          className={cn(
+            "fixed inset-0 z-50 bg-black/60",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=open]:duration-[200ms] data-[state=closed]:duration-[160ms]",
+          )}
+        />
 
-        {/* Body — min-h-0 is reliable scroll pattern, h-0 was the bug */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
-          {/* Identity row */}
-          <div className="flex items-center gap-3 pb-5 mb-5 border-b border-[#d5dae0] dark:border-[#2a3040]">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[18px] font-bold">
-              {initial}
-            </span>
+        {/* Dialog / Sheet */}
+        <DialogPrimitive.Content
+          aria-describedby={undefined}
+          className={cn(
+            // Base
+            "fixed z-50 flex flex-col overflow-hidden outline-none",
+            "bg-white dark:bg-gray-950",
+            "border border-[#d5dae0] dark:border-[#2a3040]",
+            "shadow-[0_24px_60px_-12px_rgba(15,23,42,0.4)]",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=open]:duration-[220ms] data-[state=open]:ease-out",
+            "data-[state=closed]:duration-[160ms] data-[state=closed]:ease-in",
+            // Desktop — centered modal
+            "sm:left-[50%] sm:top-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:w-[min(94vw,40rem)] sm:max-h-[88dvh]",
+            "sm:rounded-[8px] sm:border-t-[3px] sm:border-t-[#003d82]",
+            "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+            // Mobile — bottom sheet, slides up from bottom
+            "max-sm:bottom-0 max-sm:left-0 max-sm:right-0",
+            "max-sm:w-full max-sm:max-h-[92dvh]",
+            "max-sm:rounded-t-[20px] max-sm:border-x-0 max-sm:border-b-0 max-sm:border-t-[3px] max-sm:border-t-[#003d82]",
+            "max-sm:data-[state=open]:slide-in-from-bottom-[15%]",
+            "max-sm:data-[state=closed]:slide-out-to-bottom-[30%]",
+          )}
+        >
+          {/* Mobile drag handle */}
+          <div className="sm:hidden shrink-0 flex justify-center pt-3 pb-0" aria-hidden>
+            <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+          </div>
+
+          {/* Header */}
+          <div
+            className="shrink-0 border-b border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-4 flex items-start justify-between gap-3"
+          >
             <div className="min-w-0">
-              <p className="text-[14px] font-bold text-gray-900 dark:text-white truncate">
-                {currentUser?.name || currentUser?.email || "Admin"}
+              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-[#003d82] dark:text-[#4a90d9]">
+                {roleLabel}
               </p>
-              <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate">
-                {currentUser?.email ?? "—"}
+              <DialogPrimitive.Title className="text-[20px] sm:text-[24px] font-bold tracking-tight leading-tight text-gray-900 dark:text-white mt-0.5">
+                Profile settings
+              </DialogPrimitive.Title>
+              <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+                Update your display name, email, or password.
               </p>
             </div>
+            <DialogPrimitive.Close
+              className="shrink-0 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" strokeWidth={2.25} />
+            </DialogPrimitive.Close>
           </div>
 
-          <form onSubmit={handleSave} className="space-y-5">
-            {error && (
-              <div className="rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" strokeWidth={2.25} />
-                <p className="text-[13px] font-semibold text-red-800 dark:text-red-200">{error}</p>
+          {/* Scrollable body — min-h-0 + flex-1 is the reliable flex-scroll pattern */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
+            {/* Identity row */}
+            <div className="flex items-center gap-3 pb-5 mb-5 border-b border-[#d5dae0] dark:border-[#2a3040]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] bg-[#003d82] text-white text-[18px] font-bold select-none">
+                {initial}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-gray-900 dark:text-white truncate">
+                  {currentUser?.name || currentUser?.email || "Admin"}
+                </p>
+                <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate">
+                  {currentUser?.email ?? "—"}
+                </p>
               </div>
-            )}
+            </div>
 
-            {/* Profile section */}
-            <section>
-              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
-                Profile
-              </p>
-              <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
-                <div className="p-3 space-y-1.5">
-                  <Label htmlFor="profile-name" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <UserIcon className="h-3 w-3" strokeWidth={2.25} />
-                    Display name
-                  </Label>
-                  <Input
-                    id="profile-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    className="h-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
-                  />
+            <form onSubmit={handleSave} className="space-y-5">
+              {error && (
+                <div className="rounded-[6px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-3 flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" strokeWidth={2.25} />
+                  <p className="text-[13px] font-semibold text-red-800 dark:text-red-200">{error}</p>
                 </div>
-                <div className="p-3 space-y-1.5">
-                  <Label htmlFor="profile-email" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <Mail className="h-3 w-3" strokeWidth={2.25} />
-                    Email
-                  </Label>
-                  <Input
-                    id="profile-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                    placeholder="you@ksyk.fi"
-                    autoComplete="email"
-                    className="h-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
-                  />
-                </div>
-              </div>
-            </section>
+              )}
 
-            {/* Password section */}
-            <section>
-              <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
-                Password
-              </p>
-              <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
-                <div className="p-3 space-y-1.5">
-                  <Label htmlFor="profile-current" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <Lock className="h-3 w-3" strokeWidth={2.25} />
-                    Current password
-                  </Label>
-                  <div className="relative">
+              {/* Profile section */}
+              <section>
+                <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
+                  Profile
+                </p>
+                <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
+                  <div className="p-3 space-y-1.5">
+                    <Label htmlFor="profile-name" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <UserIcon className="h-3 w-3" strokeWidth={2.25} />
+                      Display name
+                    </Label>
                     <Input
-                      id="profile-current"
-                      type={showCurrent ? "text" : "password"}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Only needed to change password"
-                      autoComplete="current-password"
-                      className="h-10 pr-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                      id="profile-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name"
+                      // text-base (16px) prevents iOS auto-zoom on focus
+                      className="h-11 rounded-[6px] text-base sm:text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrent(!showCurrent)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                      tabIndex={-1}
-                      aria-label={showCurrent ? "Hide" : "Show"}
-                    >
-                      {showCurrent ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    <Label htmlFor="profile-email" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <Mail className="h-3 w-3" strokeWidth={2.25} />
+                      Email
+                    </Label>
+                    <Input
+                      id="profile-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                      placeholder="you@ksyk.fi"
+                      autoComplete="email"
+                      className="h-11 rounded-[6px] text-base sm:text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                    />
                   </div>
                 </div>
-                <div className="p-3 space-y-1.5">
-                  <Label htmlFor="profile-new" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <Lock className="h-3 w-3" strokeWidth={2.25} />
-                    New password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="profile-new"
-                      type={showNew ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                      autoComplete="new-password"
-                      className="h-10 pr-10 rounded-[6px] text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(!showNew)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                      tabIndex={-1}
-                      aria-label={showNew ? "Hide" : "Show"}
-                    >
-                      {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
+              </section>
+
+              {/* Password section */}
+              <section>
+                <p className="text-[10px] font-bold tracking-[0.08em] uppercase text-gray-500 dark:text-gray-400 mb-2">
+                  Password
+                </p>
+                <div className="border border-[#d5dae0] dark:border-[#2a3040] rounded-[6px] divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
+                  <div className="p-3 space-y-1.5">
+                    <Label htmlFor="profile-current" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <Lock className="h-3 w-3" strokeWidth={2.25} />
+                      Current password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="profile-current"
+                        type={showCurrent ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Only needed to change password"
+                        autoComplete="current-password"
+                        className="h-11 pr-10 rounded-[6px] text-base sm:text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrent(!showCurrent)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        tabIndex={-1}
+                        aria-label={showCurrent ? "Hide" : "Show"}
+                      >
+                        {showCurrent ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
                   </div>
-                  {newPassword && newPassword.length >= 8 && (
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
-                      <CheckCircle2 className="h-3 w-3" strokeWidth={2.25} />
-                      Meets minimum length
-                    </p>
-                  )}
+                  <div className="p-3 space-y-1.5">
+                    <Label htmlFor="profile-new" className="text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <Lock className="h-3 w-3" strokeWidth={2.25} />
+                      New password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="profile-new"
+                        type={showNew ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        autoComplete="new-password"
+                        className="h-11 pr-10 rounded-[6px] text-base sm:text-[14px] border-[#d5dae0] dark:border-[#2a3040]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNew(!showNew)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-[6px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        tabIndex={-1}
+                        aria-label={showNew ? "Hide" : "Show"}
+                      >
+                        {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    {newPassword && newPassword.length >= 8 && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
+                        <CheckCircle2 className="h-3 w-3" strokeWidth={2.25} />
+                        Meets minimum length
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-          </form>
-        </div>
+              {/* Spacer so last field is never hidden behind sticky footer on small phones */}
+              <div className="h-2" />
+            </form>
+          </div>
 
-        {/* v1.0.1 — pulled actions out of the scrollable body into a
-         *  sticky footer so Save/Sign-out are always visible on short
-         *  viewports (e.g. mobile landscape or 150% zoom). */}
-        <div
-          className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-3 flex items-center gap-2 bg-white dark:bg-gray-950"
-          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
-        >
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 h-10 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
+          {/* Sticky footer — always visible above keyboard */}
+          <div
+            className="shrink-0 border-t border-[#d5dae0] dark:border-[#2a3040] px-5 sm:px-6 py-3 flex items-center gap-2 bg-white dark:bg-gray-950"
+            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
           >
-            <Save className="h-4 w-4" strokeWidth={2} />
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="h-10 px-3.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-[13px] font-bold inline-flex items-center gap-2 transition-colors"
-          >
-            <LogOut className="h-4 w-4" strokeWidth={2} />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 h-11 rounded-[6px] bg-[#003d82] hover:bg-[#002d5f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-bold inline-flex items-center justify-center gap-2 transition-colors"
+            >
+              <Save className="h-4 w-4" strokeWidth={2} />
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="h-11 px-3.5 rounded-[6px] border border-[#d5dae0] dark:border-[#2a3040] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-[13px] font-bold inline-flex items-center gap-2 transition-colors"
+            >
+              <LogOut className="h-4 w-4" strokeWidth={2} />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

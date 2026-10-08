@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.2";
+export const APP_VERSION = "1.1.3";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.2";
+export const ANDROID_APP_VERSION = "1.1.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.3",
+    date: "October 2026",
+    title: "Profile dialog redesign + timetable UX",
+    titleFi: "Profiilidialogi uusittu + lukujärjestyksen UX",
+    latest: true,
+    highlights: [
+      "**Profile dialog: bottom sheet on mobile.** The profile dialog now slides up as a bottom sheet on phones instead of covering the full screen — with a drag handle, smooth slide-in animation, and correct scroll on all viewport sizes.",
+      "**Profile inputs: no iOS zoom.** All form inputs are now 16 px on mobile, which prevents the iOS browser from zooming in on focus.",
+      "**Android: cleaner timetable cards.** The delete button is removed from every lesson card — cards now only tap to open the info sheet. Delete (with confirmation dialog) and Edit sit in the info sheet as a side-by-side button row.",
+      "**Android: haptic feedback.** Tapping a lesson card, the navigate shortcut, and the delete confirm now produce haptic feedback.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-3`. No DB changes.",
+    ],
+    highlightsFi: [
+      "**Profiilidialogi: pohjalehti mobiilissa.** Profiili avautuu nyt puhelimessa alhaalta liukuvana arkkina koko näytön sijaan.",
+      "**Profiilikentät: ei iOS-zoomausta.** Lomakekentät ovat nyt 16 px mobiilissa, mikä estää iOS:n automaattisen zoomauksen.",
+      "**Android: siistimmät lukujärjestyskortit.** Poisto-nappi poistettu jokaisesta kortista — tuntitiedot ja poisto ovat nyt tuntitietosheetissä.",
+      "**Android: haptinen palaute.** Tuntikortin, navigoinnin ja poiston vahvistuksen napautuksessa tulee haptinen palaute.",
+    ],
+  },
   {
     version: "1.1.2",
     date: "October 2026",
     title: "Course editing + Wilma sync fix",
     titleFi: "Kurssien muokkaus + Wilma-synkaus korjattu",
-    latest: true,
+    latest: false,
     highlights: [
       "**Admin: Course editing.** All course fields (code, name, English name, color) can now be edited inline in the Courses tab — no delete-and-recreate needed.",
       "**Wilma sync fix.** Pressing 'Synkronoi' no longer wipes teacher abbreviations and subject codes. The connect screen now routes through the same parsing path as the background refresh worker.",

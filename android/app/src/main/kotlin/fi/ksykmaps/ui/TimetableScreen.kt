@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
@@ -401,16 +403,9 @@ fun TimetableScreen(
                         teacherResolver = teacherResolver,
                         teacherUrlResolver = teacherUrlResolver,
                         onTap = { infoEntry = entry },
-                        onDelete = {
-                            runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
-                            val updated = entries.filterNot { it.id == entry.id }
-                            entries = updated
-                            scope.launch { saveEntries(ctx, updated) }
-                        },
                         onNavigate = {
                             if (entry.roomId.isNotBlank()) onNavigateToRoom(entry.roomId)
                         },
-                        onEdit = { editEntry = entry },
                     )
                 }
             } else if (selectedDow in 1..5) {
@@ -487,6 +482,13 @@ fun TimetableScreen(
             onEdit = {
                 infoEntry = null
                 editEntry = entry
+            },
+            onDelete = {
+                runCatching { PostHog.capture("timetable_entry_deleted", properties = mapOf("entry_source" to if (entry.id.startsWith("wilma_")) "wilma" else "manual")) }
+                val updated = entries.filterNot { it.id == entry.id }
+                entries = updated
+                infoEntry = null
+                scope.launch { saveEntries(ctx, updated) }
             },
             onDismiss = { infoEntry = null },
         )
@@ -671,9 +673,7 @@ private fun TimelineRow(
     teacherResolver: (String) -> String? = { null },
     teacherUrlResolver: (String) -> String? = { null },
     onTap: () -> Unit,
-    onDelete: () -> Unit,
     onNavigate: () -> Unit,
-    onEdit: () -> Unit,
 ) {
     val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
         ?: entry.subject
@@ -683,15 +683,15 @@ private fun TimelineRow(
     val sColor = subjectColorResolver(entry.subjectCode)
         ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
         ?: subjectColor(displaySubject)
-    // A class is "done" when today and its end time has passed
     val isDone = isToday && hhmm(entry.endHhmm) <= nowMins
     val contentAlpha = if (isDone) 0.4f else 1f
+    val haptic = LocalHapticFeedback.current
 
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
     ) {
-        // Time column — Apple Calendar style, small and dim on the left
+        // Time column — Apple Calendar style, dim on the left
         Column(
             Modifier.width(56.dp).padding(top = 14.dp),
             horizontalAlignment = Alignment.End,
@@ -710,11 +710,14 @@ private fun TimelineRow(
             )
         }
         Spacer(Modifier.width(14.dp))
-        // Event card
+        // Event card — tap opens info sheet; navigate button shortcut on right
         Card(
             Modifier
                 .weight(1f)
-                .clickable { onTap() },
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onTap()
+                },
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isCurrent) sColor.copy(alpha = 0.12f)
@@ -723,7 +726,8 @@ private fun TimelineRow(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Row(
-                Modifier.padding(14.dp).height(IntrinsicSize.Min),
+                Modifier.padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 8.dp)
+                    .height(IntrinsicSize.Min),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Left color rail
@@ -762,11 +766,8 @@ private fun TimelineRow(
                         }
                         if (displayTeacher.isNotBlank()) {
                             if (entry.roomNumber.isNotBlank()) {
-                                Text(
-                                    " · ",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                                )
+                                Text(" · ", fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha))
                             }
                             Text(
                                 displayTeacher,
@@ -779,7 +780,10 @@ private fun TimelineRow(
                 }
                 if (entry.roomId.isNotBlank()) {
                     IconButton(
-                        onClick = onNavigate,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onNavigate()
+                        },
                         modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
@@ -789,17 +793,6 @@ private fun TimelineRow(
                             tint = MaterialTheme.colorScheme.primary.copy(alpha = contentAlpha),
                         )
                     }
-                }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = if (lang == "fi") "Poista" else "Delete",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                    )
                 }
             }
         }
@@ -817,9 +810,11 @@ private fun ClassInfoSheet(
     teacherUrlResolver: (String) -> String? = { null },
     onNavigate: () -> Unit,
     onEdit: () -> Unit,
+    onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val ctx = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val displaySubject = subjectResolver(entry.subjectCode).takeIf { entry.subjectCode.isNotBlank() }
         ?: entry.subject
     val displayTeacher = teacherResolver(entry.teacherAbbrev).takeIf { entry.teacherAbbrev.isNotBlank() }
@@ -828,6 +823,40 @@ private fun ClassInfoSheet(
     val sColor = subjectColorResolver(entry.subjectCode)
         ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
         ?: subjectColor(displaySubject)
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(if (lang == "fi") "Poista tunti?" else "Delete lesson?") },
+            text = {
+                Text(
+                    if (lang == "fi") "\"$displaySubject\" poistetaan pysyvästi."
+                    else "\"$displaySubject\" will be permanently removed.",
+                    fontSize = 14.sp,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(if (lang == "fi") "Poista" else "Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(if (lang == "fi") "Peruuta" else "Cancel")
+                }
+            },
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -908,7 +937,10 @@ private fun ClassInfoSheet(
                     )
                     if (entry.roomId.isNotBlank()) {
                         FilledTonalButton(
-                            onClick = onNavigate,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onNavigate()
+                            },
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         ) {
@@ -954,25 +986,41 @@ private fun ClassInfoSheet(
                         ) {
                             Icon(Icons.Outlined.OpenInNew, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(
-                                if (lang == "fi") "Wilma" else "Wilma",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Text("Wilma", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
 
-            // Edit button
-            OutlinedButton(
-                onClick = onEdit,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(if (lang == "fi") "Muokkaa tuntia" else "Edit lesson")
+            // Action row — Edit + Delete side by side
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(
+                    onClick = onEdit,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (lang == "fi") "Muokkaa" else "Edit")
+                }
+                OutlinedButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteConfirm = true
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                    ),
+                ) {
+                    Icon(Icons.Outlined.Delete, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (lang == "fi") "Poista" else "Delete")
+                }
             }
         }
     }

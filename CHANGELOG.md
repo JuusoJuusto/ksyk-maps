@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3 — October 2026
+
+- Web: admin profile dialog is now a bottom sheet on mobile (slides up, has drag handle, correct scroll); centered modal unchanged on desktop
+- Web: profile form inputs are 16 px on mobile — prevents iOS auto-zoom on focus
+- Android: delete button removed from inline timetable cards; Delete (with confirmation) + Edit are now in the ClassInfoSheet as a side-by-side button row
+- Android: haptic feedback on lesson card tap, navigate shortcut, and delete confirm
+- Android versionCode 110
+
 ## 1.1.2 — October 2026
 
 - Admin: course editing — all fields (code, name, English name, color) now editable inline in the Courses tab

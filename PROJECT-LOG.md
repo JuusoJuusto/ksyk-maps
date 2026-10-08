@@ -15,6 +15,24 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 08-10-2026 — v1.1.3 — profile dialog bottom sheet + timetable UX improvements
+
+**Asked.**
+- Make the admin profile dialog scrollable on mobile and desktop
+- Improve the dialog on mobile
+- Improve the Android mobile app
+
+**Decided.**
+- Rewrote `AdminProfileDialog` using Radix `DialogPrimitive` directly (bypassing shadcn's `DialogContent` default classes) to get full control over responsive positioning: desktop stays centered modal, mobile becomes a bottom sheet that slides up from the bottom. Added drag handle pill, 16 px inputs (prevents iOS auto-zoom), `env(safe-area-inset-bottom)` footer padding.
+- Android timetable: removed `onDelete` from `TimelineRow` (was cluttering every card with a delete button prone to accidental taps). Delete now lives in `ClassInfoSheet` as an outlined button alongside Edit; confirms via `AlertDialog` before deleting. Added `LocalHapticFeedback` calls on card tap, navigate shortcut, and delete confirm button.
+
+**Shipped.**
+- web: `client/src/components/AdminProfileDialog.tsx`, `client/src/lib/changelog.ts`
+- android: `TimetableScreen.kt`, `build.gradle.kts`
+- docs: `CHANGELOG.md`, `ROADMAP.md`, `PROJECT-LOG.md`
+- Web v1.1.3 · Android versionCode 110 / versionName 1.1.3
+- Rollback: `git reset --hard rollback-before-1-1-3`; no DB changes
+
 ## 08-10-2026 — v1.1.2 — course editing, Wilma sync fix, faster jakso load
 
 **Asked.**
