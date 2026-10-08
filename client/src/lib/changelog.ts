@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.4";
+export const APP_VERSION = "1.1.5";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.4";
+export const ANDROID_APP_VERSION = "1.1.5";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.5",
+    date: "October 2026",
+    title: "Language courses, teacher roster & instant timetable names",
+    titleFi: "Kielikurssit, opettajarekisteri & välittömät tunnisteet aikataulussa",
+    latest: true,
+    highlights: [
+      "**~82 language courses seeded.** All KSYK language courses (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN, vKOR, OPO) are now pre-populated with Finnish names, English names, and auto-assigned colors.",
+      "**~90 teachers seeded.** Full KSYK teacher roster added with abbreviations, first/last names, and subject descriptions in both languages. Used by the timetable to show teacher names instead of abbreviations.",
+      "**Course auto-color handles language codes.** Typing `a1EN`, `aRU`, `a1RA`, etc. in the course admin form now auto-fills the correct language color.",
+      "**Timetable names appear instantly.** Android timetable now loads subject names and colors from the on-disk cache before any network call — names are visible on the very first frame.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-5`. DB: seed uses ON CONFLICT DO NOTHING (safe); partial unique index added on staff.abbrev (safe).",
+    ],
+    highlightsFi: [
+      "**~82 kielikurssia lisätty.** Kaikki KSYK:n kielikurssit (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN, vKOR, OPO) esiladattu suomen- ja englanninkielisillä nimillä ja väreillä.",
+      "**~90 opettajaa lisätty.** Koko KSYK:n opettajakunta lisätty lyhenteillä, nimillä ja aineilla molemmilla kielillä.",
+      "**Kielikurssien automaattivärjäys.** Koodien a1EN, aRU, a1RA jne. syöttäminen täyttää oikean kielen värin automaattisesti.",
+      "**Ainenimet näkyvät heti.** Android-lukujärjestys lataa ainenimet levyvälimuistista ennen verkkopyyntöä — nimet näkyvät jo ensimmäisellä ruudunpäivityksellä.",
+    ],
+  },
   {
     version: "1.1.4",
     date: "October 2026",
     title: "Course catalogue + admin UX cleanup",
     titleFi: "Kurssikatalogi + admin-lomakkeiden siistiminen",
-    latest: true,
+    latest: false,
     highlights: [
       "**116 courses seeded.** All standard KSYK courses (MA, BI, GE, FY, KE, SC, HI, YH, katsomusaine, MU, KU, KO, KS, LI, TE, VAP) are now pre-populated with Finnish names, English names, and auto-assigned subject colors. Existing courses without a color are also retroactively colored.",
       "**Course auto-color.** Adding or editing a course in admin auto-fills the color based on the subject prefix (MA→blue, FY→purple, KE→emerald, etc.).",

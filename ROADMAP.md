@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.5 + Android 1.1.5 — language courses (~82 seeded), full teacher roster (~90 seeded), courseAutoColor handles language prefixes, Android timetable names appear instantly (disk-cache-first two-phase load)
 - v1.1.4 + Android 1.1.4 — course catalogue (116 courses seeded), auto-color by subject prefix, EN/FI-only admin forms; Android reloads LookupStore after sync
 - v1.1.3 + Android 1.1.3 — profile dialog bottom sheet on mobile, iOS 16 px input fix, timetable delete moved to info sheet with confirmation + haptic feedback
 - v1.1.2 + Android 1.1.2 — course editing in admin, Wilma sync no longer wipes teacher data, faster jakso load (DataStore cache-first)

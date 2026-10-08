@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.5 — October 2026
+
+- ~82 language courses seeded (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN1–6, vKOR1, OPO) with Finnish names, English names, and subject colors; ON CONFLICT DO NOTHING preserves admin edits
+- ~90 KSYK teachers seeded with abbreviations, first/last names, and subject descriptions in FI and EN; partial unique index on staff.abbrev enables idempotent seed
+- Course auto-color in admin now handles language code prefixes (a1EN→blue, aRU→light-blue, a1RA→purple, a1SA→brown, a1EA→red, etc.)
+- Retroactive color UPDATE in initDb now covers language course codes
+- Android 1.1.5: timetable shows subject names and colors instantly — Phase 1 loads from on-disk cache before any network call (loading=false fires after cache, not after network)
+- Android versionCode 112
+
 ## 1.1.4 — October 2026
 
 - 116 standard KSYK courses seeded (MA, BI, GE, FY, KE, SC, HI, YH, katsomusaine, MU, KU, KO, KS, LI, TE, VAP) with Finnish names, English names, and subject colors; ON CONFLICT DO NOTHING preserves admin edits

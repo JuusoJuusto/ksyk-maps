@@ -126,21 +126,25 @@ fun TimetableScreen(
         jaksot = loadedJaksot
         // Auto-select the current active jakso; fall back to "all"
         selectedJaksoId = activeJaksoId(loadedJaksot) ?: loadedJaksot.firstOrNull()?.id ?: "all"
-        try {
-            val r = withContext(Dispatchers.IO) { Api.get("/rooms") }
-            rooms = r.jsonArray.mapNotNull { it as? JsonObject }
-        } catch (_: Exception) {
-            rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
-        }
-
-        // Load teacher + subject lookup tables for Wilma name resolution
-        try { LookupStore.ensureLoaded() } catch (_: Throwable) { /* display raw codes on failure */ }
+        // Phase 1 — load from disk caches immediately (no network) so names/colors
+        // are on screen the moment loading=false. Api.get() writes to disk on every
+        // success, so this is warm after the first ever launch.
+        rooms = (Api.getOffline("/rooms")?.jsonArray?.mapNotNull { it as? JsonObject }) ?: emptyList()
+        try { LookupStore.ensureLoadedFromCache() } catch (_: Throwable) {}
         teacherResolver      = { abbrev -> LookupStore.resolveTeacher(abbrev) }
         teacherUrlResolver   = { abbrev -> LookupStore.resolveTeacherUrl(abbrev) }
         subjectResolver      = { code -> LookupStore.resolveSubject(code) }
         subjectColorResolver = { code -> LookupStore.resolveSubjectColor(code) }
+        loading = false  // UI visible with cached subject names on this frame
 
-        loading = false
+        // Phase 2 — refresh from network in background; state updates trigger recompose
+        try {
+            val r = withContext(Dispatchers.IO) { Api.get("/rooms") }
+            rooms = r.jsonArray.mapNotNull { it as? JsonObject }
+        } catch (_: Exception) { /* keep offline rooms */ }
+        try { LookupStore.ensureLoaded() } catch (_: Throwable) {}
+        subjectResolver      = { code -> LookupStore.resolveSubject(code) }
+        subjectColorResolver = { code -> LookupStore.resolveSubjectColor(code) }
 
         // Auto-refresh Wilma on every screen open when the last sync was on a
         // previous calendar date (new school day = stale data). This ensures

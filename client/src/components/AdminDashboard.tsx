@@ -127,6 +127,15 @@ interface Announcement {
 const ADMIN_BASE = "/admin";
 
 function courseAutoColor(code: string): string {
+  // Language courses — match before generic prefix stripping
+  if (/^(a1|a2|v|AI|sv)?EN/i.test(code)) return '#2563EB';  // English
+  if (/^(a1|a2|b|sv)?RA/i.test(code))    return '#C026D3';  // French (Ranska)
+  if (/^(a1|a2|b|sv)?SA/i.test(code))    return '#B45309';  // German (Saksa)
+  if (/^(a1|a2|b|sv)?EA/i.test(code))    return '#DC2626';  // Spanish (Espanja)
+  if (/^(a|b|sv)?RU/i.test(code))        return '#0284C7';  // Swedish (Ruotsi)
+  if (/^v?KOR/i.test(code))              return '#7C3AED';  // Korean
+  if (/^OPO/i.test(code))                return '#6B7280';  // Guidance
+  // Subject prefix (strips sv/v)
   const base = code.toLowerCase().replace(/^(sv|v(?=[a-z]))/i, '');
   if (base.startsWith('ma')) return '#3B82F6';
   if (base.startsWith('fy')) return '#8B5CF6';

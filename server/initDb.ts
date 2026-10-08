@@ -423,25 +423,223 @@ export async function ensureSchema(): Promise<void> {
 
       -- v1.1.4 — retroactively color courses that were added without a color.
       UPDATE subjects SET color = CASE
-        WHEN code ~ '^(sv|v[a-z])?MA' THEN '#3B82F6'
-        WHEN code ~ '^(sv|v[a-z])?FY' THEN '#8B5CF6'
-        WHEN code ~ '^(sv|v[a-z])?KE' THEN '#10B981'
-        WHEN code ~ '^(sv|v[a-z])?BI' THEN '#22C55E'
-        WHEN code ~ '^(sv|v[a-z])?GE' THEN '#84CC16'
-        WHEN code ~ '^(sv|v[a-z])?HI' THEN '#F59E0B'
-        WHEN code ~ '^(sv|v[a-z])?YH' THEN '#EF4444'
+        WHEN code ~ '^(a1|a2|v|AI|sv)?EN' THEN '#2563EB'
+        WHEN code ~ '^(a1|a2|b|sv)?RA'    THEN '#C026D3'
+        WHEN code ~ '^(a1|a2|b|sv)?SA'    THEN '#B45309'
+        WHEN code ~ '^(a1|a2|b|sv)?EA'    THEN '#DC2626'
+        WHEN code ~ '^(a|b|sv)?RU'        THEN '#0284C7'
+        WHEN code ~ '^v?KOR'              THEN '#7C3AED'
+        WHEN code ~ '^OPO'                THEN '#6B7280'
+        WHEN code ~ '^(sv|v[a-z])?MA'    THEN '#3B82F6'
+        WHEN code ~ '^(sv|v[a-z])?FY'    THEN '#8B5CF6'
+        WHEN code ~ '^(sv|v[a-z])?KE'    THEN '#10B981'
+        WHEN code ~ '^(sv|v[a-z])?BI'    THEN '#22C55E'
+        WHEN code ~ '^(sv|v[a-z])?GE'    THEN '#84CC16'
+        WHEN code ~ '^(sv|v[a-z])?HI'    THEN '#F59E0B'
+        WHEN code ~ '^(sv|v[a-z])?YH'    THEN '#EF4444'
         WHEN code ~ '^(sv|v[a-z])?(UE|UO|UK|ET)' THEN '#EC4899'
-        WHEN code ~ '^(sv|v[a-z])?MU' THEN '#6366F1'
-        WHEN code ~ '^(sv|v[a-z])?KU' THEN '#F97316'
-        WHEN code ~ '^(sv|v[a-z])?KO' THEN '#14B8A6'
-        WHEN code ~ '^(sv|v[a-z])?KS' THEN '#A855F7'
-        WHEN code ~ '^(sv|v[a-z])?LI' THEN '#EF4444'
-        WHEN code ~ '^(sv|v[a-z])?TE' THEN '#06B6D4'
-        WHEN code ~ '^(sv|v[a-z])?SC' THEN '#84CC16'
-        WHEN code ~ '^VAP' THEN '#6B7280'
+        WHEN code ~ '^(sv|v[a-z])?MU'    THEN '#6366F1'
+        WHEN code ~ '^(sv|v[a-z])?KU'    THEN '#F97316'
+        WHEN code ~ '^(sv|v[a-z])?KO'    THEN '#14B8A6'
+        WHEN code ~ '^(sv|v[a-z])?KS'    THEN '#A855F7'
+        WHEN code ~ '^(sv|v[a-z])?LI'    THEN '#EF4444'
+        WHEN code ~ '^(sv|v[a-z])?TE'    THEN '#06B6D4'
+        WHEN code ~ '^(sv|v[a-z])?SC'    THEN '#84CC16'
+        WHEN code ~ '^VAP'               THEN '#6B7280'
         ELSE '#6B7280'
       END
       WHERE color IS NULL;
+
+      -- v1.1.5 — language courses seed.
+      INSERT INTO subjects (id, code, name, name_en, color) VALUES
+        (gen_random_uuid(),'a1EN1','A1-Englanti 1','English A1 1','#2563EB'),
+        (gen_random_uuid(),'a1EN2','A1-Englanti 2','English A1 2','#2563EB'),
+        (gen_random_uuid(),'a1EN3','A1-Englanti 3','English A1 3','#2563EB'),
+        (gen_random_uuid(),'a1EN4','A1-Englanti 4','English A1 4','#2563EB'),
+        (gen_random_uuid(),'a1EN5','A1-Englanti 5','English A1 5','#2563EB'),
+        (gen_random_uuid(),'a1EN6','A1-Englanti 6','English A1 6','#2563EB'),
+        (gen_random_uuid(),'a1EN7','A1-Englanti 7','English A1 7','#2563EB'),
+        (gen_random_uuid(),'aRU','A-Ruotsi','Swedish A','#0284C7'),
+        (gen_random_uuid(),'bRU','B-Ruotsi','Swedish B1','#0284C7'),
+        (gen_random_uuid(),'svRU','Ruotsi lyhyt','Swedish short','#0284C7'),
+        (gen_random_uuid(),'a1RA1','A1-Ranska 1','French A1 1','#C026D3'),
+        (gen_random_uuid(),'a1RA2','A1-Ranska 2','French A1 2','#C026D3'),
+        (gen_random_uuid(),'a1RA3','A1-Ranska 3','French A1 3','#C026D3'),
+        (gen_random_uuid(),'a1RA4','A1-Ranska 4','French A1 4','#C026D3'),
+        (gen_random_uuid(),'a1RA5','A1-Ranska 5','French A1 5','#C026D3'),
+        (gen_random_uuid(),'a1RA6','A1-Ranska 6','French A1 6','#C026D3'),
+        (gen_random_uuid(),'a1RA7','A1-Ranska 7','French A1 7','#C026D3'),
+        (gen_random_uuid(),'a1SA1','A1-Saksa 1','German A1 1','#B45309'),
+        (gen_random_uuid(),'a1SA2','A1-Saksa 2','German A1 2','#B45309'),
+        (gen_random_uuid(),'a1SA3','A1-Saksa 3','German A1 3','#B45309'),
+        (gen_random_uuid(),'a1SA4','A1-Saksa 4','German A1 4','#B45309'),
+        (gen_random_uuid(),'a1SA5','A1-Saksa 5','German A1 5','#B45309'),
+        (gen_random_uuid(),'a1SA6','A1-Saksa 6','German A1 6','#B45309'),
+        (gen_random_uuid(),'a1SA7','A1-Saksa 7','German A1 7','#B45309'),
+        (gen_random_uuid(),'a1EA1','A-Espanja 1','Spanish A1 1','#DC2626'),
+        (gen_random_uuid(),'a1EA2','A-Espanja 2','Spanish A1 2','#DC2626'),
+        (gen_random_uuid(),'a1EA3','A-Espanja 3','Spanish A1 3','#DC2626'),
+        (gen_random_uuid(),'a1EA4','A-Espanja 4','Spanish A1 4','#DC2626'),
+        (gen_random_uuid(),'a1EA5','A-Espanja 5','Spanish A1 5','#DC2626'),
+        (gen_random_uuid(),'a1EA6','A-Espanja 6','Spanish A1 6','#DC2626'),
+        (gen_random_uuid(),'a1EA7','A-Espanja 7','Spanish A1 7','#DC2626'),
+        (gen_random_uuid(),'a2EN1','A2-kieli Englanti 1','English A2 1','#2563EB'),
+        (gen_random_uuid(),'a2EN2','A2-kieli Englanti 2','English A2 2','#2563EB'),
+        (gen_random_uuid(),'a2EN3','A2-kieli Englanti 3','English A2 3','#2563EB'),
+        (gen_random_uuid(),'a2EN4','A2-kieli Englanti 4','English A2 4','#2563EB'),
+        (gen_random_uuid(),'a2EN5','A2-kieli Englanti 5','English A2 5','#2563EB'),
+        (gen_random_uuid(),'a2EN6','A2-kieli Englanti 6','English A2 6','#2563EB'),
+        (gen_random_uuid(),'a2EN7','A2-kieli Englanti 7','English A2 7','#2563EB'),
+        (gen_random_uuid(),'vEN1','Fish & chips or Coke and burger','Fish & Chips or Coke and Burger','#2563EB'),
+        (gen_random_uuid(),'vEN2','Aspects of Britain','Aspects of Britain','#2563EB'),
+        (gen_random_uuid(),'a2RA1','A2-kieli Ranska 1','French A2 1','#C026D3'),
+        (gen_random_uuid(),'a2RA2','A2-kieli Ranska 2','French A2 2','#C026D3'),
+        (gen_random_uuid(),'a2RA3','A2-kieli Ranska 3','French A2 3','#C026D3'),
+        (gen_random_uuid(),'a2RA4','A2-kieli Ranska 4','French A2 4','#C026D3'),
+        (gen_random_uuid(),'a2RA5','A2-kieli Ranska 5','French A2 5','#C026D3'),
+        (gen_random_uuid(),'a2RA6','A2-kieli Ranska 6','French A2 6','#C026D3'),
+        (gen_random_uuid(),'a2RA7','A2-kieli Ranska 7','French A2 7','#C026D3'),
+        (gen_random_uuid(),'a2SA1','A2-kieli Saksa 1','German A2 1','#B45309'),
+        (gen_random_uuid(),'a2SA2','A2-kieli Saksa 2','German A2 2','#B45309'),
+        (gen_random_uuid(),'a2SA3','A2-kieli Saksa 3','German A2 3','#B45309'),
+        (gen_random_uuid(),'a2SA4','A2-kieli Saksa 4','German A2 4','#B45309'),
+        (gen_random_uuid(),'a2SA5','A2-kieli Saksa 5','German A2 5','#B45309'),
+        (gen_random_uuid(),'a2SA6','A2-kieli Saksa 6','German A2 6','#B45309'),
+        (gen_random_uuid(),'a2SA7','A2-kieli Saksa 7','German A2 7','#B45309'),
+        (gen_random_uuid(),'a2EA1','A2-kieli Espanja 1','Spanish A2 1','#DC2626'),
+        (gen_random_uuid(),'a2EA2','A2-kieli Espanja 2','Spanish A2 2','#DC2626'),
+        (gen_random_uuid(),'a2EA3','A2-kieli Espanja 3','Spanish A2 3','#DC2626'),
+        (gen_random_uuid(),'a2EA4','A2-kieli Espanja 4','Spanish A2 4','#DC2626'),
+        (gen_random_uuid(),'a2EA5','A2-kieli Espanja 5','Spanish A2 5','#DC2626'),
+        (gen_random_uuid(),'a2EA6','A2-kieli Espanja 6','Spanish A2 6','#DC2626'),
+        (gen_random_uuid(),'a2EA7','A2-kieli Espanja 7','Spanish A2 7','#DC2626'),
+        (gen_random_uuid(),'bRA1','Ranska B2-kieli 1','French B2 1','#C026D3'),
+        (gen_random_uuid(),'bRA2','Ranska B2-kieli 2','French B2 2','#C026D3'),
+        (gen_random_uuid(),'bRA3','Ranska B2-kieli 3','French B2 3','#C026D3'),
+        (gen_random_uuid(),'bRA4','Ranska B2-kieli 4','French B2 4','#C026D3'),
+        (gen_random_uuid(),'bRA5','Ranska B2-kieli 5','French B2 5','#C026D3'),
+        (gen_random_uuid(),'bSA1','B-Saksa 1','German B2 1','#B45309'),
+        (gen_random_uuid(),'bSA2','B-Saksa 2','German B2 2','#B45309'),
+        (gen_random_uuid(),'bSA3','B-Saksa 3','German B2 3','#B45309'),
+        (gen_random_uuid(),'bSA4','B-Saksa 4','German B2 4','#B45309'),
+        (gen_random_uuid(),'bSA5','B-Saksa 5','German B2 5','#B45309'),
+        (gen_random_uuid(),'bEA1','B-Espanja 1','Spanish B2 1','#DC2626'),
+        (gen_random_uuid(),'bEA2','B-Espanja 2','Spanish B2 2','#DC2626'),
+        (gen_random_uuid(),'bEA3','B-Espanja 3','Spanish B2 3','#DC2626'),
+        (gen_random_uuid(),'bEA4','B-Espanja 4','Spanish B2 4','#DC2626'),
+        (gen_random_uuid(),'bEA5','B-Espanja 5','Spanish B2 5','#DC2626'),
+        (gen_random_uuid(),'AIEN1','Äidinkieli Englanti 1','Mother Tongue English 1','#2563EB'),
+        (gen_random_uuid(),'AIEN2','Äidinkieli Englanti 2','Mother Tongue English 2','#2563EB'),
+        (gen_random_uuid(),'AIEN3','Äidinkieli Englanti 3','Mother Tongue English 3','#2563EB'),
+        (gen_random_uuid(),'AIEN4','Äidinkieli Englanti 4','Mother Tongue English 4','#2563EB'),
+        (gen_random_uuid(),'AIEN5','Äidinkieli Englanti 5','Mother Tongue English 5','#2563EB'),
+        (gen_random_uuid(),'AIEN6','Äidinkieli Englanti 6','Mother Tongue English 6','#2563EB'),
+        (gen_random_uuid(),'vKOR1','Korean kurssi','Korean','#7C3AED'),
+        (gen_random_uuid(),'OPO','Opinto-ohjaus','Guidance Counselling','#6B7280')
+      ON CONFLICT (code) DO NOTHING;
+
+      -- v1.1.5 — unique index for teacher abbrev seeding (idempotent).
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_abbrev
+        ON staff (abbrev) WHERE abbrev IS NOT NULL;
+
+      -- v1.1.5 — seed KSYK teacher roster.
+      INSERT INTO staff (id, first_name, last_name, abbrev, position, position_en, position_fi, is_active)
+      VALUES
+        (gen_random_uuid(),'Veera','Aalto','VeA','Katsomusaineet','Religious Studies','Katsomusaineet',true),
+        (gen_random_uuid(),'Joona','Aaltonen','JAa','Matematiikka','Mathematics','Matematiikka',true),
+        (gen_random_uuid(),'Vuokko','Aarnio','VAa','Kemia, Matematiikka','Chemistry, Mathematics','Kemia, Matematiikka',true),
+        (gen_random_uuid(),'Merja','Alatalo','MAl','Äidinkieli ja kirjallisuus, S2','Finnish, Finnish as a second language','Äidinkieli ja kirjallisuus, S2',true),
+        (gen_random_uuid(),'Taru','Alkio','TAl','Erityisopetus','Special Education','Erityisopetus',true),
+        (gen_random_uuid(),'Svetlana','Andersson','SAn','Oman äidinkielen opettaja - venäjä','Native Language - Russian','Oman äidinkielen opettaja - venäjä',true),
+        (gen_random_uuid(),'Päivi','Autio','PAu','Ruotsi, Englanti, Espanja','Swedish, English, Spanish','Ruotsi, Englanti, Espanja',true),
+        (gen_random_uuid(),'Paul','Boisdron','PBo','Liikunta','Physical Education','Liikunta',true),
+        (gen_random_uuid(),'Tomy','Cherian','TCh','Fysiikka, Kemia','Physics, Chemistry','Fysiikka, Kemia',true),
+        (gen_random_uuid(),'Richard','Cousins','RCo','Peruskoulun rehtori','Middle School Principal','Peruskoulun rehtori',true),
+        (gen_random_uuid(),'Arunima','Deb','ADe','Englanti','English','Englanti',true),
+        (gen_random_uuid(),'Akseli','Elovainio','AEl','Japani','Japanese','Japani',true),
+        (gen_random_uuid(),'Kirsten','Eskelinen','KEs','Englanti, Kuvataide','English, Art','Englanti, Kuvataide',true),
+        (gen_random_uuid(),'Christian','Franklin','CFr','Biologia, Kemia','Biology, Chemistry','Biologia, Kemia',true),
+        (gen_random_uuid(),'Shenelle','Ghulam','SGh','Matematiikka, Kemia','Mathematics, Chemistry','Matematiikka, Kemia',true),
+        (gen_random_uuid(),'Lauri','Halla','LHa','Johtava rehtori','Head of School','Johtava rehtori',true),
+        (gen_random_uuid(),'Meri','Heikkilä','MHe','Äidinkieli ja kirjallisuus','Finnish','Äidinkieli ja kirjallisuus',true),
+        (gen_random_uuid(),'Nelli','Helin','NHe','Englanti ja Espanja','English and Spanish','Englanti ja Espanja',true),
+        (gen_random_uuid(),'Sirpa','Hildén','SHi','Historia ja yhteiskuntaoppi','History and Civics','Historia ja yhteiskuntaoppi',true),
+        (gen_random_uuid(),'Annika','Huhta','AHu','Äidinkieli ja kirjallisuus','Finnish','Äidinkieli ja kirjallisuus',true),
+        (gen_random_uuid(),'Hanna','Huhtakallio','HHu','Kemia','Chemistry','Kemia',true),
+        (gen_random_uuid(),'Heidi','Hult','HeH','Erityisopetus','Special Education','Erityisopetus',true),
+        (gen_random_uuid(),'Mirka','Hussi','MHu','Espanja','Spanish','Espanja',true),
+        (gen_random_uuid(),'Eero','Hytönen','EHy','Matematiikka, Fysiikka','Mathematics, Physics','Matematiikka, Fysiikka',true),
+        (gen_random_uuid(),'Katariina','Hämäläinen','KaH','Kemia, Biologia','Chemistry, Biology','Kemia, Biologia',true),
+        (gen_random_uuid(),'Esko','Häyrynen','EHä','Matematiikka','Mathematics, Science','Matematiikka',true),
+        (gen_random_uuid(),'Jaana','Junnonen','JJu','Äidinkieli ja kirjallisuus, S2','Finnish, Finnish as a second language','Äidinkieli ja kirjallisuus, S2',true),
+        (gen_random_uuid(),'Riitta','Kaisto','RKa','Lukion apulaisrehtori','Upper School Vice Principal','Lukion apulaisrehtori',true),
+        (gen_random_uuid(),'Pilvi','Kantola','PKa','Opinto-ohjaaja','Guidance Counsellor','Opinto-ohjaaja',true),
+        (gen_random_uuid(),'Roosa','Kinnunen','RKi','Liikunta, Terveystieto','Physical Education, Health Education','Liikunta, Terveystieto',true),
+        (gen_random_uuid(),'Ville','Kohvakka','VKo','Yhteiskuntaoppi','Civics','Yhteiskuntaoppi',true),
+        (gen_random_uuid(),'Ritva','Korhonen','RKo','Englanti','English','Englanti',true),
+        (gen_random_uuid(),'Kalevi','Kurronen','KKu','Kaupalliset aineet','Business Studies','Kaupalliset aineet',true),
+        (gen_random_uuid(),'Saara','Kylmänen','SKy','Äidinkieli ja kirjallisuus, S2','Finnish, Finnish as a second language','Äidinkieli ja kirjallisuus, S2',true),
+        (gen_random_uuid(),'Simo','Lampinen','SLa','Peruskoulun apulaisrehtori','Middle School Vice Principal','Peruskoulun apulaisrehtori',true),
+        (gen_random_uuid(),'Anu','Lankila','ALa','Liikunta, Terveystieto','Physical Education, Health Education','Liikunta, Terveystieto',true),
+        (gen_random_uuid(),'Lassi','Larjo','LLa','Filosofia, Psykologia','Philosophy, Psychology','Filosofia, Psykologia',true),
+        (gen_random_uuid(),'Marianne','Lehtola','MLe','Erityisopetus','Middle School Special Education','Erityisopetus',true),
+        (gen_random_uuid(),'Tiina','Lyyra','TLy','Äidinkieli ja kirjallisuus, S2','Finnish, Finnish as a second language','Äidinkieli ja kirjallisuus, S2',true),
+        (gen_random_uuid(),'Jukka','Lämsä','JLä','Matematiikka, Fysiikka, STEAM','Mathematics, Physics, STEAM','Matematiikka, Fysiikka, STEAM',true),
+        (gen_random_uuid(),'Juuso','Maasara','JuM','Matematiikka, Fysiikka, Science','Mathematics, Physics, Science','Matematiikka, Fysiikka, Science',true),
+        (gen_random_uuid(),'Kaisa','Macdonald','KMa','Opinto-ohjaaja','Guidance Counsellor','Opinto-ohjaaja',true),
+        (gen_random_uuid(),'Elli','Marjanen','EMa','Matematiikka, Kemia','Mathematics, Chemistry','Matematiikka, Kemia',true),
+        (gen_random_uuid(),'Juhana','Marjomäki','JMa','Matematiikka, Fysiikka','Mathematics, Physics','Matematiikka, Fysiikka',true),
+        (gen_random_uuid(),'Aleksi','Markkanen','AMa','Tietotekniikka, Matematiikka, STEAM','IT, Mathematics, STEAM','Tietotekniikka, Matematiikka, STEAM',true),
+        (gen_random_uuid(),'Michael','McDonald','MMc','Musiikki','Music','Musiikki',true),
+        (gen_random_uuid(),'Mikko','Metsäkylä','MMe','Biologia, Maantieto','Biology, Geography','Biologia, Maantieto',true),
+        (gen_random_uuid(),'Ahmed','Mohamed','MOH','Islam','Islam','Islam',true),
+        (gen_random_uuid(),'Niilo','Mähönen','NMä','Uskonto (ev.lut.)','Religion - Evangelical Lutheran','Uskonto (ev.lut.)',true),
+        (gen_random_uuid(),'Antti','Mäkelä','AMä','Matematiikka','Mathematics','Matematiikka',true),
+        (gen_random_uuid(),'Zsófia','Nagy','ZNa','Englanti, Matematiikka','English, Mathematics','Englanti, Matematiikka',true),
+        (gen_random_uuid(),'Satu','Nevalainen','SNe','Opinto-ohjaaja yläaste','Lower Secondary Guidance Counsellor','Opinto-ohjaaja yläaste',true),
+        (gen_random_uuid(),'Hanna','Nordenswan','HNo','Matematiikka','Mathematics','Matematiikka',true),
+        (gen_random_uuid(),'Noora','Nuutinen','NNu','Matematiikka','Mathematics','Matematiikka',true),
+        (gen_random_uuid(),'Tuuli','Nuutinen','TNu','Englanti, Ruotsi, Saksa','English, Swedish, German','Englanti, Ruotsi, Saksa',true),
+        (gen_random_uuid(),'Päivi','Ojala','POj','Biologia, Maantieto','Biology, Geography','Biologia, Maantieto',true),
+        (gen_random_uuid(),'Marko','Paasonen','MPa','Ruotsi','Swedish','Ruotsi',true),
+        (gen_random_uuid(),'Anni','Paavola','APa','Ruotsi','Swedish','Ruotsi',true),
+        (gen_random_uuid(),'Tilda','Palola','TPa','Kotitalous','Home Economics','Kotitalous',true),
+        (gen_random_uuid(),'Petri','Partanen','PPa','Liikunta','Physical Education','Liikunta',true),
+        (gen_random_uuid(),'Mira','Pelkonen','MPe','Äidinkieli ja kirjallisuus','Finnish','Äidinkieli ja kirjallisuus',true),
+        (gen_random_uuid(),'Santtu','Perkiö','SPe','Yhteisökoordinaattori','Community Coordinator','Yhteisökoordinaattori',true),
+        (gen_random_uuid(),'Erika','Perttuli-Borobio','EPe','Kuvataide, STEAM','Art, STEAM','Kuvataide, STEAM',true),
+        (gen_random_uuid(),'Rauni','Piiponniemi','RPi','Kotitalous, Terveystieto','Home Economics, Health Education','Kotitalous, Terveystieto',true),
+        (gen_random_uuid(),'Tiina','Pulkkinen','TPu','Maantieto, Historia','Geography, History','Maantieto, Historia',true),
+        (gen_random_uuid(),'Anne','Raatikainen-Ahokas','ARa','Biologia, Maantieto','Biology, Geography','Biologia, Maantieto',true),
+        (gen_random_uuid(),'Minnariitta','Raitio','MRa','Lukion rehtori','Upper School Principal','Lukion rehtori',true),
+        (gen_random_uuid(),'Tuomas','Rajala','TuR','Liikunta','Physical Education','Liikunta',true),
+        (gen_random_uuid(),'Tiina','Ranne','TRa','Kotitalous, Terveystieto','Home Economics, Health Education','Kotitalous, Terveystieto',true),
+        (gen_random_uuid(),'Salli','Rantanen','SRa','Opinto-ohjaaja','Guidance Counsellor','Opinto-ohjaaja',true),
+        (gen_random_uuid(),'Pekka','Rutanen','PRu','Fysiikka','Physics, Science','Fysiikka',true),
+        (gen_random_uuid(),'Anni','Saarela','ASa','Erityisopetus','Special Education','Erityisopetus',true),
+        (gen_random_uuid(),'Christa','Skogster','CSk','Ruotsi','Swedish','Ruotsi',true),
+        (gen_random_uuid(),'Pia','Skyttä','PSk','Englanti','English','Englanti',true),
+        (gen_random_uuid(),'Martti','Sloan','MSl','Fysiikka, Tietotekniikka, STEAM','Physics, IT, STEAM','Fysiikka, Tietotekniikka, STEAM',true),
+        (gen_random_uuid(),'Johanna','Snellman','JSn','Saksa, Ruotsi','German, Swedish','Saksa, Ruotsi',true),
+        (gen_random_uuid(),'Kaisa','Stenbäck','KSt','Opinto-ohjaaja yläaste','Lower Secondary Guidance Counsellor','Opinto-ohjaaja yläaste',true),
+        (gen_random_uuid(),'Reetta','Sutinen','RSu','Kuvataide','Art','Kuvataide',true),
+        (gen_random_uuid(),'Sari','Taipale','STa','Äidinkieli ja kirjallisuus','Finnish','Äidinkieli ja kirjallisuus',true),
+        (gen_random_uuid(),'Antero','Tarkki','ATa','Historia ja yhteiskuntaoppi','History and Civics','Historia ja yhteiskuntaoppi',true),
+        (gen_random_uuid(),'Sanni','Taskinen','SaT','Englanti, Espanja','English, Spanish','Englanti, Espanja',true),
+        (gen_random_uuid(),'Heidi','Temmes','HTe','Äidinkieli ja kirjallisuus','Finnish','Äidinkieli ja kirjallisuus',true),
+        (gen_random_uuid(),'Milla','Toukola','MTo','Katsomusaineet','Religious Studies','Katsomusaineet',true),
+        (gen_random_uuid(),'Tiina','Tuuri','TTu','Musiikki','Music','Musiikki',true),
+        (gen_random_uuid(),'Mirjam','Vaari','MiV','Englanti, Ruotsi, Psykologia','English, Swedish, Psychology','Englanti, Ruotsi, Psykologia',true),
+        (gen_random_uuid(),'Sirpa','Vartia','SVa','Tekstiilityö, Kotitalous, STEAM','Textiles, Home Economics, STEAM','Tekstiilityö, Kotitalous, STEAM',true),
+        (gen_random_uuid(),'Outi','Vilkuna','OVi','Ranska, Terveystieto','French, Health Education','Ranska, Terveystieto',true),
+        (gen_random_uuid(),'Riikka','Virkajärvi-Johnson','RVi','Erityisopetus','Lower Secondary Special Education','Erityisopetus',true),
+        (gen_random_uuid(),'Anna-Katariina','Väisänen','AVä','Historia ja yhteiskuntaoppi','History and Civics','Historia ja yhteiskuntaoppi',true),
+        (gen_random_uuid(),'Laura','Väisänen','LVä','Katsomusaineet, väittely','Religious Studies, Debate','Katsomusaineet, väittely',true),
+        (gen_random_uuid(),'Teppo','Väisänen','TVä','Ortodoksinen uskonto','Orthodox Religion','Ortodoksinen uskonto',true),
+        (gen_random_uuid(),'Rosa','Weckström','RWe','Espanja, Englanti','Spanish, English','Espanja, Englanti',true),
+        (gen_random_uuid(),'Joshua','Williams','JWi','Liikunta, Terveystieto','Physical Education, Health Education','Liikunta, Terveystieto',true),
+        (gen_random_uuid(),'Inka','Witick','IWi','Äidinkieli ja kirjallisuus, Ranska','Finnish, French','Äidinkieli ja kirjallisuus, Ranska',true)
+      ON CONFLICT (abbrev) WHERE abbrev IS NOT NULL DO NOTHING;
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

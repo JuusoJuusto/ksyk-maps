@@ -15,6 +15,28 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-10-2026 — v1.1.5 — language courses, full teacher roster, instant timetable names
+
+**Asked.**
+- Seed all KSYK language courses (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN, vKOR1, OPO) — these were missing from v1.1.4 which only covered subject courses
+- Add all ~90 KSYK teachers (bulk-seed with abbrev, first/last name, positionFi/En, subjectsFi/En)
+- Make `courseAutoColor` handle language course prefixes (a1EN, aRU, a1RA, etc.)
+- Show timetable subject names immediately on Android open — not after network load
+
+**Decided.**
+- Language courses inserted in `initDb.ts` with `ON CONFLICT (code) DO NOTHING`; retroactive color UPDATE CASE extended with language regex patterns
+- `courseAutoColor` updated with explicit regex guards before generic prefix-strip logic (language codes checked first since a1EN etc. don't respond to sv/v stripping)
+- Teachers inserted via new partial unique index `ON staff (abbrev) WHERE abbrev IS NOT NULL`, enabling `ON CONFLICT (abbrev) WHERE abbrev IS NOT NULL DO NOTHING`; skipped: Eklöf Linda (Virkavapaalla), Lankinen Veeti (sijainen), Rytkönen Peppi (no subject), Opettaja Olli (placeholder), Lintunen Emil (Häcker)
+- Android `TimetableScreen` split into Phase 1 (disk cache → `loading=false`) and Phase 2 (network refresh background); `LookupStore.ensureLoadedFromCache()` called before `loading=false` so names appear on first frame
+
+**Shipped.**
+- Commit: (tag rollback-before-1-1-5 → see below)
+- Files: `server/initDb.ts`, `client/src/components/AdminDashboard.tsx`, `android/.../TimetableScreen.kt`, `android/.../LookupStore.kt`, `android/app/build.gradle.kts`, `client/src/lib/changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`
+- Android: versionCode 112, versionName 1.1.5
+- Web: APP_VERSION 1.1.5
+
+---
+
 ## 08-10-2026 — v1.1.4 — course catalogue, auto-color, EN/FI-only admin forms
 
 **Asked.**
