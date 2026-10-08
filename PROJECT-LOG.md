@@ -15,6 +15,32 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 08-10-2026 — v1.1.4 — course catalogue, auto-color, EN/FI-only admin forms
+
+**Asked.**
+- Remove "Default" title/content fields from AnnouncementManager; keep only EN and FI
+- Remove plain Position/Department fields from staff form; keep only EN and FI
+- Make course auto-color work when adding/editing a course (prefix→color)
+- Retroactively color already-created courses that have no color
+- Bulk-add ~116 courses with codes, Finnish names, and English names
+
+**Decided.**
+- `courseAutoColor(code)` function strips sv/v prefix then maps to subject color; wired to code input onChange for both add and edit forms
+- `handleSubmit`/`handleCreate/UpdateStaff` now derive `title`/`content`/`position`/`department` from FI || EN before sending to server — no backend change needed
+- Course seed goes in `initDb.ts` with `ON CONFLICT (code) DO NOTHING` so admin edits are never wiped; retroactive color via `UPDATE subjects SET color = CASE ...`
+- Android version unchanged (web-only changes)
+
+**Shipped.** Commit `b2ccc48` · web v1.1.4 · tag `rollback-before-1-1-4`
+- `client/src/components/AnnouncementManager.tsx` — removed Default fields, EN/FI only, derived title/content in handleSubmit
+- `client/src/components/AdminDashboard.tsx` — courseAutoColor(), wired to code inputs, removed plain Position/Department
+- `server/initDb.ts` — 116-row INSERT seed + retroactive color UPDATE
+- `client/src/lib/changelog.ts` — bumped APP_VERSION to 1.1.4
+- `CHANGELOG.md`, `ROADMAP.md` — updated
+
+**Rollback.** `git reset --hard rollback-before-1-1-4`. No DB migrations; seed is idempotent.
+
+---
+
 ## 08-10-2026 — v1.1.3 — profile dialog bottom sheet + timetable UX improvements
 
 **Asked.**
