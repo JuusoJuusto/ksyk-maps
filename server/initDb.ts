@@ -300,6 +300,148 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE app_crash_reports ADD COLUMN IF NOT EXISTS status varchar NOT NULL DEFAULT 'open';
       CREATE INDEX IF NOT EXISTS idx_crash_created_at ON app_crash_reports (created_at);
       CREATE INDEX IF NOT EXISTS idx_crash_status     ON app_crash_reports (status);
+
+      -- v1.1.4 — seed standard KSYK course catalogue (ON CONFLICT = no-op so admin edits are preserved).
+      INSERT INTO subjects (id, code, name, name_en, color) VALUES
+        (gen_random_uuid(),'MA1','Matematiikka 1','Mathematics 1','#3B82F6'),
+        (gen_random_uuid(),'MA2','Matematiikka 2','Mathematics 2','#3B82F6'),
+        (gen_random_uuid(),'MA3','Matematiikka 3','Mathematics 3','#3B82F6'),
+        (gen_random_uuid(),'MA4','Matematiikka 4','Mathematics 4','#3B82F6'),
+        (gen_random_uuid(),'MA5','Matematiikka 5','Mathematics 5','#3B82F6'),
+        (gen_random_uuid(),'MA6','Matematiikka 6','Mathematics 6','#3B82F6'),
+        (gen_random_uuid(),'MA7','Matematiikka 7','Mathematics 7','#3B82F6'),
+        (gen_random_uuid(),'MA8','Matematiikka 8','Mathematics 8','#3B82F6'),
+        (gen_random_uuid(),'MA9','Matematiikka 9','Mathematics 9','#3B82F6'),
+        (gen_random_uuid(),'MA10','Matematiikka 10','Mathematics 10','#3B82F6'),
+        (gen_random_uuid(),'svMA1','Matematiikka 1 (sv)','Mathematics 1 (sv)','#3B82F6'),
+        (gen_random_uuid(),'BI1','Biologia 1','Biology 1','#22C55E'),
+        (gen_random_uuid(),'BI2','Biologia 2','Biology 2','#22C55E'),
+        (gen_random_uuid(),'BI3','Biologia 3','Biology 3','#22C55E'),
+        (gen_random_uuid(),'svBI1','Biologia 1 (sv)','Biology 1 (sv)','#22C55E'),
+        (gen_random_uuid(),'GE1','Maantieto 1','Geography 1','#84CC16'),
+        (gen_random_uuid(),'GE2','Maantieto 2','Geography 2','#84CC16'),
+        (gen_random_uuid(),'GE3','Maantieto 3','Geography 3','#84CC16'),
+        (gen_random_uuid(),'FY1','Fysiikka 1','Physics 1','#8B5CF6'),
+        (gen_random_uuid(),'FY2','Fysiikka 2','Physics 2','#8B5CF6'),
+        (gen_random_uuid(),'FY3','Fysiikka 3','Physics 3','#8B5CF6'),
+        (gen_random_uuid(),'KE1','Kemia 1','Chemistry 1','#10B981'),
+        (gen_random_uuid(),'KE2','Kemia 2','Chemistry 2','#10B981'),
+        (gen_random_uuid(),'KE3','Kemia 3','Chemistry 3','#10B981'),
+        (gen_random_uuid(),'svKE1','Kemia 1 (sv)','Chemistry 1 (sv)','#10B981'),
+        (gen_random_uuid(),'svKE2','Kemia 2 (sv)','Chemistry 2 (sv)','#10B981'),
+        (gen_random_uuid(),'SC1','Tiede 1','Science 1','#84CC16'),
+        (gen_random_uuid(),'SC2','Tiede 2','Science 2','#84CC16'),
+        (gen_random_uuid(),'SC3','Tiede 3','Science 3','#84CC16'),
+        (gen_random_uuid(),'SC4','Tiede 4','Science 4','#84CC16'),
+        (gen_random_uuid(),'svSC1','Tiede 1 (sv)','Science 1 (sv)','#84CC16'),
+        (gen_random_uuid(),'HI1','Historia 1','History 1','#F59E0B'),
+        (gen_random_uuid(),'HI2','Historia 2','History 2','#F59E0B'),
+        (gen_random_uuid(),'HI3','Historia 3','History 3','#F59E0B'),
+        (gen_random_uuid(),'HI4','Historia 4','History 4','#F59E0B'),
+        (gen_random_uuid(),'YH1','Yhteiskuntaoppi 1','Social Studies 1','#EF4444'),
+        (gen_random_uuid(),'YH2','Yhteiskuntaoppi 2','Social Studies 2','#EF4444'),
+        (gen_random_uuid(),'YH3','Yhteiskuntaoppi 3','Social Studies 3','#EF4444'),
+        (gen_random_uuid(),'YH4','Yhteiskuntaoppi 4','Social Studies 4','#EF4444'),
+        (gen_random_uuid(),'UE1','Uskonto (ev.lut.) 1','Religion (Lutheran) 1','#EC4899'),
+        (gen_random_uuid(),'UE2','Uskonto (ev.lut.) 2','Religion (Lutheran) 2','#EC4899'),
+        (gen_random_uuid(),'UE3','Uskonto (ev.lut.) 3','Religion (Lutheran) 3','#EC4899'),
+        (gen_random_uuid(),'UO1','Uskonto (ortodoksinen) 1','Religion (Orthodox) 1','#EC4899'),
+        (gen_random_uuid(),'UO2','Uskonto (ortodoksinen) 2','Religion (Orthodox) 2','#EC4899'),
+        (gen_random_uuid(),'UO3','Uskonto (ortodoksinen) 3','Religion (Orthodox) 3','#EC4899'),
+        (gen_random_uuid(),'UK1','Uskonto (katolinen) 1','Religion (Catholic) 1','#EC4899'),
+        (gen_random_uuid(),'UK2','Uskonto (katolinen) 2','Religion (Catholic) 2','#EC4899'),
+        (gen_random_uuid(),'UK3','Uskonto (katolinen) 3','Religion (Catholic) 3','#EC4899'),
+        (gen_random_uuid(),'ET1','Elämänkatsomustieto 1','Ethics 1','#EC4899'),
+        (gen_random_uuid(),'ET2','Elämänkatsomustieto 2','Ethics 2','#EC4899'),
+        (gen_random_uuid(),'ET3','Elämänkatsomustieto 3','Ethics 3','#EC4899'),
+        (gen_random_uuid(),'MU1','Musiikki 1','Music 1','#6366F1'),
+        (gen_random_uuid(),'MU2','Musiikki 2','Music 2','#6366F1'),
+        (gen_random_uuid(),'vMU1','Musiikki 1 (valinnainen)','Music 1 (elective)','#6366F1'),
+        (gen_random_uuid(),'vMU2','Musiikki 2 (valinnainen)','Music 2 (elective)','#6366F1'),
+        (gen_random_uuid(),'vMU3','Musiikki 3 (valinnainen)','Music 3 (elective)','#6366F1'),
+        (gen_random_uuid(),'vMU4','Musiikki 4 (valinnainen)','Music 4 (elective)','#6366F1'),
+        (gen_random_uuid(),'svMU1','Musiikki 1 (sv)','Music 1 (sv)','#6366F1'),
+        (gen_random_uuid(),'svMU5','Musiikki 5 (sv)','Music 5 (sv)','#6366F1'),
+        (gen_random_uuid(),'svMU6','Musiikki 6 (sv)','Music 6 (sv)','#6366F1'),
+        (gen_random_uuid(),'svMU7','Musiikki 7 (sv)','Music 7 (sv)','#6366F1'),
+        (gen_random_uuid(),'KU1','Kuvataide 1','Visual Arts 1','#F97316'),
+        (gen_random_uuid(),'KU2','Kuvataide 2','Visual Arts 2','#F97316'),
+        (gen_random_uuid(),'vKU1','Kuvataide 1 (valinnainen)','Visual Arts 1 (elective)','#F97316'),
+        (gen_random_uuid(),'vKU2','Kuvataide 2 (valinnainen)','Visual Arts 2 (elective)','#F97316'),
+        (gen_random_uuid(),'vKU3','Kuvataide 3 (valinnainen)','Visual Arts 3 (elective)','#F97316'),
+        (gen_random_uuid(),'vKU4','Kuvataide 4 (valinnainen)','Visual Arts 4 (elective)','#F97316'),
+        (gen_random_uuid(),'svKU5','Kuvataide 5 (sv)','Visual Arts 5 (sv)','#F97316'),
+        (gen_random_uuid(),'svKU6','Kuvataide 6 (sv)','Visual Arts 6 (sv)','#F97316'),
+        (gen_random_uuid(),'svKU7','Kuvataide 7 (sv)','Visual Arts 7 (sv)','#F97316'),
+        (gen_random_uuid(),'KO1','Kotitalous 1','Home Economics 1','#14B8A6'),
+        (gen_random_uuid(),'KO2','Kotitalous 2','Home Economics 2','#14B8A6'),
+        (gen_random_uuid(),'KO3','Kotitalous 3','Home Economics 3','#14B8A6'),
+        (gen_random_uuid(),'vKO1','Kotitalous 1 (valinnainen)','Home Economics 1 (elective)','#14B8A6'),
+        (gen_random_uuid(),'vKO2','Kotitalous 2 (valinnainen)','Home Economics 2 (elective)','#14B8A6'),
+        (gen_random_uuid(),'vKO7','Kotitalous 7 (valinnainen)','Home Economics 7 (elective)','#14B8A6'),
+        (gen_random_uuid(),'vKO8','Kotitalous 8 (valinnainen)','Home Economics 8 (elective)','#14B8A6'),
+        (gen_random_uuid(),'svKO1','Kotitalous 1 (sv)','Home Economics 1 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO3','Kotitalous 3 (sv)','Home Economics 3 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO4','Kotitalous 4 (sv)','Home Economics 4 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO9','Kotitalous 9 (sv)','Home Economics 9 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO10','Kotitalous 10 (sv)','Home Economics 10 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO13','Kotitalous 13 (sv)','Home Economics 13 (sv)','#14B8A6'),
+        (gen_random_uuid(),'svKO14','Kotitalous 14 (sv)','Home Economics 14 (sv)','#14B8A6'),
+        (gen_random_uuid(),'KS1','Käsityö 1','Craft 1','#A855F7'),
+        (gen_random_uuid(),'KS2','Käsityö 2','Craft 2','#A855F7'),
+        (gen_random_uuid(),'vKS7','Käsityö 7 (valinnainen)','Craft 7 (elective)','#A855F7'),
+        (gen_random_uuid(),'vKS8','Käsityö 8 (valinnainen)','Craft 8 (elective)','#A855F7'),
+        (gen_random_uuid(),'vKS9','Käsityö 9 (valinnainen)','Craft 9 (elective)','#A855F7'),
+        (gen_random_uuid(),'vKS10','Käsityö 10 (valinnainen)','Craft 10 (elective)','#A855F7'),
+        (gen_random_uuid(),'svKS1','Käsityö 1 (sv)','Craft 1 (sv)','#A855F7'),
+        (gen_random_uuid(),'svKS2','Käsityö 2 (sv)','Craft 2 (sv)','#A855F7'),
+        (gen_random_uuid(),'svKS5','Käsityö 5 (sv)','Craft 5 (sv)','#A855F7'),
+        (gen_random_uuid(),'svKS11','Käsityö 11 (sv)','Craft 11 (sv)','#A855F7'),
+        (gen_random_uuid(),'svKS12','Käsityö 12 (sv)','Craft 12 (sv)','#A855F7'),
+        (gen_random_uuid(),'svKS13','Käsityö 13 (sv)','Craft 13 (sv)','#A855F7'),
+        (gen_random_uuid(),'LI1','Liikunta 1','Physical Education 1','#EF4444'),
+        (gen_random_uuid(),'LI2','Liikunta 2','Physical Education 2','#EF4444'),
+        (gen_random_uuid(),'LI3','Liikunta 3','Physical Education 3','#EF4444'),
+        (gen_random_uuid(),'LI4','Liikunta 4','Physical Education 4','#EF4444'),
+        (gen_random_uuid(),'LI5','Liikunta 5','Physical Education 5','#EF4444'),
+        (gen_random_uuid(),'LI6','Liikunta 6','Physical Education 6','#EF4444'),
+        (gen_random_uuid(),'LI7','Liikunta 7','Physical Education 7','#EF4444'),
+        (gen_random_uuid(),'vLI3','Liikunta 3 (valinnainen)','Physical Education 3 (elective)','#EF4444'),
+        (gen_random_uuid(),'vLI5','Liikunta 5 (valinnainen)','Physical Education 5 (elective)','#EF4444'),
+        (gen_random_uuid(),'vLI8','Liikunta 8 (valinnainen)','Physical Education 8 (elective)','#EF4444'),
+        (gen_random_uuid(),'vLI9','Liikunta 9 (valinnainen)','Physical Education 9 (elective)','#EF4444'),
+        (gen_random_uuid(),'svLI1','Liikunta 1 (sv)','Physical Education 1 (sv)','#EF4444'),
+        (gen_random_uuid(),'svLI2','Liikunta 2 (sv)','Physical Education 2 (sv)','#EF4444'),
+        (gen_random_uuid(),'svLI4','Liikunta 4 (sv)','Physical Education 4 (sv)','#EF4444'),
+        (gen_random_uuid(),'svLI6','Liikunta 6 (sv)','Physical Education 6 (sv)','#EF4444'),
+        (gen_random_uuid(),'svLI7','Liikunta 7 (sv)','Physical Education 7 (sv)','#EF4444'),
+        (gen_random_uuid(),'TE1','Terveystieto 1','Health Education 1','#06B6D4'),
+        (gen_random_uuid(),'TE2','Terveystieto 2','Health Education 2','#06B6D4'),
+        (gen_random_uuid(),'TE3','Terveystieto 3','Health Education 3','#06B6D4'),
+        (gen_random_uuid(),'VAP1','Vapaaehtoistyö 1','Volunteering 1','#6B7280')
+      ON CONFLICT (code) DO NOTHING;
+
+      -- v1.1.4 — retroactively color courses that were added without a color.
+      UPDATE subjects SET color = CASE
+        WHEN code ~ '^(sv|v[a-z])?MA' THEN '#3B82F6'
+        WHEN code ~ '^(sv|v[a-z])?FY' THEN '#8B5CF6'
+        WHEN code ~ '^(sv|v[a-z])?KE' THEN '#10B981'
+        WHEN code ~ '^(sv|v[a-z])?BI' THEN '#22C55E'
+        WHEN code ~ '^(sv|v[a-z])?GE' THEN '#84CC16'
+        WHEN code ~ '^(sv|v[a-z])?HI' THEN '#F59E0B'
+        WHEN code ~ '^(sv|v[a-z])?YH' THEN '#EF4444'
+        WHEN code ~ '^(sv|v[a-z])?(UE|UO|UK|ET)' THEN '#EC4899'
+        WHEN code ~ '^(sv|v[a-z])?MU' THEN '#6366F1'
+        WHEN code ~ '^(sv|v[a-z])?KU' THEN '#F97316'
+        WHEN code ~ '^(sv|v[a-z])?KO' THEN '#14B8A6'
+        WHEN code ~ '^(sv|v[a-z])?KS' THEN '#A855F7'
+        WHEN code ~ '^(sv|v[a-z])?LI' THEN '#EF4444'
+        WHEN code ~ '^(sv|v[a-z])?TE' THEN '#06B6D4'
+        WHEN code ~ '^(sv|v[a-z])?SC' THEN '#84CC16'
+        WHEN code ~ '^VAP' THEN '#6B7280'
+        ELSE '#6B7280'
+      END
+      WHERE color IS NULL;
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

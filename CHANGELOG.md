@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.4 — October 2026
+
+- 116 standard KSYK courses seeded (MA, BI, GE, FY, KE, SC, HI, YH, katsomusaine, MU, KU, KO, KS, LI, TE, VAP) with Finnish names, English names, and subject colors; ON CONFLICT DO NOTHING preserves admin edits
+- Existing courses without a color are retroactively colored by subject prefix via UPDATE in initDb
+- Admin course form: color auto-fills from course code prefix when typing (MA→blue, FY→purple, KE→emerald, etc.)
+- Announcement form: removed "Default" title and content fields; only FI and EN remain; `title`/`content` derived from `titleFi || titleEn` on submit
+- Staff form: removed plain Position and Department fields; only FI and EN columns remain; position/department derived on save
+
 ## 1.1.3 — October 2026
 
 - Web: admin profile dialog is now a bottom sheet on mobile (slides up, has drag handle, correct scroll); centered modal unchanged on desktop

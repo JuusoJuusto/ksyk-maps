@@ -166,11 +166,19 @@ export default function AnnouncementManager() {
     // strips phantom fields, coerces `expiresAt` ISO string → Date, drops
     // `authorId` (was tripping the FK to `staff.id` for owner accounts).
     // The client just sends the form state as-is.
+    if (!formData.titleFi && !formData.titleEn) {
+      toast({ title: "Title required", description: "Enter a Finnish or English title.", variant: "destructive" });
+      return;
+    }
+    if (!formData.contentFi && !formData.contentEn) {
+      toast({ title: "Content required", description: "Enter Finnish or English content.", variant: "destructive" });
+      return;
+    }
     const dataToSubmit = {
-      title: formData.title,
+      title: formData.titleFi || formData.titleEn,
       titleEn: formData.titleEn,
       titleFi: formData.titleFi,
-      content: formData.content,
+      content: formData.contentFi || formData.contentEn,
       contentEn: formData.contentEn,
       contentFi: formData.contentFi,
       priority: formData.priority,
@@ -284,29 +292,9 @@ export default function AnnouncementManager() {
           <div className="p-5">
             <form onSubmit={handleSubmit} className="space-y-4">
 
-              <div>
-                <Label htmlFor="title" className="text-gray-700 dark:text-gray-300">Title (Default) *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Enter announcement title"
-                  required
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="titleEn" className="text-gray-700 dark:text-gray-300">Title (English)</Label>
-                  <Input
-                    id="titleEn"
-                    value={formData.titleEn}
-                    onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                    placeholder="English title"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="titleFi" className="text-gray-700 dark:text-gray-300">Title (Finnish)</Label>
+                  <Label htmlFor="titleFi" className="text-gray-700 dark:text-gray-300">Title (FI) *</Label>
                   <Input
                     id="titleFi"
                     value={formData.titleFi}
@@ -314,99 +302,76 @@ export default function AnnouncementManager() {
                     placeholder="Suomenkielinen otsikko"
                   />
                 </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="content" className="text-gray-700 dark:text-gray-300">Content (Default) *</Label>
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const text = formData.content;
-                        const before = text.substring(0, start);
-                        const selected = text.substring(start, end);
-                        const after = text.substring(end);
-                        setFormData({ ...formData, content: before + '• ' + selected + after });
-                        setTimeout(() => textarea.focus(), 0);
-                      }}
-                      title="Add bullet point"
-                    >
-                      • Bullet
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                        const start = textarea.selectionStart;
-                        const text = formData.content;
-                        const before = text.substring(0, start);
-                        const after = text.substring(start);
-                        setFormData({ ...formData, content: before + '\n---\n' + after });
-                        setTimeout(() => textarea.focus(), 0);
-                      }}
-                      title="Add horizontal line"
-                    >
-                      ─ Line
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const textarea = document.getElementById('content') as HTMLTextAreaElement;
-                        const start = textarea.selectionStart;
-                        const text = formData.content;
-                        const before = text.substring(0, start);
-                        const after = text.substring(start);
-                        setFormData({ ...formData, content: before + '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' + after });
-                        setTimeout(() => textarea.focus(), 0);
-                      }}
-                      title="Add thick line"
-                    >
-                      ━ Thick Line
-                    </Button>
-                  </div>
+                <div>
+                  <Label htmlFor="titleEn" className="text-gray-700 dark:text-gray-300">Title (EN)</Label>
+                  <Input
+                    id="titleEn"
+                    value={formData.titleEn}
+                    onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
+                    placeholder="English title"
+                  />
                 </div>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Enter announcement content here..."
-                  rows={6}
-                  required
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Tip: Use bullet points (•) for lists, lines (---) for sections, and colons (:) for headers
-                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="contentEn" className="text-gray-700 dark:text-gray-300">Content (English)</Label>
-                  <Textarea
-                    id="contentEn"
-                    value={formData.contentEn}
-                    onChange={(e) => setFormData({ ...formData, contentEn: e.target.value })}
-                    placeholder="English content"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contentFi" className="text-gray-700 dark:text-gray-300">Content (Finnish)</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="contentFi" className="text-gray-700 dark:text-gray-300">Content (FI) *</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const textarea = document.getElementById('contentFi') as HTMLTextAreaElement;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = formData.contentFi;
+                          const before = text.substring(0, start);
+                          const selected = text.substring(start, end);
+                          const after = text.substring(end);
+                          setFormData({ ...formData, contentFi: before + '• ' + selected + after });
+                          setTimeout(() => textarea.focus(), 0);
+                        }}
+                        title="Add bullet point"
+                      >
+                        • Bullet
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const textarea = document.getElementById('contentFi') as HTMLTextAreaElement;
+                          const start = textarea.selectionStart;
+                          const text = formData.contentFi;
+                          const before = text.substring(0, start);
+                          const after = text.substring(start);
+                          setFormData({ ...formData, contentFi: before + '\n---\n' + after });
+                          setTimeout(() => textarea.focus(), 0);
+                        }}
+                        title="Add horizontal line"
+                      >
+                        ─ Line
+                      </Button>
+                    </div>
+                  </div>
                   <Textarea
                     id="contentFi"
                     value={formData.contentFi}
                     onChange={(e) => setFormData({ ...formData, contentFi: e.target.value })}
                     placeholder="Suomenkielinen sisältö"
-                    rows={3}
+                    rows={6}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contentEn" className="text-gray-700 dark:text-gray-300">Content (EN)</Label>
+                  <Textarea
+                    id="contentEn"
+                    value={formData.contentEn}
+                    onChange={(e) => setFormData({ ...formData, contentEn: e.target.value })}
+                    placeholder="English content"
+                    rows={6}
                   />
                 </div>
               </div>

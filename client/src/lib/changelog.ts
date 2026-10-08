@@ -10,17 +10,37 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.3";
+export const APP_VERSION = "1.1.4";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.3";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.4",
+    date: "October 2026",
+    title: "Course catalogue + admin UX cleanup",
+    titleFi: "Kurssikatalogi + admin-lomakkeiden siistiminen",
+    latest: true,
+    highlights: [
+      "**116 courses seeded.** All standard KSYK courses (MA, BI, GE, FY, KE, SC, HI, YH, katsomusaine, MU, KU, KO, KS, LI, TE, VAP) are now pre-populated with Finnish names, English names, and auto-assigned subject colors. Existing courses without a color are also retroactively colored.",
+      "**Course auto-color.** Adding or editing a course in admin auto-fills the color based on the subject prefix (MA→blue, FY→purple, KE→emerald, etc.).",
+      "**Announcements: EN/FI only.** The 'Default' title and content fields are removed from the announcement form — only Finnish and English variants remain. The default field is now derived automatically.",
+      "**Staff form: EN/FI only.** Position and Department fields now show only FI and EN columns (no separate Default field).",
+      "**Rollback** — `git reset --hard rollback-before-1-1-4`. No DB changes (seed uses ON CONFLICT DO NOTHING).",
+    ],
+    highlightsFi: [
+      "**116 kurssia lisätty.** Kaikki KSYK:n vakiokurssit ovat nyt valmiina suomalaisilla nimillä, englanninkielisillä nimillä ja väreillä.",
+      "**Kurssin automaattiväri.** Kurssia lisättäessä väri täytetään automaattisesti aineprefixin perusteella.",
+      "**Tiedotteet: vain FI/EN.** Default-kentät poistettu tiedotelomakkeesta.",
+      "**Henkilöstölomake: vain FI/EN.** Asema ja osasto -kentät näyttävät nyt vain FI- ja EN-sarakkeet.",
+    ],
+  },
+  {
     version: "1.1.3",
     date: "October 2026",
     title: "Profile dialog redesign + timetable UX",
     titleFi: "Profiilidialogi uusittu + lukujärjestyksen UX",
-    latest: true,
+    latest: false,
     highlights: [
       "**Profile dialog: bottom sheet on mobile.** The profile dialog now slides up as a bottom sheet on phones instead of covering the full screen — with a drag handle, smooth slide-in animation, and correct scroll on all viewport sizes.",
       "**Profile inputs: no iOS zoom.** All form inputs are now 16 px on mobile, which prevents the iOS browser from zooming in on focus.",

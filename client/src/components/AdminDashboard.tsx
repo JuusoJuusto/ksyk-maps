@@ -126,6 +126,27 @@ interface Announcement {
 
 const ADMIN_BASE = "/admin";
 
+function courseAutoColor(code: string): string {
+  const base = code.toLowerCase().replace(/^(sv|v(?=[a-z]))/i, '');
+  if (base.startsWith('ma')) return '#3B82F6';
+  if (base.startsWith('fy')) return '#8B5CF6';
+  if (base.startsWith('ke')) return '#10B981';
+  if (base.startsWith('bi')) return '#22C55E';
+  if (base.startsWith('ge')) return '#84CC16';
+  if (base.startsWith('hi')) return '#F59E0B';
+  if (base.startsWith('yh')) return '#EF4444';
+  if (base.startsWith('ue') || base.startsWith('uo') || base.startsWith('uk') || base.startsWith('et')) return '#EC4899';
+  if (base.startsWith('mu')) return '#6366F1';
+  if (base.startsWith('ku')) return '#F97316';
+  if (base.startsWith('ko')) return '#14B8A6';
+  if (base.startsWith('ks')) return '#A855F7';
+  if (base.startsWith('li')) return '#EF4444';
+  if (base.startsWith('te')) return '#06B6D4';
+  if (base.startsWith('sc')) return '#84CC16';
+  if (base.startsWith('vap')) return '#6B7280';
+  return '#6B7280';
+}
+
 // Canonical tab slugs — also used as URL path segments.
 // "analytics" was folded into the Logs page as a nested tab (matches the
 // data flow: analytics is a lens over the log stream, not a separate
@@ -1246,12 +1267,20 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
       toast({ title: "Required fields missing", description: "Please fill in first and last name.", variant: "destructive" });
       return;
     }
-    createStaffMutation.mutate(newStaff);
+    createStaffMutation.mutate({
+      ...newStaff,
+      position: newStaff.positionFi || newStaff.positionEn,
+      department: newStaff.departmentFi || newStaff.departmentEn,
+    });
   };
 
   const handleUpdateStaff = () => {
     if (!editingStaff) return;
-    updateStaffMutation.mutate(editingStaff);
+    updateStaffMutation.mutate({
+      ...editingStaff,
+      position: editingStaff.positionFi || editingStaff.positionEn,
+      department: editingStaff.departmentFi || editingStaff.departmentEn,
+    });
   };
 
   const handleDeleteStaff = (id: string) => {
@@ -2340,19 +2369,19 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs mb-1 block">Position</Label>
+                    <Label className="text-xs mb-1 block">Position (FI)</Label>
                     <Input
-                      value={editingStaff ? editingStaff.position || "" : newStaff.position}
+                      value={editingStaff ? editingStaff.positionFi || "" : newStaff.positionFi}
                       onChange={(e) => {
                         if (editingStaff) {
-                          setEditingStaff({ ...editingStaff, position: e.target.value });
+                          setEditingStaff({ ...editingStaff, positionFi: e.target.value });
                         } else {
-                          setNewStaff({ ...newStaff, position: e.target.value });
+                          setNewStaff({ ...newStaff, positionFi: e.target.value });
                         }
                       }}
-                      placeholder="Teacher"
+                      placeholder="Opettaja"
                     />
                   </div>
                   <div>
@@ -2369,35 +2398,21 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                       placeholder="Teacher"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs mb-1 block">Position (FI)</Label>
-                    <Input
-                      value={editingStaff ? editingStaff.positionFi || "" : newStaff.positionFi}
-                      onChange={(e) => {
-                        if (editingStaff) {
-                          setEditingStaff({ ...editingStaff, positionFi: e.target.value });
-                        } else {
-                          setNewStaff({ ...newStaff, positionFi: e.target.value });
-                        }
-                      }}
-                      placeholder="Opettaja"
-                    />
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs mb-1 block">Department</Label>
+                    <Label className="text-xs mb-1 block">Department (FI)</Label>
                     <Input
-                      value={editingStaff ? editingStaff.department || "" : newStaff.department}
+                      value={editingStaff ? editingStaff.departmentFi || "" : newStaff.departmentFi}
                       onChange={(e) => {
                         if (editingStaff) {
-                          setEditingStaff({ ...editingStaff, department: e.target.value });
+                          setEditingStaff({ ...editingStaff, departmentFi: e.target.value });
                         } else {
-                          setNewStaff({ ...newStaff, department: e.target.value });
+                          setNewStaff({ ...newStaff, departmentFi: e.target.value });
                         }
                       }}
-                      placeholder="Music"
+                      placeholder="Musiikki"
                     />
                   </div>
                   <div>
@@ -2412,20 +2427,6 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                         }
                       }}
                       placeholder="Music"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs mb-1 block">Department (FI)</Label>
-                    <Input
-                      value={editingStaff ? editingStaff.departmentFi || "" : newStaff.departmentFi}
-                      onChange={(e) => {
-                        if (editingStaff) {
-                          setEditingStaff({ ...editingStaff, departmentFi: e.target.value });
-                        } else {
-                          setNewStaff({ ...newStaff, departmentFi: e.target.value });
-                        }
-                      }}
-                      placeholder="Musiikki"
                     />
                   </div>
                 </div>
@@ -2599,7 +2600,10 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                       <Label className="text-xs mb-1 block">Course code *</Label>
                       <Input
                         value={newCourse.code}
-                        onChange={(e) => setNewCourse({ ...newCourse, code: e.target.value })}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          setNewCourse({ ...newCourse, code, color: courseAutoColor(code) });
+                        }}
                         placeholder="FY1"
                         maxLength={20}
                       />
@@ -2671,7 +2675,10 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
                               <Label className="text-xs mb-1 block">Course code *</Label>
                               <Input
                                 value={editingCourse.code}
-                                onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                                onChange={(e) => {
+                                  const code = e.target.value;
+                                  setEditingCourse({ ...editingCourse, code, color: editingCourse.color || courseAutoColor(code) });
+                                }}
                                 maxLength={20}
                               />
                             </div>
