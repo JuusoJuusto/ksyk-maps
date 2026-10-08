@@ -30,11 +30,13 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 - Course seed goes in `initDb.ts` with `ON CONFLICT (code) DO NOTHING` so admin edits are never wiped; retroactive color via `UPDATE subjects SET color = CASE ...`
 - Android version unchanged (web-only changes)
 
-**Shipped.** Commit `b2ccc48` · web v1.1.4 · tag `rollback-before-1-1-4`
+**Shipped.** Commits `b2ccc48` / `838f14a` / `ab3d154` · web v1.1.4 · Android 1.1.4 (versionCode 111) · tag `rollback-before-1-1-4`
 - `client/src/components/AnnouncementManager.tsx` — removed Default fields, EN/FI only, derived title/content in handleSubmit
 - `client/src/components/AdminDashboard.tsx` — courseAutoColor(), wired to code inputs, removed plain Position/Department
 - `server/initDb.ts` — 116-row INSERT seed + retroactive color UPDATE
-- `client/src/lib/changelog.ts` — bumped APP_VERSION to 1.1.4
+- `client/src/lib/changelog.ts` — bumped APP_VERSION + ANDROID_APP_VERSION to 1.1.4
+- `android/app/src/main/kotlin/fi/ksykmaps/ui/TimetableScreen.kt` — LookupStore.invalidate() + ensureLoaded() after sync
+- `android/app/build.gradle.kts` — versionCode 111, versionName 1.1.4
 - `CHANGELOG.md`, `ROADMAP.md` — updated
 
 **Rollback.** `git reset --hard rollback-before-1-1-4`. No DB migrations; seed is idempotent.
