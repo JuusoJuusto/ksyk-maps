@@ -16,15 +16,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.ApiException
 import com.posthog.PostHog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.*
-import java.time.LocalDate
-import java.util.UUID
 
 private const val WILMA_PREFS = "ksyk_wilma"
 private const val WILMA_URL_KEY = "ical_url"
@@ -68,72 +64,21 @@ fun WilmaConnectScreen(
         syncing = true
         scope.launch(Dispatchers.IO) {
             try {
-                val jaksot = loadJaksot(ctx)
-                val body = buildJsonObject { put("url", trimmed) }
-                val result = Api.post("/calendar/parse", body)
-                val obj = result.jsonObject
-                val eventsArr = obj["events"]?.jsonArray ?: JsonArray(emptyList())
-
-                val imported = eventsArr.mapNotNull { el ->
-                    try {
-                        val ev = el.jsonObject
-                        val dow = ev["dayOfWeek"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
-                        val start = ev["startHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        val end = ev["endHhmm"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        val summary = ev["summary"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        // Prefer server-provided localDate (YYYY-MM-DD, already
-                        // in Europe/Helsinki). Fall back to date if server is
-                        // an older version — but strip the time portion first
-                        // because the JS Date field serialises to full ISO
-                        // ("2026-10-06T00:00:00.000Z") which LocalDate.parse
-                        // rejects. That silent parse failure was why every
-                        // lesson used to end up with jaksoId="all" and show
-                        // in every period.
-                        val rawDate = (ev["localDate"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
-                            ?: (ev["date"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
-                        val dateStr = rawDate?.take(10)
-                        val jaksoId = if (dateStr != null && dateStr.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
-                            try {
-                                jaksot.firstOrNull { j -> j.startDate <= dateStr && dateStr <= j.endDate }?.id ?: "all"
-                            } catch (_: Exception) { "all" }
-                        } else "all"
-                        // Include jaksoId in the id so two templates from
-                        // the same Wilma VEVENT (spanning multiple jaksos)
-                        // don't collide on save/lookup.
-                        val uidStr = ev["uid"]?.jsonPrimitive?.contentOrNull ?: UUID.randomUUID().toString()
-                        ScheduleEntry(
-                            id = "wilma_${uidStr}_${jaksoId}",
-                            dayOfWeek = dow,
-                            startHhmm = start,
-                            endHhmm = end,
-                            subject = summary,
-                            roomId = ev["matchedRoomId"]?.jsonPrimitive?.contentOrNull ?: "",
-                            roomNumber = ev["matchedRoomNumber"]?.jsonPrimitive?.contentOrNull ?: "",
-                            teacher = ev["teacher"]?.jsonPrimitive?.contentOrNull ?: "",
-                            jaksoId = jaksoId,
-                        )
-                    } catch (_: Exception) { null }
-                }
-
-                // Deduplicate by (dayOfWeek, start+end, subject, jaksoId) —
-                // RRULE expansion produces one entry per occurrence, but for
-                // the weekly timetable we only need one per unique pattern per jakso.
-                val deduped = imported
-                    .distinctBy { listOf(it.dayOfWeek, it.startHhmm, it.endHhmm, it.subject, it.jaksoId) }
-                // Keep manually added entries, replace all wilma_ ones
-                val existing = loadEntries(ctx)
-                val manual = existing.filter { !it.id.startsWith("wilma_") }
-                saveEntries(ctx, manual + deduped)
+                // Route through the shared sync path so teacher abbreviations
+                // and subject codes are always extracted — the old inline parser
+                // here was missing those fields, causing them to disappear on
+                // every manual re-sync.
+                val stats = WilmaRefreshWorker.syncNow(ctx, trimmed)
                 saveWilmaUrl(ctx, trimmed)
 
                 withContext(Dispatchers.Main) {
                     storedUrl = trimmed
                     url = trimmed
-                    successStats = Pair(deduped.size, deduped.count { it.roomId.isNotBlank() })
+                    successStats = stats
                     runCatching {
                         PostHog.capture(
                             "wilma_calendar_imported",
-                            properties = mapOf("lesson_count" to deduped.size, "matched_room_count" to deduped.count { it.roomId.isNotBlank() }),
+                            properties = mapOf("lesson_count" to stats.first, "matched_room_count" to stats.second),
                         )
                     }
                     syncing = false

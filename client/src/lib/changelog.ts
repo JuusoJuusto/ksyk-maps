@@ -10,17 +10,35 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.1";
+export const ANDROID_APP_VERSION = "1.1.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.2",
+    date: "October 2026",
+    title: "Course editing + Wilma sync fix",
+    titleFi: "Kurssien muokkaus + Wilma-synkaus korjattu",
+    latest: true,
+    highlights: [
+      "**Admin: Course editing.** All course fields (code, name, English name, color) can now be edited inline in the Courses tab — no delete-and-recreate needed.",
+      "**Wilma sync fix.** Pressing 'Synkronoi' no longer wipes teacher abbreviations and subject codes. The connect screen now routes through the same parsing path as the background refresh worker.",
+      "**Faster Wilma sync.** `loadJaksot` now returns from DataStore cache immediately on subsequent calls instead of hitting the network first — removes a serial round-trip from every manual and auto sync.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-2`. No DB changes.",
+    ],
+    highlightsFi: [
+      "**Admin: Kurssien muokkaus.** Kaikki kurssikentät (koodi, nimi, englanninkielinen nimi, väri) ovat nyt muokattavissa suoraan Kurssit-välilehdellä.",
+      "**Wilma-synkaus korjattu.** 'Synkronoi'-painike ei enää tyhjennä opettajalyhenteitä ja kurssikoodeja.",
+      "**Nopeampi Wilma-synkaus.** Jaksot haetaan välimuistista eikä verkosta joka synkronoinnissa.",
+    ],
+  },
   {
     version: "1.1.1",
     date: "October 2026",
     title: "Bug fixes",
     titleFi: "Korjauksia",
-    latest: true,
+    latest: false,
     highlights: [
       "**Staff admin 401 fixed.** Create / edit / delete staff members no longer return 401 — admin auth header was missing from the mutations.",
       "**Staff + subjects 500 fixed.** `abbrev`, `wilma_profile_url` columns and the `subjects` table are now created on cold start so GET /api/staff and GET /api/subjects no longer fail on fresh deployments.",

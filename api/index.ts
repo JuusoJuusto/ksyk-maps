@@ -1881,18 +1881,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // PATCH /api/subjects/:id — admin update (color only for now)
+    // PATCH /api/subjects/:id — admin update (code, name, nameEn, color)
     {
       const m = apiPath.match(/^\/subjects\/([^/]+)$/);
       if (m && req.method === 'PATCH') {
         if (!requireAdminAuth(req, res)) return;
-        const { color } = req.body || {};
+        const { color, code, name, nameEn } = req.body || {};
         try {
           const { db: pgDb } = await import('../server/db.js');
           const { subjects: subjectsTable } = await import('../shared/schema.js');
           const { eq } = await import('drizzle-orm');
+          const patch: Record<string, any> = { updatedAt: new Date() };
+          if (color !== undefined) patch.color = color ? String(color).trim() : null;
+          if (code !== undefined) patch.code = String(code).trim();
+          if (name !== undefined) patch.name = String(name).trim();
+          if (nameEn !== undefined) patch.nameEn = nameEn ? String(nameEn).trim() : null;
           const rows = await pgDb.update(subjectsTable)
-            .set({ color: color ? String(color).trim() : null, updatedAt: new Date() })
+            .set(patch)
             .where(eq(subjectsTable.id, m[1]))
             .returning();
           return res.status(200).json(rows[0]);

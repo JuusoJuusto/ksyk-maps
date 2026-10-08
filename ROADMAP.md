@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.2 + Android 1.1.2 — course editing in admin, Wilma sync no longer wipes teacher data, faster jakso load (DataStore cache-first)
 - v1.1.1 + Android 1.1.1 — staff 401/500 fix, iCal teacher parsing fix (K13 class codes no longer shown as teachers), Android accent color reverted to #3B82F6
 - v1.1.0 — public launch: beta banner off, floor labels + GPS toggles, accessible-routes enforcement, Microsoft OAuth status, Sentry sourcemaps, Critical CSS, Android navy visual pass
 - v1.0.12 — motion pass: 180 ms ease-out open / 140 ms ease-in close on all dialogs + sheets; 3 new FAQ entries (offline, navigation, timetable colors)

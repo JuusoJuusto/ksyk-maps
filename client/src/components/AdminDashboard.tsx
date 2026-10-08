@@ -34,6 +34,7 @@ import {
   Megaphone,
   Plus,
   Edit,
+  Pencil,
   Trash2,
   Save,
   X,
@@ -969,6 +970,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
   // Courses management state
   const [newCourse, setNewCourse] = useState({ code: "", name: "", nameEn: "", color: "" });
   const [showCourseForm, setShowCourseForm] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
   const [confirmDeleteCourseId, setConfirmDeleteCourseId] = useState<string | null>(null);
   
   // Get current user from localStorage
@@ -1219,6 +1221,24 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       setConfirmDeleteCourseId(null);
     },
+  });
+
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ id, ...fields }: any) => {
+      const r = await fetch(`/api/subjects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        credentials: "include",
+        body: JSON.stringify(fields),
+      });
+      if (!r.ok) throw new Error("Failed to update course");
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      setEditingCourse(null);
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const handleCreateStaff = () => {
@@ -2643,44 +2663,109 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
               ) : (
                 <div className="space-y-1">
                   {(courses as Course[]).map((course) => (
-                    <div key={course.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <label className="shrink-0 cursor-pointer" title="Change color">
-                          <input
-                            type="color"
-                            value={course.color || "#3B82F6"}
-                            onChange={(e) => updateCourseColorMutation.mutate({ id: course.id, color: e.target.value })}
-                            className="sr-only"
-                          />
-                          <span
-                            className="inline-block h-4 w-4 rounded-full border border-white/60 shadow-sm"
-                            style={{ background: course.color || "#3B82F6" }}
-                          />
-                        </label>
-                        <span className="shrink-0 inline-flex items-center rounded-[3px] border border-[#d5dae0] dark:border-[#2a3040] px-1.5 py-0 text-[11px] font-mono font-bold text-[#003d82] dark:text-[#4a90d9]">
-                          {course.code}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{course.name}</p>
-                          {course.nameEn && <p className="text-xs text-muted-foreground truncate">{course.nameEn}</p>}
+                    <div key={course.id}>
+                      {editingCourse?.id === course.id ? (
+                        <div className="rounded-xl border border-[#d5dae0] dark:border-[#2a3040] bg-gray-50/60 dark:bg-gray-800/40 p-4 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div>
+                              <Label className="text-xs mb-1 block">Course code *</Label>
+                              <Input
+                                value={editingCourse.code}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                                maxLength={20}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs mb-1 block">Name (FI) *</Label>
+                              <Input
+                                value={editingCourse.name}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs mb-1 block">Name (EN)</Label>
+                              <Input
+                                value={editingCourse.nameEn || ""}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, nameEn: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs mb-1 block">Color</Label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={editingCourse.color || "#3B82F6"}
+                                  onChange={(e) => setEditingCourse({ ...editingCourse, color: e.target.value })}
+                                  className="h-9 w-12 rounded cursor-pointer border border-input p-0.5"
+                                />
+                                <span className="text-xs text-muted-foreground font-mono">{editingCourse.color || "auto"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditingCourse(null)}>Cancel</Button>
+                            <Button size="sm" className="h-8 px-4 text-xs bg-[#003d82] hover:bg-[#002d5f] text-white"
+                              disabled={updateCourseMutation.isPending}
+                              onClick={() => {
+                                if (!editingCourse.code.trim() || !editingCourse.name.trim()) {
+                                  toast({ title: "Course code and Finnish name are required", variant: "destructive" });
+                                  return;
+                                }
+                                updateCourseMutation.mutate({ id: editingCourse.id, code: editingCourse.code.trim(), name: editingCourse.name.trim(), nameEn: editingCourse.nameEn?.trim() || null, color: editingCourse.color || null });
+                              }}>
+                              {updateCourseMutation.isPending
+                                ? <><span className="h-3 w-3 mr-1.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />Saving…</>
+                                : <><Save className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.75} />Save</>}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-1">
-                        {confirmDeleteCourseId === course.id ? (
-                          <>
-                            <span className="text-xs text-red-600 dark:text-red-400 font-medium">Delete?</span>
-                            <Button size="sm" className="h-7 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
-                              onClick={() => deleteCourseMutation.mutate(course.id)}>Yes</Button>
-                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
-                              onClick={() => setConfirmDeleteCourseId(null)}>No</Button>
-                          </>
-                        ) : (
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            onClick={() => setConfirmDeleteCourseId(course.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <label className="shrink-0 cursor-pointer" title="Change color">
+                              <input
+                                type="color"
+                                value={course.color || "#3B82F6"}
+                                onChange={(e) => updateCourseColorMutation.mutate({ id: course.id, color: e.target.value })}
+                                className="sr-only"
+                              />
+                              <span
+                                className="inline-block h-4 w-4 rounded-full border border-white/60 shadow-sm"
+                                style={{ background: course.color || "#3B82F6" }}
+                              />
+                            </label>
+                            <span className="shrink-0 inline-flex items-center rounded-[3px] border border-[#d5dae0] dark:border-[#2a3040] px-1.5 py-0 text-[11px] font-mono font-bold text-[#003d82] dark:text-[#4a90d9]">
+                              {course.code}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{course.name}</p>
+                              {course.nameEn && <p className="text-xs text-muted-foreground truncate">{course.nameEn}</p>}
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-1">
+                            {confirmDeleteCourseId === course.id ? (
+                              <>
+                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">Delete?</span>
+                                <Button size="sm" className="h-7 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={() => deleteCourseMutation.mutate(course.id)}>Yes</Button>
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                  onClick={() => setConfirmDeleteCourseId(null)}>No</Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                  onClick={() => { setEditingCourse({ ...course }); setShowCourseForm(false); }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                  onClick={() => setConfirmDeleteCourseId(course.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

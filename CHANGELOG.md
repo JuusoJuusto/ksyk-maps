@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 — October 2026
+
+- Admin: course editing — all fields (code, name, English name, color) now editable inline in the Courses tab
+- Android fix: pressing "Synkronoi" in Wilma Connect no longer wipes teacher abbreviations and subject codes — connect screen now routes through the same parser as the background worker
+- Android fix: `loadJaksot` returns DataStore cache immediately; network call skipped when cache is populated — removes a serial round-trip from every sync
+- Android versionCode 109
+
 ## 1.1.1 — October 2026
 
 - Fix: staff mutations (POST/PUT/DELETE /api/staff) returned 401 — admin auth header was missing

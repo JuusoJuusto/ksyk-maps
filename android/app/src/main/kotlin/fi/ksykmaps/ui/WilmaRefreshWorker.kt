@@ -69,9 +69,13 @@ class WilmaRefreshWorker(
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getString(KEY_LAST_SYNC_DATE, null)
 
-        /** Core sync logic — shared between the Worker and on-open trigger
-         *  in TimetableScreen so there's a single parsing path. */
-        suspend fun syncNow(ctx: Context, url: String) {
+        /**
+         * Core sync logic — shared between the Worker, on-open auto-refresh, and the
+         * Wilma Connect screen. Single source of truth for iCal parsing so that
+         * teacher abbreviations and subject codes are always extracted correctly.
+         * Returns (total imported, matched-room count) for display in the connect screen.
+         */
+        suspend fun syncNow(ctx: Context, url: String): Pair<Int, Int> {
             val jaksot = loadJaksot(ctx)
             val body = buildJsonObject { put("url", url) }
             val result = Api.post("/calendar/parse", body)
@@ -100,7 +104,6 @@ class WilmaRefreshWorker(
                         dayOfWeek     = dow,
                         startHhmm     = start,
                         endHhmm       = end,
-                        // Keep full summary as fallback subject; resolved name shown at display time
                         subject       = subjectCode.ifBlank { summary },
                         roomId        = ev["matchedRoomId"]?.jsonPrimitive?.contentOrNull ?: "",
                         roomNumber    = ev["matchedRoomNumber"]?.jsonPrimitive?.contentOrNull ?: "",
@@ -116,9 +119,8 @@ class WilmaRefreshWorker(
                 listOf(it.dayOfWeek, it.startHhmm, it.endHhmm, it.subject, it.jaksoId)
             }
             val manual = loadEntries(ctx).filter { !it.id.startsWith("wilma_") }
-            withContext(Dispatchers.Main) {
-                saveEntries(ctx, manual + deduped)
-            }
+            saveEntries(ctx, manual + deduped)
+            return Pair(deduped.size, deduped.count { it.roomId.isNotBlank() })
         }
     }
 }

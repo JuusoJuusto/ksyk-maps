@@ -44,8 +44,16 @@ private val DEFAULT_JAKSOT = listOf(
 )
 
 internal suspend fun loadJaksot(ctx: Context): List<Jakso> {
-    // Prefer live server-configured jaksot (admin editable). Fall back
-    // to the DataStore cache when offline, then to hardcoded defaults.
+    // Fast path: use DataStore cache when available so sync doesn't add
+    // a serial network round-trip just to fetch rarely-changing jakso dates.
+    // The cache is populated on TimetableScreen open; network is only hit when empty.
+    val pref = ctx.scheduleStore.data.first()[JAKSO_KEY]
+    val cached = if (pref != null) {
+        try { scheduleJson.decodeFromString<List<Jakso>>(pref) } catch (_: Exception) { emptyList() }
+    } else emptyList()
+    if (cached.isNotEmpty()) return cached.sortedBy { it.startDate }
+
+    // Cache empty (first launch) — fetch from network and save.
     try {
         val json = fi.ksykmaps.data.Api.get("/jaksot")
         val fresh = json.jsonArray.mapNotNull { el ->
@@ -60,12 +68,7 @@ internal suspend fun loadJaksot(ctx: Context): List<Jakso> {
             saveJaksot(ctx, fresh)
             return fresh.sortedBy { it.startDate }
         }
-    } catch (_: Throwable) { /* offline — fall through */ }
-    val pref = ctx.scheduleStore.data.first()[JAKSO_KEY]
-    val stored = if (pref != null) {
-        try { scheduleJson.decodeFromString<List<Jakso>>(pref) } catch (_: Exception) { emptyList() }
-    } else { emptyList() }
-    if (stored.isNotEmpty()) return stored.sortedBy { it.startDate }
+    } catch (_: Throwable) { /* offline — use hardcoded defaults */ }
     return DEFAULT_JAKSOT
 }
 

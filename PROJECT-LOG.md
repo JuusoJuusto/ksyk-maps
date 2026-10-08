@@ -15,6 +15,26 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 08-10-2026 — v1.1.2 — course editing, Wilma sync fix, faster jakso load
+
+**Asked.**
+- Allow inline editing of all course fields in the admin Courses tab (was create + delete only)
+- Fix Wilma sync bug: pressing "Synkronoi" wiped teacher abbreviations and subject codes from all timetable entries
+- Make Wilma sync faster (was slow because `loadJaksot` always hit the network even when DataStore cache was populated)
+
+**Decided.**
+- Added `editingCourse` state + `updateCourseMutation` + inline edit form to `AdminDashboard.tsx`; extended `PATCH /api/subjects/:id` to accept `code`, `name`, `nameEn` in addition to `color`
+- Root cause of sync wipe: `WilmaConnectScreen.connect()` had duplicate (outdated) inline parsing that didn't extract `teacherAbbrev`/`subjectCode`; fixed by routing through `WilmaRefreshWorker.syncNow`
+- `WilmaRefreshWorker.syncNow` now returns `Pair<Int, Int>` (total, matched-rooms); removed spurious `withContext(Dispatchers.Main)` around `saveEntries`
+- `ScheduleStore.loadJaksot`: added DataStore cache-first guard — returns early if cache is non-empty, only hits `/jaksot` network when cache is empty (first launch or cleared)
+
+**Shipped.**
+- web: `api/index.ts`, `client/src/components/AdminDashboard.tsx`, `client/src/lib/changelog.ts`
+- android: `WilmaRefreshWorker.kt`, `WilmaConnectScreen.kt`, `ScheduleStore.kt`, `build.gradle.kts`
+- docs: `CHANGELOG.md`, `ROADMAP.md`, `PROJECT-LOG.md`
+- Web v1.1.2 · Android versionCode 109 / versionName 1.1.2
+- Rollback: `git reset --hard rollback-before-1-1-2`; no DB changes
+
 ## 08-10-2026 — v1.1.1 — staff 401/500, iCal teacher fix, Android color revert
 
 **Asked.**
