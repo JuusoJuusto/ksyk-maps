@@ -155,6 +155,11 @@ fun TimetableScreen(
                     withContext(Dispatchers.IO) { WilmaRefreshWorker.syncNow(ctx, wilmaUrl) }
                     ctx.getSharedPreferences("ksyk_wilma", android.content.Context.MODE_PRIVATE)
                         .edit().putString(WilmaRefreshWorker.KEY_LAST_SYNC_DATE, today).apply()
+                    // Reload subject/teacher lookup so newly seeded courses resolve correctly
+                    LookupStore.invalidate()
+                    try { withContext(Dispatchers.IO) { LookupStore.ensureLoaded() } } catch (_: Throwable) {}
+                    subjectResolver      = { code -> LookupStore.resolveSubject(code) }
+                    subjectColorResolver = { code -> LookupStore.resolveSubjectColor(code) }
                     // Reload entries after successful sync so the UI shows fresh data
                     entries = loadEntries(ctx)
                     wilmaCount.value = entries.count { it.id.startsWith("wilma_") }

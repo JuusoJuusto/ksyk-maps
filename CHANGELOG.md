@@ -7,6 +7,8 @@
 - Admin course form: color auto-fills from course code prefix when typing (MA→blue, FY→purple, KE→emerald, etc.)
 - Announcement form: removed "Default" title and content fields; only FI and EN remain; `title`/`content` derived from `titleFi || titleEn` on submit
 - Staff form: removed plain Position and Department fields; only FI and EN columns remain; position/department derived on save
+- Android 1.1.4: after Wilma sync, LookupStore invalidates and reloads so newly seeded course names and colors appear immediately in the timetable without restart
+- Android versionCode 111
 
 ## 1.1.3 — October 2026
 
