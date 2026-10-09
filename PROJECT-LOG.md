@@ -15,6 +15,24 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-10-2026 — v1.1.6 — teacher subjects in profile, resolved names in notifications
+
+**Asked.**
+- Position should be "Teacher" / "Opettaja" for all staff; department should hold their teaching subjects
+- Mobile notifications should show course name (resolved from LookupStore), not raw Wilma code
+
+**Decided.**
+- initDb.ts teacher INSERT updated: position/position_en/position_fi='Opettaja'/'Teacher'/'Opettaja'; department/department_en/department_fi from subject lists; ON CONFLICT DO UPDATE so existing v1.1.5 rows are corrected on next cold start
+- LessonReminderScheduler.buildPendingIntent resolves lesson.subject via LookupStore.resolveSubject and lesson.teacher via LookupStore.resolveTeacher before putting in intent extras; LookupStore is already loaded (Phase 1 disk cache) by the time alarms are scheduled
+
+**Shipped.**
+- Commit: (see below)
+- Files: server/initDb.ts, android/.../LessonReminderScheduler.kt, android/app/build.gradle.kts, client/src/lib/changelog.ts, CHANGELOG.md
+- Android: versionCode 113, versionName 1.1.6
+- Web: APP_VERSION 1.1.6
+
+---
+
 ## 09-10-2026 — v1.1.5 — language courses, full teacher roster, instant timetable names
 
 **Asked.**

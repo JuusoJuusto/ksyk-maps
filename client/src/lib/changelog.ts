@@ -10,17 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.5";
+export const APP_VERSION = "1.1.6";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.5";
+export const ANDROID_APP_VERSION = "1.1.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.6",
+    date: "October 2026",
+    title: "Teacher subjects in profile & resolved names in notifications",
+    titleFi: "Oppiaineet opettajaprofiiliin & ainenimet ilmoituksiin",
+    latest: true,
+    highlights: [
+      "**Teacher subjects shown correctly.** Staff position is now 'Opettaja / Teacher' and the subjects they teach appear in the Department field — displayed in the correct language based on your app language.",
+      "**Lesson reminder notifications show course names.** Instead of the raw Wilma code (e.g. 'MA1.1'), the notification now shows the full subject name (e.g. 'Matematiikka 1 — Luvut ja lukujonot') and the teacher's full name instead of their abbreviation.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-6`. DB: ON CONFLICT DO UPDATE fixes position/department for existing teacher rows (safe, no schema change).",
+    ],
+    highlightsFi: [
+      "**Oppiaineet näkyvät oikein profiilissa.** Asemaksi asetettu 'Opettaja' ja opetettavat aineet näkyvät Osasto-kentässä valitulla kielellä.",
+      "**Tuntierinmuistutuksissa näkyy aineen nimi.** Wilma-koodin sijaan (esim. 'MA1.1') ilmoituksessa näkyy aineen nimi (esim. 'Matematiikka 1 — Luvut ja lukujonot') ja opettajan koko nimi.",
+    ],
+  },
   {
     version: "1.1.5",
     date: "October 2026",
     title: "Language courses, teacher roster & instant timetable names",
     titleFi: "Kielikurssit, opettajarekisteri & välittömät tunnisteet aikataulussa",
-    latest: true,
+    latest: false,
     highlights: [
       "**~82 language courses seeded.** All KSYK language courses (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN, vKOR, OPO) are now pre-populated with Finnish names, English names, and auto-assigned colors.",
       "**~90 teachers seeded.** Full KSYK teacher roster added with abbreviations, first/last names, and subject descriptions in both languages. Used by the timetable to show teacher names instead of abbreviations.",

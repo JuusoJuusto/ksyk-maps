@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.6 — October 2026
+
+- Teacher position re-seeded to "Opettaja" / "Teacher" for all staff; teaching subjects moved to department/department_en/department_fi fields; ON CONFLICT DO UPDATE fixes existing rows
+- Android 1.1.6: lesson reminder notifications show resolved subject name and teacher full name instead of Wilma codes/abbreviations
+- Android versionCode 113
+
 ## 1.1.5 — October 2026
 
 - ~82 language courses seeded (a1EN, aRU, bRU, svRU, a1RA, a1SA, a1EA, a2EN, vEN, a2RA, a2SA, a2EA, bRA, bSA, bEA, AIEN1–6, vKOR1, OPO) with Finnish names, English names, and subject colors; ON CONFLICT DO NOTHING preserves admin edits

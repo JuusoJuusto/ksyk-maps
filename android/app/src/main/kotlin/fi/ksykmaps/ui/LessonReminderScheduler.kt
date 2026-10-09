@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import fi.ksykmaps.data.LookupStore
 import fi.ksykmaps.schedule.ScheduleEngine
 import fi.ksykmaps.schedule.TimedLesson
 import java.time.LocalDate
@@ -85,11 +86,13 @@ object LessonReminderScheduler {
 
     private fun buildPendingIntent(context: Context, lesson: TimedLesson): PendingIntent {
         val startHhmm = "%02d:%02d".format(lesson.startTime.hour, lesson.startTime.minute)
+        val resolvedSubject = LookupStore.resolveSubject(lesson.subject) ?: lesson.subject
+        val resolvedTeacher = LookupStore.resolveTeacher(lesson.teacher) ?: lesson.teacher
         val intent = Intent(context, LessonReminderReceiver::class.java).apply {
-            putExtra("subject", lesson.subject)
+            putExtra("subject", resolvedSubject)
             putExtra("startHhmm", startHhmm)
             putExtra("roomNumber", lesson.roomNumber)
-            putExtra("teacher", lesson.teacher)
+            putExtra("teacher", resolvedTeacher)
         }
         return PendingIntent.getBroadcast(
             context, REQUEST_CODE, intent,
