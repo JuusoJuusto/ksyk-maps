@@ -15,6 +15,23 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-10-2026 — v1.1.9 — Swedish courses expanded to full catalogue
+
+**Asked.** Delete old aRU/bRU/svRU entries and replace with 22 numbered courses: a1RU1-7, a2RU1-7, bRU1-5, svRU1-3.
+
+**Decided.**
+- Old generic codes deleted via `DELETE FROM subjects WHERE code IN ('aRU','bRU','svRU')` in initDb.ts migration section.
+- 22 new numbered courses inserted in main INSERT block (ON CONFLICT DO NOTHING).
+- Retroactive color UPDATE regex and `courseAutoColor` in AdminDashboard.tsx both updated from `(a|b|sv)?RU` to `(a1|a2|a|b|sv)?RU` so new codes get #0284C7 automatically.
+- Data-only — no APK required.
+
+**Shipped.**
+- Commit `4a35ba6`
+- Rollback: `git reset --hard rollback-before-1-1-9`
+- Files: `initDb.ts`, `changelog.ts`, `AdminDashboard.tsx`
+
+---
+
 ## 09-10-2026 — v1.1.8 — widgets show course names + teachers; iCal teacher fix; Swedish courses renamed
 
 **Asked.**
