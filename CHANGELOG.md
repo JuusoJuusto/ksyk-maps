@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7 — October 2026
+
+- All ~90 seeded teachers given `firstname.lastname@ksyk.fi` email (ä→a, ö→o); UPDATE only when email IS NULL so admin overrides are preserved
+- No schema change, no Android APK
+
 ## 1.1.6 — October 2026
 
 - Teacher position re-seeded to "Opettaja" / "Teacher" for all staff; teaching subjects moved to department/department_en/department_fi fields; ON CONFLICT DO UPDATE fixes existing rows

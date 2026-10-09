@@ -15,6 +15,21 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-10-2026 — v1.1.7 — teacher email addresses seeded
+
+**Asked.**
+- Add firstname.lastname@ksyk.fi email for every teacher; ä→a, ö→o (e.g. jukka.lamsa@ksyk.fi)
+
+**Decided.**
+- Separate UPDATE...FROM (VALUES ...) in initDb.ts after the INSERT; sets email only WHERE email IS NULL so admin edits are never overwritten on subsequent cold starts
+- No Android APK needed — emails are served from the API, no code change
+
+**Shipped.**
+- Files: server/initDb.ts, client/src/lib/changelog.ts, CHANGELOG.md
+- Web: APP_VERSION 1.1.7 (ANDROID_APP_VERSION stays 1.1.6)
+
+---
+
 ## 09-10-2026 — v1.1.6 — teacher subjects in profile, resolved names in notifications
 
 **Asked.**

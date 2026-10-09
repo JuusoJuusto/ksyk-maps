@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.7 — teacher emails seeded (firstname.lastname@ksyk.fi, ä→a ö→o); data-only, no APK
 - v1.1.6 + Android 1.1.6 — teacher position fixed to "Opettaja/Teacher", subjects in department field; lesson reminder notifications now show resolved course name + teacher full name
 - v1.1.5 + Android 1.1.5 — language courses (~82 seeded), full teacher roster (~90 seeded), courseAutoColor handles language prefixes, Android timetable names appear instantly (disk-cache-first two-phase load)
 - v1.1.4 + Android 1.1.4 — course catalogue (116 courses seeded), auto-color by subject prefix, EN/FI-only admin forms; Android reloads LookupStore after sync

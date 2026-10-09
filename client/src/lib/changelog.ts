@@ -10,17 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.6";
+export const APP_VERSION = "1.1.7";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.6";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.7",
+    date: "October 2026",
+    title: "Teacher email addresses added",
+    titleFi: "Opettajien sähköpostiosoitteet lisätty",
+    latest: true,
+    highlights: [
+      "**All teacher emails seeded.** Every staff member now has a `firstname.lastname@ksyk.fi` email address — Finnish special characters replaced (ä→a, ö→o). Shown in teacher profile in the admin panel.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-7`. DB: UPDATE only sets email where NULL (safe, no schema change).",
+    ],
+  },
+  {
     version: "1.1.6",
     date: "October 2026",
     title: "Teacher subjects in profile & resolved names in notifications",
     titleFi: "Oppiaineet opettajaprofiiliin & ainenimet ilmoituksiin",
-    latest: true,
+    latest: false,
     highlights: [
       "**Teacher subjects shown correctly.** Staff position is now 'Opettaja / Teacher' and the subjects they teach appear in the Department field — displayed in the correct language based on your app language.",
       "**Lesson reminder notifications show course names.** Instead of the raw Wilma code (e.g. 'MA1.1'), the notification now shows the full subject name (e.g. 'Matematiikka 1 — Luvut ja lukujonot') and the teacher's full name instead of their abbreviation.",
