@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.9 — October 2026
+
+- 22 Swedish courses added: a1RU1–7 (A1-Ruotsi), a2RU1–7 (A2-kieli Ruotsi), bRU1–5 (b-Ruotsi), svRU1–3 (lyhyt Ruotsi)
+- Old generic codes aRU/bRU/svRU deleted from DB via DELETE migration in initDb.ts
+- courseAutoColor and retroactive color UPDATE now recognise a1RU/a2RU prefix
+- No APK — data-only change; Android resolves names from server API
+
 ## 1.1.8 — October 2026
 
 - Android 1.1.8: all three home-screen widgets resolve Wilma codes to course names and teacher names via LookupStore disk cache (runBlocking ensureLoadedFromCache in updateWidget); teacher name added to details line in Current/Next Lesson widgets, teacher last name shown in room column of Today Schedule widget

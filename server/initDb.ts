@@ -427,7 +427,7 @@ export async function ensureSchema(): Promise<void> {
         WHEN code ~ '^(a1|a2|b|sv)?RA'    THEN '#C026D3'
         WHEN code ~ '^(a1|a2|b|sv)?SA'    THEN '#B45309'
         WHEN code ~ '^(a1|a2|b|sv)?EA'    THEN '#DC2626'
-        WHEN code ~ '^(a|b|sv)?RU'        THEN '#0284C7'
+        WHEN code ~ '^(a1|a2|a|b|sv)?RU'  THEN '#0284C7'
         WHEN code ~ '^v?KOR'              THEN '#7C3AED'
         WHEN code ~ '^OPO'                THEN '#6B7280'
         WHEN code ~ '^(sv|v[a-z])?MA'    THEN '#3B82F6'
@@ -459,9 +459,28 @@ export async function ensureSchema(): Promise<void> {
         (gen_random_uuid(),'a1EN5','A1-Englanti 5','English A1 5','#2563EB'),
         (gen_random_uuid(),'a1EN6','A1-Englanti 6','English A1 6','#2563EB'),
         (gen_random_uuid(),'a1EN7','A1-Englanti 7','English A1 7','#2563EB'),
-        (gen_random_uuid(),'aRU','Ruotsi A1-kieli','Swedish A1','#0284C7'),
-        (gen_random_uuid(),'bRU','Ruotsi B1-kieli','Swedish B1','#0284C7'),
-        (gen_random_uuid(),'svRU','Ruotsi lyhyt','Swedish short','#0284C7'),
+        (gen_random_uuid(),'a1RU1','A1-Ruotsi 1','Swedish A1 1','#0284C7'),
+        (gen_random_uuid(),'a1RU2','A1-Ruotsi 2','Swedish A1 2','#0284C7'),
+        (gen_random_uuid(),'a1RU3','A1-Ruotsi 3','Swedish A1 3','#0284C7'),
+        (gen_random_uuid(),'a1RU4','A1-Ruotsi 4','Swedish A1 4','#0284C7'),
+        (gen_random_uuid(),'a1RU5','A1-Ruotsi 5','Swedish A1 5','#0284C7'),
+        (gen_random_uuid(),'a1RU6','A1-Ruotsi 6','Swedish A1 6','#0284C7'),
+        (gen_random_uuid(),'a1RU7','A1-Ruotsi 7','Swedish A1 7','#0284C7'),
+        (gen_random_uuid(),'a2RU1','A2-kieli Ruotsi 1','Swedish A2 1','#0284C7'),
+        (gen_random_uuid(),'a2RU2','A2-kieli Ruotsi 2','Swedish A2 2','#0284C7'),
+        (gen_random_uuid(),'a2RU3','A2-kieli Ruotsi 3','Swedish A2 3','#0284C7'),
+        (gen_random_uuid(),'a2RU4','A2-kieli Ruotsi 4','Swedish A2 4','#0284C7'),
+        (gen_random_uuid(),'a2RU5','A2-kieli Ruotsi 5','Swedish A2 5','#0284C7'),
+        (gen_random_uuid(),'a2RU6','A2-kieli Ruotsi 6','Swedish A2 6','#0284C7'),
+        (gen_random_uuid(),'a2RU7','A2-kieli Ruotsi 7','Swedish A2 7','#0284C7'),
+        (gen_random_uuid(),'bRU1','b-Ruotsi 1','Swedish B1 1','#0284C7'),
+        (gen_random_uuid(),'bRU2','b-Ruotsi 2','Swedish B1 2','#0284C7'),
+        (gen_random_uuid(),'bRU3','b-Ruotsi 3','Swedish B1 3','#0284C7'),
+        (gen_random_uuid(),'bRU4','b-Ruotsi 4','Swedish B1 4','#0284C7'),
+        (gen_random_uuid(),'bRU5','b-Ruotsi 5','Swedish B1 5','#0284C7'),
+        (gen_random_uuid(),'svRU1','Ruotsia aloitteleville','Swedish for Beginners','#0284C7'),
+        (gen_random_uuid(),'svRU2','Chansa och plugga svenska!','Chansa och plugga svenska!','#0284C7'),
+        (gen_random_uuid(),'svRU3','Hyppy lukion ruotsiin','Jump into High School Swedish','#0284C7'),
         (gen_random_uuid(),'a1RA1','A1-Ranska 1','French A1 1','#C026D3'),
         (gen_random_uuid(),'a1RA2','A1-Ranska 2','French A1 2','#C026D3'),
         (gen_random_uuid(),'a1RA3','A1-Ranska 3','French A1 3','#C026D3'),
@@ -748,10 +767,8 @@ export async function ensureSchema(): Promise<void> {
       ) AS v(a, e)
       WHERE s.abbrev = v.a AND s.email IS NULL;
 
-      -- v1.1.8 — update Swedish course names to official Finnish curriculum labels.
-      UPDATE subjects SET name = 'Ruotsi A1-kieli', name_en = 'Swedish A1' WHERE code = 'aRU';
-      UPDATE subjects SET name = 'Ruotsi B1-kieli', name_en = 'Swedish B1' WHERE code = 'bRU';
-      UPDATE subjects SET name = 'Ruotsi lyhyt',    name_en = 'Swedish short' WHERE code = 'svRU' AND name = 'Ruotsi lyhyt';
+      -- v1.1.9 — replace generic Swedish codes (aRU/bRU/svRU) with numbered per-course codes.
+      DELETE FROM subjects WHERE code IN ('aRU', 'bRU', 'svRU');
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

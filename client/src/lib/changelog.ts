@@ -10,17 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.8";
+export const APP_VERSION = "1.1.9";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.9",
+    date: "October 2026",
+    title: "Swedish courses expanded to full catalogue",
+    titleFi: "Ruotsin kurssit laajennettu täydeksi katalogiksi",
+    latest: true,
+    highlights: [
+      "**22 Swedish courses added.** Old generic codes (aRU/bRU/svRU) replaced by numbered per-course entries: A1-Ruotsi 1–7, A2-kieli Ruotsi 1–7, b-Ruotsi 1–5, and the three short-Swedish electives (Ruotsia aloitteleville, Chansa och plugga svenska!, Hyppy lukion ruotsiin).",
+      "**Rollback** — `git reset --hard rollback-before-1-1-9`. DB: DELETE removes aRU/bRU/svRU rows; safe to leave new rows in place if reverted.",
+    ],
+  },
+  {
     version: "1.1.8",
     date: "October 2026",
     title: "Widgets show course names and teachers",
     titleFi: "Widgetit näyttävät kurssinimet ja opettajat",
-    latest: true,
+    latest: false,
     highlights: [
       "**All three home-screen widgets** now display resolved course names (e.g. Matematiikka instead of MA1.F) and teacher names, loaded from the local lookup cache.",
       "**iCal teacher fix** — removed a fallback that was inserting garbage into the teacher field when the iCal description had no 'opettaja:' keyword.",

@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.9 — Swedish courses expanded: 22 numbered courses replace the old 3 generic codes; courseAutoColor updated
 - v1.1.8 + Android 1.1.8 — widgets show resolved course names + teacher names; iCal extractTeacher fallback fixed; Swedish course names updated
 - v1.1.7 — teacher emails seeded (firstname.lastname@ksyk.fi, ä→a ö→o); data-only, no APK
 - v1.1.6 + Android 1.1.6 — teacher position fixed to "Opettaja/Teacher", subjects in department field; lesson reminder notifications now show resolved course name + teacher full name

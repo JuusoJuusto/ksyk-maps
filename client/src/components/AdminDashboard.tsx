@@ -132,7 +132,7 @@ function courseAutoColor(code: string): string {
   if (/^(a1|a2|b|sv)?RA/i.test(code))    return '#C026D3';  // French (Ranska)
   if (/^(a1|a2|b|sv)?SA/i.test(code))    return '#B45309';  // German (Saksa)
   if (/^(a1|a2|b|sv)?EA/i.test(code))    return '#DC2626';  // Spanish (Espanja)
-  if (/^(a|b|sv)?RU/i.test(code))        return '#0284C7';  // Swedish (Ruotsi)
+  if (/^(a1|a2|a|b|sv)?RU/i.test(code))  return '#0284C7';  // Swedish (Ruotsi)
   if (/^v?KOR/i.test(code))              return '#7C3AED';  // Korean
   if (/^OPO/i.test(code))                return '#6B7280';  // Guidance
   // Subject prefix (strips sv/v)
