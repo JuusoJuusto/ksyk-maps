@@ -15,6 +15,28 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-10-2026 — v1.1.8 — widgets show course names + teachers; iCal teacher fix; Swedish courses renamed
+
+**Asked.**
+- Widgets still showing raw Wilma codes (e.g. MA1.F) — make them show real course names
+- Show the teacher in widget displays too
+- Fix classes showing garbage in the teacher slot
+- Add Swedish courses: Ruotsi A1-kieli (aRU), Ruotsi B1-kieli (bRU), Ruotsi lyhyt (svRU)
+
+**Decided.**
+- All 3 widgets get `runBlocking { LookupStore.ensureLoadedFromCache() }` at the top of `updateWidget`, then resolve subject and teacher synchronously before building `RemoteViews`. `runBlocking` is acceptable here: disk reads complete in <50 ms and widget framework allows 10 s.
+- `ScheduleEngine.materialize()` was not passing `teacherAbbrev` from `ScheduleEntry` to `TimedLesson` even though the field existed. Added `teacherAbbrev = e.teacherAbbrev`.
+- `extractTeacher` in `icalParser.ts` had a fallback returning the first line of the iCal description when no "opettaja:" keyword was found — this produced garbage (class codes, group names). Removed fallback; now returns '' instead.
+- Swedish INSERT values updated to new names; also added explicit UPDATE statements in initDb.ts for the v1.1.8 migration to fix existing rows in production.
+
+**Shipped.**
+- Commit `d54fa13` — versionCode 114, versionName 1.1.8
+- APK: `public/releases/ksykmaps-release-1.1.8.apk`
+- Rollback: `git reset --hard rollback-before-1-1-8`
+- Files: `ScheduleEngine.kt`, `CurrentLessonWidget.kt`, `NextLessonWidget.kt`, `TodayScheduleWidget.kt`, `icalParser.ts`, `initDb.ts`, `changelog.ts`, `build.gradle.kts`
+
+---
+
 ## 09-10-2026 — v1.1.7 — teacher email addresses seeded
 
 **Asked.**
