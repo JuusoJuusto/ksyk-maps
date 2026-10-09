@@ -10,17 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.7";
+export const APP_VERSION = "1.1.8";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.6";
+export const ANDROID_APP_VERSION = "1.1.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.8",
+    date: "October 2026",
+    title: "Widgets show course names and teachers",
+    titleFi: "Widgetit näyttävät kurssinimet ja opettajat",
+    latest: true,
+    highlights: [
+      "**All three home-screen widgets** now display resolved course names (e.g. Matematiikka instead of MA1.F) and teacher names, loaded from the local lookup cache.",
+      "**iCal teacher fix** — removed a fallback that was inserting garbage into the teacher field when the iCal description had no 'opettaja:' keyword.",
+      "**Swedish courses** updated to official names: Ruotsi A1-kieli, Ruotsi B1-kieli, Ruotsi lyhyt.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-8`. DB: safe (UPDATE only changes existing course name strings).",
+    ],
+  },
   {
     version: "1.1.7",
     date: "October 2026",
     title: "Teacher email addresses added",
     titleFi: "Opettajien sähköpostiosoitteet lisätty",
-    latest: true,
+    latest: false,
     highlights: [
       "**All teacher emails seeded.** Every staff member now has a `firstname.lastname@ksyk.fi` email address — Finnish special characters replaced (ä→a, ö→o). Shown in teacher profile in the admin panel.",
       "**Rollback** — `git reset --hard rollback-before-1-1-7`. DB: UPDATE only sets email where NULL (safe, no schema change).",

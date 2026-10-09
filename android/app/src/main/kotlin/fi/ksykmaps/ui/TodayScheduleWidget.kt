@@ -13,6 +13,7 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import fi.ksykmaps.R
+import fi.ksykmaps.data.LookupStore
 import fi.ksykmaps.schedule.LessonState
 import fi.ksykmaps.schedule.ScheduleEngine
 import java.time.DayOfWeek
@@ -20,6 +21,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.runBlocking
 
 class TodayScheduleWidget : AppWidgetProvider() {
 
@@ -109,6 +111,7 @@ class TodayScheduleWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
             val entries = parseWidgetEntries(prefs.getString("entries_json", null))
             val jaksot  = parseWidgetJaksot(prefs.getString("jaksot_json", null))
+            runBlocking { LookupStore.ensureLoadedFromCache() }
             // v1.88.0 — per-widget preferences from long-press config screen.
             val cfgHidePast   = TodayScheduleWidgetConfigActivity.hidePast(context, id)
             val cfgAutoRoll   = TodayScheduleWidgetConfigActivity.autoRoll(context, id)
@@ -301,11 +304,16 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextColor(timeIds[i], timeColor)
                     views.setTextViewTextSize(timeIds[i], TypedValue.COMPLEX_UNIT_SP, timeSize)
 
-                    val accent = subjectColorHex(lesson.subject)
+                    val accent = subjectColorHex(lesson.subject) // keep raw code for stable color
+                    val displaySubject = LookupStore.resolveSubject(lesson.subject) ?: lesson.subject
+                    val displayTeacher = LookupStore.resolveTeacher(lesson.teacherAbbrev)
+                        .takeIf { lesson.teacherAbbrev.isNotBlank() }
+                        ?: lesson.teacher.takeIf { it.isNotBlank() }
+                    val teacherLastName = displayTeacher?.split(" ")?.lastOrNull()?.takeIf { it.isNotBlank() }
                     val rawSubject = if (isCurrent) {
                         val remain = lesson.minutesUntilEnd(nowDt).coerceAtLeast(0)
-                        if (remain > 0) "${lesson.subject}  ·  $remain min" else lesson.subject
-                    } else lesson.subject
+                        if (remain > 0) "$displaySubject  ·  $remain min" else displaySubject
+                    } else displaySubject
                     val htmlEscaped = rawSubject
                         .replace("&", "&amp;")
                         .replace("<", "&lt;")
@@ -323,7 +331,14 @@ class TodayScheduleWidget : AppWidgetProvider() {
                     views.setTextColor(subjectIds[i], subjectColor)
                     views.setTextViewTextSize(subjectIds[i], TypedValue.COMPLEX_UNIT_SP, subjectSize)
 
-                    views.setTextViewText(roomIds[i], lesson.roomNumber)
+                    val roomText = buildString {
+                        if (lesson.roomNumber.isNotBlank()) append(lesson.roomNumber)
+                        if (!teacherLastName.isNullOrBlank()) {
+                            if (isNotEmpty()) append("  ·  ")
+                            append(teacherLastName)
+                        }
+                    }
+                    views.setTextViewText(roomIds[i], roomText)
                     views.setTextColor(roomIds[i], roomColor)
                     views.setTextViewTextSize(roomIds[i], TypedValue.COMPLEX_UNIT_SP, roomSize)
                 }

@@ -381,8 +381,7 @@ function extractTeacher(description: string): string {
       .replace(/\\/g, '')
       .trim();
   }
-  const firstLine = description.split(/\\n|\n/).find(l => l.trim());
-  return firstLine?.trim() ?? '';
+  return '';
 }
 
 /**

@@ -459,8 +459,8 @@ export async function ensureSchema(): Promise<void> {
         (gen_random_uuid(),'a1EN5','A1-Englanti 5','English A1 5','#2563EB'),
         (gen_random_uuid(),'a1EN6','A1-Englanti 6','English A1 6','#2563EB'),
         (gen_random_uuid(),'a1EN7','A1-Englanti 7','English A1 7','#2563EB'),
-        (gen_random_uuid(),'aRU','A-Ruotsi','Swedish A','#0284C7'),
-        (gen_random_uuid(),'bRU','B-Ruotsi','Swedish B1','#0284C7'),
+        (gen_random_uuid(),'aRU','Ruotsi A1-kieli','Swedish A1','#0284C7'),
+        (gen_random_uuid(),'bRU','Ruotsi B1-kieli','Swedish B1','#0284C7'),
         (gen_random_uuid(),'svRU','Ruotsi lyhyt','Swedish short','#0284C7'),
         (gen_random_uuid(),'a1RA1','A1-Ranska 1','French A1 1','#C026D3'),
         (gen_random_uuid(),'a1RA2','A1-Ranska 2','French A1 2','#C026D3'),
@@ -747,6 +747,11 @@ export async function ensureSchema(): Promise<void> {
         ('IWi','inka.witick@ksyk.fi')
       ) AS v(a, e)
       WHERE s.abbrev = v.a AND s.email IS NULL;
+
+      -- v1.1.8 — update Swedish course names to official Finnish curriculum labels.
+      UPDATE subjects SET name = 'Ruotsi A1-kieli', name_en = 'Swedish A1' WHERE code = 'aRU';
+      UPDATE subjects SET name = 'Ruotsi B1-kieli', name_en = 'Swedish B1' WHERE code = 'bRU';
+      UPDATE subjects SET name = 'Ruotsi lyhyt',    name_en = 'Swedish short' WHERE code = 'svRU' AND name = 'Ruotsi lyhyt';
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

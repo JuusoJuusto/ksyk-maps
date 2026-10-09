@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8 — October 2026
+
+- Android 1.1.8: all three home-screen widgets resolve Wilma codes to course names and teacher names via LookupStore disk cache (runBlocking ensureLoadedFromCache in updateWidget); teacher name added to details line in Current/Next Lesson widgets, teacher last name shown in room column of Today Schedule widget
+- iCal parser: removed fallback in extractTeacher that was returning the first line of the description when no "opettaja:" keyword found — now returns '' (blank) instead, preventing garbage in the teacher slot
+- Swedish courses renamed: aRU → Ruotsi A1-kieli / Swedish A1; bRU → Ruotsi B1-kieli / Swedish B1 (via UPDATE in initDb so existing rows are fixed)
+- ScheduleEngine.materialize now passes teacherAbbrev from ScheduleEntry into TimedLesson
+- Android versionCode 114
+
 ## 1.1.7 — October 2026
 
 - All ~90 seeded teachers given `firstname.lastname@ksyk.fi` email (ä→a, ö→o); UPDATE only when email IS NULL so admin overrides are preserved

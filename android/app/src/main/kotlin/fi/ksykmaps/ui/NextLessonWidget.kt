@@ -10,10 +10,12 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.widget.RemoteViews
 import fi.ksykmaps.R
+import fi.ksykmaps.data.LookupStore
 import fi.ksykmaps.schedule.ScheduleEngine
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Locale
+import kotlinx.coroutines.runBlocking
 
 class NextLessonWidget : AppWidgetProvider() {
 
@@ -55,6 +57,7 @@ class NextLessonWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val entries = parseWidgetEntries(prefs.getString("entries_json", null))
             val jaksot  = parseWidgetJaksot(prefs.getString("jaksot_json", null))
+            runBlocking { LookupStore.ensureLoadedFromCache() }
             val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_next_lesson)
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
@@ -94,7 +97,10 @@ class NextLessonWidget : AppWidgetProvider() {
             val next = ScheduleEngine.nextLesson(allLessons, now)
 
             if (next != null) {
-                val subject = next.subject
+                val displaySubject = LookupStore.resolveSubject(next.subject) ?: next.subject
+                val displayTeacher = LookupStore.resolveTeacher(next.teacherAbbrev)
+                    .takeIf { next.teacherAbbrev.isNotBlank() }
+                    ?: next.teacher.takeIf { it.isNotBlank() }
                 val start = next.startTime.toString()  // "HH:mm"
                 val room = next.roomNumber
                 val roomWord = if (lang == "fi") "Luokka" else "Room"
@@ -117,6 +123,7 @@ class NextLessonWidget : AppWidgetProvider() {
                     if (datePrefix.isNotBlank()) append(datePrefix).append("  ·  ")
                     if (start.isNotBlank()) append(start)
                     if (room.isNotBlank()) append("  ·  $roomWord $room")
+                    if (!displayTeacher.isNullOrBlank()) append("  ·  $displayTeacher")
                 }
 
                 // Countdown — same-day = minutes; across-day = "Tomorrow" / weekday
@@ -130,7 +137,7 @@ class NextLessonWidget : AppWidgetProvider() {
                                      else "in $daysAway days"
                 }
 
-                views.setTextViewText(R.id.widget_subject, subject)
+                views.setTextViewText(R.id.widget_subject, displaySubject)
                 views.setTextViewText(R.id.widget_details, details)
                 views.setTextViewText(R.id.widget_countdown, countdown)
             } else {

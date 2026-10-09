@@ -10,9 +10,11 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.widget.RemoteViews
 import fi.ksykmaps.R
+import fi.ksykmaps.data.LookupStore
 import fi.ksykmaps.schedule.ScheduleEngine
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.coroutines.runBlocking
 
 class CurrentLessonWidget : AppWidgetProvider() {
 
@@ -48,6 +50,7 @@ class CurrentLessonWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences("ksyk_widget", Context.MODE_PRIVATE)
             val entries = parseWidgetEntries(prefs.getString("entries_json", null))
             val jaksot  = parseWidgetJaksot(prefs.getString("jaksot_json", null))
+            runBlocking { LookupStore.ensureLoadedFromCache() }
             val lang = getAppLanguage(context)
             val views = RemoteViews(context.packageName, R.layout.widget_current_lesson)
             views.setOnClickPendingIntent(R.id.widget_root, launchPendingIntent(context))
@@ -82,7 +85,10 @@ class CurrentLessonWidget : AppWidgetProvider() {
             val roomWord = if (lang == "fi") "Luokka" else "Room"
 
             if (current != null) {
-                val subject = current.subject
+                val displaySubject = LookupStore.resolveSubject(current.subject) ?: current.subject
+                val displayTeacher = LookupStore.resolveTeacher(current.teacherAbbrev)
+                    .takeIf { current.teacherAbbrev.isNotBlank() }
+                    ?: current.teacher.takeIf { it.isNotBlank() }
                 val start = current.startTime.toString()
                 val end = current.endTime.toString()
                 val room = current.roomNumber
@@ -95,11 +101,12 @@ class CurrentLessonWidget : AppWidgetProvider() {
                 val details = buildString {
                     append("$start–$end")
                     if (room.isNotBlank()) append("  ·  $roomWord $room")
+                    if (!displayTeacher.isNullOrBlank()) append("  ·  $displayTeacher")
                 }
 
                 views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background_active)
                 views.setTextViewText(R.id.widget_label, if (lang == "fi") "NYT TUNNILLA" else "NOW IN CLASS")
-                views.setTextViewText(R.id.widget_subject, subject)
+                views.setTextViewText(R.id.widget_subject, displaySubject)
                 views.setTextViewText(R.id.widget_details, details)
                 views.setProgressBar(R.id.widget_progress, 100, progressPct, false)
                 views.setTextViewText(
