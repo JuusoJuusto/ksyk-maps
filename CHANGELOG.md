@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — October 2026
+
+- Android logs now reach the admin panel: `AppLog.flushForward` posts to `/api/logs/batch` (was broken `/api/session/heartbeat`); every WARN/ERROR appears in Logs tab with green "android" source badge
+- Source + metadata columns added to `app_logs` table (ALTER TABLE migration in initDb); source filter (All / Android / Web / Server) added to admin Logs tab
+- `ErrorReporter.reportToBackend()` posts map/api/general errors to `/api/logs` in addition to PostHog + Sentry; auth events emit warn-level logs
+- `KsykApp.installCrashHandler()` synchronously posts a fatal-level log to `/api/logs` before the process dies
+- Android versionCode 115
+
 ## 1.1.9 — October 2026
 
 - 22 Swedish courses added: a1RU1–7 (A1-Ruotsi), a2RU1–7 (A2-kieli Ruotsi), bRU1–5 (b-Ruotsi), svRU1–3 (lyhyt Ruotsi)

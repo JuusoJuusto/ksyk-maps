@@ -175,6 +175,18 @@ class KsykApp : Application() {
                     ),
                 )
             } catch (_: Throwable) {}
+            // Post crash to admin panel synchronously before the process dies.
+            try {
+                val stack = throwable.stackTraceToString().take(2000).replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+                val msg = (throwable.message ?: throwable.javaClass.simpleName).replace("\"", "\\\"")
+                val body = "{\"level\":\"fatal\",\"message\":\"CRASH: $msg\"," +
+                    "\"source\":\"android\",\"errorStack\":\"$stack\"," +
+                    "\"metadata\":{\"app_version\":\"${BuildConfig.VERSION_NAME}\"," +
+                    "\"device\":\"${Build.MANUFACTURER} ${Build.MODEL}\"," +
+                    "\"android_sdk\":${Build.VERSION.SDK_INT}," +
+                    "\"thread\":\"${thread.name}\"}}"
+                fi.ksykmaps.data.Api.postFireAndForget("/logs", body)
+            } catch (_: Throwable) {}
             default?.uncaughtException(thread, throwable)
         }
     }

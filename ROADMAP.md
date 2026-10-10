@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.2.0 + Android 1.2.0 — Android log pipeline fixed: AppLog now posts to /api/logs/batch; source + metadata columns added; admin Logs tab has Android/Web/Server source filter; ErrorReporter + crash handler post to backend
 - v1.1.9 — Swedish courses expanded: 22 numbered courses replace the old 3 generic codes; courseAutoColor updated
 - v1.1.8 + Android 1.1.8 — widgets show resolved course names + teacher names; iCal extractTeacher fallback fixed; Swedish course names updated
 - v1.1.7 — teacher emails seeded (firstname.lastname@ksyk.fi, ä→a ö→o); data-only, no APK

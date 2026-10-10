@@ -10,17 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.9";
+export const APP_VERSION = "1.2.0";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.1.8";
+export const ANDROID_APP_VERSION = "1.2.0";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.0",
+    date: "October 2026",
+    title: "Android logs → admin panel + full error pipeline",
+    titleFi: "Android-lokit admin-paneeliin + täydellinen virheputki",
+    latest: true,
+    highlights: [
+      "**Android logs now appear in the admin panel.** Every WARN/ERROR from the Android app is forwarded to `/api/logs/batch` and shown in the Logs tab with a green 'android' source badge.",
+      "**Source filter added to Logs tab.** Filter by Android / Web / Server to isolate mobile issues from browser errors.",
+      "**Error reporting extended.** `ErrorReporter` now posts map, API, and general errors to the backend in addition to PostHog + Sentry. Crash handler posts a fatal log before the process dies.",
+      "**Rollback** — `git reset --hard rollback-before-1-2-0`. DB: `source` + `metadata` columns added to `app_logs`; safe to leave in place if reverted.",
+    ],
+  },
   {
     version: "1.1.9",
     date: "October 2026",
     title: "Swedish courses expanded to full catalogue",
     titleFi: "Ruotsin kurssit laajennettu täydeksi katalogiksi",
-    latest: true,
     highlights: [
       "**22 Swedish courses added.** Old generic codes (aRU/bRU/svRU) replaced by numbered per-course entries: A1-Ruotsi 1–7, A2-kieli Ruotsi 1–7, b-Ruotsi 1–5, and the three short-Swedish electives (Ruotsia aloitteleville, Chansa och plugga svenska!, Hyppy lukion ruotsiin).",
       "**Rollback** — `git reset --hard rollback-before-1-1-9`. DB: DELETE removes aRU/bRU/svRU rows; safe to leave new rows in place if reverted.",

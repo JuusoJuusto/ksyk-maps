@@ -35,7 +35,9 @@ interface AppLog {
   // every read site (see `normalizeLevel`) instead of trusting a narrow union.
   level: string;
   message: string;
+  source?: string | null; // 'android' | 'web' | 'server'
   details?: string;
+  metadata?: Record<string, any> | null;
   userId?: string | null;
   userName?: string | null;
   action?: string;
@@ -78,6 +80,7 @@ export default function AppLogsManager() {
   // ── Log filters — declared early so they can be included in query keys.
   const [levelFilter, setLevelFilter] = useState<'all' | 'debug' | 'info' | 'warning' | 'error' | 'fatal'>('all');
   const [rangeFilter, setRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'android' | 'web' | 'server'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Every list query goes through fetchList so a 404 / auth redirect
@@ -107,17 +110,18 @@ export default function AppLogsManager() {
     setAppLogPages([]);
     setAppLogCursors([]);
     setAppLogHasMore(true);
-  }, [levelFilter, rangeFilter]);
+  }, [levelFilter, rangeFilter, sourceFilter]);
 
   const { data: appLogFirstPage, isLoading: appLogsLoading } = useQuery<{
     rows: AppLog[]; nextCursor: string | null;
   }>({
-    queryKey: ['app-logs', 'v2', levelFilter, rangeFilter],
+    queryKey: ['app-logs', 'v3', levelFilter, rangeFilter, sourceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('limit', '100');
       if (levelFilter !== 'all') params.set('level', levelFilter);
       if (rangeFilter !== 'all') params.set('range', rangeFilter);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
       const qs = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`/api/logs${qs}`, {
         credentials: 'include',
@@ -134,14 +138,15 @@ export default function AppLogsManager() {
       const body = await res.json().catch(() => ({}));
       const rawRows: Array<{
         id: string; level: AppLog['level']; message: string;
-        source?: string; timestamp: unknown;
+        source?: string; metadata?: Record<string, any>; timestamp: unknown;
       }> = Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
       return {
         rows: rawRows.map((log) => ({
           id: log.id,
           level: log.level,
           message: log.message,
-          details: log.source,
+          source: log.source ?? null,
+          metadata: log.metadata ?? null,
           action: log.source?.toUpperCase() || 'UNKNOWN',
           createdAt: log.timestamp,
           type: 'app' as const,
@@ -173,7 +178,11 @@ export default function AppLogsManager() {
     if (!cursor || appLogsLoadingMore) return;
     setAppLogsLoadingMore(true);
     try {
-      const res = await fetch(`/api/logs?limit=100&cursor=${encodeURIComponent(cursor)}`, {
+      const params = new URLSearchParams({ limit: '100', cursor });
+      if (levelFilter !== 'all') params.set('level', levelFilter);
+      if (rangeFilter !== 'all') params.set('range', rangeFilter);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      const res = await fetch(`/api/logs?${params.toString()}`, {
         credentials: 'include',
         headers: (() => {
           try {
@@ -186,13 +195,14 @@ export default function AppLogsManager() {
       });
       if (!res.ok) return;
       const body = await res.json().catch(() => ({}));
-      const raw: Array<{ id: string; level: AppLog['level']; message: string; source?: string; timestamp: unknown }> =
+      const raw: Array<{ id: string; level: AppLog['level']; message: string; source?: string; metadata?: Record<string, any>; timestamp: unknown }> =
         Array.isArray(body?.rows) ? body.rows : [];
       const mapped: AppLog[] = raw.map((log) => ({
         id: log.id,
         level: log.level,
         message: log.message,
-        details: log.source,
+        source: log.source ?? null,
+        metadata: log.metadata ?? null,
         action: log.source?.toUpperCase() || 'UNKNOWN',
         createdAt: log.timestamp,
         type: 'app' as const,
@@ -319,7 +329,14 @@ export default function AppLogsManager() {
     const message = isLogin
       ? `${(log as LoginLog).userName || (log as LoginLog).email} · ${(log as LoginLog).loginStatus}`
       : (log as AppLog).message;
-    const source = isLogin ? "login" : ((log as AppLog).action ?? "app");
+    const rawSource = isLogin ? "login" : ((log as AppLog).source ?? "web");
+    const sourceColor: Record<string, string> = {
+      android: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      web:     "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      server:  "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      login:   "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+    };
+    const sourceClass = sourceColor[rawSource] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
     return (
       <tr
         key={log.id}
@@ -337,7 +354,11 @@ export default function AppLogsManager() {
           </span>
         </td>
         <td className="px-3 py-2 text-sm max-w-[520px] truncate">{message}</td>
-        <td className="px-3 py-2 text-[11px] text-slate-500 font-mono">{source}</td>
+        <td className="px-3 py-2">
+          <span className={cn("text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded", sourceClass)}>
+            {rawSource}
+          </span>
+        </td>
       </tr>
     );
   };
@@ -467,6 +488,34 @@ export default function AppLogsManager() {
                 </button>
               ))}
             </div>
+            {/* Source pills */}
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+              {([
+                { value: 'all',     label: 'All' },
+                { value: 'android', label: 'Android' },
+                { value: 'web',     label: 'Web' },
+                { value: 'server',  label: 'Server' },
+              ] as const).map(({ value: src, label }) => (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setSourceFilter(src)}
+                  className={cn(
+                    'text-xs px-2.5 py-1 rounded-md active:scale-[0.98] transition-all',
+                    sourceFilter === src
+                      ? cn(
+                          'bg-white dark:bg-gray-700 shadow-sm font-semibold',
+                          src === 'android' && 'text-emerald-700 dark:text-emerald-400',
+                          src === 'web'     && 'text-blue-600 dark:text-blue-400',
+                          src === 'server'  && 'text-amber-600 dark:text-amber-400',
+                        )
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {/* Search */}
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -477,10 +526,10 @@ export default function AppLogsManager() {
                 className="pl-8 h-8 text-xs"
               />
             </div>
-            {(levelFilter !== 'all' || rangeFilter !== '24h' || searchQuery.trim()) && (
+            {(levelFilter !== 'all' || rangeFilter !== '24h' || sourceFilter !== 'all' || searchQuery.trim()) && (
               <button
                 type="button"
-                onClick={() => { setLevelFilter('all'); setRangeFilter('24h'); setSearchQuery(''); }}
+                onClick={() => { setLevelFilter('all'); setRangeFilter('24h'); setSourceFilter('all'); setSearchQuery(''); }}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
               >
                 Reset filters
@@ -854,12 +903,22 @@ function LogDetailSheet({
               {log.type === "app" && (
                 <>
                   <Field label="Level" value={(log as AppLog).level} />
-                  <Field label="Message" value={(log as AppLog).message} />
-                  {(log as AppLog).action && (
-                    <Field label="Action" value={(log as AppLog).action!} mono />
+                  {(log as AppLog).source && (
+                    <Field label="Source" value={(log as AppLog).source!} mono />
                   )}
+                  <Field label="Message" value={(log as AppLog).message} />
                   {(log as AppLog).userName && (
                     <Field label="User" value={(log as AppLog).userName!} />
+                  )}
+                  {(log as AppLog).metadata && (
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500 mb-1">
+                        Device / App info
+                      </p>
+                      <pre className="text-[11px] font-mono bg-slate-50 dark:bg-slate-900 p-3 rounded-lg overflow-x-auto max-h-40 whitespace-pre-wrap break-all">
+                        {JSON.stringify((log as AppLog).metadata, null, 2)}
+                      </pre>
+                    </div>
                   )}
                   {(log as AppLog).details && (
                     <div>

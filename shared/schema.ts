@@ -321,9 +321,11 @@ export const appLogs = pgTable("app_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   level: varchar("level").notNull(), // error, warn, info, debug
   message: text("message").notNull(),
+  source: varchar("source", { length: 50 }), // 'android', 'web', 'server'
   errorReferenceId: varchar("error_reference_id").unique(), // Unique ID for errors
   errorStack: text("error_stack"),
   errorInfo: jsonb("error_info"),
+  metadata: jsonb("metadata"), // device info, app version, etc.
   userAgent: text("user_agent"),
   url: text("url"),
   userId: varchar("user_id").references(() => users.id),
@@ -332,6 +334,7 @@ export const appLogs = pgTable("app_logs", {
 }, (table) => [
   index("IDX_app_logs_created_at").on(table.createdAt),
   index("IDX_app_logs_level_created_at").on(table.level, table.createdAt),
+  index("IDX_app_logs_source_created_at").on(table.source, table.createdAt),
 ]);
 
 

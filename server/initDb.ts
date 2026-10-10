@@ -769,6 +769,11 @@ export async function ensureSchema(): Promise<void> {
 
       -- v1.1.9 — replace generic Swedish codes (aRU/bRU/svRU) with numbered per-course codes.
       DELETE FROM subjects WHERE code IN ('aRU', 'bRU', 'svRU');
+
+      -- v1.2.0 — Android log pipeline: add source + metadata to app_logs.
+      ALTER TABLE app_logs ADD COLUMN IF NOT EXISTS source   varchar(50);
+      ALTER TABLE app_logs ADD COLUMN IF NOT EXISTS metadata jsonb;
+      CREATE INDEX IF NOT EXISTS idx_app_logs_source_created_at ON app_logs (source, created_at DESC);
     `);
   } catch (e: any) {
     // Non-fatal: tables might already exist or DB might be unreachable.

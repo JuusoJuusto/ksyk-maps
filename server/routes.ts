@@ -144,33 +144,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Logs API endpoint - for frontend error logging (rate-limited)
+  // Logs API endpoint — web/server error logging (rate-limited, no auth)
   app.post('/api/logs', rateLimiters.general, async (req, res) => {
     try {
-      const { 
-        level, 
-        message, 
-        errorReferenceId, 
-        errorStack, 
-        errorInfo, 
-        userAgent, 
+      const {
+        level,
+        message,
+        source,
+        errorReferenceId,
+        errorStack,
+        errorInfo,
+        metadata,
+        userAgent,
         url,
         userId,
-        ipAddress 
+        ipAddress,
       } = req.body;
-      
+
       await storage.createAppLog({
         level: level || 'info',
         message: message || 'No message provided',
+        source: source || 'web',
         errorReferenceId: errorReferenceId || null,
         errorStack: errorStack || null,
         errorInfo: errorInfo || null,
+        metadata: metadata || null,
         userAgent: userAgent || req.get('user-agent') || null,
         url: url || null,
         userId: userId || null,
         ipAddress: ipAddress || req.ip || null,
       });
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to create log:', error);
@@ -178,17 +182,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get app logs (admin only)
+  // Batched log ingestion — for Android AppLog forwarding (rate-limited, no auth)
+  // Body: { entries: [{ level, message, tag, ts, metadata? }], source: 'android', sessionId, appVersion, device }
+  app.post('/api/logs/batch', rateLimiters.general, async (req, res) => {
+    try {
+      const { entries, source = 'android', appVersion, device, sessionId } = req.body;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        return res.json({ success: true, inserted: 0 });
+      }
+
+      const meta = { appVersion, device, sessionId };
+
+      await Promise.all(
+        entries.slice(0, 100).map((e: any) =>
+          storage.createAppLog({
+            level: String(e.level || 'info').toLowerCase(),
+            message: String(e.message || '').slice(0, 1000),
+            source: String(source || 'android').slice(0, 50),
+            metadata: meta,
+            userAgent: device ? `Android/${appVersion} (${device})` : null,
+            url: e.tag ? `android:${e.tag}` : null,
+            errorInfo: e.tag ? { tag: e.tag, ts: e.ts } : null,
+          }).catch(() => { /* individual entry failures are silent */ })
+        )
+      );
+
+      res.json({ success: true, inserted: Math.min(entries.length, 100) });
+    } catch (error) {
+      console.error('Failed to process log batch:', error);
+      res.status(500).json({ message: 'Failed to process batch' });
+    }
+  });
+
+  // Get app logs (admin only) — supports ?level, ?source, ?range, ?cursor, ?limit
   app.get('/api/logs', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'owner' && user?.role !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });
       }
-      
-      const limit = req.query.limit ? parseInt(req.query.limit) : 100;
-      const logs = await storage.getAppLogs(limit);
-      res.json(logs);
+
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string), 500) : 100;
+      const level = req.query.level as string | undefined;
+      const source = req.query.source as string | undefined;
+      const range = req.query.range as '24h' | '7d' | '30d' | undefined;
+      const cursor = req.query.cursor as string | undefined;
+
+      const result = await storage.getAppLogs({ limit, level, source, range, cursor });
+      res.json(result);
     } catch (error) {
       await logError(error, 'GET /api/logs');
       res.status(500).json({ message: 'Failed to fetch logs' });
@@ -3070,9 +3111,9 @@ https://ksykmaps.fi
       }
 
       // Get recent app logs that are analytics-related
-      const logs = await storage.getAppLogs(100);
+      const { rows: logs } = await storage.getAppLogs({ limit: 100 });
       const analyticsEvents = logs
-        .filter(log => log.message?.startsWith('Analytics:') || log.message?.includes('Search:') || log.message?.includes('viewed:'))
+        .filter((log: any) => log.message?.startsWith('Analytics:') || log.message?.includes('Search:') || log.message?.includes('viewed:'))
         .map(log => ({
           id: log.id,
           type: log.message?.includes('Search:') ? 'search' : 

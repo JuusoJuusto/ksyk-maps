@@ -115,11 +115,13 @@ export interface IStorage {
     level?: string;
     type?: string;
     message: string;
+    source?: string | null;
     details?: string | null;
     timestamp?: Date;
     errorReferenceId?: string | null;
     errorStack?: string | null;
     errorInfo?: any;
+    metadata?: any;
     userAgent?: string | null;
     url?: string | null;
     userId?: string | null;
@@ -128,7 +130,7 @@ export interface IStorage {
     userName?: string | null;
   }): Promise<void>;
   
-  getAppLogs(limit?: number): Promise<any[]>;
+  getAppLogs(opts?: { limit?: number; level?: string; source?: string; range?: '24h' | '7d' | '30d'; cursor?: string }): Promise<{ rows: any[]; nextCursor: string | null }>;
 
   // Easter egg tracking
   trackEasterEggDiscovery(data: { eggId: string; eggName: string; userId: string; timestamp: string }): Promise<void>;
@@ -497,8 +499,24 @@ class MemStorage implements IStorage {
     if (this.appLogs.length > 1000) this.appLogs.length = 1000;
   }
 
-  async getAppLogs(limit: number = 100): Promise<any[]> {
-    return this.appLogs.slice(0, limit);
+  async getAppLogs(opts: { limit?: number; level?: string; source?: string; range?: '24h' | '7d' | '30d'; cursor?: string } = {}): Promise<{ rows: any[]; nextCursor: string | null }> {
+    const { limit = 100, level, source, range, cursor } = opts;
+    let rows = this.appLogs;
+    if (level && level !== 'all') rows = rows.filter((r) => r.level === level || (level === 'warning' && r.level === 'warn'));
+    if (source && source !== 'all') rows = rows.filter((r) => r.source === source);
+    if (range) {
+      const ms = { '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000 };
+      const cutoff = new Date(Date.now() - ms[range]);
+      rows = rows.filter((r) => new Date(r.createdAt) >= cutoff);
+    }
+    if (cursor) {
+      const cursorDate = new Date(cursor);
+      rows = rows.filter((r) => new Date(r.createdAt) < cursorDate);
+    }
+    const page = rows.slice(0, limit);
+    const hasMore = rows.length > limit;
+    const nextCursor = hasMore ? page[page.length - 1]?.createdAt?.toISOString?.() ?? null : null;
+    return { rows: page.map((r) => ({ ...r, timestamp: r.createdAt })), nextCursor };
   }
 
   async trackEasterEggDiscovery(data: { eggId: string; eggName: string; userId: string; timestamp: string }): Promise<void> {

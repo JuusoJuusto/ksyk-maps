@@ -21,9 +21,9 @@ import java.util.concurrent.ConcurrentLinkedDeque
  * process kills. The Settings > Logs viewer reads back the ring plus the
  * file for anything from before the last cold start.
  *
- * WARN/ERROR entries are also forwarded to the server via the
- * adblock-safe `/api/session/heartbeat` endpoint so the admin panel's
- * Aktiviteetti tab shows real-time mobile errors alongside web ones.
+ * WARN/ERROR entries are also forwarded to the server via `/api/logs/batch`
+ * so the admin panel's Logs tab shows real-time Android errors alongside
+ * web ones.
  */
 object AppLog {
     private const val MAX_ENTRIES = 500
@@ -72,26 +72,28 @@ object AppLog {
     private fun flushForward(entries: List<Entry>) {
         if (entries.isEmpty()) return
         try {
-            val json = buildBeacon(entries)
-            Api.postFireAndForget("/session/heartbeat", json)
+            val json = buildBatch(entries)
+            Api.postFireAndForget("/logs/batch", json)
         } catch (_: Throwable) { /* silent */ }
     }
 
-    private fun buildBeacon(entries: List<Entry>): String {
+    private fun buildBatch(entries: List<Entry>): String {
         val sb = StringBuilder()
-        sb.append("{\"source\":\"android\",\"sessionId\":\"")
-        sb.append(sessionId())
-        sb.append("\",\"events\":[")
+        sb.append("{\"source\":\"android\"")
+        sb.append(",\"sessionId\":\"").append(sessionId()).append("\"")
+        sb.append(",\"appVersion\":\"").append(escape(fi.ksykmaps.BuildConfig.VERSION_NAME)).append("\"")
+        sb.append(",\"device\":\"").append(escape("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")).append("\"")
+        sb.append(",\"entries\":[")
         entries.forEachIndexed { idx, e ->
             if (idx > 0) sb.append(',')
-            sb.append("{\"type\":\"log\",\"ts\":\"")
-            sb.append(e.isoTime)
-            sb.append("\",\"level\":\"")
+            sb.append("{\"level\":\"")
             sb.append(e.level.name.lowercase())
-            sb.append("\",\"tag\":\"")
-            sb.append(escape(e.tag))
             sb.append("\",\"message\":\"")
             sb.append(escape(e.message.take(500)))
+            sb.append("\",\"tag\":\"")
+            sb.append(escape(e.tag))
+            sb.append("\",\"ts\":\"")
+            sb.append(e.isoTime)
             sb.append("\"}")
         }
         sb.append("]}")

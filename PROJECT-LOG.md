@@ -15,6 +15,38 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 10-10-2026 — v1.2.0 — Android log pipeline fixed; full error tracking architecture
+
+**Asked.**
+- "IMPROVE THE schedule system and the like yk so EVERYTHING works in the mobile app."
+- "MAKE THE ERROR TRACKING and all errors and logs go from the mobile app to the admin panel."
+- "REDESIGN THE WHOLE ERROR AND LOGGING architecture like so it logs everything and that the analytics&logs tab is clean and has everything and everything works."
+
+**Decided.**
+- Root cause: `AppLog.flushForward()` was posting to `/api/session/heartbeat` which does not exist — all Android logs silently 404'd.
+- Added `source` + `metadata` columns to `app_logs` (safe ALTER TABLE); added `/api/logs/batch` endpoint for batched Android ingestion.
+- `ErrorReporter` now posts every error (map/api/general) to `/api/logs` backend in addition to PostHog + Sentry. Auth events emit a warn-level log.
+- `KsykApp.installCrashHandler()` synchronously posts a fatal-level log before the process dies.
+- Admin Logs tab gains a Source filter pill (All / Android / Web / Server) and per-row colored source badges (green=android, blue=web, amber=server). Detail sheet shows `metadata` (device, app version, Android SDK).
+- Deferred schedule validation (startHhmm < endHhmm) and reminder rescheduling — those are Android-only and no reported breakage.
+
+**Shipped.**
+- Tag: `rollback-before-1-2-0`
+- Web v1.2.0, Android 1.2.0 (versionCode 115)
+- `shared/schema.ts` — source + metadata columns in appLogs
+- `server/initDb.ts` — ALTER TABLE app_logs ADD COLUMN source/metadata + index
+- `server/postgresStorage.ts` — createAppLog + getAppLogs updated (source, metadata, level/range/cursor filters)
+- `server/storage.ts` — interface + in-memory stub updated
+- `server/routes.ts` — POST /api/logs/batch added; GET /api/logs now passes source/level/range/cursor filters
+- `android/.../data/AppLog.kt` — flushForward posts to /api/logs/batch; includes appVersion + device in JSON
+- `android/.../data/ErrorReporter.kt` — reportToBackend() helper; called from map/api/auth/general
+- `android/.../KsykApp.kt` — crash handler posts fatal log to /api/logs
+- `client/src/components/AppLogsManager.tsx` — source filter pills; colored source badges; metadata in detail sheet
+- `client/src/lib/changelog.ts` — APP_VERSION=1.2.0, ANDROID_APP_VERSION=1.2.0
+- `android/app/build.gradle.kts` — versionCode 115, versionName 1.2.0
+- `public/releases/ksykmaps-release-1.2.0.apk`
+- `CHANGELOG.md`, `ROADMAP.md`
+
 ## 09-10-2026 — v1.1.9 — Swedish courses expanded to full catalogue
 
 **Asked.** Delete old aRU/bRU/svRU entries and replace with 22 numbered courses: a1RU1-7, a2RU1-7, bRU1-5, svRU1-3.

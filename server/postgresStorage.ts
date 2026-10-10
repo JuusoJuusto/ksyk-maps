@@ -31,7 +31,7 @@
   type InsertAppSettings,
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, and, desc, or, gt, isNull, asc } from "drizzle-orm";
+import { eq, like, and, desc, or, gt, gte, lt, isNull, asc } from "drizzle-orm";
 import type { IStorage } from "./storage.js";
 // NOTE: `.js` REQUIRED for Vercel ESM runtime â€” see firebaseStorage.ts.
 import { hashPasswordFieldsInPlace } from "./passwordUtils.js";
@@ -495,9 +495,11 @@ export class DatabaseStorage implements Partial<IStorage> {
   async createAppLog(log: {
     level: string;
     message: string;
+    source?: string | null;
     errorReferenceId?: string | null;
     errorStack?: string | null;
     errorInfo?: any;
+    metadata?: any;
     userAgent?: string | null;
     url?: string | null;
     userId?: string | null;
@@ -506,9 +508,11 @@ export class DatabaseStorage implements Partial<IStorage> {
     await db.insert(appLogs).values({
       level: log.level,
       message: log.message,
+      source: log.source ?? null,
       errorReferenceId: log.errorReferenceId ?? null,
       errorStack: log.errorStack ?? null,
       errorInfo: log.errorInfo ?? null,
+      metadata: log.metadata ?? null,
       userAgent: log.userAgent ?? null,
       url: log.url ?? null,
       userId: log.userId ?? null,
@@ -516,8 +520,52 @@ export class DatabaseStorage implements Partial<IStorage> {
     });
   }
 
-  async getAppLogs(limit = 100): Promise<any[]> {
-    return await db.select().from(appLogs).orderBy(desc(appLogs.createdAt)).limit(limit);
+  async getAppLogs(opts: {
+    limit?: number;
+    level?: string;
+    source?: string;
+    range?: '24h' | '7d' | '30d';
+    cursor?: string;
+  } = {}): Promise<{ rows: any[]; nextCursor: string | null }> {
+    const { limit = 100, level, source, range, cursor } = opts;
+    const conditions: any[] = [];
+
+    if (level && level !== 'all') {
+      // Normalize 'warning' → 'warn' to match what the server writes.
+      const dbLevel = level === 'warning' ? 'warn' : level;
+      conditions.push(eq(appLogs.level, dbLevel));
+    }
+    if (source && source !== 'all') {
+      conditions.push(eq(appLogs.source, source));
+    }
+    if (range) {
+      const ms = { '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000 };
+      const cutoff = new Date(Date.now() - ms[range]);
+      conditions.push(gte(appLogs.createdAt, cutoff));
+    }
+    if (cursor) {
+      const cursorDate = new Date(cursor);
+      if (!isNaN(cursorDate.getTime())) {
+        conditions.push(lt(appLogs.createdAt, cursorDate));
+      }
+    }
+
+    const fetch = limit + 1;
+    const rows = await db.select().from(appLogs)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(appLogs.createdAt))
+      .limit(fetch);
+
+    const hasMore = rows.length === fetch;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore ? page[page.length - 1].createdAt?.toISOString() ?? null : null;
+
+    // Normalise output shape expected by the admin panel.
+    const out = page.map((r) => ({
+      ...r,
+      timestamp: r.createdAt,
+    }));
+    return { rows: out, nextCursor };
   }
 
   // ============================================
