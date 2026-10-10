@@ -1379,7 +1379,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
         </div>
 
         {/* Nav items — grouped, hairline dividers between groups */}
-        <nav className="flex-1 overflow-y-auto py-2 divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
+        <nav className="flex-1 overflow-y-auto scrollbar-none py-2 divide-y divide-[#d5dae0] dark:divide-[#2a3040]">
           {NAV_GROUPS.map((group) => {
             const items = group.values.map((v) => navByValue[v]).filter(Boolean);
             if (items.length === 0) return null;
