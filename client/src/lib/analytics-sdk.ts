@@ -367,7 +367,7 @@ export function initTelemetry() {
   // transient MapLibre render errors so they show up in analytics but
   // don't spam the "fatal errors" chart on the admin dashboard.
   const isMapLibreTransient = (msg: string, stack: string) =>
-    /Cannot read properties of undefined \(reading '(get|getLayer|0)'\)/.test(msg) &&
+    /(Cannot read properties of undefined \(reading '(get|getLayer|0)'\)|undefined is not an object \(evaluating '[^']*(\.(get|getLayer)|\[0\])'\))/.test(msg) &&
     /(renderLayer|_render|Object\.(circle|line|fill|symbol)|Om\.render|setUniform)/.test(stack);
   window.addEventListener("error", (e: ErrorEvent) => {
     const stack = String(e.error?.stack || '');
