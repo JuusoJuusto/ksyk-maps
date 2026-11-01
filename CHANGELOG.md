@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.10 — November 2026
+
+- /api/debug: move the route below the `storage` import (it threw a TDZ ReferenceError on every call)
+- API 500 handler: record `cause` + `cause_code` from Drizzle query errors; send "Failed query" without SQL text or params to PostHog events and logs
+- No schema change, no Android APK
+
 ## 1.1.9 — October 2026
 
 - 22 Swedish courses added: a1RU1–7 (A1-Ruotsi), a2RU1–7 (A2-kieli Ruotsi), bRU1–5 (b-Ruotsi), svRU1–3 (lyhyt Ruotsi)

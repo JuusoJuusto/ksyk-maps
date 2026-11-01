@@ -15,6 +15,22 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 01-11-2026 — v1.1.10 — /api/debug 500 fix + diagnosable DB errors
+
+**Asked.** PostHog inbox report: 5 `server_error` events on 01-11-2026 after 14 quiet days — 500s on `/api/rooms`, `/api/floors`, `/api/users` (database query failures) and `/api/debug` (`Cannot access 'storage' before initialization`).
+
+**Decided.**
+- `/api/debug` used `storage` above its `const { storage } = await import(...)` in the same scope, so every authenticated call hit the TDZ. Moved the route below the import. Reproduced locally: 500 before, 200 after.
+- The DB failures show only Drizzle's "Failed query: <sql> params: <values>" wrapper. The real reason sits on `error.cause` and the handler dropped it, so the root cause is not recoverable from the existing data. The handler now records `cause` + `cause_code` and replaces the SQL/params with "Failed query" in PostHog (params can hold emails). An unreachable DB reproduces the same message shape on `/api/floors` locally.
+- No retry or 503 mapping yet: wait for the next event with a cause before choosing a fix.
+
+**Shipped.**
+- Branch `posthog-self-driving/fixapi-investigate-new-production-500-1d7108`
+- Rollback: `git reset --hard rollback-before-1-1-10` (tag on `4550ecd`)
+- Files: `api/index.ts`, `changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`, `PROJECT-LOG.md`
+
+---
+
 ## 09-10-2026 — v1.1.9 — Swedish courses expanded to full catalogue
 
 **Asked.** Delete old aRU/bRU/svRU entries and replace with 22 numbered courses: a1RU1-7, a2RU1-7, bRU1-5, svRU1-3.
