@@ -5462,7 +5462,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         method: req.method,
         url: req.url,
         cause_code: causeCode,
-        stack: isQueryError ? cause?.stack?.slice(0, 1500) : error?.stack?.slice(0, 1500),
+        stack: (isQueryError ? cause : error)?.stack?.slice(0, 1500),
       },
     });
     // Product Analytics event too — powers "5xx by endpoint" chart.
