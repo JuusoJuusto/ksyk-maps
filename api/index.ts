@@ -227,7 +227,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Debug endpoint — admin only
+    // Import and use storage
+    const { storage } = await import('../server/storage.js');
+
+    // Debug endpoint — admin only.  Must sit below the storage import:
+    // above it, `storage` is in the TDZ and every call threw a 500.
     if (apiPath === '/debug') {
       if (!requireAdminAuth(req, res)) return;
       const buildings = await storage.getBuildings();
@@ -237,9 +241,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         env: { HAS_POSTGRES_URL: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL },
       });
     }
-    
-    // Import and use storage
-    const { storage } = await import('../server/storage.js');
 
     // â”€â”€ KSYK security & telemetry endpoints (added 2026-06-25) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // These were missing on the Vercel build and were returning 404 in
@@ -5437,20 +5438,31 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
     });
     
   } catch (error: any) {
+    // Drizzle wraps driver errors as "Failed query: <sql>\nparams: <values>"
+    // and keeps the real reason on `cause`.  The params can hold emails
+    // and tokens, so send only the SQL-free summary + cause to PostHog.
+    const cause = error?.cause;
+    const isQueryError = typeof error?.message === 'string' && error.message.startsWith('Failed query');
+    const safeMessage = isQueryError ? 'Failed query' : error?.message;
+    const causeMessage = cause?.message ? String(cause.message).slice(0, 300) : undefined;
+    const causeCode = cause?.code;
     console.error("API Error:", {
       message: error.message,
+      cause: causeMessage,
+      causeCode,
       stack: error.stack,
       url: req.url,
       method: req.method
     });
     // Ship the failure to PostHog Logs so we see it on the Logs board
     // without needing to scrape Vercel deployment logs.
-    emitLog(`API 500 on ${req.method} ${req.url}: ${error.message}`, {
+    emitLog(`API 500 on ${req.method} ${req.url}: ${safeMessage}${causeMessage ? ` (${causeMessage})` : ''}`, {
       severity: 'error',
       attributes: {
         method: req.method,
         url: req.url,
-        stack: error?.stack?.slice(0, 1500),
+        cause_code: causeCode,
+        stack: (isQueryError ? cause : error)?.stack?.slice(0, 1500),
       },
     });
     // Product Analytics event too — powers "5xx by endpoint" chart.
@@ -5458,7 +5470,9 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       status: 500,
       method: req.method,
       url: req.url,
-      message: error?.message,
+      message: safeMessage,
+      cause: causeMessage,
+      cause_code: causeCode,
     });
     try { await Promise.all([flushLogs(), posthogFlush()]); } catch { /* ignore */ }
 

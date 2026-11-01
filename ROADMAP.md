@@ -24,6 +24,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.1.10 — /api/debug TDZ 500 fixed; API 500 events record the database cause and no longer send SQL text
 - v1.1.9 — Swedish courses expanded: 22 numbered courses replace the old 3 generic codes; courseAutoColor updated
 - v1.1.8 + Android 1.1.8 — widgets show resolved course names + teacher names; iCal extractTeacher fallback fixed; Swedish course names updated
 - v1.1.7 — teacher emails seeded (firstname.lastname@ksyk.fi, ä→a ö→o); data-only, no APK

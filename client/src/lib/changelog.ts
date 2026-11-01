@@ -10,17 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.9";
+export const APP_VERSION = "1.1.10";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.10",
+    date: "November 2026",
+    title: "Admin debug endpoint fixed, clearer API error reports",
+    titleFi: "Ylläpidon debug-rajapinta korjattu, selkeämmät API-virheraportit",
+    latest: true,
+    highlights: [
+      "**/api/debug no longer returns 500.** The route read `storage` before its import, so every admin call failed.",
+      "**Database errors are now diagnosable.** `server_error` events and API logs record the real driver cause (for example `ECONNREFUSED`) and no longer send SQL text or query params to PostHog.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-10` (tag on `4550ecd`). DB: no migration.",
+    ],
+  },
+  {
     version: "1.1.9",
     date: "October 2026",
     title: "Swedish courses expanded to full catalogue",
     titleFi: "Ruotsin kurssit laajennettu täydeksi katalogiksi",
-    latest: true,
+    latest: false,
     highlights: [
       "**22 Swedish courses added.** Old generic codes (aRU/bRU/svRU) replaced by numbered per-course entries: A1-Ruotsi 1–7, A2-kieli Ruotsi 1–7, b-Ruotsi 1–5, and the three short-Swedish electives (Ruotsia aloitteleville, Chansa och plugga svenska!, Hyppy lukion ruotsiin).",
       "**Rollback** — `git reset --hard rollback-before-1-1-9`. DB: DELETE removes aRU/bRU/svRU rows; safe to leave new rows in place if reverted.",
