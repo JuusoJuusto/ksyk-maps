@@ -15,6 +15,23 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 02-11-2026 — v1.1.10 — posthog-node 5.51.4 → 5.61.1
+
+**Asked.** PostHog SDK health check: all server events came from posthog-node 5.51.4, about ten minor versions behind 5.61.1.
+
+**Decided.**
+- Root cause: `package.json` already allowed `^5.51.4`, but `package-lock.json` pinned 5.51.4, so every deploy shipped the old SDK. Bumped both to `^5.61.1` / 5.61.1.
+- Reviewed the 5.52–5.61 changelog: no API change to `PostHog`, `capture`, `flush` or `setupExpressRequestContext`. Engine range is unchanged (`^20.20.0 || >=22.22.0`).
+- Behaviour changes that touch us: Express exception events report the final HTTP status (5.52.2); with `enableExceptionAutocapture` the SDK captures unhandled rejections even when another listener exists (5.61.1).
+- posthog-js shares the hoisted `@posthog/core`, so the browser bundle also moves 1.49.2 → 1.62.0 (inside posthog-js's own `^1.49.2` range).
+
+**Shipped.**
+- Rollback: `git reset --hard rollback-before-1-1-10` (tag on `4550ecd`)
+- No DB migration
+- Files: `package.json`, `package-lock.json`, `changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`, `PROJECT-LOG.md`
+
+---
+
 ## 09-10-2026 — v1.1.9 — Swedish courses expanded to full catalogue
 
 **Asked.** Delete old aRU/bRU/svRU entries and replace with 22 numbered courses: a1RU1-7, a2RU1-7, bRU1-5, svRU1-3.
