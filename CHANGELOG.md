@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.10 — November 2026
+
+- posthog-node 5.51.4 → 5.61.1 (lockfile was pinned to 5.51.4 although `^5.51.4` allowed newer); shared `@posthog/core` 1.49.2 → 1.62.0 for posthog-js too
+- No code changes; no DB migration; no APK
+- Rollback: `git reset --hard rollback-before-1-1-10`
+
 ## 1.1.9 — October 2026
 
 - 22 Swedish courses added: a1RU1–7 (A1-Ruotsi), a2RU1–7 (A2-kieli Ruotsi), bRU1–5 (b-Ruotsi), svRU1–3 (lyhyt Ruotsi)

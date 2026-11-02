@@ -10,17 +10,28 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.9";
+export const APP_VERSION = "1.1.10";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.10",
+    date: "November 2026",
+    title: "Server analytics SDK updated",
+    titleFi: "Palvelimen analytiikka-SDK päivitetty",
+    latest: true,
+    highlights: [
+      "**posthog-node 5.51.4 → 5.61.1.** The lockfile now ships the latest 5.x server SDK. No code changes: `capture`, `flush` and `setupExpressRequestContext` keep the same API. Express exception events now report the final HTTP status, and unhandled promise rejections are captured even when another listener exists.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-10`. No DB migration.",
+    ],
+  },
+  {
     version: "1.1.9",
     date: "October 2026",
     title: "Swedish courses expanded to full catalogue",
     titleFi: "Ruotsin kurssit laajennettu täydeksi katalogiksi",
-    latest: true,
+    latest: false,
     highlights: [
       "**22 Swedish courses added.** Old generic codes (aRU/bRU/svRU) replaced by numbered per-course entries: A1-Ruotsi 1–7, A2-kieli Ruotsi 1–7, b-Ruotsi 1–5, and the three short-Swedish electives (Ruotsia aloitteleville, Chansa och plugga svenska!, Hyppy lukion ruotsiin).",
       "**Rollback** — `git reset --hard rollback-before-1-1-9`. DB: DELETE removes aRU/bRU/svRU rows; safe to leave new rows in place if reverted.",
