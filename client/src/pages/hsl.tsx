@@ -1,7 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { ChevronLeft, ExternalLink, Loader2 } from "lucide-react";
 import { trackFeature } from "@/lib/analytics";
+import posthog from "@/lib/posthog";
+
+const BOARD_URL = "https://omatnaytot.hsl.fi/static?url=501f6d3a-2a43-5958-b3fc-a169c7521878";
+// The board is cross-origin, so the iframe gives no error event. A missing
+// `load` after this delay is the only failure signal we get.
+const BOARD_TIMEOUT_MS = 10_000;
 
 /**
  * HSL kiosk display — full-screen iframe of the school's pre-configured
@@ -15,6 +22,18 @@ import { trackFeature } from "@/lib/analytics";
  */
 export default function HSL() {
   const [, setLocation] = useLocation();
+  const { i18n } = useTranslation();
+  const isFi = i18n.language === "fi";
+  const [status, setStatus] = useState<"loading" | "loaded" | "failed">("loading");
+
+  useEffect(() => {
+    if (status !== "loading") return;
+    const timer = window.setTimeout(() => {
+      posthog.capture("hsl_board_load_timed_out", { timeout_ms: BOARD_TIMEOUT_MS });
+      setStatus("failed");
+    }, BOARD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     document.title = "HSL — KSYK Maps";
@@ -54,7 +73,8 @@ export default function HSL() {
       background: "#0b1220",
     }}>
       <iframe
-        src="https://omatnaytot.hsl.fi/static?url=501f6d3a-2a43-5958-b3fc-a169c7521878"
+        src={BOARD_URL}
+        onLoad={() => setStatus("loaded")}
         style={{
           width: "100%",
           height: "100%",
@@ -77,6 +97,55 @@ export default function HSL() {
           pointerEvents: "all",
         }}
       />
+      {status !== "loaded" && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.75rem",
+            padding: "1.5rem",
+            color: "rgba(255,255,255,0.85)",
+            textAlign: "center",
+            fontSize: "0.9375rem",
+          }}
+        >
+          {status === "loading" ? (
+            <>
+              <Loader2 size={28} className="animate-spin" aria-hidden />
+              <span>{isFi ? "Ladataan HSL-näyttöä…" : "Loading HSL departures…"}</span>
+            </>
+          ) : (
+            <>
+              <span>{isFi ? "HSL-näyttö ei ole juuri nyt saatavilla." : "The HSL board is not available right now."}</span>
+              <a
+                href={BOARD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.625rem 1rem",
+                  borderRadius: "8px",
+                  background: "#003d82",
+                  color: "white",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                {isFi ? "Avaa HSL-näyttö uudessa välilehdessä" : "Open the HSL board in a new tab"}
+                <ExternalLink size={16} aria-hidden />
+              </a>
+            </>
+          )}
+        </div>
+      )}
       {/* Floating back button — sits above the overlay so users always
        *  have an escape route without needing the browser back button. */}
       <button
@@ -88,7 +157,7 @@ export default function HSL() {
           position: "fixed",
           top: "max(1rem, env(safe-area-inset-top, 1rem))",
           left: "1rem",
-          zIndex: 10000,
+          zIndex: 10001,
           height: "44px",
           width: "44px",
           borderRadius: "9999px",
