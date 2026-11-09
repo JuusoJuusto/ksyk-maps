@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.11 — November 2026
+
+- `com.posthog:posthog-android` pinned from `3.+` to `3.76.1` in `android/app` and `android/admin` (reproducible builds; installed APK 1.1.8 still sends events from 3.72.1)
+- Android versionCode 115, versionName 1.1.11; admin versionCode 3, versionName 1.1.1
+- Release APK not in this commit: build it with `POSTHOG_API_KEY` set, add it to `public/releases/`, then set `ANDROID_APP_VERSION` to 1.1.11
+- Rollback: `git reset --hard rollback-before-1-1-11` (before-release SHA `4550ecd`). No DB migration.
+
 ## 1.1.9 — October 2026
 
 - 22 Swedish courses added: a1RU1–7 (A1-Ruotsi), a2RU1–7 (A2-kieli Ruotsi), bRU1–5 (b-Ruotsi), svRU1–3 (lyhyt Ruotsi)

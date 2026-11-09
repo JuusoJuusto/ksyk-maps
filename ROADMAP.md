@@ -12,7 +12,7 @@ _(empty — all items shipped)_
 
 ## 🚧 In progress
 
-_(empty)_
+- Android 1.1.11 release APK — SDK pin in PR #57; after merge, build the signed APK with `POSTHOG_API_KEY` set, add it to `public/releases/`, set `ANDROID_APP_VERSION`. Done when `app_started` events from 3.72.1 drop to 0 and the same daily volume comes from 3.76.1.
 
 ## 📋 Next (near-term)
 
