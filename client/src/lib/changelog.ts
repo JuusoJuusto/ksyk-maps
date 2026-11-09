@@ -10,17 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.1.9";
+export const APP_VERSION = "1.1.11";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.1.8";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.11",
+    date: "November 2026",
+    title: "Android analytics SDK pinned to 3.76.1",
+    titleFi: "Androidin analytiikka-SDK lukittu versioon 3.76.1",
+    latest: true,
+    highlights: [
+      "**PostHog Android SDK pinned to 3.76.1** in the app and the admin app. The old `3.+` range made builds non-reproducible, and the installed 1.1.8 APK still runs 3.72.1.",
+      "**Android 1.1.11 (versionCode 115) and admin 1.1.1 (versionCode 3).** Rebuild the release APK with `POSTHOG_API_KEY` set, then set `ANDROID_APP_VERSION` when the APK is in `public/releases/`.",
+      "**Rollback** — `git reset --hard rollback-before-1-1-11`. DB: no migration.",
+    ],
+  },
+  {
     version: "1.1.9",
     date: "October 2026",
     title: "Swedish courses expanded to full catalogue",
     titleFi: "Ruotsin kurssit laajennettu täydeksi katalogiksi",
-    latest: true,
+    latest: false,
     highlights: [
       "**22 Swedish courses added.** Old generic codes (aRU/bRU/svRU) replaced by numbered per-course entries: A1-Ruotsi 1–7, A2-kieli Ruotsi 1–7, b-Ruotsi 1–5, and the three short-Swedish electives (Ruotsia aloitteleville, Chansa och plugga svenska!, Hyppy lukion ruotsiin).",
       "**Rollback** — `git reset --hard rollback-before-1-1-9`. DB: DELETE removes aRU/bRU/svRU rows; safe to leave new rows in place if reverted.",

@@ -15,6 +15,23 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 09-11-2026 — v1.1.11 — pin posthog-android to 3.76.1
+
+**Asked.** PostHog SDK health check flags posthog-android 3.72.1 as outdated (four minor versions behind 3.76.1).
+
+**Decided.**
+- Root cause is the installed APK (1.1.8, versionCode 114), not the manifest: both modules declared `3.+`, so a clean build already resolves 3.76.1.
+- Pin `3.76.1` in `android/app` and `android/admin` so builds are reproducible. Bump app to versionCode 115 / 1.1.11 and admin to versionCode 3 / 1.1.1.
+- Version 1.1.11, because open PRs #55 and #56 both claim 1.1.10.
+- No APK in this commit: the sandbox has no `POSTHOG_API_KEY`, and an APK without it disables analytics. `ANDROID_APP_VERSION` stays 1.1.8 until the real APK is in `public/releases/`, so the download link does not 404.
+- Gradle `:app:assembleDebug` passes with 3.76.1 and `-Xskip-metadata-version-check`. `:admin` does not compile from a clean clone on `main` either: the root `.gitignore` `logs` pattern hides `admin/ui/logs/LogsScreen.kt`, so it was never committed. Not fixed here.
+
+**Shipped.**
+- Rollback: `git reset --hard rollback-before-1-1-11` (before-release SHA `4550ecd`). No DB migration.
+- Files: `android/app/build.gradle.kts`, `android/admin/build.gradle.kts`, `changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`
+
+---
+
 ## 09-10-2026 — v1.1.9 — Swedish courses expanded to full catalogue
 
 **Asked.** Delete old aRU/bRU/svRU entries and replace with 22 numbered courses: a1RU1-7, a2RU1-7, bRU1-5, svRU1-3.
