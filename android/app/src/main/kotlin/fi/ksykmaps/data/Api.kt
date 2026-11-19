@@ -4,6 +4,9 @@ import fi.ksykmaps.BuildConfig
 import fi.ksykmaps.data.ErrorReporter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -19,7 +22,7 @@ import java.util.concurrent.TimeUnit
 object Api {
     var base = "https://ksykmaps.fi/api"
     var sessionEmail: String? = null
-    /** HMAC admin token issued by /auth/admin-login (7-day TTL). */
+    /** HMAC admin token issued by /auth/admin-login, renewed via /auth/admin-refresh (30-day sliding TTL). */
     var adminToken: String? = null
 
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
@@ -167,6 +170,58 @@ object Api {
     fun delete(path: String): JsonElement = request(path, "DELETE", null)
 
     private fun request(path: String, method: String, body: JsonElement?): JsonElement {
+        try {
+            return requestOnce(path, method, body)
+        } catch (e: ApiException) {
+            // A 401 while holding an admin token usually means it aged out.
+            // Swap it for a fresh one and replay the call once, so the admin
+            // never sees an error for something we can fix silently. Skipped
+            // right after a refresh: a second 401 then isn't about the token
+            // (e.g. bad Wilma credentials).
+            if (e.status == 401 && adminToken != null && !path.startsWith("/auth/") &&
+                System.currentTimeMillis() - lastRefreshOkAt > RECENT_REFRESH_MS &&
+                refreshAdminToken()
+            ) {
+                return requestOnce(path, method, body)
+            }
+            throw e
+        }
+    }
+
+    private const val RECENT_REFRESH_MS = 30_000L
+    @Volatile private var lastRefreshOkAt = 0L
+
+    /**
+     * Sliding session: trade the current admin token for a fresh one (the
+     * server issues a new full-length TTL each time). Returns true when a new
+     * token was stored. Only a definitive 401 ends the session — network
+     * errors, 5xx and an older server without the endpoint leave it alone so
+     * a flaky connection can never sign the admin out.
+     */
+    @Synchronized
+    fun refreshAdminToken(): Boolean {
+        if (adminToken == null) return false
+        return try {
+            val obj = requestOnce("/auth/admin-refresh", "POST", JsonObject(emptyMap())) as? JsonObject
+            val fresh = (obj?.get("adminToken") as? JsonPrimitive)?.contentOrNull
+            if (fresh.isNullOrBlank()) {
+                false
+            } else {
+                Session.applyRefreshedToken(fresh, obj?.get("user") as? JsonObject)
+                lastRefreshOkAt = System.currentTimeMillis()
+                AppLog.info("Api", "admin token refreshed")
+                true
+            }
+        } catch (e: ApiException) {
+            if (e.status == 401) {
+                AppLog.warn("Api", "admin token rejected by server — session expired")
+                Session.expire()
+            }
+            false
+        }
+    }
+
+    private fun requestOnce(path: String, method: String, body: JsonElement?): JsonElement {
         val builder = Request.Builder().url(base + path)
         // Always include auth when a token is available — GET to /admin/*
         // and /users endpoints require it; public endpoints ignore it safely.

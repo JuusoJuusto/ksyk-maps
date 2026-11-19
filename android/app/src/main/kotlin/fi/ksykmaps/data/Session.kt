@@ -14,7 +14,8 @@ import kotlinx.serialization.json.contentOrNull
  * Persists the admin email + HMAC token in SharedPreferences so the
  * user stays logged in across app restarts without re-entering credentials.
  * The token is a signed JWT-like payload issued by /auth/admin-login
- * (7-day TTL). Beacon and map data live in Firestore via the API —
+ * (30-day TTL, renewed by /auth/admin-refresh on every app start so it
+ * only lapses after a month of not opening the app). Beacon and map data live in Firestore via the API —
  * both the web admin and this app read the same documents.
  *
  * `signedInState` and `adminState` are Compose-observable so screens
@@ -42,6 +43,12 @@ object Session {
     private const val KEY_TOKEN = "admin_token"
     private const val KEY_ROLE = "admin_role"
     private const val KEY_USER_ID = "user_id"
+    private const val KEY_REFRESHED_AT = "token_refreshed_at"
+    /** Sliding session: renew at most twice a day, far inside the server's TTL. */
+    private const val REFRESH_INTERVAL_MS = 12L * 60 * 60 * 1000
+
+    /** True once the server has definitively rejected our token; AppShell shows a "sign in again" prompt. */
+    val sessionExpiredState = mutableStateOf(false)
 
     fun load(ctx: Context) {
         val sp = prefs(ctx)
@@ -73,7 +80,10 @@ object Session {
             .apply {
                 if (userId != null) putString(KEY_USER_ID, userId) else remove(KEY_USER_ID)
             }
-            .apply { if (token != null) putString(KEY_TOKEN, token) else remove(KEY_TOKEN) }
+            .apply {
+                if (token != null) putString(KEY_TOKEN, token).putLong(KEY_REFRESHED_AT, System.currentTimeMillis())
+                else remove(KEY_TOKEN)
+            }
             .apply { if (role != null) putString(KEY_ROLE, role) else remove(KEY_ROLE) }
             .apply()
         rememberedEmail = email
@@ -81,12 +91,48 @@ object Session {
         Api.sessionEmail = email
         signedInState.value = true
         adminState.value = extractAdmin(user)
+        sessionExpiredState.value = false
         if (userId != null) identifyUser(userId, email, role)
     }
 
+    /**
+     * Store a token the server just renewed (and the account's current role,
+     * so a demotion takes effect). Called from Api.refreshAdminToken.
+     */
+    fun applyRefreshedToken(token: String, freshUser: JsonObject?) {
+        if (freshUser != null) user = freshUser
+        Api.adminToken = token
+        val ctx = appContext() ?: return
+        val role = extractRole(user)
+        prefs(ctx).edit()
+            .putString(KEY_TOKEN, token)
+            .putLong(KEY_REFRESHED_AT, System.currentTimeMillis())
+            .apply { if (role != null) putString(KEY_ROLE, role) }
+            .apply()
+    }
+
+    /** Renew the token if the last renewal is old enough. Blocking — call off the main thread. */
+    fun refreshIfDue(ctx: Context) {
+        if (!signedInState.value || Api.adminToken == null) return
+        val last = prefs(ctx).getLong(KEY_REFRESHED_AT, 0L)
+        if (System.currentTimeMillis() - last < REFRESH_INTERVAL_MS) return
+        Api.refreshAdminToken()
+    }
+
+    /** The server rejected our token for good: drop the session and let the UI ask for a fresh sign-in. */
+    fun expire() {
+        if (!signedInState.value) return
+        val ctx = appContext() ?: return
+        clear(ctx)
+        sessionExpiredState.value = true
+    }
+
+    private fun appContext(): Context? =
+        runCatching { fi.ksykmaps.KsykApp.instance }.getOrNull()
+
     fun clear(ctx: Context) {
         val sp = prefs(ctx)
-        sp.edit().remove(KEY_EMAIL).remove(KEY_TOKEN).remove(KEY_ROLE).remove(KEY_USER_ID).apply()
+        sp.edit().remove(KEY_EMAIL).remove(KEY_TOKEN).remove(KEY_ROLE).remove(KEY_USER_ID).remove(KEY_REFRESHED_AT).apply()
         runCatching { PostHog.reset() }
         rememberedEmail = null
         user = null

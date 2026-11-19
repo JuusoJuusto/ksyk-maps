@@ -15,6 +15,53 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 19-11-2026 — v1.3.1 / Android 1.2.1 — Admin session no longer dies after a week on mobile
+
+**Asked.**
+- On the mobile app, an admin who signed in ~2 weeks ago can't use the admin panel any more — it just says error. Fix it so it always works, then build the new APK.
+
+**Decided.**
+- Root cause: `generateAdminToken` (`api/index.ts`) issued HMAC tokens with a fixed 7-day expiry. The Android app restores the token from SharedPreferences on launch (`Session.load`) and shows the admin tab from the cached role without ever checking it, so after day 7 every admin call returned 401 `Invalid or expired admin token` and the sections showed errors. Only two of the seven admin sections handled 401 at all.
+- Fix = sliding session, not just a longer TTL: new `POST /api/auth/admin-refresh` trades a still-valid token for a fresh 30-day one; the app calls it on every `onStart` (≤ 2×/day), so the token only lapses after 30 days of not opening the app. A longer fixed TTL alone would just move the same failure later.
+- The refresh re-checks the account (deleted → 401, `canLoginToKsykMaps === false` → 401; owner break-glass id allowed without a DB row). A DB outage or slow lookup (4 s cap) falls back to the token's own claims so an outage can't sign every admin out.
+- Client rules: only a definitive 401 from the refresh ends the session. Network errors, 5xx, 429 and an older server without the endpoint (404) never sign anyone out. Any other call that gets a 401 refreshes once and is replayed (skipped within 30 s of a refresh so a non-token 401 such as bad Wilma credentials doesn't loop). When the session really is dead the user gets a "Session expired — sign in" dialog (with "Later"), not erroring screens.
+- Considered and rejected: storing the password on the device to re-login silently (credential storage risk), and a grace window that revives already-expired tokens (would quietly extend every old token's life). Cost: tokens already expired on a phone can't be revived — that one sign-in is needed after updating.
+- Not done: the separate `android/admin` app and the web admin (`ksyk_admin_token`) still have no refresh/401 handling; they benefit from the 30-day TTL only. `server/routes.ts` (dev server) also still stamps 7 days but nothing there verifies the token. Logged in ROADMAP.
+
+**Shipped.** Working tree on top of `3d2bc14`; nothing committed, pushed or deployed.
+- Tag: `rollback-before-1-3-1` (→ `git reset --hard rollback-before-1-3-1`). No DB migration. Web changes in this entry sit on top of the uncommitted v1.3.0 SEO work in the same files (`api/index.ts`, `client/src/lib/changelog.ts`, `CHANGELOG.md`).
+- Web v1.3.1: `api/index.ts` (`ADMIN_TOKEN_TTL_MS`, `/auth/admin-refresh`), `tests/security/api-auth.test.ts` (+4), `client/src/lib/changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`
+- Android 1.2.1 (versionCode 116): `data/Api.kt` (`refreshAdminToken`, 401 replay), `data/Session.kt` (`applyRefreshedToken`, `refreshIfDue`, `expire`, `sessionExpiredState`), `MainActivity.kt` (`onStart` refresh, session-expired dialog), `ui/ChangelogScreen.kt`, `app/build.gradle.kts`
+- Gates: `tsc` clean; `test:security` 11/11. The web deploy is required for renewal to work: until `api/index.ts` is live, the 1.2.1 app still runs (refresh 404 is ignored) but can't renew.
+- Also: `npm run build` (Vite + prerender) passes. Not run: Playwright e2e; no device test of the APK (nothing exercised the refresh against a live deployed server, and no phone with an expired token was available).
+- APK: `android/app/build/outputs/apk/release/ksykmaps-release-1.2.1.apk` (63 MB, `fi.ksykmaps`, versionCode 116, release-signed), copied to `public/releases/ksykmaps-release-1.2.1.apk` because `download.tsx` links `ANDROID_APP_VERSION` there. SHA-256 `4cd4efd0…9f5c`. `:app:assembleRelease` only — the separate `:admin` app was not rebuilt.
+- Build note: Gradle can't start from the assistant's Bash/PowerShell tool shell here (`Selector.open()` fails with "Invalid argument: connect" on every JDK) but works in the user's own Terminal panel; it was run there with `JAVA_HOME=C:\Program Files\Java\jdk-17`. A harmless Kotlin incremental-cache error (`MapScreenKt$…groupingBy`) triggered the automatic non-daemon fallback.
+
+---
+
+## 01-11-2026 — v1.3.0 — Search discoverability: per-page prerendered HTML, crawlable lunch menu, correct host
+
+**Asked.**
+- Audit KSYK Maps so Google and other legitimate crawlers can discover its public pages — Google showed only the download page; lunch and other public pages should be findable too.
+- Page-specific title / description / canonical / Open Graph / JSON-LD, correct robots.txt + sitemap.xml, crawlable HTML without breaking the SPA, no private data indexed, tests, no production deploy / DNS / secrets changes.
+
+**Decided.**
+- Root causes (observed on production): `vercel.json` rewrote every URL to one empty SPA shell (same title, no canonical, empty `#root`, unknown URLs returned 200); `ksykmaps.fi` 307-redirects to `www.ksykmaps.fi` while every canonical / sitemap / JSON-LD URL named the apex; `robots.txt` blocked `/api/` and did not allow `/api/lunch-menu`, so Google's renderer could not load the menu; the sitemap listed `/directory` (not a route) and `/hsl` (iframe kiosk).
+- Rendering: build-time prerender (`scripts/prerender.ts`) writes one static HTML file per public route from the built shell. The SPA still mounts with `createRoot`, so the prerendered body is a crawler / no-JS fallback, not a hydration target. No SSR framework, no new dependencies.
+- Canonical host = `https://www.ksykmaps.fi` because that is what returns 200; one constant in `shared/seo.ts`. Flip it together with the Vercel domain redirect if the apex should be primary.
+- Indexable: `/`, `/lunch`, `/download`, `/faq`, `/support`, `/privacy`. No new map/schedule pages — the FAQ already documents schedule features and `/` is the map. Noindex (header + meta): admin, builder, `/grant/*`, `/api/*`, `/hsl`, `/app`, `/report`, easter eggs; unknown URLs get `app-shell.html` (noindex).
+- Lunch: shared parser + feed URL in `shared/lunchFeed.ts` used by the page, both API handlers and the prerender (no second source of truth). Parity kept with the old parser, including its limits: Friday's unlabeled courses show "not available", Thursday's extra dishes after `Lounas:` are dropped — flagged, not guessed.
+- Privacy: `GET /api/staff` returned full staff rows (email, phone, bio) to anyone; now directory fields only unless a valid admin token is sent (`shared/staffPublic.ts`); admin panel sends its token.
+- Left alone and flagged: `GET /api/rooms` still returns `teacher`, `maintenanceNotes`, `emergencyInfo` publicly (the map UI may use them); `/api/debug` throws a TDZ error even for admins (`storage` used before init).
+
+**Shipped.** Working tree on top of `3d2bc14`; nothing committed, pushed or deployed.
+- Tag: `rollback-before-1-3-0` (→ `git reset --hard rollback-before-1-3-0`). No DB migration. `vercel.json` rewrites change, so revert it with the code.
+- Web v1.3.0 (Android unchanged, 1.2.0)
+- New: `shared/seo.ts`, `shared/lunchFeed.ts`, `shared/staffPublic.ts`, `scripts/prerender.ts`, `scripts/prerender/render.ts`, `client/src/content/faq.ts`, `client/src/content/privacy.ts`, `client/src/components/RouteMeta.tsx`, `tests/seo/*` (helpers, lunchFeed, config, prerender, dist + fixture), `tests/security/api-auth.test.ts`
+- Edited: `vercel.json`, `public/robots.txt`, `package.json` (build runs prerender; `test:seo`, `test:security`), `tsconfig.json`, `client/index.html`, `client/src/App.tsx`, `client/src/pages/{lunch,faq,privacy,download,support}.tsx`, `client/src/components/AdminDashboard.tsx`, `api/index.ts`, `server/routes.ts`, `client/src/lib/changelog.ts`, `CHANGELOG.md`
+- Removed: `public/sitemap.xml` (now generated), `client/public/robots.txt` + `client/public/sitemap.xml` (unused duplicates — Vite's publicDir is `public/`)
+- Gates: `tsc` clean, `npm run build` passes, `test:seo` 38/38, `test:security` 7/7, four deliberate regressions each turned a test red. Browser check on the built output (direct load, client navigation, refresh, lunch with a faked weekday). Not run: Playwright e2e (needs dev server + DB), Android build (untouched).
+
 ## 10-10-2026 — v1.2.0 — Android log pipeline fixed; full error tracking architecture
 
 **Asked.**

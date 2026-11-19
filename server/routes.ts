@@ -18,6 +18,8 @@ import {
 } from "./kvStorage";
 import { db as pgDb } from "./db";
 import { pageViews, searchAnalytics, appLogs } from "../shared/schema.js";
+import { LUNCH_FEED_URL } from "../shared/lunchFeed.js";
+import { toPublicStaff } from "../shared/staffPublic.js";
 import { and, eq, gte, count as pgCount } from "drizzle-orm";
 
 import { registerCampusRoutes } from "./campusRoutes";
@@ -1608,11 +1610,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Staff routes
-  app.get('/api/staff', async (req, res) => {
+  app.get('/api/staff', async (req: any, res) => {
     try {
       const limit  = Math.min(Math.max(parseInt((req.query.limit  as string) || "200", 10), 1), 500);
       const offset = Math.max(parseInt((req.query.offset as string) || "0",   10), 0);
-      res.json(await storage.getStaff(limit, offset));
+      const rows = await storage.getStaff(limit, offset);
+      const sub = req.user?.claims?.sub;
+      const viewer = sub ? await storage.getUser(sub) : undefined;
+      const isAdmin = viewer?.role === 'admin' || viewer?.role === 'owner';
+      res.json(isAdmin ? rows : rows.map((s) => toPublicStaff(s as unknown as Record<string, unknown>)));
     } catch (error) {
       await logError(error, 'GET /api/staff');
       res.status(500).json({ message: "Failed to fetch staff" });
@@ -2749,7 +2755,7 @@ https://ksykmaps.fi
   // Lunch menu proxy to bypass CORS
   app.get("/api/lunch-menu", async (req, res) => {
     try {
-      const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
+      const response = await fetch(LUNCH_FEED_URL);
       const text = await response.text();
       res.setHeader("Content-Type", "application/xml");
       res.send(text);

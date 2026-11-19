@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { HelpBubble } from "@/components/HelpBubble";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaintenanceMode from "@/components/MaintenanceMode";
+import RouteMeta from "@/components/RouteMeta";
 // v1.0.6 — SplashScreen removed from the boot path; the component
 // file stays in the repo in case we want it back behind an admin
 // toggle later.
@@ -242,6 +243,7 @@ export default function App() {
                     <AccessibilityClasses />
                     <CookieConsent />
                     <Toaster />
+                    <RouteMeta />
                     <Router />
                     <DevPanel />
                   </HelpBubble>

@@ -1,5 +1,5 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "packages/**/src/**/*", "apps/**/src/**/*"],
+  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "packages/**/src/**/*", "apps/**/src/**/*", "scripts/prerender.ts", "scripts/prerender/**/*"],
   "exclude": [
     "node_modules",
     "build",

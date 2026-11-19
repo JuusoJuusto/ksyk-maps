@@ -36,6 +36,20 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.2.1",
+        date = "November 2026",
+        titleFi = "Hallintapaneeli pysyy kirjautuneena",
+        titleEn = "Admin panel stays signed in",
+        highlightsFi = listOf(
+            "Korjattu: noin viikon vanha kirjautuminen aiheutti virheen hallintapaneelissa. Istunto uusiutuu nyt automaattisesti aina kun avaat sovelluksen.",
+            "Istunto vanhenee vain, jos et avaa sovellusta kuukauteen — silloin näet selkeän \"Istunto vanhentui\" -ilmoituksen ja voit kirjautua uudelleen yhdellä napautuksella.",
+        ),
+        highlightsEn = listOf(
+            "Fixed: an admin sign-in about a week old made the admin panel show errors. The session now renews itself every time you open the app.",
+            "A session only lapses after a month of not opening the app — then you get a clear \"Session expired\" prompt and can sign in again in one tap.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.91.0",
         date = "September 2026",
         titleFi = "Material You -widgetit + reittitelemetria",

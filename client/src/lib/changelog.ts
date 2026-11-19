@@ -10,17 +10,58 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.3.1";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.2.0";
+export const ANDROID_APP_VERSION = "1.2.1";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.1",
+    date: "November 2026",
+    title: "Admin sign-in no longer expires after a week — Android admin panel stays signed in",
+    titleFi: "Ylläpidon kirjautuminen ei enää vanhene viikossa — Androidin hallintapaneeli pysyy kirjautuneena",
+    latest: true,
+    highlights: [
+      "**Fixed: the Android admin panel showed errors about a week after signing in.** The admin token had a fixed 7-day life and the app never renewed it, so every admin call returned 401 once it aged out.",
+      "**Sliding session.** New `POST /api/auth/admin-refresh` trades a still-valid token for a fresh one with a full new 30-day life. The Android app (1.2.1) calls it on launch and on return to the foreground (at most twice a day), so the session only ends after 30 days of not opening the app. The refresh re-checks the account, so a deleted or blocked user stops renewing.",
+      "**Silent recovery + a clear prompt.** If a call still gets a 401 the app refreshes once and replays it. If the server really rejects the token, the app signs out and shows a 'Session expired — sign in again' dialog instead of leaving admin screens erroring. Network errors, 5xx and an older server without the endpoint never sign anyone out.",
+      "**Token life** is now one constant (`ADMIN_TOKEN_TTL_MS` in `api/index.ts`), 30 days, for new sign-ins and refreshes alike. Tokens issued before this release keep their old 7-day expiry; an already-expired token can't be revived, so anyone signed out by it signs in once more.",
+      "**Tests:** four new cases in `npm run test:security` (refresh issues a ~30-day token the admin gate accepts; refuses anonymous, expired, forged and malformed tokens; no leftover hard-coded 7-day expiry).",
+      "**Rollback** — `git reset --hard rollback-before-1-3-1` (commit `3d2bc14`). No DB migration. Android 1.2.0 still works against the new server (it just keeps the old no-refresh behaviour).",
+    ],
+    highlightsFi: [
+      "**Korjattu: Androidin hallintapaneeli näytti virheitä noin viikon kirjautumisen jälkeen.** Admin-tunniste vanheni kiinteästi 7 päivässä eikä sovellus uusinut sitä.",
+      "**Uusiutuva istunto.** Uusi `POST /api/auth/admin-refresh` vaihtaa voimassa olevan tunnisteen uuteen 30 päivän tunnisteeseen. Android-sovellus (1.2.1) uusii sen käynnistyessä ja palatessaan etualalle, joten istunto päättyy vasta 30 päivän käyttämättömyyden jälkeen.",
+      "**Hiljainen palautuminen ja selkeä ilmoitus.** Jos palvelin silti hylkää tunnisteen, sovellus näyttää \"Istunto vanhentui\" -ilmoituksen virhenäkymien sijaan.",
+    ],
+  },
+  {
+    version: "1.3.0",
+    date: "November 2026",
+    title: "Search-engine discoverability: per-page HTML, sitemap, crawlable lunch menu",
+    titleFi: "Hakukoneiden löydettävyys: sivukohtainen HTML, sivukartta, indeksoitava ruokalista",
+    highlights: [
+      "**Every public page now ships its own HTML.** `/`, `/lunch`, `/download`, `/faq`, `/support` and `/privacy` are prerendered at build time with their own title, description, canonical, Open Graph tags, JSON-LD and readable content. Before, every URL returned the same empty shell. The app itself is unchanged and replaces the prerendered content on load.",
+      "**Lunch menu is crawlable.** `/lunch` carries the week's real menu from the same Amica feed (one shared parser, `shared/lunchFeed.ts`) and says so honestly when the feed is down. `robots.txt` now allows `/api/lunch-menu`, which Google's renderer was previously blocked from loading.",
+      "**Correct host.** Canonicals, sitemap, robots and structured data use `https://www.ksykmaps.fi` — the apex host redirects to www, so the old apex canonicals pointed at a redirect.",
+      "**sitemap.xml is generated from one route registry** (`shared/seo.ts`). `/directory` (not a page) and `/hsl` (iframe kiosk) are gone from it; `/download`, `/faq` and `/privacy` are in.",
+      "**Private and alias routes are noindex.** `/admin*`, `/builder`, `/grant/*` (token URLs), `/api/*`, `/hsl`, `/app`, `/report` and the easter eggs send `X-Robots-Tag: noindex`; unknown URLs get a noindex shell instead of a copy of the homepage.",
+      "**Privacy fix:** `GET /api/staff` no longer returns email, phone, bio or photo to anonymous callers. The admin panel now sends its token so it still gets full rows.",
+      "**Tests:** `npm run test:seo` (38) and `npm run test:security` (7), built on Node's test runner — no new dependencies.",
+      "**Rollback** — `git reset --hard rollback-before-1-3-0` (commit `3d2bc14`). No DB migration. `vercel.json` rewrites change with this release, so revert it together with the code.",
+    ],
+    highlightsFi: [
+      "**Jokaisella julkisella sivulla on nyt oma HTML.** `/`, `/lunch`, `/download`, `/faq`, `/support` ja `/privacy` esirenderöidään buildissa omalla otsikolla, kuvauksella, canonicalilla, JSON-LD:llä ja luettavalla sisällöllä. Aiemmin kaikki osoitteet palauttivat saman tyhjän pohjan.",
+      "**Ruokalista on indeksoitavissa.** `/lunch` sisältää viikon oikean ruokalistan samasta Amica-syötteestä, ja `robots.txt` sallii `/api/lunch-menu`:n, jota Googlen renderöijä ei aiemmin saanut ladata.",
+      "**Oikea isäntänimi.** Canonicalit, sivukartta ja jäsennelty data käyttävät osoitetta `https://www.ksykmaps.fi`.",
+      "**Yksityisyys:** `GET /api/staff` ei enää palauta henkilökunnan sähköpostia tai puhelinnumeroa kirjautumattomille.",
+    ],
+  },
   {
     version: "1.2.0",
     date: "October 2026",
     title: "Android logs → admin panel + full error pipeline",
     titleFi: "Android-lokit admin-paneeliin + täydellinen virheputki",
-    latest: true,
     highlights: [
       "**Android logs now appear in the admin panel.** Every WARN/ERROR from the Android app is forwarded to `/api/logs/batch` and shown in the Logs tab with a green 'android' source badge.",
       "**Source filter added to Logs tab.** Filter by Android / Web / Server to isolate mobile issues from browser errors.",

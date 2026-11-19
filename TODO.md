@@ -10,6 +10,27 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
+## ✅ Done in the working tree (v1.3.1 + Android 1.2.1 · not committed, not deployed)
+
+- **Admin session no longer dies after ~a week on the Android app.** Root cause: 7-day fixed admin token, never renewed or checked by the app. Now: `POST /api/auth/admin-refresh` (30-day sliding token, re-checks the account), app renews on every launch (≤ 2×/day), replays a 401'd call once after refreshing, and shows a "Session expired — sign in" dialog only if the server really rejects the token. 4 new `test:security` cases (11 total); `tsc` + `npm run build` pass.
+- **APK built:** `android/app/build/outputs/apk/release/ksykmaps-release-1.2.1.apk` (also in `public/releases/`). Rollback tag `rollback-before-1-3-1`.
+- ⏳ Needs you: deploy `api/index.ts` (renewal does nothing until it's live), install the APK, and sign in **once** — a token already expired on the phone can't be revived.
+- ⏳ Not covered: separate `android/admin` app and the web admin still have no refresh/401 handling (see ROADMAP "Next").
+
+## ✅ Done in the working tree (v1.3.0 · not committed, not deployed)
+
+- **SEO audit + fixes.** Per-route prerendered HTML (`scripts/prerender.ts`), `shared/seo.ts` registry, generated `sitemap.xml`, corrected `robots.txt`, noindex headers, `RouteMeta` for client navigation, www canonical host.
+- **Lunch menu crawlable.** Shared parser `shared/lunchFeed.ts`; `/api/lunch-menu` allowed in robots.txt.
+- **Staff privacy.** `GET /api/staff` strips email/phone/bio for anonymous callers.
+- **Tests.** `npm run test:seo` (38) + `npm run test:security` (7). `tsc` and `npm run build` pass.
+
+## ⏳ Pending — needs you
+
+- ⏳ Review the diff and commit (nothing is committed; rollback tag `rollback-before-1-3-0` exists).
+- ❌ Vercel: choose primary host and make the apex→www redirect permanent (currently 307).
+- ❌ Search Console: submit the new sitemap, inspect `/lunch`.
+- ⏳ Decide: trim public `/api/rooms` fields; lunch parser fix for Friday/Thursday; daily redeploy for the lunch snapshot; `/api/debug` TDZ bug.
+
 ## ✅ Just shipped (v1.1.1 + Android 1.1.1 · badf3a1)
 
 - **Staff 401 fixed.** `createStaffMutation`, `updateStaffMutation`, `deleteStaffMutation` in AdminDashboard now send `...getAdminHeaders()` — they were only sending `Content-Type`.

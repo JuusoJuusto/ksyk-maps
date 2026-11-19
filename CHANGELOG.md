@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.1 — November 2026
+
+- Fixed: Android admin panel showed errors ~1 week after sign-in — admin tokens had a fixed 7-day life and the app never renewed them
+- New `POST /api/auth/admin-refresh` (sliding session): swaps a valid token for a fresh 30-day one and re-checks the account (deleted / blocked users stop renewing; a DB outage falls back to the token's claims instead of signing everyone out)
+- `ADMIN_TOKEN_TTL_MS` (30 days) in `api/index.ts` is the single token lifetime for sign-in and refresh
+- Android 1.2.1 (versionCode 116): `Session.refreshIfDue` on every `onStart` (≤ 2×/day), `Api` replays a 401'd call once after refreshing, and a definitive 401 signs out with a "Session expired" dialog; transient errors never sign out
+- Tests: four new `test:security` cases for the refresh endpoint and TTL
+- Rollback: `git reset --hard rollback-before-1-3-1` (3d2bc14); no DB migration. Tokens issued before this release keep their 7-day expiry
+
+## 1.3.0 — November 2026
+
+- Search discoverability: `/`, `/lunch`, `/download`, `/faq`, `/support`, `/privacy` are prerendered at build time (`scripts/prerender.ts`) with their own title, description, canonical, Open Graph, JSON-LD and crawler-visible content; the SPA still replaces it on load
+- `/lunch` includes the week's real Amica menu via the shared parser `shared/lunchFeed.ts` (single feed URL, used by the page, both API handlers and the prerender); fallback text when the feed is down; `robots.txt` now allows `/api/lunch-menu`
+- Canonical host is `https://www.ksykmaps.fi` (apex redirects to www); `sitemap.xml` generated from `shared/seo.ts`, `/directory` and `/hsl` removed, `/download`, `/faq`, `/privacy` added
+- `X-Robots-Tag: noindex` on admin, builder, `/grant/*`, API, HSL and alias routes; unknown URLs served a noindex shell (`app-shell.html`) instead of the homepage
+- Privacy: `GET /api/staff` returns directory fields only unless a valid admin token is sent (email / phone / bio were public)
+- Tests: `npm run test:seo` (38) + `npm run test:security` (7), Node test runner, no new dependencies
+- Rollback: `git reset --hard rollback-before-1-3-0` (3d2bc14); no DB migration
+
 ## 1.2.0 — October 2026
 
 - Android logs now reach the admin panel: `AppLog.flushForward` posts to `/api/logs/batch` (was broken `/api/session/heartbeat`); every WARN/ERROR appears in Logs tab with green "android" source badge

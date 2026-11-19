@@ -16,6 +16,7 @@ import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { trackFeatureUse } from "@/lib/analytics";
+import { pageTitle } from "@shared/seo";
 
 const APK_HREF = `/releases/ksykmaps-release-${ANDROID_APP_VERSION}.apk`;
 
@@ -24,7 +25,7 @@ export default function DownloadPage() {
 
   useEffect(() => {
     try { trackFeatureUse("download_page_view"); } catch { /* noop */ }
-    document.title = "Download — KSYK Maps";
+    document.title = pageTitle("/download");
     return () => { document.title = "KSYK Maps"; };
   }, []);
 

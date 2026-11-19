@@ -2,6 +2,8 @@
 import { checkRateLimit, getRealIP, sanitizeObject } from '../server/security.js';
 import { emitLog, flushLogs } from '../server/posthogLogger.js';
 import { capture as posthogCapture, flush as posthogFlush } from '../server/posthogNode.js';
+import { LUNCH_FEED_URL } from '../shared/lunchFeed.js';
+import { toPublicStaff } from '../shared/staffPublic.js';
 import crypto from 'node:crypto';
 
 // â”€â”€ Stateless admin token (HMAC-signed, 7-day TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -18,8 +20,12 @@ function _adminSecret(): string {
   return "ksyk-maps-admin-built-in-fallback-key-v1";
 }
 
+// Sliding session: /auth/admin-refresh mints a fresh token with a new full TTL,
+// so a token only dies after this long without the app being opened.
+const ADMIN_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 function generateAdminToken(userId: string, role: string): string {
-  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 604_800_000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + ADMIN_TOKEN_TTL_MS })).toString('base64url');
   const sig = crypto.createHmac('sha256', _adminSecret()).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -1765,7 +1771,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/staff' && req.method === 'GET') {
       try {
         const staff = await storage.getStaff();
-        return res.status(200).json(staff);
+        // Email / phone / bio are admin-only; anonymous callers get the directory fields.
+        const header = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
+        const isAdmin = !!header && !!verifyAdminToken(header.replace(/^Bearer\s+/i, '').trim());
+        return res.status(200).json(isAdmin ? staff : staff.map((s: any) => toPublicStaff(s)));
       } catch (err: any) {
         return res.status(500).json({ message: err?.message || 'Failed to fetch staff' });
       }
@@ -2095,7 +2104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Lunch menu proxy to bypass CORS
     if (apiPath === '/lunch-menu' && req.method === 'GET') {
       try {
-        const response = await fetch("https://www.compass-group.fi/menuapi/feed/rss/current-week?costNumber=3026&language=fi");
+        const response = await fetch(LUNCH_FEED_URL);
         const text = await response.text();
         res.setHeader("Content-Type", "application/xml");
         return res.status(200).send(text);
@@ -2860,6 +2869,46 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         requirePasswordChange: user.isTemporaryPassword || false,
         adminToken,
       });
+    }
+
+    // POST /api/auth/admin-refresh — sliding session. Trades a still-valid admin
+    // token for a fresh one with a new full TTL. The Android app calls it on
+    // launch, so a session only ends after ADMIN_TOKEN_TTL_MS of not opening the
+    // app instead of a fixed week after sign-in.
+    if (apiPath === '/auth/admin-refresh' && req.method === 'POST') {
+      const claim = requireAdminAuth(req, res);
+      if (!claim) return;
+
+      // Re-check the account so a deleted or blocked user can't keep renewing.
+      // A DB outage must not sign every admin out, so it falls back to the claim.
+      let user: any;
+      let dbDown = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        user = await Promise.race([
+          storage.getUser(claim.userId),
+          new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('user lookup timed out')), 4000); }),
+        ]);
+      } catch {
+        dbDown = true;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+
+      if (!dbDown) {
+        // 'owner-admin-user' is the break-glass owner, which may have no DB row.
+        if (!user && claim.userId !== 'owner-admin-user') {
+          return res.status(401).json({ message: 'Account no longer exists' });
+        }
+        if (user && user.canLoginToKsykMaps === false) {
+          return res.status(401).json({ message: 'Account access revoked' });
+        }
+      }
+
+      const adminToken = generateAdminToken(claim.userId, user?.role || claim.role || 'admin');
+      if (!user) return res.status(200).json({ success: true, adminToken });
+      const { password: _pw3, passwordResetToken: _tk3, passwordResetExpiry: _ex3, ...safeUser } = user as any;
+      return res.status(200).json({ success: true, adminToken, user: safeUser });
     }
 
     // â”€â”€ Debug: GET /api/auth/admin-diag â€” sanity check on the login path.

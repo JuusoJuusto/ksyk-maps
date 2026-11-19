@@ -1097,7 +1097,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
   const { data: staff = [], isLoading: staffLoading } = useQuery({
     queryKey: ["staff"],
     queryFn: async () => {
-      const response = await fetch("/api/staff");
+      const response = await fetch("/api/staff", { headers: getAdminHeaders(), credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch staff");
       return response.json();
     },

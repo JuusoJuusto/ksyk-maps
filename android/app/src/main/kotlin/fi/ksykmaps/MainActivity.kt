@@ -161,6 +161,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Sliding admin session: renews the token (at most twice a day) so it
+        // only lapses after a month of not opening the app. Covers cold start
+        // and every return to the foreground.
+        CoroutineScope(Dispatchers.IO).launch {
+            try { Session.refreshIfDue(applicationContext) } catch (_: Throwable) {}
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -294,6 +304,32 @@ private fun AppShell() {
     // still needed to seed LanguageState.current from SharedPreferences.
     LanguageState.init(ctx)
     val lang = LanguageState.current ?: "fi"
+
+    // The server rejected the admin token for good (e.g. a month without
+    // opening the app). Say so plainly instead of leaving admin screens erroring.
+    if (Session.sessionExpiredState.value) {
+        val fi = lang == "fi"
+        AlertDialog(
+            onDismissRequest = { Session.sessionExpiredState.value = false },
+            title = { Text(if (fi) "Istunto vanhentui" else "Session expired") },
+            text = {
+                Text(
+                    if (fi) "Kirjaudu hallintapaneeliin uudelleen jatkaaksesi."
+                    else "Sign in to the admin panel again to continue.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { Session.sessionExpiredState.value = false; showLogin = true }) {
+                    Text(if (fi) "Kirjaudu" else "Sign in")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { Session.sessionExpiredState.value = false }) {
+                    Text(if (fi) "Myöhemmin" else "Later")
+                }
+            },
+        )
+    }
 
     BackHandler(enabled = subScreen != null) { subScreen = null }
 

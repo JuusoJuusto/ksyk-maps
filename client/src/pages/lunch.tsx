@@ -6,7 +6,9 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
+import { FI_WEEKDAY_TO_EN, parseLunchFeed } from "@shared/lunchFeed";
+import { pageTitle } from "@shared/seo";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Header from "@/components/Header";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -44,7 +46,6 @@ const translateText = async (text: string, targetLang: string): Promise<string> 
 
 export default function Lunch() {
   const { i18n } = useTranslation();
-  const [, setLocation] = useLocation();
   const { darkMode } = useDarkMode();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,59 +62,31 @@ export default function Lunch() {
     setError(null);
     try {
       const response = await fetch("/api/lunch-menu");
-      const text = await response.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, "text/xml");
-      const items = xml.querySelectorAll("item");
+      const days = parseLunchFeed(await response.text());
       const parsedMenu: MenuItem[] = [];
       const today = new Date();
       const dayOfWeek = today.getDay();
       setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
       let foundTodayIndex = 0;
-      for (let index = 0; index < items.length; index++) {
-        const item = items[index];
-        const title = item.querySelector("title")?.textContent || "";
-        const description = item.querySelector("description")?.textContent || "";
-        const dateMatch = title.match(/(\d{2})-(\d{2})-(\d{4})/);
-        const rawDayFirst = (title.split(",")[0] || "").trim().split(/\s+/)[0];
-        const rawDayKey = rawDayFirst.toLowerCase();
-        const FI_TO_EN: Record<string, string> = {
-          ma: "Monday", maanantai: "Monday",
-          ti: "Tuesday", tiistai: "Tuesday",
-          ke: "Wednesday", keskiviikko: "Wednesday",
-          to: "Thursday", torstai: "Thursday",
-          pe: "Friday", perjantai: "Friday",
-        };
-        const dayName = i18n.language === "en" ? (FI_TO_EN[rawDayKey] ?? rawDayFirst) : rawDayFirst;
-        if (dateMatch) {
-          const itemDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
-          if (itemDate.toDateString() === today.toDateString()) {
+      for (let index = 0; index < days.length; index++) {
+        const day = days[index];
+        const dayName = i18n.language === "en"
+          ? (FI_WEEKDAY_TO_EN[day.dayName.toLowerCase()] ?? day.dayName)
+          : day.dayName;
+        if (day.isoDate) {
+          const [y, m, d] = day.isoDate.split("-").map(Number);
+          if (new Date(y, m - 1, d).toDateString() === today.toDateString()) {
             foundTodayIndex = index;
           }
         }
-        const lines = description
-          .split("<br>")
-          .map((line) => line.replace(/<[^>]*>/g, "").trim())
-          .filter((line) => line.length > 0);
-        let vegetarian = "";
-        let regular = "";
-        let dessert = "";
-        lines.forEach((line) => {
-          if (line.includes("Kasvislounas:")) {
-            vegetarian = line.replace("Kasvislounas:", "").trim();
-          } else if (line.includes("Lounas:")) {
-            regular = line.replace("Lounas:", "").trim();
-          } else if (line.includes("Jälkiruoka:")) {
-            dessert = line.replace("Jälkiruoka:", "").trim();
-          }
-        });
+        let { vegetarian, regular, dessert } = day;
         if (i18n.language === "en") {
           vegetarian = await translateText(vegetarian, "en");
           regular = await translateText(regular, "en");
           if (dessert) dessert = await translateText(dessert, "en");
         }
         parsedMenu.push({
-          date: title,
+          date: day.title,
           dayName,
           vegetarian: vegetarian || "Ei saatavilla",
           regular: regular || "Ei saatavilla",
@@ -133,7 +106,7 @@ export default function Lunch() {
 
   useEffect(() => {
     const prev = document.title;
-    document.title = isFi ? "Ruokalista — KSYK Maps" : "Lunch menu — KSYK Maps";
+    document.title = pageTitle("/lunch", isFi ? "fi" : "en");
     return () => { document.title = prev; };
   }, [isFi]);
 
@@ -166,14 +139,13 @@ export default function Lunch() {
       {/* Document header — Wilma masthead, matches FAQ / Privacy / Support */}
       <header className="border-b border-[#d5dae0] dark:border-[#2a3040] shrink-0 bg-white dark:bg-gray-950">
         <div className="max-w-2xl mx-auto px-4 h-12 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setLocation("/")}
+          <Link
+            href="/"
             className="shrink-0 h-9 w-9 -ml-2 rounded-[6px] flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             aria-label={isFi ? "Takaisin" : "Back"}
           >
             <ChevronLeft className="h-5 w-5" strokeWidth={2.25} />
-          </button>
+          </Link>
           <span className="flex-1 text-[13px] font-semibold text-gray-700 dark:text-gray-300">
             {isFi ? "Kartta" : "Map"}
           </span>

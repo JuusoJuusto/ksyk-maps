@@ -19,6 +19,7 @@ import {
 import { analytics } from "@/lib/analytics-sdk";
 import posthog from "@/lib/posthog";
 import { useToast } from "@/hooks/use-toast";
+import { pageTitle } from "@shared/seo";
 
 type TicketType = "bug" | "feature" | "support" | "question";
 
@@ -62,7 +63,7 @@ export default function Support() {
       }
     } catch { /* ignore malformed URL */ }
     analytics.featureUsed("support", "opened");
-    document.title = "Support — KSYK Maps";
+    document.title = pageTitle("/support");
     return () => { document.title = "KSYK Maps"; };
   }, []);
 

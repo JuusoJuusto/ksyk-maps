@@ -16,7 +16,13 @@ _(empty)_
 
 ## 📋 Next (near-term)
 
-_(empty)_
+- Port the sliding admin session to the separate `android/admin` app (`AdminApi` / `AdminSession` still get a plain token with no refresh or 401 handling); the web admin (`ksyk_admin_token` in localStorage) also has no refresh call yet
+
+- [[seo-discoverability]] manual steps — decide primary host (apex vs www), make the redirect permanent, submit the new sitemap, inspect `/lunch` in Search Console
+- Trim the public `GET /api/rooms` response (`teacher`, `maintenanceNotes`, `emergencyInfo`) to what the map UI actually needs
+- Lunch parser: assign Friday's unlabeled courses and Thursday's extra dishes correctly (needs a rule for the feed's unlabeled components)
+- Keep the `/lunch` snapshot fresh: scheduled redeploy (Vercel deploy hook) or move `/lunch` HTML to an on-demand function
+- `/api/debug` throws a TDZ error (`storage` used before it is initialised) even for admins
 
 ## 🔮 Future
 
@@ -24,6 +30,8 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.3.1 + Android 1.2.1 — admin sessions no longer die after a week: 30-day sliding token via `POST /api/auth/admin-refresh`, app renews on launch, silent 401 retry, clear "Session expired" dialog; 4 new security tests. Needs the web deploy for the refresh to take effect (the 1.2.1 APK still works against the old server, it just can't renew)
+- v1.3.0 — search discoverability: public pages prerendered per route (own title / canonical / JSON-LD / content), crawlable lunch menu from the shared Amica parser, www canonical host, generated sitemap, noindex on private + alias routes, `GET /api/staff` no longer leaks email/phone, 45 new tests
 - v1.2.0 + Android 1.2.0 — Android log pipeline fixed: AppLog now posts to /api/logs/batch; source + metadata columns added; admin Logs tab has Android/Web/Server source filter; ErrorReporter + crash handler post to backend
 - v1.1.9 — Swedish courses expanded: 22 numbered courses replace the old 3 generic codes; courseAutoColor updated
 - v1.1.8 + Android 1.1.8 — widgets show resolved course names + teacher names; iCal extractTeacher fallback fixed; Swedish course names updated
@@ -203,3 +211,24 @@ Pre-flight checklist:
 6. ✅ Tag `rollback-before-1-1-0`.
 
 **Status.** Shipped v1.1.0. All checklist items complete.
+
+---
+
+## [[seo-discoverability]]
+
+**Symptom.** Google showed only `/download`; `/lunch` and the other public pages were not findable.
+
+**Root cause.** One empty SPA shell served for every URL; canonicals / sitemap pointed at the apex host that redirects to www; `robots.txt` blocked the lunch data endpoint; sitemap listed non-pages.
+
+**How it works now.**
+- `shared/seo.ts` is the registry (path, title, description) — sitemap, prerender, `RouteMeta` and tests all read it. Add a page there and it is indexed; add a route to `App.tsx` and `tests/seo/config.test.ts` forces you to classify it public or noindex.
+- `npm run build` = `vite build` + `scripts/prerender.ts`. Output: `dist/public/<route>/index.html`, `app-shell.html` (noindex fallback for everything else), `sitemap.xml`.
+- `vercel.json`: explicit rewrites to the static pages, catch-all → `/app-shell.html`, `X-Robots-Tag: noindex` on private / alias roots.
+- Lunch menu is a build-time snapshot (dated on the page); browsers and Google's renderer load the live menu through the SPA.
+
+**Manual steps (not done — need account access).**
+1. Vercel → Domains: confirm which host is primary. Today `ksykmaps.fi` answers 307 → `www.ksykmaps.fi`. Make that redirect permanent (308), or flip it and change `SITE_ORIGIN` in `shared/seo.ts`.
+2. Search Console: add / confirm the property for the primary host, submit `https://www.ksykmaps.fi/sitemap.xml`, URL-inspect `/lunch` and request indexing.
+3. Redeploy daily (Vercel deploy hook + scheduler) if the lunch snapshot should stay current for non-JS crawlers.
+
+**Status.** Shipped v1.3.0 (uncommitted at time of writing). No indexing claim is made — nothing here has been seen by Google yet.

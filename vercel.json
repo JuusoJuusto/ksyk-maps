@@ -35,8 +35,28 @@
       "destination": "/assets/:file*"
     },
     {
+      "source": "/lunch",
+      "destination": "/lunch/index.html"
+    },
+    {
+      "source": "/download",
+      "destination": "/download/index.html"
+    },
+    {
+      "source": "/faq",
+      "destination": "/faq/index.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/support/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/app-shell.html"
     }
   ],
   "headers": [
@@ -70,6 +90,15 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://*.posthog.com https://www.googletagmanager.com; script-src-elem 'self' 'unsafe-inline' blob: data: https://*.posthog.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' data: blob: https://t.ksykmaps.fi https://*.posthog.com https://*.sentry.io https://*.ingest.de.sentry.io https://*.ingest.sentry.io https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://tiles.stadiamaps.com https://server.arcgisonline.com https://raw.githubusercontent.com https://demotiles.maplibre.org https://www.compass-group.fi https://translate.googleapis.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://region1.google-analytics.com https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data: about: https:"
+        }
+      ]
+    },
+    {
+      "source": "/(admin|admin-login|admin-ksyk-management-portal|builder|grant|api|hsl|app|report|secret-easter-egg|konami-code-activated|dev-mode-secret)(/.*)?",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     },
