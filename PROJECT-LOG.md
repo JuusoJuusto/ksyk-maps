@@ -15,6 +15,21 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 19-11-2026 — v1.3.3 — Route line no longer throws a MapLibre render error
+
+**Asked.**
+- PostHog inbox report: a Firefox user got 2 render errors (`Uniform.set`, dash value undefined) about 4 s after opening directions. Fix the cause, do not filter the error.
+
+**Decided.**
+- Cause: the route layer started with a data-driven `line-dasharray` (`case` on `kind`), and the marching-ants effect replaced it with a constant every 100 ms. MapLibre then drew a bucket built for the other mode with no dash uniform set. Reproduced in headless Chromium with MapLibre 5.24: the old code threw on every route display, the fixed code threw nothing.
+- Fix: start the layer with a constant dasharray (the first animation frame), so the paint property is never data-driven.
+- The report proposed a solid layer for graph routes and the animation only on the dashed fallback. Not done: the marching ants on every route are a deliberate v3.27.0 feature, and in practice the animation has replaced the solid style after 0.1 s since then. Whether graph routes should be solid again (and lose the ants) is a design call for the owner — listed in ROADMAP Next.
+
+**Shipped.** Draft PR from `posthog-self-driving/fixnavigation-stop-route-dash-animation-fda994`.
+- Tag: `rollback-before-1-3-3` (→ `git reset --hard rollback-before-1-3-3`, commit `da8c4fd`). No DB migration.
+- Files: `client/src/components/NavigationPanel.tsx`, `client/src/lib/changelog.ts`, `CHANGELOG.md`, `ROADMAP.md`, `PROJECT-LOG.md`
+- Gates: `tsc` clean, `npm run build` passes. Headless Chromium repro (outside the repo) before/after. Not run: Playwright e2e, a test in real Firefox (no WebGL in the sandbox Firefox).
+
 ## 19-11-2026 — v1.3.2 / Android 1.2.2 / Admin app 1.1.1 — Sessions renew on web + admin app; v1.3.1 deployed
 
 **Asked.**

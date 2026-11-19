@@ -10,17 +10,31 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.3.2";
+export const APP_VERSION = "1.3.3";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
 export const ANDROID_APP_VERSION = "1.2.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.3",
+    date: "November 2026",
+    title: "Directions: the route line no longer crashes the map renderer",
+    titleFi: "Reittiohjeet: reittiviiva ei enää kaada kartan piirtoa",
+    latest: true,
+    highlights: [
+      "**Fixed: a render error a few seconds after you open directions.** The route line started with a dash pattern that changed per route type, and the marching-ants animation then replaced it with a fixed pattern. MapLibre kept drawing the old tile data without a dash value, so each frame threw an error. The route line now always uses a fixed dash pattern, so the animation never changes the pattern type.",
+      "**No visible change.** The marching ants look the same as before. Before this fix, a graph route showed as a solid line for only the first 0.1 s, before the animation started.",
+      "**Rollback** — `git reset --hard rollback-before-1-3-3` (commit `da8c4fd`). No DB migration.",
+    ],
+    highlightsFi: [
+      "**Korjattu: kartan piirtovirhe muutama sekunti reittiohjeiden avaamisen jälkeen.** Reittiviiva käyttää nyt aina kiinteää katkoviivakuviota, joten animaatio ei enää vaihda kuvion tyyppiä.",
+    ],
+  },
+  {
     version: "1.3.2",
     date: "November 2026",
     title: "Web admin and Android admin app now renew their sessions too",
     titleFi: "Web-ylläpito ja Androidin ylläpitosovellus uusivat nyt istuntonsa",
-    latest: true,
     highlights: [
       "**Web admin no longer signs you out 12 hours after sign-in.** The dashboard (and the builder) now renew the admin token while open — on load, every 20 minutes and when the tab becomes visible again — so the 12 h cut-off measures inactivity, not time since sign-in. An abandoned tab still signs out after 12 h idle.",
       "**A 401 no longer breaks the page.** Admin requests that hit an aged-out token renew it and retry once. If the server really rejects the token you land on the sign-in page with 'Your session expired. Please sign in again.' instead of a silent bounce. Public pages are never redirected.",

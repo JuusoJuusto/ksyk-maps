@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3 — November 2026
+
+- Fixed: MapLibre render error (`Uniform.set` on an undefined dash value) a few seconds after directions open. `NavigationPanel.tsx` set `line-dasharray` as a data-driven `case` on `kind`, and the marching-ants effect replaced it with a constant every 100 ms; the stale bucket then drew with no dash uniform. The layer now starts with a constant dasharray (`ROUTE_DASHES[0]`), so the animation only swaps constant for constant
+- No visible change: the animation already replaced the solid graph-route style after the first tick
+- Rollback: `git reset --hard rollback-before-1-3-3` (da8c4fd); no DB migration
+
 ## 1.3.2 — November 2026
 
 - Web admin: `client/src/lib/adminAuth.ts` gains `refreshAdminSession` / `recoverFromUnauthorized` / `expireAdminSession`; the dashboard renews the token on load, every 20 min and on tab focus, so the 12 h cut-off is now inactivity-based (an abandoned tab still signs out); `queryClient` retries a 401'd request once after renewing; a dead session returns to `/admin` with "Your session expired" (public pages are never redirected); the builder renews too

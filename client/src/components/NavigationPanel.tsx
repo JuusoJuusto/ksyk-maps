@@ -67,6 +67,11 @@ const WALKING_MPS = 1.35;
 
 const ROUTE_SOURCE_ID = "nav-route-src";
 const ROUTE_LAYER_ID = "nav-route-line";
+// Marching-ants frames: dash grows, gap shrinks, so the eye reads motion.
+const ROUTE_DASHES: [number, number][] = [
+  [0.5, 3.5], [1.0, 3.0], [1.5, 2.5],
+  [2.0, 2.0], [2.5, 1.5], [3.0, 1.0],
+];
 const ROUTE_ENDS_SOURCE_ID = "nav-route-ends";
 const ROUTE_ENDS_LAYER_ID = "nav-route-ends-layer";
 const ROUTE_STEPS_SOURCE_ID = "nav-route-steps";
@@ -363,9 +368,10 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
             // Fatter when zoomed in so the corridor route reads clearly.
             "line-width": ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 8],
             "line-opacity": 0.9,
-            // Solid for a real graph route; dashed for the straight-line
-            // fallback so users notice it's approximate.
-            "line-dasharray": ["case", ["==", ["get", "kind"], "graph"], ["literal", [1, 0]], ["literal", [2, 1.5]]],
+            // Must stay a constant: the marching-ants effect swaps it every
+            // tick, and swapping a data-driven dasharray for a constant leaves
+            // MapLibre drawing a stale bucket with an unset dash uniform.
+            "line-dasharray": ROUTE_DASHES[0],
           },
         });
       }
@@ -508,14 +514,10 @@ export default function NavigationPanel({ map, onClose, searchActive = false, pe
     if (!map || !route) return;
     // Throttled to ~10fps — setPaintProperty triggers a GPU re-render each
     // call, so running at 60fps causes sustained battery drain on mobile.
-    const dashes = [
-      [0.5, 3.5], [1.0, 3.0], [1.5, 2.5],
-      [2.0, 2.0], [2.5, 1.5], [3.0, 1.0],
-    ];
     let idx = 0;
     const timer = window.setInterval(() => {
       if (map.getLayer(ROUTE_LAYER_ID)) {
-        try { map.setPaintProperty(ROUTE_LAYER_ID, "line-dasharray", dashes[idx % dashes.length]); } catch { /* ignore */ }
+        try { map.setPaintProperty(ROUTE_LAYER_ID, "line-dasharray", ROUTE_DASHES[idx % ROUTE_DASHES.length]); } catch { /* ignore */ }
         idx++;
       }
     }, 100);
