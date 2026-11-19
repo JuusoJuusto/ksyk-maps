@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { getAdminHeaders } from "@/lib/adminAuth";
+import {
+  getAdminHeaders,
+  markExpiredNotice,
+  refreshAdminSession,
+  expireAdminSession,
+  isAdminSessionIdle,
+  ADMIN_REFRESH_MIN_INTERVAL_MS,
+} from "@/lib/adminAuth";
 import posthog from "@/lib/posthog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -1022,7 +1029,8 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
 
   // Auth gate:
   // - localStorage flag must be present (you literally signed in here)
-  // - Token must be < 12 h old
+  // - Session must have been confirmed < 12 h ago (sign-in or the last
+  //   token refresh below — so an open dashboard never idles out)
   // - Server probe must NOT return an explicit "invalid token" signal
   //   (we look for status 401 + message containing "invalid|expired", so
   //   a generic cold-start 401 from a serverless function doesn't bounce
@@ -1030,18 +1038,20 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
   // Anything else → redirect to /admin-login.
   useEffect(() => {
     const flagged = localStorage.getItem("ksyk_admin_logged_in") === "true";
-    const loginAt = Number(localStorage.getItem("ksyk_admin_login_at") || 0);
-    const hoursSinceLogin = (Date.now() - loginAt) / (1000 * 60 * 60);
-    const wipeAndRedirect = () => {
+    // `notice`: tell the sign-in page why we're back (the session ended),
+    // as opposed to never having signed in.
+    const wipeAndRedirect = (notice = false) => {
       if (currentUser) posthog.reset();
       localStorage.removeItem("ksyk_admin_logged_in");
       localStorage.removeItem("ksyk_admin_user");
       localStorage.removeItem("ksyk_admin_login_at");
       localStorage.removeItem("ksyk_admin_token");
+      localStorage.removeItem("ksyk_admin_refreshed_at");
+      if (notice) markExpiredNotice();
       window.location.replace("/admin");
     };
-    if (!flagged || !currentUser || (loginAt > 0 && hoursSinceLogin > 12)) {
-      wipeAndRedirect();
+    if (!flagged || !currentUser || isAdminSessionIdle()) {
+      wipeAndRedirect(flagged && !!currentUser);
       return;
     }
     // Probe the server. If it tells us specifically that the token is
@@ -1062,7 +1072,7 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
           const msg = (data?.message || "").toLowerCase();
           // Real "invalid token" signal.
           if (msg.includes("invalid") || msg.includes("expired") || msg.includes("token")) {
-            wipeAndRedirect();
+            wipeAndRedirect(true);
             return;
           }
           // Plain "Unauthorized" probably means the serverless session
@@ -1073,7 +1083,27 @@ export default function AdminDashboard({ section, subtab, openTicketId }: { sect
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
+
+  // Sliding session: renew the admin token while the dashboard is open (on
+  // mount, every 20 min, and when the tab becomes visible again). Failures
+  // that aren't a definitive 401 — offline, 5xx, an older server — are ignored.
+  useEffect(() => {
+    const renew = () => {
+      if (isAdminSessionIdle()) return; // the gate above is signing us out
+      refreshAdminSession().then((outcome) => {
+        if (outcome === "expired") expireAdminSession();
+      });
+    };
+    renew();
+    const id = window.setInterval(renew, ADMIN_REFRESH_MIN_INTERVAL_MS);
+    const onVisible = () => { if (document.visibilityState === "visible") renew(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
 
   // Fetch data
   const { data: buildings = [], isLoading: buildingsLoading, isError: buildingsError } = useQuery({

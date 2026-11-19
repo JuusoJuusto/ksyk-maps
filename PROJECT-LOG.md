@@ -15,6 +15,25 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 19-11-2026 — v1.3.2 / Android 1.2.2 / Admin app 1.1.1 — Sessions renew on web + admin app; v1.3.1 deployed
+
+**Asked.**
+- Commit the changes, deploy `api/index.ts` ("can't you just do it"), confirm the APK was built, and "improve the admin panel and the whole mobile app and the website admin panel" at the same time (no further spec).
+
+**Decided.**
+- Deploy = push `main`: the repo is wired to Vercel. Committed everything for v1.3.0 + v1.3.1 as `8fb2d3f` (no co-author trailer, per the standing rule), pushed (also shipped the previously unpushed v1.2.0 commit `3d2bc14`), Vercel build succeeded, live check: `POST /api/auth/admin-refresh` answers 401 with the route's own messages (a 404 would mean old code), `/`, `/lunch` (prerendered), `/admin`, `/api/buildings` all 200. A valid-token refresh was not exercised against production (no credentials) — only by unit tests. Left out of the commit: the untracked `.agents/` + `.kiro/` skill folders and `android/adb-logs.ps1` (not part of these releases). Open draft PRs #54 (admin-auth 401 reason, already CONFLICTING) and #55 (`/api/debug` TDZ) overlap `api/index.ts` and were left alone.
+- "Improve" was undefined, so scope = the reliability gaps this bug exposed, not redesigns: (1) the web admin force-signed out 12 h after sign-in (`hoursSinceLogin > 12`) with no renewal — now renews while open so the same 12 h rule measures inactivity (a design choice: abandoned tabs still sign out; an open dashboard never does); (2) request layer retries a 401 once after renewing and, if the session is truly dead, returns to `/admin` with "Your session expired" — never redirecting public pages; (3) the separate `android/admin` app gets the same sliding session and notice; (4) its login built JSON by string template, so a password with `"` or `\` could never sign in — fixed; (5) the main app's admin Overview said "System OK" while 5 of 6 requests could fail silently — each endpoint now reports; (6) `admin-refresh` no longer returns `twoFactorSecret` / `twoFactorBackupCodes`.
+- Not done (flagged, not guessed): visual/UX redesign of any admin screen, new features, and the other ~15 admin sections in `AdminPanelScreen.kt` / `AdminDashboard.tsx` were not audited line by line. `server/routes.ts` (dev server) still stamps 7-day tokens that nothing there verifies. Sign-in itself still returns the full user row including 2FA fields to the client (pre-existing; only the refresh path was tightened).
+
+**Shipped.** v1.3.1 pushed + live (`8fb2d3f`); this round is on top of it, uncommitted at time of writing.
+- Tag: `rollback-before-1-3-2` (→ `git reset --hard rollback-before-1-3-2`, commit `8fb2d3f`). No DB migration.
+- Web v1.3.2: `client/src/lib/adminAuth.ts` (rewritten), `client/src/lib/queryClient.ts`, `client/src/components/AdminDashboard.tsx`, `AdminLogin.tsx`, `client/src/pages/builder.tsx`, `api/index.ts`, `tests/security/admin-session.test.ts` (new, 8), `tests/security/api-auth.test.ts` (+1), `client/src/lib/changelog.ts`, `CHANGELOG.md`
+- Android 1.2.2 (versionCode 117): `ui/AdminPanelScreen.kt` (Overview), `ui/ChangelogScreen.kt`, `build.gradle.kts`
+- Android admin 1.1.1 (versionCode 3): `data/AdminApi.kt`, `data/AdminSession.kt`, `MainActivity.kt`, `ui/login/AdminLoginScreen.kt`, `build.gradle.kts`
+- Gates: `tsc` clean; `test:security` 20/20; `test:seo` 38/38; one deliberate regression (a 404 treated as "expired") turned the new web test red and was reverted. Not run: Playwright e2e, any on-device test of either APK, a browser walkthrough of the web admin.
+
+---
+
 ## 19-11-2026 — v1.3.1 / Android 1.2.1 — Admin session no longer dies after a week on mobile
 
 **Asked.**

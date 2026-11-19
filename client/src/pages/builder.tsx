@@ -67,6 +67,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { refreshAdminSession, expireAdminSession } from "@/lib/adminAuth";
 import { validateMap } from "@ksyk/shared";
 import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Elevator, MapPackage, ValidationEntityKind } from "@ksyk/shared";
 import { useAutosave } from "@/hooks/useAutosave";
@@ -122,6 +123,8 @@ function useAdminAuth() {
   const [state, setState] = useState<"checking" | "allowed" | "denied">("checking");
   useEffect(() => {
     let cancelled = false;
+    // Keep the sliding admin session alive for people who only use the builder.
+    void refreshAdminSession().then((outcome) => { if (outcome === 'expired') expireAdminSession(); });
     (async () => {
       try {
         const token = localStorage.getItem('ksyk_admin_token');

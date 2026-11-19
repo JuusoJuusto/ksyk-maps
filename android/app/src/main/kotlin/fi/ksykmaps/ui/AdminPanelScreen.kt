@@ -306,19 +306,21 @@ private fun AdminOverviewSection(isFi: Boolean, scope: kotlinx.coroutines.Corout
         stats = stats.copy(loading = true, error = null)
         val newStats = withContext(Dispatchers.IO) {
             var b = 0; var r = 0; var d = 0; var h = 0; var fp = 0; var cov = 0
-            var err: String? = null
-            runCatching { b = Api.get("/buildings").jsonArray.size }.onFailure { err = "buildings: ${it.message}" }
-            runCatching { r = Api.get("/rooms").jsonArray.size }
-            runCatching { d = Api.get("/doors").jsonArray.size }
-            runCatching { h = Api.get("/hallways").jsonArray.size }
+            // Every endpoint reports its own failure so the banner can't say
+            // "System OK" while most of the numbers below are zeros.
+            val failed = mutableListOf<String>()
+            runCatching { b = Api.get("/buildings").jsonArray.size }.onFailure { failed += "buildings" }
+            runCatching { r = Api.get("/rooms").jsonArray.size }.onFailure { failed += "rooms" }
+            runCatching { d = Api.get("/doors").jsonArray.size }.onFailure { failed += "doors" }
+            runCatching { h = Api.get("/hallways").jsonArray.size }.onFailure { failed += "hallways" }
             runCatching {
                 val obj = Api.get("/wifi/locate").jsonObject
                 fp = (obj["fingerprintCount"] as? JsonPrimitive)?.intOrNull ?: 0
-            }
+            }.onFailure { failed += "fingerprints" }
             runCatching {
                 cov = Api.get("/beacons/coverage").jsonArray.size
-            }
-            AdminStats(b, r, d, h, fp, cov, loading = false, error = err)
+            }.onFailure { failed += "coverage" }
+            AdminStats(b, r, d, h, fp, cov, loading = false, error = failed.joinToString(", ").ifEmpty { null })
         }
         stats = newStats
     }
@@ -383,7 +385,8 @@ private fun AdminOverviewSection(isFi: Boolean, scope: kotlinx.coroutines.Corout
                     )
                     if (!stats.loading) {
                         Text(
-                            if (isFi) "Kaikki palvelut toiminnassa" else "All services operational",
+                            if (statusOk) (if (isFi) "Kaikki palvelut toiminnassa" else "All services operational")
+                            else (if (isFi) "Epäonnistui: " else "Failed: ") + stats.error.orEmpty(),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -442,16 +445,6 @@ private fun AdminOverviewSection(isFi: Boolean, scope: kotlinx.coroutines.Corout
                     value = stats.coverageRooms.toString(),
                     label = if (isFi) "Peitto" else "Coverage",
                     color = Color(0xFF06B6D4),
-                )
-            }
-        }
-        if (stats.error != null) {
-            item {
-                Text(
-                    "⚠ ${stats.error}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }

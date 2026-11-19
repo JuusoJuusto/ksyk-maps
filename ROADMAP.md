@@ -16,7 +16,8 @@ _(empty)_
 
 ## 📋 Next (near-term)
 
-- Port the sliding admin session to the separate `android/admin` app (`AdminApi` / `AdminSession` still get a plain token with no refresh or 401 handling); the web admin (`ksyk_admin_token` in localStorage) also has no refresh call yet
+- Audit the remaining admin screens for real UX/feature work (the "improve the admin panel" ask had no spec): `AdminPanelScreen.kt` sections other than Overview, `AdminDashboard.tsx` tabs, and the `android/admin` screens — needs the user to say what hurts
+- Sign-in (`/auth/admin-login`) still returns the full user row including 2FA secret/backup codes; only `/auth/admin-refresh` strips them
 
 - [[seo-discoverability]] manual steps — decide primary host (apex vs www), make the redirect permanent, submit the new sitemap, inspect `/lunch` in Search Console
 - Trim the public `GET /api/rooms` response (`teacher`, `maintenanceNotes`, `emergencyInfo`) to what the map UI actually needs
@@ -30,6 +31,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.3.2 + Android 1.2.2 + Admin app 1.1.1 — sliding admin sessions on the web admin and the Android admin app, 401 retry + "session expired" notice, admin-app login fixed for passwords containing `"`/`\`, honest Overview status, 2FA fields stripped from the refresh response; 9 new security tests
 - v1.3.1 + Android 1.2.1 — admin sessions no longer die after a week: 30-day sliding token via `POST /api/auth/admin-refresh`, app renews on launch, silent 401 retry, clear "Session expired" dialog; 4 new security tests. Needs the web deploy for the refresh to take effect (the 1.2.1 APK still works against the old server, it just can't renew)
 - v1.3.0 — search discoverability: public pages prerendered per route (own title / canonical / JSON-LD / content), crawlable lunch menu from the shared Amica parser, www canonical host, generated sitemap, noindex on private + alias routes, `GET /api/staff` no longer leaks email/phone, 45 new tests
 - v1.2.0 + Android 1.2.0 — Android log pipeline fixed: AppLog now posts to /api/logs/batch; source + metadata columns added; admin Logs tab has Android/Web/Server source filter; ErrorReporter + crash handler post to backend

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.2 — November 2026
+
+- Web admin: `client/src/lib/adminAuth.ts` gains `refreshAdminSession` / `recoverFromUnauthorized` / `expireAdminSession`; the dashboard renews the token on load, every 20 min and on tab focus, so the 12 h cut-off is now inactivity-based (an abandoned tab still signs out); `queryClient` retries a 401'd request once after renewing; a dead session returns to `/admin` with "Your session expired" (public pages are never redirected); the builder renews too
+- Android admin app 1.1.1 (versionCode 3): same sliding session (`AdminApi.refreshToken`, `AdminSession.refreshIfDue` on `onStart`, 401 replay, sign-in notice); login body built with `buildJsonObject` — a password containing `"` or `\` made the old string-template body invalid JSON
+- Android 1.2.2 (versionCode 117): admin Overview reports each failed endpoint and the banner no longer says "System OK" when requests failed
+- `POST /api/auth/admin-refresh` also omits `twoFactorSecret` / `twoFactorBackupCodes` from the returned user
+- Tests: 8 new `test:security` cases for the web session logic (`tests/security/admin-session.test.ts`)
+- Rollback: `git reset --hard rollback-before-1-3-2` (8fb2d3f); no DB migration
+
 ## 1.3.1 — November 2026
 
 - Fixed: Android admin panel showed errors ~1 week after sign-in — admin tokens had a fixed 7-day life and the app never renewed them

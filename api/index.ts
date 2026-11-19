@@ -2907,7 +2907,12 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
 
       const adminToken = generateAdminToken(claim.userId, user?.role || claim.role || 'admin');
       if (!user) return res.status(200).json({ success: true, adminToken });
-      const { password: _pw3, passwordResetToken: _tk3, passwordResetExpiry: _ex3, ...safeUser } = user as any;
+      // The client only needs identity + role here, so unlike sign-in this
+      // also drops the 2FA secret and backup codes.
+      const {
+        password: _pw3, passwordResetToken: _tk3, passwordResetExpiry: _ex3,
+        twoFactorSecret: _2fa, twoFactorBackupCodes: _2fb, ...safeUser
+      } = user as any;
       return res.status(200).json({ success: true, adminToken, user: safeUser });
     }
 

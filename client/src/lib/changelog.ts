@@ -10,17 +10,39 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.3.1";
+export const APP_VERSION = "1.3.2";
 /** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.2.1";
+export const ANDROID_APP_VERSION = "1.2.2";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.3.2",
+    date: "November 2026",
+    title: "Web admin and Android admin app now renew their sessions too",
+    titleFi: "Web-ylläpito ja Androidin ylläpitosovellus uusivat nyt istuntonsa",
+    latest: true,
+    highlights: [
+      "**Web admin no longer signs you out 12 hours after sign-in.** The dashboard (and the builder) now renew the admin token while open — on load, every 20 minutes and when the tab becomes visible again — so the 12 h cut-off measures inactivity, not time since sign-in. An abandoned tab still signs out after 12 h idle.",
+      "**A 401 no longer breaks the page.** Admin requests that hit an aged-out token renew it and retry once. If the server really rejects the token you land on the sign-in page with 'Your session expired. Please sign in again.' instead of a silent bounce. Public pages are never redirected.",
+      "**Android admin app 1.1.1** (the separate `fi.ksykmaps.admin` app) got the same sliding session: renews on every start, retries a 401'd call once, and returns to sign-in with a notice when the session is really dead.",
+      "**Android admin app login fix.** The sign-in request was built from a string template, so a password containing a quote or backslash produced invalid JSON and could never sign in. It is now built as JSON.",
+      "**Android 1.2.2:** the admin Overview no longer shows 'System OK' when most of its requests failed — each endpoint reports its own failure and the banner lists which ones.",
+      "**Privacy:** `POST /api/auth/admin-refresh` also strips the 2FA secret and backup codes from the user it returns (sign-in already omits only the password and reset token).",
+      "**Tests:** `npm run test:security` now has 8 more cases covering the web session logic (renewal, throttling, only-401-means-expired, idle cut-off, public-page behaviour).",
+      "**Rollback** — `git reset --hard rollback-before-1-3-2` (commit `8fb2d3f`). No DB migration.",
+    ],
+    highlightsFi: [
+      "**Web-ylläpito ei enää kirjaa ulos 12 tunnin kuluttua kirjautumisesta.** Hallintapaneeli ja rakennin uusivat tunnisteen avoinna ollessaan, joten 12 tunnin raja mittaa käyttämättömyyttä, ei kirjautumisesta kulunutta aikaa.",
+      "**401 ei enää rikko sivua.** Vanhentunut tunniste uusitaan ja pyyntö yritetään kerran uudelleen; jos palvelin hylkää tunnisteen, kirjautumissivu kertoo istunnon päättyneen.",
+      "**Androidin ylläpitosovellus 1.1.1** sai saman uusiutuvan istunnon, ja kirjautumisvirhe korjattiin: lainausmerkkiä tai kenoviivaa sisältävällä salasanalla ei voinut kirjautua.",
+      "**Android 1.2.2:** hallintapaneelin yleiskatsaus ei enää väitä \"Järjestelmä OK\", kun suurin osa tiedoista epäonnistui.",
+    ],
+  },
   {
     version: "1.3.1",
     date: "November 2026",
     title: "Admin sign-in no longer expires after a week — Android admin panel stays signed in",
     titleFi: "Ylläpidon kirjautuminen ei enää vanhene viikossa — Androidin hallintapaneeli pysyy kirjautuneena",
-    latest: true,
     highlights: [
       "**Fixed: the Android admin panel showed errors about a week after signing in.** The admin token had a fixed 7-day life and the app never renewed it, so every admin call returned 401 once it aged out.",
       "**Sliding session.** New `POST /api/auth/admin-refresh` trades a still-valid token for a fresh one with a full new 30-day life. The Android app (1.2.1) calls it on launch and on return to the foreground (at most twice a day), so the session only ends after 30 days of not opening the app. The refresh re-checks the account, so a deleted or blocked user stops renewing.",

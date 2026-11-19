@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { cn } from '@/lib/utils';
 import posthog from '@/lib/posthog';
+import { consumeExpiredNotice } from '@/lib/adminAuth';
 
 /**
  * KSYK admin login — v4.7.45 Wilma document rewrite.
@@ -26,7 +27,9 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  // If the dashboard just sent us back because the session ended, say so.
+  const [error, setError] = useState(() =>
+    consumeExpiredNotice() ? 'Your session expired. Please sign in again.' : '');
   const { toast } = useToast();
   const { darkMode } = useDarkMode();
 

@@ -131,6 +131,16 @@ test("admin-refresh refuses anonymous, expired, forged and malformed tokens", as
   }
 });
 
+test("admin-refresh never returns the 2FA secret or backup codes", () => {
+  const src = read("api/index.ts");
+  const start = src.indexOf("apiPath === '/auth/admin-refresh'");
+  assert.ok(start > 0, "route exists");
+  const branch = src.slice(start, start + 2600);
+  for (const field of ["twoFactorSecret", "twoFactorBackupCodes", "password", "passwordResetToken"]) {
+    assert.ok(new RegExp(`${field}: _\\w+`).test(branch), `${field} is stripped from the returned user`);
+  }
+});
+
 test("new sign-ins get the same long TTL as refreshed tokens", () => {
   const src = read("api/index.ts");
   assert.ok(src.includes("exp: Date.now() + ADMIN_TOKEN_TTL_MS"), "tokens use the shared TTL constant");

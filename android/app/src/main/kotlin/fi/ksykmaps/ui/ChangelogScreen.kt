@@ -36,6 +36,18 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.2.2",
+        date = "November 2026",
+        titleFi = "Hallintapaneelin yleiskatsaus kertoo totuuden",
+        titleEn = "Admin overview tells the truth",
+        highlightsFi = listOf(
+            "Korjattu: yleiskatsaus näytti \"Järjestelmä OK\" vaikka suurin osa tiedoista epäonnistui latautumaan. Nyt jokainen osa raportoi virheensä ja ilmoitus listaa mitkä epäonnistuivat.",
+        ),
+        highlightsEn = listOf(
+            "Fixed: the overview showed \"System OK\" even when most of its data failed to load. Every part now reports its own failure and the banner lists which ones failed.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.2.1",
         date = "November 2026",
         titleFi = "Hallintapaneeli pysyy kirjautuneena",

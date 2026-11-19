@@ -1,8 +1,21 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { recoverFromUnauthorized } from "@/lib/adminAuth";
 
 function getAdminAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('ksyk_admin_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
+ * fetch that survives an aged-out admin token: on a 401 it renews the token
+ * once and replays the request. `build` runs again for the retry so the
+ * headers pick up the fresh token.
+ */
+async function authedFetch(url: string, build: () => RequestInit): Promise<Response> {
+  const res = await fetch(url, build());
+  if (res.status !== 401 || !localStorage.getItem('ksyk_admin_token')) return res;
+  if (!(await recoverFromUnauthorized())) return res;
+  return fetch(url, build());
 }
 
 async function throwIfResNotOk(res: Response) {
@@ -17,7 +30,7 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await authedFetch(url, () => ({
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
@@ -25,7 +38,7 @@ export async function apiRequest(
     },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
-  });
+  }));
 
   await throwIfResNotOk(res);
   return res;
@@ -37,10 +50,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const res = await authedFetch(queryKey.join("/") as string, () => ({
       credentials: "include",
       headers: { ...getAdminAuthHeader() },
-    });
+    }));
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

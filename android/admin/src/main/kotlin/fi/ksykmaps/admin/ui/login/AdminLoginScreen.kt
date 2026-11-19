@@ -28,7 +28,11 @@ fun AdminLoginScreen(onLoggedIn: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var showPw by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember {
+        mutableStateOf<String?>(
+            if (AdminSession.expiredState.value) "Your session expired. Please sign in again." else null,
+        )
+    }
 
     Scaffold { pad ->
         Box(
@@ -92,7 +96,12 @@ fun AdminLoginScreen(onLoggedIn: () -> Unit) {
                         scope.launch {
                             try {
                                 val body = withContext(Dispatchers.IO) {
-                                    AdminApi.post("/auth/admin-login", """{"email":"$email","password":"$password"}""")
+                                    // Built as JSON, not a string template: a password with a
+                                    // quote or backslash used to produce an invalid body.
+                                    AdminApi.post("/auth/admin-login", buildJsonObject {
+                                        put("email", email.trim())
+                                        put("password", password)
+                                    }.toString())
                                 }
                                 val obj = body as? JsonObject ?: throw Exception("Invalid response")
                                 val user = obj["user"] as? JsonObject

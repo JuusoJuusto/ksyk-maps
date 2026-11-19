@@ -14,8 +14,8 @@ android {
         applicationId = "fi.ksykmaps.admin"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
 
         val projectEnv = Properties().apply {
             rootProject.projectDir.parentFile.resolve(".env").takeIf { it.isFile }

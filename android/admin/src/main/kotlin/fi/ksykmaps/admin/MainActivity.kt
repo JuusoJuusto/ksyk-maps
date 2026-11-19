@@ -23,6 +23,9 @@ import fi.ksykmaps.admin.ui.subjects.SubjectsScreen
 import fi.ksykmaps.admin.ui.teachers.TeachersScreen
 import fi.ksykmaps.admin.ui.theme.AdminTheme
 import fi.ksykmaps.admin.ui.wifi.WifiPositioningScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +35,15 @@ class MainActivity : ComponentActivity() {
             AdminTheme(darkTheme = isSystemInDarkTheme()) {
                 AdminShell()
             }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Sliding session: renew the token (at most twice a day) so it only
+        // lapses after a month of not opening the app.
+        CoroutineScope(Dispatchers.IO).launch {
+            try { AdminSession.refreshIfDue() } catch (_: Throwable) {}
         }
     }
 }
@@ -51,6 +63,10 @@ private val DESTS = listOf(
 @Composable
 private fun AdminShell() {
     var loggedIn by remember { mutableStateOf(AdminSession.isLoggedIn) }
+    // The server rejected the token for good: fall back to the sign-in screen,
+    // which says the session expired.
+    val expired by AdminSession.expiredState
+    LaunchedEffect(expired) { if (expired) loggedIn = false }
 
     if (!loggedIn) {
         AdminLoginScreen(onLoggedIn = { loggedIn = true })

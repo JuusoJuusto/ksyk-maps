@@ -10,12 +10,13 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## ✅ Done in the working tree (v1.3.1 + Android 1.2.1 · not committed, not deployed)
+## ✅ Shipped (v1.3.2 + Android 1.2.2 + Admin app 1.1.1)
 
-- **Admin session no longer dies after ~a week on the Android app.** Root cause: 7-day fixed admin token, never renewed or checked by the app. Now: `POST /api/auth/admin-refresh` (30-day sliding token, re-checks the account), app renews on every launch (≤ 2×/day), replays a 401'd call once after refreshing, and shows a "Session expired — sign in" dialog only if the server really rejects the token. 4 new `test:security` cases (11 total); `tsc` + `npm run build` pass.
-- **APK built:** `android/app/build/outputs/apk/release/ksykmaps-release-1.2.1.apk` (also in `public/releases/`). Rollback tag `rollback-before-1-3-1`.
-- ⏳ Needs you: deploy `api/index.ts` (renewal does nothing until it's live), install the APK, and sign in **once** — a token already expired on the phone can't be revived.
-- ⏳ Not covered: separate `android/admin` app and the web admin still have no refresh/401 handling (see ROADMAP "Next").
+- **Admin sessions renew everywhere.** v1.3.1 (live since `8fb2d3f`): `POST /api/auth/admin-refresh`, 30-day sliding token; Android app renews on launch. v1.3.2: the web admin + builder renew while open (the 12 h cut-off now measures inactivity), 401s retry once, a dead session returns to sign-in with "Your session expired"; the separate Android admin app got the same.
+- **Fixed:** Android admin app login failed for passwords containing `"` or `\`; Android admin Overview said "System OK" while requests failed; refresh response no longer carries 2FA secrets.
+- **APKs:** main app `android/app/build/outputs/apk/release/ksykmaps-release-1.2.2.apk` (also in `public/releases/`, linked by the download page); admin app `android/admin/build/outputs/apk/release/ksykmaps-admin-release-1.1.1.apk` (12 MB, not hosted anywhere). Rollback tags `rollback-before-1-3-1`, `rollback-before-1-3-2`.
+- ⏳ Needs you: install the new APK and sign in **once** (a token already expired on the phone can't be revived); tell me what else in the admin panels should be improved — "improve everything" had no spec, see ROADMAP "Next".
+- ⏳ Not tested: either APK on a real phone; the web admin in a browser; a valid-token refresh against production.
 
 ## ✅ Done in the working tree (v1.3.0 · not committed, not deployed)
 
