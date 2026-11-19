@@ -16,6 +16,7 @@ _(empty)_
 
 ## 📋 Next (near-term)
 
+- Directions route style: graph routes were meant to be solid and the straight-line fallback dashed, but the marching ants (v3.27.0) animate every route. Decide if graph routes keep the ants or go solid (a second layer with its own constant dasharray). Never make `line-dasharray` data-driven while the animation sets it
 - Audit the remaining admin screens for real UX/feature work (the "improve the admin panel" ask had no spec): `AdminPanelScreen.kt` sections other than Overview, `AdminDashboard.tsx` tabs, and the `android/admin` screens — needs the user to say what hurts
 - Sign-in (`/auth/admin-login`) still returns the full user row including 2FA secret/backup codes; only `/auth/admin-refresh` strips them
 
@@ -31,6 +32,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.3.3 — directions route line no longer throws a MapLibre render error: the layer starts with a constant `line-dasharray`, so the marching-ants animation never swaps a data-driven value for a constant
 - v1.3.2 + Android 1.2.2 + Admin app 1.1.1 — sliding admin sessions on the web admin and the Android admin app, 401 retry + "session expired" notice, admin-app login fixed for passwords containing `"`/`\`, honest Overview status, 2FA fields stripped from the refresh response; 9 new security tests
 - v1.3.1 + Android 1.2.1 — admin sessions no longer die after a week: 30-day sliding token via `POST /api/auth/admin-refresh`, app renews on launch, silent 401 retry, clear "Session expired" dialog; 4 new security tests. Needs the web deploy for the refresh to take effect (the 1.2.1 APK still works against the old server, it just can't renew)
 - v1.3.0 — search discoverability: public pages prerendered per route (own title / canonical / JSON-LD / content), crawlable lunch menu from the shared Amica parser, www canonical host, generated sitemap, noindex on private + alias routes, `GET /api/staff` no longer leaks email/phone, 45 new tests
