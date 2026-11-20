@@ -30,7 +30,10 @@ import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 
 function generateAdminToken(userId: string, role: string): string {
-  const secret = process.env.SESSION_SECRET || 'ksyk-insecure-fallback-set-session-secret-in-vercel';
+  // No constant fallback: the source is public, so a constant key lets anyone forge tokens.
+  const secret = process.env.SESSION_SECRET
+    || (process.env.DATABASE_URL ? crypto.createHmac('sha256', process.env.DATABASE_URL).update('ksyk-admin-token-key-v2').digest('hex') : '');
+  if (!secret) throw new Error('SESSION_SECRET is not set');
   const payload = Buffer.from(JSON.stringify({ userId, role, exp: Date.now() + 604_800_000 })).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${sig}`;

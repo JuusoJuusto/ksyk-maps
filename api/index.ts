@@ -14,10 +14,15 @@ import crypto from 'node:crypto';
 function _adminSecret(): string {
   const s = process.env.SESSION_SECRET;
   if (s && s.length >= 32) return s;
-  // Fallback keeps the server running when the env var isn't set yet.
-  // Set SESSION_SECRET in the Vercel dashboard to override this.
-  console.warn("SESSION_SECRET env var missing or too short — using built-in fallback. Set SESSION_SECRET in Vercel.");
-  return "ksyk-maps-admin-built-in-fallback-key-v1";
+  // SESSION_SECRET is missing or too short. Never fall back to a constant: the
+  // source is public, and a constant key lets anyone forge admin tokens. Derive
+  // the signing key from a server-only secret instead. Set SESSION_SECRET in
+  // Vercel to a random value of 48+ characters to replace this stopgap.
+  const base = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.FIREBASE_PRIVATE_KEY
+    || process.env.EMAIL_PASSWORD || process.env.OWNER_PASSWORD;
+  if (!base) throw new Error("No server secret configured: set SESSION_SECRET");
+  console.warn("SESSION_SECRET is missing or too short: admin tokens are signed with a key derived from a private server secret. Set SESSION_SECRET in Vercel.");
+  return crypto.createHmac("sha256", base).update("ksyk-admin-token-key-v2").digest("hex");
 }
 
 // Sliding session: /auth/admin-refresh mints a fresh token with a new full TTL,
