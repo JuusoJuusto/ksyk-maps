@@ -37,6 +37,7 @@ import CampusChangelog from "@/components/CampusChangelog";
 import MapSettingsPanel from "@/components/MapSettingsPanel";
 import { KSYK_GITHUB_CHANGELOG } from "@/lib/branding";
 import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
+import { usePublicFlags } from "@/lib/publicFlags";
 import { cn } from "@/lib/utils";
 
 type SettingsTab =
@@ -63,6 +64,9 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
   const { theme, setTheme } = useTheme();
   const { darkMode } = useDarkMode();
   const { settings, update } = useAppSettings();
+  // Admin switch (Settings > Features): the changelog is hidden unless turned on.
+  const { showChangelog } = usePublicFlags();
+  const visibleTabs = TABS.filter((t) => t.id !== "changelog" || showChangelog);
   const [tab, setTab] = useState<SettingsTab>("appearance");
   const [currentLang, setCurrentLang] = useState(
     () => localStorage.getItem("ksyk_language") || i18n.language
@@ -126,7 +130,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               "-mx-3 sm:-mx-0 px-3 sm:px-0",
             )}
           >
-            {TABS.map(({ id, icon: Icon, labelEn, labelFi }) => (
+            {visibleTabs.map(({ id, icon: Icon, labelEn, labelFi }) => (
               <button
                 key={id}
                 type="button"
@@ -276,7 +280,7 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
               </Section>
             )}
 
-            {tab === "changelog" && (
+            {tab === "changelog" && showChangelog && (
               <Section
                 label={isFi ? "Versiohistoria" : "Version history"}
                 description={isFi ? "Sovelluksen päivitykset" : "App updates"}
@@ -322,16 +326,20 @@ export default function CampusSettingsPanel({ onBack }: CampusSettingsPanelProps
                       label={isFi ? "Tuki ja palaute" : "Support & feedback"}
                       onClick={() => (window.location.href = "/support")}
                     />
-                    <LinkRow
-                      icon={ScrollText}
-                      label={isFi ? "Versiohistoria" : "Version history"}
-                      onClick={() => setTab("changelog")}
-                    />
-                    <LinkRow
-                      icon={ExternalLink}
-                      label={isFi ? "Lähdekoodi GitHubissa" : "Source on GitHub"}
-                      onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
-                    />
+                    {showChangelog && (
+                      <LinkRow
+                        icon={ScrollText}
+                        label={isFi ? "Versiohistoria" : "Version history"}
+                        onClick={() => setTab("changelog")}
+                      />
+                    )}
+                    {showChangelog && (
+                      <LinkRow
+                        icon={ExternalLink}
+                        label={isFi ? "Lähdekoodi GitHubissa" : "Source on GitHub"}
+                        onClick={() => window.open(KSYK_GITHUB_CHANGELOG, "_blank")}
+                      />
+                    )}
                   </RowList>
                 </Section>
 

@@ -30,8 +30,8 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
     path: "/",
     kind: "home",
     title: {
-      en: "KSYK Maps — Campus map of Kulosaaren yhteiskoulu",
-      fi: "KSYK Maps — Kulosaaren yhteiskoulun kampuskartta",
+      en: "KSYK Maps - Campus map of Kulosaaren yhteiskoulu",
+      fi: "KSYK Maps - Kulosaaren yhteiskoulun kampuskartta",
     },
     description: {
       en: "Interactive map of Kulosaaren yhteiskoulu (KSYK) in Helsinki: find classrooms, get directions, check the lunch menu and bus times, or get the Android app.",
@@ -42,8 +42,8 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
     path: "/lunch",
     kind: "lunch",
     title: {
-      en: "Lunch menu (Ruokalista) — KSYK Maps",
-      fi: "Ruokalista — KSYK Maps",
+      en: "Lunch menu (Ruokalista) - KSYK Maps",
+      fi: "Ruokalista - KSYK Maps",
     },
     description: {
       en: "This week's lunch menu (ruokalista) at the Kulosaaren yhteiskoulu school restaurant: lunch, vegetarian option and dessert for each weekday, from Amica.",
@@ -53,27 +53,33 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
   {
     path: "/download",
     kind: "download",
-    title: { en: "Download the KSYK Maps Android app" },
+    // The page is what people land on from "ksyk maps", so the title says what
+    // it is (a download) rather than just the brand.
+    title: {
+      en: "Download KSYK Maps - free Android app (APK)",
+      fi: "Lataa KSYK Maps - Android-sovellus (APK)",
+    },
     description: {
-      en: "Download the KSYK Maps Android app: offline campus map, home-screen widgets and lesson reminders. iPhone users can add the web app to the home screen.",
+      en: "Download the free KSYK Maps app for Android: offline campus map, home-screen widgets and lesson reminders. iPhone users can add the web app to the home screen.",
+      fi: "Lataa ilmainen KSYK Maps -sovellus Androidille: offline-kampuskartta, kotinäytön widgetit ja tuntimuistutukset. iPhonella voit lisätä verkkosovelluksen kotinäytölle.",
     },
   },
   {
     path: "/faq",
     kind: "faq",
     title: {
-      en: "KSYK Maps FAQ — timetable, widgets and offline use",
-      fi: "UKK — KSYK Maps",
+      en: "KSYK Maps FAQ - Wilma timetable, widgets and offline use",
+      fi: "UKK - KSYK Maps: Wilma, widgetit ja offline-käyttö",
     },
     description: {
-      en: "Answers about KSYK Maps: connecting your Wilma timetable, home-screen widgets, lesson reminders, push notifications, offline use and navigating to classrooms.",
-      fi: "Vastauksia KSYK Mapsiin: Wilma-lukujärjestyksen yhdistäminen, widgetit, tuntimuistutukset, push-ilmoitukset, offline-käyttö ja reitit luokkiin.",
+      en: "Frequently asked questions about KSYK Maps: connecting your Wilma timetable, home-screen widgets, lesson reminders, offline use and finding your classroom.",
+      fi: "Usein kysytyt kysymykset KSYK Mapsista: Wilma-lukujärjestyksen yhdistäminen, widgetit, tuntimuistutukset, offline-käyttö ja reitit luokkiin.",
     },
   },
   {
     path: "/support",
     kind: "support",
-    title: { en: "Support and bug reports — KSYK Maps" },
+    title: { en: "Support and bug reports - KSYK Maps" },
     description: {
       en: "Report a bug, request a feature or ask a question about KSYK Maps. The support form goes to the KSYK Maps team.",
     },
@@ -82,8 +88,8 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
     path: "/privacy",
     kind: "privacy",
     title: {
-      en: "Privacy policy — KSYK Maps",
-      fi: "Tietosuojaseloste — KSYK Maps",
+      en: "Privacy policy - KSYK Maps",
+      fi: "Tietosuojaseloste - KSYK Maps",
     },
     description: {
       en: "How KSYK Maps handles data: analytics, cookies, local storage, support tickets and your rights. Visitors need no account and no location data is collected.",

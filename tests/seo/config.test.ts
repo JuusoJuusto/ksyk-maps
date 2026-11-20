@@ -35,6 +35,60 @@ test("registry: unique paths, sensible metadata, no overlap with noindex roots",
   assert.equal(findPublicPage("/lunch/?utm=1#x")?.path, "/lunch", "query, hash and trailing slash normalise");
 });
 
+test("titles and descriptions: no em/en dashes, a title that says what the page is, finnish text where offered", () => {
+  for (const page of PUBLIC_PAGES) {
+    for (const lang of ["en", "fi"] as const) {
+      for (const field of ["title", "description"] as const) {
+        const text = page[field][lang];
+        if (text === undefined) continue;
+        assert.ok(!/[–—]/.test(text), `${page.path} ${field}.${lang} contains an em/en dash`);
+      }
+      const fi = page.title.fi;
+      if (lang === "fi" && fi) assert.ok(fi.length >= 10 && fi.length <= 65, `${page.path} fi title length ${fi.length}`);
+    }
+  }
+  // /download is what "ksyk maps" lands on: the title must say download, not just the brand.
+  const dl = findPublicPage("/download")!;
+  assert.match(dl.title.en, /^Download KSYK Maps/);
+  assert.match(dl.description.en, /download/i);
+  assert.match(findPublicPage("/faq")!.title.en, /FAQ/);
+  // Each page carries its own description in Finnish too, where the page is offered in Finnish.
+  for (const kind of ["/download", "/faq"]) {
+    const p = findPublicPage(kind)!;
+    assert.ok(p.title.fi && p.description.fi, `${kind} has finnish title and description`);
+    assert.ok(p.description.fi!.length >= 70 && p.description.fi!.length <= 175, `${kind} fi description length`);
+  }
+});
+
+test("no apex-domain URL is published anywhere search engines read: www is the only host", () => {
+  const dir = path.join(ROOT, "public");
+  const candidates = ["robots.txt", ".well-known/security.txt", "security.txt"];
+  for (const rel of candidates) {
+    const file = path.join(dir, rel);
+    if (!fs.existsSync(file)) continue;
+    assert.ok(!/https?:\/\/ksykmaps\.fi/i.test(fs.readFileSync(file, "utf8")), `${rel} names the apex host`);
+  }
+  const html = read("client/index.html");
+  assert.ok(!/https?:\/\/ksykmaps\.fi/i.test(html), "index.html names the apex host");
+  // The sitemap generator only ever emits canonical (www) URLs.
+  for (const page of PUBLIC_PAGES) assert.ok(canonicalUrl(page.path).startsWith("https://www.ksykmaps.fi"));
+  // And the apex is redirected permanently, not served.
+  const redirects = (vercelConfig() as { redirects?: Array<{ has?: Array<{ value: string }>; destination: string; permanent?: boolean }> }).redirects ?? [];
+  const apex = redirects.find((r) => r.has?.some((h) => h.value === "ksykmaps.fi"));
+  assert.ok(apex, "vercel.json redirects the apex host");
+  assert.equal(apex!.permanent, true);
+  assert.ok(apex!.destination.startsWith("https://www.ksykmaps.fi/"));
+});
+
+test("the APK is served as a download: attachment, correct type, versioned name", () => {
+  const headers = (vercelConfig() as { headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }> }).headers;
+  const rule = headers.find((h) => h.source.includes("releases") && h.source.includes("apk"));
+  assert.ok(rule, "vercel.json has an /releases/*.apk header rule");
+  const get = (k: string) => rule!.headers.find((h) => h.key.toLowerCase() === k.toLowerCase())?.value;
+  assert.equal(get("Content-Type"), "application/vnd.android.package-archive");
+  assert.equal(get("Content-Disposition"), "attachment");
+});
+
 test("every route the SPA defines is deliberately public or noindex", () => {
   const routes = appRoutePaths();
   assert.ok(routes.length > 10, "route extraction found App.tsx routes");

@@ -18,6 +18,7 @@ export const vercelConfig = () =>
   JSON.parse(read("vercel.json")) as {
     rewrites: { source: string; destination: string }[];
     headers: { source: string; headers: { key: string; value: string }[] }[];
+    redirects?: { source: string; destination: string; permanent?: boolean; has?: { type: string; value: string }[] }[];
   };
 
 const count = (html: string, re: RegExp) => (html.match(re) ?? []).length;

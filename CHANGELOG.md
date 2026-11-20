@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 — November 2026
+
+- Builder geometry: new `client/src/lib/geo.ts` (WGS84 metres-per-degree at the point's latitude, distance, area, perimeter, oriented size, transform, grid helpers), verified against an independent Vincenty implementation; replaces ~45 hand-rolled `111320` / haversine copies across builder, selection handles, property panel, image overlay, svg import, campus overlay, route panel and GPS accuracy circle
+- Property panel: width/height measured in the shape's own frame (rotated buildings no longer skew on resize), real area + perimeter readout; drawing preview shows live m²
+- Snapping: `placementSnap` makes Snap and Grid toolbar toggles govern doors, entrances, stairs, lifts, nav nodes and all POIs (they ignored Snap before); Grid now draws a metre grid and snaps to it (off by default, persisted)
+- `/download` rebuilt in the document style; shared `shared/release.ts` version constant; permanent `GET /api/download/android` (302, 503 when downloads are off); APKs served `Content-Disposition: attachment`
+- New `app_settings` columns `downloads_enabled`, `play_store_url` (validated to https Google Play links), `show_changelog` (default false) + admin controls under Settings > Features; the public settings panel hides the Changelog tab / version-history links unless enabled
+- SEO: titles/descriptions without em dashes; `/download` + `/faq` titles and (en + fi) descriptions; FAQPage JSON-LD; WebSite alternateName; all emitted/issued URLs use `https://www.ksykmaps.fi`; apex host redirects with a permanent 308 in `vercel.json`
+- Android admin app: base URL → www and `x-admin-token` header (Authorization is dropped on cross-host redirects)
+- Tests: `test:geo` (12), `test:site` (3), +4 SEO, +3 API. Rollback: `git reset --hard rollback-before-1-4-0` (da8c4fd); 3 columns added to `app_settings` (safe to leave)
+
 ## 1.3.2 — November 2026
 
 - Web admin: `client/src/lib/adminAuth.ts` gains `refreshAdminSession` / `recoverFromUnauthorized` / `expireAdminSession`; the dashboard renews the token on load, every 20 min and on tab focus, so the 12 h cut-off is now inactivity-based (an abandoned tab still signs out); `queryClient` retries a 401'd request once after renewing; a dead session returns to `/admin` with "Your session expired" (public pages are never redirected); the builder renews too

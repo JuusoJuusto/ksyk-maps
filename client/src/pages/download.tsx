@@ -1,173 +1,334 @@
 /**
- * /download — public app-download landing page (v4.7.12).
+ * /download - the public "get the app" page.
  *
- * Purpose: single canonical URL for "get the KSYK Maps app" links —
- * QR codes on posters, the in-app popup, external channels. We link
- * to the latest signed APK for Android and surface an iOS "coming
- * later" state honestly rather than a dead placeholder button.
- *
- * The version string comes from client changelog.APP_VERSION so a
- * bump in one place feeds the download page automatically.
+ * Same document shell as FAQ / Privacy / Support: hairline header, uppercase
+ * masthead, navy H1, hairline panels. Three honest states, all driven by the
+ * admin settings (Settings > Features > Downloads):
+ *   1. downloads on, no Play listing  -> the latest signed APK + install steps
+ *   2. downloads on, Play link set    -> Google Play first, APK as the fallback
+ *   3. downloads off                  -> a "coming soon" screen (page still works)
+ * The APK version comes from shared/release.ts, the same constant the build
+ * uses to verify the file exists, so the button can never point at a stale
+ * or missing release.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Apple, Download, ArrowLeft, ShieldCheck, ExternalLink, Check } from "lucide-react";
-import { APP_VERSION, ANDROID_APP_VERSION } from "@/lib/changelog";
+import { ArrowLeft, Download, Check, ExternalLink, ShieldCheck, Smartphone } from "lucide-react";
+import { ANDROID_APP_VERSION, ANDROID_MIN_VERSION, apkPath } from "@shared/release";
+import { APP_VERSION } from "@/lib/changelog";
+import { usePublicFlags } from "@/lib/publicFlags";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { cn } from "@/lib/utils";
 import { trackFeatureUse } from "@/lib/analytics";
 import { pageTitle } from "@shared/seo";
 
-const APK_HREF = `/releases/ksykmaps-release-${ANDROID_APP_VERSION}.apk`;
+const hairline = "border-[#d5dae0] dark:border-[#2a3040]";
+const navyText = "text-[#003d82] dark:text-[#4a90d9]";
+const masthead = cn("text-[10px] font-bold tracking-[0.08em] uppercase", navyText);
+
+const COPY = {
+  en: {
+    back: "Map",
+    masthead: "App",
+    h1: "Download KSYK Maps",
+    lead: "The campus map in your pocket: works offline, with home-screen widgets and lesson reminders.",
+    android: "Android",
+    version: "Version",
+    requires: `Android ${ANDROID_MIN_VERSION} or newer`,
+    downloadApk: "Download APK",
+    directApk: "Download the APK directly",
+    getOnPlay: "Get it on Google Play",
+    signed: "Signed release",
+    free: "Free, no account needed",
+    stepsTitle: "Install on Android",
+    steps: [
+      "Download the APK above. Your browser may ask to keep the file; choose Keep.",
+      "Open the downloaded file. If Android asks, allow your browser to install apps (Install unknown apps).",
+      "Tap Install, then open KSYK Maps.",
+    ],
+    insideTitle: "What you get",
+    inside: [
+      "Campus map and room search that work without a connection",
+      "Home-screen widgets: now, next and today",
+      "Lesson reminder notifications from your Wilma timetable",
+      "Material You colours on Android 12 and newer",
+    ],
+    ios: "iPhone and iPad",
+    iosBody: "There is no native iOS app. Install the web app instead: open ksykmaps.fi in Safari, tap Share, then Add to Home Screen. It works offline and gets its own icon.",
+    soonChip: "Temporarily unavailable",
+    soonH: "The app is coming soon",
+    soonBody: "Downloads are paused while the next version is finished. Nothing is wrong with your phone or connection. The web app works in any browser in the meantime.",
+    soonPlay: "Google Play: coming soon",
+    openWeb: "Open the web app",
+    support: "Questions? Contact support",
+    privacy: "Privacy policy",
+    loading: "Loading",
+  },
+  fi: {
+    back: "Kartta",
+    masthead: "Sovellus",
+    h1: "Lataa KSYK Maps",
+    lead: "Kampuskartta taskussa: toimii offline-tilassa, mukana kotinäytön widgetit ja tuntimuistutukset.",
+    android: "Android",
+    version: "Versio",
+    requires: `Android ${ANDROID_MIN_VERSION} tai uudempi`,
+    downloadApk: "Lataa APK",
+    directApk: "Lataa APK suoraan",
+    getOnPlay: "Hae Google Playsta",
+    signed: "Allekirjoitettu julkaisu",
+    free: "Ilmainen, ei tiliä",
+    stepsTitle: "Asennus Androidille",
+    steps: [
+      "Lataa APK-tiedosto yllä olevasta painikkeesta. Selain voi kysyä säilytetäänkö tiedosto; valitse Säilytä.",
+      "Avaa ladattu tiedosto. Jos Android kysyy, salli selaimelle sovellusten asennus (Tuntemattomien sovellusten asennus).",
+      "Napauta Asenna ja avaa KSYK Maps.",
+    ],
+    insideTitle: "Mitä saat",
+    inside: [
+      "Kampuskartta ja huonehaku, jotka toimivat ilman verkkoyhteyttä",
+      "Kotinäytön widgetit: nyt, seuraava ja tänään",
+      "Tuntimuistutukset Wilma-lukujärjestyksestäsi",
+      "Material You -värit Android 12:ssa ja uudemmissa",
+    ],
+    ios: "iPhone ja iPad",
+    iosBody: "iOS-sovellusta ei ole. Asenna verkkosovellus: avaa ksykmaps.fi Safarissa, napauta Jaa ja valitse Lisää Koti-valikkoon. Se toimii offline-tilassa ja saa oman kuvakkeen.",
+    soonChip: "Tilapäisesti pois käytöstä",
+    soonH: "Sovellus tulee pian",
+    soonBody: "Lataukset ovat tauolla, kun seuraavaa versiota viimeistellään. Puhelimessasi tai yhteydessäsi ei ole vikaa. Verkkosovellus toimii kaikilla selaimilla sillä välin.",
+    soonPlay: "Google Play: tulossa",
+    openWeb: "Avaa verkkosovellus",
+    support: "Kysyttävää? Ota yhteyttä",
+    privacy: "Tietosuojaseloste",
+    loading: "Ladataan",
+  },
+} as const;
+
+type Lang = keyof typeof COPY;
+
+function readLang(): Lang {
+  try {
+    const stored = localStorage.getItem("ksyk_language");
+    return stored && stored.toLowerCase().startsWith("fi") ? "fi" : "en";
+  } catch {
+    return "en";
+  }
+}
+
+const primaryBtn = cn(
+  "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[6px] text-[14px] font-bold transition-colors",
+  "bg-[#003d82] text-white hover:bg-[#002d5f] active:bg-[#002550]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003d82]/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950",
+);
+const secondaryBtn = cn(
+  "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[6px] text-[14px] font-semibold transition-colors border",
+  hairline,
+  "bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-900",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#003d82]/30",
+);
 
 export default function DownloadPage() {
   const { darkMode } = useDarkMode();
+  const flags = usePublicFlags();
+  const [lang, setLang] = useState<Lang>(readLang);
+  const t = COPY[lang];
 
   useEffect(() => {
     try { trackFeatureUse("download_page_view"); } catch { /* noop */ }
-    document.title = pageTitle("/download");
-    return () => { document.title = "KSYK Maps"; };
   }, []);
 
-  const onDownloadAndroid = () => {
-    try { trackFeatureUse("download_apk_click", { version: ANDROID_APP_VERSION }); } catch { /* noop */ }
+  useEffect(() => {
+    document.title = pageTitle("/download", lang);
+    return () => { document.title = "KSYK Maps"; };
+  }, [lang]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "ksyk_language" && typeof e.newValue === "string") {
+        setLang(e.newValue.toLowerCase().startsWith("fi") ? "fi" : "en");
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const track = (kind: "apk" | "play") => {
+    try { trackFeatureUse(kind === "apk" ? "download_apk_click" : "download_play_click", { version: ANDROID_APP_VERSION }); } catch { /* noop */ }
   };
 
-  const androidFeatures = [
-    "Home-screen widgets (Now / Next / Today)",
-    "Lesson reminder notifications",
-    "Material You dynamic colors (Android 12+)",
-  ];
+  const apk = apkPath();
+  const state: "loading" | "soon" | "play" | "apk" =
+    !flags.loaded ? "loading"
+    : !flags.downloadsEnabled ? "soon"
+    : flags.playStoreUrl ? "play"
+    : "apk";
 
   return (
     <div
-      className={cn(
-        "min-h-screen w-full flex flex-col",
-        darkMode ? "bg-gray-950 text-gray-100" : "bg-white text-gray-900",
-      )}
-      style={{
-        paddingTop: "env(safe-area-inset-top, 0px)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      }}
+      className={cn("min-h-screen flex flex-col", darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-50 text-gray-900")}
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <header className="border-b border-border/50 animate-fade-in">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 h-11 -ml-2 px-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Back to map
+      <header className={cn("border-b shrink-0 bg-white dark:bg-gray-950", hairline)}>
+        <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 h-9 -ml-2 px-2 rounded-[6px] text-[13px] font-semibold text-gray-700 dark:text-gray-300 hover:text-[#003d82] dark:hover:text-[#4a90d9] hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            {t.back}
           </Link>
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-            web {APP_VERSION}
-          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const next: Lang = lang === "fi" ? "en" : "fi";
+              setLang(next);
+              try { localStorage.setItem("ksyk_language", next); } catch { /* ignore */ }
+            }}
+            className={cn("text-[12px] font-bold tracking-wide h-8 px-2.5 rounded-[6px] border bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors", hairline)}
+            aria-label={lang === "fi" ? "Switch to English" : "Vaihda suomeksi"}
+          >
+            {lang === "fi" ? "EN" : "FI"}
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-10 sm:py-12">
-        <div className="max-w-xl w-full">
-          <div className="text-center mb-8 animate-fade-in-up">
-            <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight leading-[1.15] mb-2">
-              Get the KSYK Maps app
-            </h1>
-            <p className="text-[15px] leading-relaxed text-muted-foreground max-w-md mx-auto">
-              Faster than the browser, works offline, home-screen widgets for your schedule.
-            </p>
-          </div>
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-5 py-6 sm:py-8">
+        <div className={cn("mb-6 pb-4 border-b", hairline)}>
+          <p className={cn(masthead, "mb-1")}>{t.masthead}</p>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-[1.15] text-gray-900 dark:text-white">
+            {t.h1}
+          </h1>
+          <p className="text-[14px] mt-1.5 text-gray-600 dark:text-gray-400 max-w-xl">{t.lead}</p>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Android */}
-            <div
-              className="animate-fade-in-up rounded-2xl border border-gray-200 dark:border-gray-800 bg-card p-5 flex flex-col shadow-sm"
-              style={{ animationDelay: "80ms" }}
-            >
-              <div className="flex items-center justify-between mb-4">
+        {state === "loading" && (
+          <div
+            className={cn("rounded-[8px] border bg-white dark:bg-gray-950 p-5 h-[168px]", hairline)}
+            role="status"
+            aria-label={t.loading}
+          >
+            <div className="h-3 w-24 rounded-[4px] bg-gray-100 dark:bg-gray-900 animate-pulse" />
+            <div className="h-6 w-48 rounded-[4px] bg-gray-100 dark:bg-gray-900 animate-pulse mt-3" />
+            <div className="h-11 w-44 rounded-[6px] bg-gray-100 dark:bg-gray-900 animate-pulse mt-6" />
+          </div>
+        )}
+
+        {state === "soon" && (
+          <section
+            className="rounded-[8px] border border-amber-300/70 dark:border-amber-700/50 bg-white dark:bg-gray-950 overflow-hidden"
+            aria-live="polite"
+            data-testid="download-coming-soon"
+          >
+            <div className="px-5 pt-5 pb-1">
+              <span className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.08em] uppercase text-amber-800 dark:text-amber-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                {t.soonChip}
+              </span>
+            </div>
+            <div className="px-5 pb-5">
+              <h2 className="text-[20px] sm:text-[22px] font-bold tracking-tight text-gray-900 dark:text-white mt-2">{t.soonH}</h2>
+              <p className="text-[14px] leading-[1.6] text-gray-600 dark:text-gray-400 mt-1.5 max-w-xl">{t.soonBody}</p>
+              <div className="mt-5 flex flex-col sm:flex-row gap-2.5">
+                <Link href="/" className={primaryBtn}>
+                  {t.openWeb}
+                  <ExternalLink className="h-4 w-4" strokeWidth={2.25} />
+                </Link>
+                <button type="button" disabled className={cn(secondaryBtn, "opacity-60 cursor-not-allowed")}>
+                  <Smartphone className="h-4 w-4" strokeWidth={2.25} />
+                  {t.soonPlay}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {(state === "apk" || state === "play") && (
+          <section className={cn("rounded-[8px] border bg-white dark:bg-gray-950", hairline)} data-testid="download-available">
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-[16px] font-semibold tracking-tight">Android</h2>
-                  <p className="text-[12px] font-mono text-muted-foreground mt-0.5">v{ANDROID_APP_VERSION}</p>
+                  <p className={masthead}>{t.android}</p>
+                  <p className="text-[20px] font-bold tracking-tight text-gray-900 dark:text-white mt-1">
+                    {t.version} {ANDROID_APP_VERSION}
+                  </p>
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">{t.requires}</p>
                 </div>
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                  Available
+                <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-[4px] border text-gray-600 dark:text-gray-300", hairline)}>
+                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  {t.signed}
                 </span>
               </div>
-              <ul className="text-[13px] leading-relaxed text-muted-foreground space-y-2 mb-5 flex-1">
-                {androidFeatures.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="h-3.5 w-3.5 mt-1 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
-                    <span>{f}</span>
+
+              <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
+                {state === "play" ? (
+                  <>
+                    <a
+                      href={flags.playStoreUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => track("play")}
+                      className={primaryBtn}
+                      data-testid="download-play"
+                    >
+                      <ExternalLink className="h-4 w-4" strokeWidth={2.25} />
+                      {t.getOnPlay}
+                    </a>
+                    <a href={apk} download onClick={() => track("apk")} className={cn("text-[13px] font-semibold hover:underline underline-offset-2", navyText)}>
+                      {t.directApk} (v{ANDROID_APP_VERSION})
+                    </a>
+                  </>
+                ) : (
+                  <a href={apk} download onClick={() => track("apk")} className={primaryBtn} data-testid="download-apk">
+                    <Download className="h-4 w-4" strokeWidth={2.5} />
+                    {t.downloadApk}
+                  </a>
+                )}
+              </div>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-3">{t.free}</p>
+            </div>
+
+            {state === "apk" && (
+              <div className={cn("border-t px-5 py-4", hairline)}>
+                <p className={cn(masthead, "mb-2")}>{t.stepsTitle}</p>
+                <ol className="space-y-2">
+                  {t.steps.map((step, i) => (
+                    <li key={i} className="flex gap-3 text-[14px] leading-[1.55] text-gray-700 dark:text-gray-300">
+                      <span className="shrink-0 w-6 text-[11px] font-bold tabular-nums text-gray-400 dark:text-gray-600 pt-[3px]">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            <div className={cn("border-t px-5 py-4", hairline)}>
+              <p className={cn(masthead, "mb-2")}>{t.insideTitle}</p>
+              <ul className="space-y-1.5">
+                {t.inside.map((line) => (
+                  <li key={line} className="flex items-start gap-2 text-[14px] leading-[1.55] text-gray-700 dark:text-gray-300">
+                    <Check className={cn("h-4 w-4 mt-[3px] shrink-0", navyText)} strokeWidth={2.5} />
+                    <span>{line}</span>
                   </li>
                 ))}
               </ul>
-              <a
-                href={APK_HREF}
-                onClick={onDownloadAndroid}
-                download={`ksykmaps-${ANDROID_APP_VERSION}.apk`}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl font-semibold text-[15px] transition-all",
-                  "bg-blue-600 text-white",
-                  "hover:bg-blue-700",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  "active:scale-[0.98]",
-                )}
-              >
-                <Download className="h-4 w-4" strokeWidth={2.5} />
-                Download APK
-              </a>
-              <p className="text-[12px] text-muted-foreground mt-2.5 flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.25} />
-                Signed release · direct install
-              </p>
             </div>
+          </section>
+        )}
 
-            {/* iOS — honest coming-later state */}
-            <div
-              className="animate-fade-in-up rounded-2xl border border-gray-200 dark:border-gray-800 bg-card p-5 flex flex-col shadow-sm"
-              style={{ animationDelay: "160ms" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-[16px] font-semibold tracking-tight">iOS</h2>
-                  <p className="text-[12px] font-mono text-muted-foreground mt-0.5">In design</p>
-                </div>
-                <span className="text-[11px] font-semibold text-muted-foreground">
-                  Coming later
-                </span>
-              </div>
-              <ul className="text-[13px] leading-relaxed text-muted-foreground space-y-2 mb-5 flex-1">
-                <li>The iPhone / iPad app is still in design.</li>
-                <li>Until then, install the web app from Safari: Share → <b className="text-foreground">Add to Home Screen</b>. Works offline, gets a home icon.</li>
-              </ul>
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl font-semibold text-[15px] border border-gray-200 dark:border-gray-800 text-muted-foreground cursor-not-allowed"
-              >
-                <Apple className="h-4 w-4" strokeWidth={2.5} />
-                App Store — TBA
-              </button>
-              <p className="text-[12px] text-muted-foreground mt-2.5">
-                Want it sooner? <Link href="/support" className="underline underline-offset-2 hover:text-foreground">Let us know</Link>.
-              </p>
-            </div>
-          </div>
+        <section className={cn("mt-4 rounded-[8px] border bg-white dark:bg-gray-950 p-5", hairline)}>
+          <p className={masthead}>{t.ios}</p>
+          <p className="text-[14px] leading-[1.6] text-gray-700 dark:text-gray-300 mt-1.5">{t.iosBody}</p>
+        </section>
 
-          {/* Web fallback */}
-          <div
-            className="animate-fade-in-up mt-6 flex flex-col items-center gap-2 text-center"
-            style={{ animationDelay: "240ms" }}
-          >
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 h-11 px-3 text-[14px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Or open the web app in your browser
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-[12px] text-muted-foreground/70 hover:text-muted-foreground transition-colors underline underline-offset-2"
-            >
-              Privacy policy
-            </Link>
-          </div>
+        <div className={cn("mt-8 pt-4 border-t flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400", hairline)}>
+          <Link href="/support" className={cn("font-semibold hover:underline underline-offset-2", navyText)}>{t.support}</Link>
+          <span className="text-gray-300 dark:text-gray-700">·</span>
+          <Link href="/privacy" className={cn("font-semibold hover:underline underline-offset-2", navyText)}>{t.privacy}</Link>
+          <span className="ml-auto text-[11px] font-mono uppercase tracking-wider text-gray-400">web {APP_VERSION}</span>
         </div>
       </main>
     </div>

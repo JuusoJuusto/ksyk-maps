@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MaplibreMap, MapMouseEvent } from "maplibre-gl";
 import { Image as ImageIcon, RotateCw, Trash2, ChevronDown, ChevronUp, MapPin, Move } from "lucide-react";
+import { metersPerDegree } from "@/lib/geo";
 
 const STORAGE_KEY = "ksyk_builder_image_overlays_v1";
 
@@ -94,8 +95,9 @@ function cornersFor(
 ): [[number, number], [number, number], [number, number], [number, number]] {
   const heightMeters = widthMeters / aspect;
   // Meters → degrees at this latitude.
-  const dLat = heightMeters / 2 / 111320;
-  const dLng = widthMeters / 2 / (111320 * Math.cos((centerLat * Math.PI) / 180));
+  const perDeg = metersPerDegree(centerLat);
+  const dLat = heightMeters / 2 / perDeg.lat;
+  const dLng = widthMeters / 2 / perDeg.lng;
 
   // v3.26.8 — expanded range. Tilt allowed up to ±85° (near-vertical);
   // top edge shrinks to ~9% of bottom at that extreme so the image

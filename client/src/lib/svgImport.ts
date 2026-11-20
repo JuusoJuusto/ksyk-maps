@@ -21,6 +21,7 @@
  * The parser is defensive — malformed shapes are skipped, not thrown.
  */
 import type { LatLng, Polygon } from "@ksyk/shared";
+import { metersPerDegree } from "@/lib/geo";
 
 /** What kind of entity a parsed shape becomes. Inferred from either
  *  the element's own `data-kind` / class / id or its containing
@@ -182,8 +183,7 @@ function localToLatLng(
   const centreY = vb.minY + vb.height / 2;
   const dxMeters = (x - centreX) * metersPerUnit;
   const dyMeters = -(y - centreY) * metersPerUnit;
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((anchor.lat * Math.PI) / 180);
+  const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(anchor.lat);
   return {
     lat: anchor.lat + dyMeters / metersPerDegLat,
     lng: anchor.lng + dxMeters / metersPerDegLng,

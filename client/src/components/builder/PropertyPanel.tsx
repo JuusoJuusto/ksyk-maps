@@ -24,6 +24,16 @@ import { Trash2, X, ClipboardList, Palette, Move3d, Puzzle, Pipette, Navigation,
 import type { Building, Room, Hallway, RoomType } from "@ksyk/shared";
 import { pickColor } from "@/lib/colorEyedropper";
 import { useNavGraph, type NavNode } from "@/lib/navGraph";
+import {
+  distanceMeters,
+  formatArea,
+  formatLength,
+  orientedSize,
+  polygonAreaM2,
+  polygonCenter,
+  polygonPerimeterM,
+  transformPolygon,
+} from "@/lib/geo";
 
 type HistoryRecord = React.RefObject<HistoryRecordFn | undefined>;
 
@@ -362,14 +372,9 @@ function NavNodeProps({ node }: { node: NavNode }) {
     return m;
   }, [graph.nodes]);
 
-  // Haversine distance in metres
+  // Ground distance in metres (WGS84)
   function distM(a: NavNode, b: NavNode): number {
-    const R = 6371000;
-    const dLat = (b.lat - a.lat) * Math.PI / 180;
-    const dLng = (b.lng - a.lng) * Math.PI / 180;
-    const sin2 = Math.sin(dLat / 2) ** 2 +
-      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(sin2), Math.sqrt(1 - sin2));
+    return distanceMeters(a, b);
   }
 
   // Auto-connect to the 3 nearest unconnected same-floor nodes
@@ -1611,34 +1616,23 @@ function PolygonTransformForm({ entity, activeFloor, onAddFloorShape }: {
   const qc = useQueryClient();
   const { toast } = useToast();
   const pts = (entity.data.points ?? []) as Array<{ lat: number; lng: number }>;
-  const mPerLat = 111320;
+  const initRot = Math.round(((entity.data as { rotationDeg?: number | null }).rotationDeg ?? 0) * 10) / 10;
 
-  const centroid = useMemo(() => {
-    if (!pts.length) return { lat: 0, lng: 0 };
-    return {
-      lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
-      lng: pts.reduce((s, p) => s + p.lng, 0) / pts.length,
-    };
-  }, [pts]);
+  const centroid = useMemo(() => polygonCenter(pts), [pts]);
 
-  const mPerLng = useMemo(() => 111320 * Math.cos((centroid.lat * Math.PI) / 180), [centroid.lat]);
-
+  // Size in the shape's own frame (undoing its rotation), so a building turned
+  // 30 degrees reports its real side lengths, not the bounding box of the tilted outline.
   const { widthM, heightM } = useMemo(() => {
     if (pts.length < 2) return { widthM: 0, heightM: 0 };
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const p of pts) {
-      const x = (p.lng - centroid.lng) * mPerLng;
-      const y = (p.lat - centroid.lat) * mPerLat;
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
-    }
+    const size = orientedSize(pts, initRot);
     return {
-      widthM: Math.round((maxX - minX) * 100) / 100,
-      heightM: Math.round((maxY - minY) * 100) / 100,
+      widthM: Math.round(size.width * 100) / 100,
+      heightM: Math.round(size.height * 100) / 100,
     };
-  }, [pts, centroid, mPerLng]);
+  }, [pts, initRot]);
 
-  const initRot = Math.round(((entity.data as { rotationDeg?: number | null }).rotationDeg ?? 0) * 10) / 10;
+  const areaM2 = useMemo(() => polygonAreaM2(pts), [pts]);
+  const perimeterM = useMemo(() => polygonPerimeterM(pts), [pts]);
 
   const [cLat, setCLat] = useState(() => Math.round(centroid.lat * 1e6) / 1e6);
   const [cLng, setCLng] = useState(() => Math.round(centroid.lng * 1e6) / 1e6);
@@ -1657,25 +1651,22 @@ function PolygonTransformForm({ entity, activeFloor, onAddFloorShape }: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entityId]);
 
+  const centerEdited =
+    Math.abs(cLat - Math.round(centroid.lat * 1e6) / 1e6) > 1e-7 ||
+    Math.abs(cLng - Math.round(centroid.lng * 1e6) / 1e6) > 1e-7;
+
   const patch = useMutation({
     mutationFn: async () => {
-      const dLat = cLat - centroid.lat;
-      const dLng = cLng - centroid.lng;
-      const scaleX = widthM > 0.01 ? width / widthM : 1;
-      const scaleY = heightM > 0.01 ? height / heightM : 1;
-      const rotDelta = ((rotation - initRot) * Math.PI) / 180;
-      const cosR = Math.cos(rotDelta);
-      const sinR = Math.sin(rotDelta);
-
-      const newPoints = pts.map((p) => {
-        let x = (p.lng - centroid.lng) * mPerLng * scaleX;
-        let y = (p.lat - centroid.lat) * mPerLat * scaleY;
-        const rx = x * cosR - y * sinR;
-        const ry = x * sinR + y * cosR;
-        return {
-          lng: centroid.lng + rx / mPerLng + dLng,
-          lat: centroid.lat + ry / mPerLat + dLat,
-        };
+      // Scale in the shape's own frame, then rotate: a rotated rectangle stays a
+      // true rectangle at exactly the typed width x height in metres.
+      const newPoints = transformPolygon(pts, {
+        fromRotationDeg: initRot,
+        rotationDeg: rotation,
+        width: widthM > 0.01 ? width : undefined,
+        height: heightM > 0.01 ? height : undefined,
+        // Only move the shape when the position was edited; otherwise keep its
+        // exact centre (the inputs are rounded to ~10 cm and must not nudge it).
+        center: centerEdited ? { lat: cLat, lng: cLng } : undefined,
       });
 
       const path = entity.kind === "building"
@@ -1762,9 +1753,17 @@ function PolygonTransformForm({ entity, activeFloor, onAddFloorShape }: {
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">
-        {pts.length} vertices · {widthM.toFixed(2)} × {heightM.toFixed(2)} m current
-      </p>
+      <div className="rounded-lg border border-border bg-muted/30 p-3 grid grid-cols-2 gap-x-3 gap-y-1">
+        <p className="col-span-2 text-[10px] font-bold tracking-[0.18em] uppercase text-muted-foreground">Measured on the ground</p>
+        <span className="text-[11px] text-muted-foreground">Size</span>
+        <span className="text-[11px] font-mono tabular-nums text-right">{widthM.toFixed(2)} × {heightM.toFixed(2)} m</span>
+        <span className="text-[11px] text-muted-foreground">Area</span>
+        <span className="text-[11px] font-mono tabular-nums text-right" data-testid="measure-area">{formatArea(areaM2)}</span>
+        <span className="text-[11px] text-muted-foreground">Perimeter</span>
+        <span className="text-[11px] font-mono tabular-nums text-right" data-testid="measure-perimeter">{formatLength(perimeterM)}</span>
+        <span className="text-[11px] text-muted-foreground">Vertices</span>
+        <span className="text-[11px] font-mono tabular-nums text-right">{pts.length}</span>
+      </div>
 
       <DirtySaveButton isDirty={dirty} isPending={patch.isPending} onSave={() => patch.mutate()} />
 

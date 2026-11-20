@@ -761,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send reset email
-      const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.APP_URL || 'https://www.ksykmaps.fi'}/reset-password?token=${resetToken}`;
       
       try {
         const emailService = await import('./emailService');
@@ -2168,7 +2168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email notification if status changed
       if (oldTicket && oldTicket.status !== ticket.status && ticket.email) {
         try {
-          await fetch(`${process.env.APP_URL || 'https://ksykmaps.fi'}/api/send-ticket-status-update`, {
+          await fetch(`${process.env.APP_URL || 'https://www.ksykmaps.fi'}/api/send-ticket-status-update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2238,7 +2238,7 @@ Submitted by: ${name || 'Anonymous'}
 Email: ${email || 'Not provided'}
 
 View and manage this ticket in the admin panel:
-https://ksykmaps.fi/admin-ksyk-management-portal
+https://www.ksykmaps.fi/admin-ksyk-management-portal
 
 ---
 KSYK Maps Support System
@@ -2279,7 +2279,7 @@ For reference, please save your ticket ID: ${ticketId}
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.fi
+https://www.ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket Received: ${ticketId}`, emailBody);
@@ -2316,7 +2316,7 @@ If you have any further questions, please reply to this email or create a new ti
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.fi
+https://www.ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket Update: ${ticketId}`, emailBody);
@@ -2367,7 +2367,7 @@ ${status === 'resolved' || status === 'closed' ? '\nIf you need further assistan
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.fi
+https://www.ksykmaps.fi
       `.trim();
       
       await sendTicketEmail(email, `Ticket ${status.toUpperCase().replace('_', ' ')}: ${ticketId}`, emailBody);
@@ -2407,7 +2407,7 @@ Test Details:
 
 ---
 KSYK Maps Support Team
-https://ksykmaps.fi
+https://www.ksykmaps.fi
       `.trim();
 
       await sendPasswordSetupEmail(email, 'KSYK Maps - Test Email', emailBody);

@@ -2261,7 +2261,7 @@ Email: ${ticketData.email}
 
 Action Required:
 Please review and respond to this ticket in the admin panel.
-Login at: https://ksykmaps.fi/admin`;
+Login at: https://www.ksykmaps.fi/admin`;
             
             await sendTicketEmail(ownerEmail, `[KSYK Maps] New ${ticketData.type.toUpperCase()} Ticket: ${ticketId}`, ownerEmailBody, {
               ticketId,
@@ -2286,7 +2286,7 @@ What happens next?
 
 Keep your ticket ID safe for future reference.
 
-Need immediate help? Visit our website at https://ksykmaps.fi`;
+Need immediate help? Visit our website at https://www.ksykmaps.fi`;
             
             await sendTicketEmail(ticketData.email, `Ticket Received: ${ticketId}`, userEmailBody, {
               ticketId,
@@ -2462,6 +2462,25 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
       }
     }
     
+    // Permanent "latest Android app" link for posters / QR codes / the Play
+    // listing. 302 to the current APK, or 503 while an admin has paused
+    // downloads (Settings > Features > Downloads).
+    if (apiPath === '/download/android' && (req.method === 'GET' || req.method === 'HEAD')) {
+      let downloadsEnabled = true;
+      try {
+        const s = await storage.getAppSettings();
+        downloadsEnabled = (s as any)?.downloadsEnabled !== false;
+      } catch { /* settings unreadable: keep downloads available */ }
+      res.setHeader('Cache-Control', 'no-store');
+      if (!downloadsEnabled) {
+        res.setHeader('Retry-After', '86400');
+        return res.status(503).json({ message: 'Downloads are temporarily unavailable. Please check back soon.' });
+      }
+      const { apkPath } = await import('../shared/release.js');
+      res.setHeader('Location', apkPath());
+      return res.status(302).end();
+    }
+
     // Settings endpoints
     if (apiPath === '/settings') {
       // Whitelist — only known column names are forwarded to the DB.
@@ -2492,6 +2511,8 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         'showBetaBanner',
         // v1.1.0 — map overlay toggles
         'enableFloorLabels', 'enableGPS',
+        // v1.4.0 — /download switch + Play Store link, public changelog tab
+        'downloadsEnabled', 'playStoreUrl', 'showChangelog',
       ]);
       const DEFAULT_SETTINGS = {
         id: 'default',
@@ -2536,6 +2557,15 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
           const filtered: Record<string, unknown> = {};
           for (const k of Object.keys(body)) {
             if (SETTINGS_COLUMNS.has(k)) filtered[k] = body[k];
+          }
+          // The Play Store link is rendered as a button's href on a public page,
+          // so only an https link to Google Play (or blank) may be stored.
+          if ('playStoreUrl' in filtered) {
+            const v = String(filtered.playStoreUrl ?? '').trim();
+            if (v && !/^https:\/\/play\.google\.com\/store\/apps\/details\?[^\s]+$/i.test(v)) {
+              return res.status(400).json({ message: 'playStoreUrl must be a https://play.google.com/store/apps/details?id=... link' });
+            }
+            filtered.playStoreUrl = v;
           }
           const settings = await storage.updateAppSettings(filtered as any);
           return res.status(200).json(settings);
@@ -3045,7 +3075,7 @@ Need immediate help? Visit our website at https://ksykmaps.fi`;
         // Whitelist allowed reset paths to prevent open redirect in the emailed link.
         const allowedPaths = ['/admin/reset-password'];
         const safePath = allowedPaths.includes(resetPath) ? resetPath : '/admin/reset-password';
-        const resetUrl = `${process.env.APP_URL || 'https://ksykmaps.fi'}${safePath}?token=${resetToken}`;
+        const resetUrl = `${process.env.APP_URL || 'https://www.ksykmaps.fi'}${safePath}?token=${resetToken}`;
         
         try {
           const emailService = await import('../server/emailService.js');

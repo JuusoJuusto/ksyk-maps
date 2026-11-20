@@ -30,6 +30,7 @@ import { fetchList } from "@/lib/fetchList";
 import { readLayerOverrides, readPoiCategoryFilters, hiddenPoiKindsFromFilter } from "@/components/LayersToggle";
 import { useCampusData } from "@/hooks/useCampusData";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { metersPerDegree } from "@/lib/geo";
 
 const SOURCES = {
   buildings: "campus-buildings",
@@ -693,8 +694,9 @@ function installBuildings(map: MaplibreMap, buildings: Building[]) {
       // ~1.1e-5 degrees, which reads as a subtle drop shadow at zoom
       // 17-20 without becoming a full duplicate polygon.
       const outer = b.points!.map((p) => [p.lng, p.lat] as [number, number]);
-      const latShift = 1.2 / 111320;
-      const lngShift = 1.2 / (111320 * Math.cos((outer[0][1] * Math.PI) / 180));
+      const perDeg = metersPerDegree(outer[0][1]);
+      const latShift = 1.2 / perDeg.lat;
+      const lngShift = 1.2 / perDeg.lng;
       const shifted = outer.map(([lng, lat]) => [lng + lngShift, lat - latShift] as [number, number]);
       return {
         type: "Feature" as const,
@@ -968,8 +970,7 @@ function insetPolygonMeters(pts: Array<[number, number]>, insetMeters: number): 
   let cLat = 0, cLng = 0;
   for (const [lng, lat] of pts) { cLat += lat; cLng += lng; }
   cLat /= n; cLng /= n;
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((cLat * Math.PI) / 180);
+  const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(cLat);
 
   // Signed area (in local m² space) → sign tells winding.
   let area2 = 0;
@@ -1180,8 +1181,7 @@ function bufferLineToRectMeters(
   widthMeters: number,
 ): Array<{ lat: number; lng: number }> | null {
   const cLat = (a.lat + b.lat) / 2;
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((cLat * Math.PI) / 180);
+  const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(cLat);
   const ax = (a.lng - b.lng) * metersPerDegLng;
   const ay = (a.lat - b.lat) * metersPerDegLat;
   const len = Math.hypot(ax, ay);
@@ -1209,8 +1209,7 @@ function bufferLineToRectMeters(
  *  half-width in metres. Used to give point POIs an extrudable footprint
  *  so they can render as tiny towers in 3D. */
 function squareAroundPointMeters(pt: { lat: number; lng: number }, halfWidthMeters: number): Array<[number, number]> {
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((pt.lat * Math.PI) / 180);
+  const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(pt.lat);
   const dLat = halfWidthMeters / metersPerDegLat;
   const dLng = halfWidthMeters / metersPerDegLng;
   return [

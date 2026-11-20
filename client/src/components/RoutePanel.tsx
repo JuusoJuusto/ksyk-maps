@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { X, MapPin, ArrowUp, ArrowDown, CornerUpLeft, CornerUpRight, ArrowUpRight, ArrowUpLeft, Flag, Play } from "lucide-react";
 import type { Route as NavRoute, TurnHint } from "@ksyk/routing";
+import { distanceMeters } from "@/lib/geo";
 
 export interface RoutePanelProps {
   route: NavRoute;
@@ -78,10 +79,7 @@ export default function RoutePanel({
     return route.segments.map((s) => {
       let d = 0;
       for (let i = 1; i < s.coords.length; i++) {
-        // Cheap flat-earth (fine for < 2 km segments).
-        const dx = (s.coords[i].lng - s.coords[i - 1].lng) * 111_320 * Math.cos((s.coords[i].lat * Math.PI) / 180);
-        const dy = (s.coords[i].lat - s.coords[i - 1].lat) * 111_320;
-        d += Math.sqrt(dx * dx + dy * dy);
+        d += distanceMeters(s.coords[i - 1], s.coords[i]);
       }
       return { floor: s.floor, buildingId: s.buildingId, distance: d };
     });

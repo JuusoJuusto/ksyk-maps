@@ -10,17 +10,34 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.3.2";
-/** Latest Android APK version available in public/releases/. Keep in sync with download.tsx. */
-export const ANDROID_APP_VERSION = "1.2.2";
+export const APP_VERSION = "1.4.0";
+/** Latest Android APK version available in public/releases/ — defined once in shared/release.ts. */
+export { ANDROID_APP_VERSION } from "../../../shared/release";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.4.0",
+    date: "November 2026",
+    title: "Real builder measurements, toolbar-controlled snapping, new /download page, search titles",
+    titleFi: "Oikeat mitat rakentimessa, työkalupalkin ohjaama tarttuminen, uusi /download-sivu, hakutulosten otsikot",
+    latest: true,
+    highlights: [
+      "**Builder measurements are now real.** Every length, area and offset goes through one WGS84 module (`lib/geo.ts`) at the point's own latitude, checked against an independent geodesic reference to the millimetre. Before, three formulas disagreed (a flat 111 320 m/degree, a spherical haversine and a per-file cosine), so a typed 100 m showed as 99.89 m on its label while the shape was really 100.25 m on the ground.",
+      "**Resizing a rotated building no longer skews it.** Width and height are measured in the shape's own frame, so a building turned 30 degrees reports its real side lengths and stays a true rectangle at the size you type. Properties now show real area (m²) and perimeter; drawing shows live side lengths and m².",
+      "**One snapping rule for every tool.** Doors, entrances, stairs, lifts, nav nodes and every POI used to snap even with Snap off, and the Grid button did nothing. Snap, Grid, Guides and Ortho in the toolbar now govern all of them, and Grid shows a real metre grid (spacing follows zoom) and snaps to it. Grid is off by default and remembered.",
+      "**/download rebuilt** in the same style as the FAQ and Privacy pages, with install steps, the version and Android requirement, and the latest signed APK (one version constant is shared by the page, the build and the new permanent link `/api/download/android`). APK files are now served as attachments.",
+      "**Admin: Settings > Features > Downloads.** Turn downloads off and /download shows a Coming soon screen; paste a Google Play link when the app is published and it becomes the main button. A new Show changelog switch (off by default) hides the Changelog tab and version-history links.",
+      "**Search results.** Page titles use a plain hyphen instead of an em dash; /download is titled 'Download KSYK Maps - free Android app (APK)' with its own description (Finnish too), /faq has its own description and FAQ markup for expandable results; the homepage has alternate site names. Only https://www.ksykmaps.fi is published: every address in emails, security.txt and the Android apps now uses www, and the bare ksykmaps.fi redirects permanently (308).",
+      "**Android admin app:** it called the bare domain, and Android drops the Authorization header on a redirect to another host, so authenticated calls could fail with 401. It now calls www and also sends the token in x-admin-token.",
+      "**Re-index needed:** Google keeps showing the old page text until it re-crawls. After this deploy, request indexing for / , /download and /faq in Search Console and re-submit the sitemap.",
+      "**Tests:** new `test:geo` (12), `test:site` (3), 4 more SEO and 3 more API checks. **Rollback** — `git reset --hard rollback-before-1-4-0` (commit `da8c4fd`). DB: three columns added to `app_settings` (downloads_enabled, play_store_url, show_changelog); leaving them in place after a rollback is safe.",
+    ],
+  },
   {
     version: "1.3.2",
     date: "November 2026",
     title: "Web admin and Android admin app now renew their sessions too",
     titleFi: "Web-ylläpito ja Androidin ylläpitosovellus uusivat nyt istuntonsa",
-    latest: true,
     highlights: [
       "**Web admin no longer signs you out 12 hours after sign-in.** The dashboard (and the builder) now renew the admin token while open — on load, every 20 minutes and when the tab becomes visible again — so the 12 h cut-off measures inactivity, not time since sign-in. An abandoned tab still signs out after 12 h idle.",
       "**A 401 no longer breaks the page.** Admin requests that hit an aged-out token renew it and retry once. If the server really rejects the token you land on the sign-in page with 'Your session expired. Please sign in again.' instead of a silent bounce. Public pages are never redirected.",

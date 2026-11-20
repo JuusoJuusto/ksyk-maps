@@ -39,6 +39,7 @@ import { useCampusData } from "@/hooks/useCampusData";
 import posthog from "@/lib/posthog";
 import PanoramaViewer, { usePanoramaViewer } from "@/components/PanoramaViewer";
 import CampusEventsLayer from "@/components/CampusEventsLayer";
+import { metersPerDegree } from "@/lib/geo";
 
 interface KSYKMapViewProps {
   /** From the header search input — drives the dropdown + map focus. */
@@ -170,11 +171,11 @@ export default function KSYKMapView(props: KSYKMapViewProps = {}) {
       // Accuracy circle via GeoJSON fill-circle
       const src = "ksyk-gps-accuracy";
       const circlePoints = 64;
-      const R = 6371000;
+      const perDeg = metersPerDegree(lat);
       const coords = Array.from({ length: circlePoints }, (_, i) => {
         const angle = (i / circlePoints) * Math.PI * 2;
-        const dlat = (accuracy / R) * (180 / Math.PI) * Math.sin(angle);
-        const dlng = (accuracy / R) * (180 / Math.PI) * Math.cos(angle) / Math.cos(lat * Math.PI / 180);
+        const dlat = (accuracy * Math.sin(angle)) / perDeg.lat;
+        const dlng = (accuracy * Math.cos(angle)) / perDeg.lng;
         return [lng + dlng, lat + dlat];
       });
       coords.push(coords[0]);

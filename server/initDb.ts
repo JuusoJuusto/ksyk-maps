@@ -256,6 +256,11 @@ export async function ensureSchema(): Promise<void> {
       ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS enable_floor_labels boolean DEFAULT true;
       ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS enable_gps boolean DEFAULT true;
 
+      -- v1.4.0 — /download on/off + Play Store link, and the public changelog tab (off by default).
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS downloads_enabled boolean DEFAULT true;
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS play_store_url varchar DEFAULT '';
+      ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS show_changelog boolean DEFAULT false;
+
       CREATE TABLE IF NOT EXISTS push_tokens (
         id          varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id     varchar,

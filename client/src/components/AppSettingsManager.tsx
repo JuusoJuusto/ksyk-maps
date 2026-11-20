@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Globe, Bell, Wrench, Save, AlertTriangle, Settings,
   RefreshCw, Eye, EyeOff, Egg, Sparkles, Video, Calendar, Camera, Flame, Megaphone,
-  Tag, LocateFixed,
+  Tag, LocateFixed, Download, ScrollText,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAdminHeaders } from '@/lib/adminAuth';
@@ -389,7 +389,7 @@ export default function AppSettingsManager({ subtab, onSubtabChange }: AppSettin
                 <Input
                   value={s.getAppUrl ?? ''}
                   onChange={(e) => update({ getAppUrl: e.target.value })}
-                  placeholder="https://ksykmaps.fi/download"
+                  placeholder="https://www.ksykmaps.fi/download"
                   className="text-sm"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Where the "Download" button in the popup takes the user.</p>
@@ -472,6 +472,56 @@ export default function AppSettingsManager({ subtab, onSubtabChange }: AppSettin
                 subtitle="Top-of-map carousel of active announcements."
                 checked={s.enableAnnouncementBanner !== false}
                 onChange={(v) => update({ enableAnnouncementBanner: v })}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className={(s as any).downloadsEnabled === false ? 'border-amber-300 dark:border-amber-800' : ''}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Downloads (/download page)</CardTitle>
+              <CardDescription>
+                Turn downloads off to show a "Coming soon" screen on /download without removing the page.
+                Once the app is on Google Play, paste its link below and the Play button replaces the APK.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FeatureRow
+                icon={Download}
+                title="Downloads enabled"
+                subtitle={(s as any).downloadsEnabled === false
+                  ? 'OFF: /download shows "Coming soon" and the permanent APK link returns 503.'
+                  : 'ON: /download offers the latest APK.'}
+                checked={(s as any).downloadsEnabled !== false}
+                onChange={(v) => update({ downloadsEnabled: v } as any)}
+              />
+              <div>
+                <Label className="text-xs mb-1 block">Google Play link (optional)</Label>
+                <Input
+                  value={(s as any).playStoreUrl ?? ''}
+                  onChange={(e) => update({ playStoreUrl: e.target.value } as any)}
+                  placeholder="https://play.google.com/store/apps/details?id=fi.ksykmaps"
+                  className="text-sm font-mono"
+                  inputMode="url"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Only https://play.google.com/store/apps/details?id=... links are accepted. Leave empty until the app is published.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Website</CardTitle>
+              <CardDescription>What visitors see in the public settings panel.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <FeatureRow
+                icon={ScrollText}
+                title="Show changelog"
+                subtitle="The Changelog tab and the version-history links. Off by default."
+                checked={(s as any).showChangelog === true}
+                onChange={(v) => update({ showChangelog: v } as any)}
               />
             </CardContent>
           </Card>

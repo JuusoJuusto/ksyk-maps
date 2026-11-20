@@ -748,6 +748,12 @@ export const appSettings = pgTable("app_settings", {
   // v1.1.0 — admin toggles for map overlays
   enableFloorLabels: boolean("enable_floor_labels").default(true),
   enableGPS: boolean("enable_gps").default(true),
+  // v1.4.0 — /download controls. downloadsEnabled=false turns the page into a
+  // "coming soon" screen; playStoreUrl, once set, becomes the primary button.
+  downloadsEnabled: boolean("downloads_enabled").default(true),
+  playStoreUrl: varchar("play_store_url").default(""),
+  // v1.4.0 — the public "Changelog" tab in the settings panel. Hidden by default.
+  showChangelog: boolean("show_changelog").default(false),
   enableImportData: boolean("enable_import_data").default(true),
   enableBulkOperations: boolean("enable_bulk_operations").default(true),
   enableAdvancedFilters: boolean("enable_advanced_filters").default(true),

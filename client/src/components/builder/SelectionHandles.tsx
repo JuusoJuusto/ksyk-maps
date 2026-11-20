@@ -23,6 +23,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Map as MaplibreMap, MapMouseEvent } from "maplibre-gl";
 import type { Building, Room, LatLng } from "@ksyk/shared";
 import { apiRequest } from "@/lib/queryClient";
+import { metersPerDegree, distanceMeters, formatLength } from "@/lib/geo";
 
 export interface SelectionHandlesProps {
   map: MaplibreMap | null;
@@ -149,20 +150,7 @@ function SelectionHandlesInner({ map, selection, translateEnabled = true }: Sele
       const b = pts[(i + 1) % pts.length];
       const midLat = (a.lat + b.lat) / 2;
       const midLng = (a.lng + b.lng) / 2;
-      // Haversine — good enough at campus scale, no external dep.
-      const R = 6371000;
-      const toRad = (d: number) => (d * Math.PI) / 180;
-      const dLat = toRad(b.lat - a.lat);
-      const dLng = toRad(b.lng - a.lng);
-      const s2 =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-      const dist = 2 * R * Math.asin(Math.sqrt(s2));
-      const label = dist < 10
-        ? `${dist.toFixed(2)} m`
-        : dist < 1000
-          ? `${dist.toFixed(1)} m`
-          : `${(dist / 1000).toFixed(2)} km`;
+      const label = formatLength(distanceMeters(a, b));
       dimFeatures.push({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [midLng, midLat] },
@@ -486,8 +474,7 @@ function rotatePolygon(pts: LatLng[], centre: LatLng, deltaDeg: number): LatLng[
  *  We only need a small distance (< 20 m) so the small-angle approx
  *  is fine. */
 function offsetLatLng(from: LatLng, meters: number, bearingRad: number): LatLng {
-  const metersPerDegLat = 111320;
-  const metersPerDegLng = 111320 * Math.cos((from.lat * Math.PI) / 180);
+  const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(from.lat);
   const dy = Math.cos(bearingRad) * meters;
   const dx = Math.sin(bearingRad) * meters;
   return {

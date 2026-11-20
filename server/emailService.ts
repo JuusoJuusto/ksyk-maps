@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-const APP_URL = 'https://ksykmaps.fi';
+const APP_URL = 'https://www.ksykmaps.fi';
 const ADMIN_URL = `${APP_URL}/admin`;
 const SUPPORT_EMAIL = 'juusojuusto112@gmail.com';
 
@@ -81,7 +81,7 @@ function shell(opts: {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
                         <td style="vertical-align:middle;">
-                          <img src="https://ksykmaps.fi/icon-192.png" width="40" height="40" alt="KSYK Maps" style="border-radius:11px;display:block;border:0;" />
+                          <img src="https://www.ksykmaps.fi/icon-192.png" width="40" height="40" alt="KSYK Maps" style="border-radius:11px;display:block;border:0;" />
                         </td>
                         <td style="vertical-align:middle;padding-left:12px;">
                           <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;letter-spacing:-0.015em;line-height:1.2;">KSYK Maps</p>

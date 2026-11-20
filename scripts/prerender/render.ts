@@ -109,6 +109,7 @@ function structuredData(page: PublicPage, ctx: PrerenderContext) {
           "@id": WEBSITE_ID,
           url: `${SITE_ORIGIN}/`,
           name: SITE_NAME,
+          alternateName: ["KSYK Kartat", "KSYK Maps app"],
           description: "Interactive campus map and navigation for Kulosaaren yhteiskoulu",
           inLanguage: ["en", "fi"],
         },
@@ -133,6 +134,25 @@ function structuredData(page: PublicPage, ctx: PrerenderContext) {
           url,
           isAccessibleForFree: true,
           offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+        },
+      ],
+    };
+  }
+
+  if (page.kind === "faq") {
+    // FAQPage markup makes the answers eligible for expandable results.
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        webPage,
+        {
+          "@type": "FAQPage",
+          "@id": `${url}#faq`,
+          mainEntity: QUESTIONS.map((q) => ({
+            "@type": "Question",
+            name: (q.qEn ?? q.q).trim(),
+            acceptedAnswer: { "@type": "Answer", text: (q.aEn ?? q.a).trim() },
+          })),
         },
       ],
     };

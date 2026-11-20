@@ -82,6 +82,24 @@ import Minimap from "@/components/builder/Minimap";
 import SvgImportDialog, { type ImportedPolygon } from "@/components/builder/SvgImportDialog";
 import PanoramaViewer from "@/components/PanoramaViewer";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import {
+  metersPerDegree,
+  distanceMeters as groundDistance,
+  distanceLngLat,
+  formatLength,
+  formatArea,
+  polygonAreaM2,
+  polygonPerimeterM,
+  gridStepFor,
+  gridLines,
+  snapToGrid,
+  toLocalMeters,
+  fromLocalMeters,
+} from "@/lib/geo";
+
+/** Fixed anchor for the builder's metre grid (KSYK, Kulosaari), so grid points
+ *  are the same in every session instead of depending on where you first clicked. */
+const GRID_ORIGIN = { lat: 60.187, lng: 25.006 };
 
 type BuilderTool =
   | "select" | "pan"
@@ -170,8 +188,7 @@ function snapPointToNearestWall(
   thresholdMeters: number,
 ): { lat: number; lng: number } | null {
   // Metres per degree at this latitude.
-  const mPerDegLat = 111320;
-  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  const { lat: mPerDegLat, lng: mPerDegLng } = metersPerDegree(click.lat);
   const px = 0;                       // click is our origin in local metres
   const py = 0;
 
@@ -224,8 +241,7 @@ function snapPointToNearestPoint(
   thresholdMeters: number,
 ): SnapResult {
   if (!candidates.length) return null;
-  const mPerDegLat = 111320;
-  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  const { lat: mPerDegLat, lng: mPerDegLng } = metersPerDegree(click.lat);
   let best: SnapResult = null;
   const th2 = thresholdMeters * thresholdMeters;
   for (const c of candidates) {
@@ -274,8 +290,7 @@ function snapPointToNearestMidpoint(
   },
   thresholdMeters: number,
 ): SnapResult {
-  const mPerDegLat = 111320;
-  const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+  const { lat: mPerDegLat, lng: mPerDegLng } = metersPerDegree(click.lat);
   const midpoints: SnapCandidate[] = [];
   for (const h of ctx.hallways) {
     midpoints.push({
@@ -338,8 +353,7 @@ function computeSmartSnap(
   if (ctx.includeWalls) {
     const wallSnap = snapPointToNearestWall(click, ctx.hallways, th);
     if (wallSnap) {
-      const mPerDegLat = 111320;
-      const mPerDegLng = 111320 * Math.cos((click.lat * Math.PI) / 180);
+      const { lat: mPerDegLat, lng: mPerDegLng } = metersPerDegree(click.lat);
       const dx = (wallSnap.lng - click.lng) * mPerDegLng;
       const dy = (wallSnap.lat - click.lat) * mPerDegLat;
       return { snapped: wallSnap, kind: "wall", distanceM: Math.sqrt(dx * dx + dy * dy) };
@@ -456,7 +470,16 @@ function BuilderWorkspace() {
   // same CampusThreeDView component the public map opens, so builders
   // see exactly what students will see.
   const [show3DPreview, setShow3DPreview] = useState(false);
-  const [gridEnabled, setGridEnabled] = useState(true);
+  // Grid: a visible metre grid plus snap-to-grid for every tool. Persisted;
+  // off by default so existing free-form drawing behaves as before.
+  const [gridEnabled, setGridEnabled] = useState(() => {
+    try { return localStorage.getItem("ksyk_builder_grid") === "true"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("ksyk_builder_grid", String(gridEnabled)); } catch {}
+  }, [gridEnabled]);
+  const gridEnabledRef = useRef(false);
+  gridEnabledRef.current = gridEnabled;
   const [snapEnabled, setSnapEnabled] = useState(true);
   // Ortho: defaults ON, persists in localStorage so tool switches and
   // page reloads don't reset it to off unexpectedly.
@@ -475,6 +498,63 @@ function BuilderWorkspace() {
   // read the latest value without being re-registered.
   const snapEnabledRef = useRef(true);
   snapEnabledRef.current = snapEnabled;
+  // One snapping rule for every point-placing tool (nav nodes, stairs, lifts,
+  // doors, entrances, every POI): the toolbar decides. Snap on = nearest
+  // vertex / wall / point; Grid on = the metre grid when nothing else caught
+  // the click; both off = exactly where you clicked.
+  const placementSnap = (
+    click: { lat: number; lng: number },
+    ctx: Parameters<typeof computeSmartSnap>[1],
+  ): ReturnType<typeof computeSmartSnap> => {
+    if (snapEnabledRef.current) {
+      const smart = computeSmartSnap(click, ctx);
+      if (smart.kind !== "raw") return smart;
+    }
+    if (gridEnabledRef.current) {
+      const zoom = handleRef.current?.map.getZoom() ?? 19;
+      const snapped = snapToGrid(click, gridStepFor(zoom, click.lat), GRID_ORIGIN);
+      return { snapped, kind: "grid", distanceM: groundDistance(click, snapped) };
+    }
+    return { snapped: click, kind: "raw", distanceM: 0 };
+  };
+
+  // Visible metre grid (toolbar "Show grid"). Lines are real ground metres
+  // anchored at GRID_ORIGIN; the spacing follows the zoom so it never smears.
+  useEffect(() => {
+    const map = handleRef.current?.map;
+    if (!mapReady || !map) return;
+    const SRC = "builder-grid";
+    const LAYER = "builder-grid-lines";
+    const render = () => {
+      const src = map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
+      let features: unknown[] = [];
+      if (gridEnabled) {
+        const b = map.getBounds();
+        const lines = gridLines(
+          { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
+          gridStepFor(map.getZoom(), map.getCenter().lat),
+          GRID_ORIGIN,
+        );
+        features = lines.map((coordinates) => ({
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates },
+          properties: {},
+        }));
+      }
+      const data = { type: "FeatureCollection" as const, features };
+      if (src) { src.setData(data as never); return; }
+      if (!gridEnabled) return;
+      map.addSource(SRC, { type: "geojson", data: data as never });
+      map.addLayer({
+        id: LAYER, source: SRC, type: "line",
+        paint: { "line-color": "#2563eb", "line-opacity": 0.2, "line-width": 1 },
+      });
+    };
+    render();
+    map.on("moveend", render);
+    map.on("zoomend", render);
+    return () => { map.off("moveend", render); map.off("zoomend", render); };
+  }, [mapReady, gridEnabled]);
   // Refs so the click-handler useEffect (deps: [activeTool, mapReady])
   // can read the LATEST waypoints and orthoEnabled without being
   // re-registered on every state change (stale-closure fix).
@@ -750,23 +830,21 @@ function BuilderWorkspace() {
         if (!a || !b) continue;
         const midLng = (a[0] + b[0]) / 2;
         const midLat = (a[1] + b[1]) / 2;
-        const R = 6371000;
-        const toRad = (d: number) => (d * Math.PI) / 180;
-        const dLat = toRad(b[1] - a[1]);
-        const dLng = toRad(b[0] - a[0]);
-        const s2 =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2;
-        const dist = 2 * R * Math.asin(Math.sqrt(s2));
-        const label = dist < 10
-          ? `${dist.toFixed(2)} m`
-          : dist < 1000
-            ? `${dist.toFixed(1)} m`
-            : `${(dist / 1000).toFixed(2)} km`;
+        const label = formatLength(distanceLngLat(a, b));
         dimFeatures.push({
           type: "Feature" as const,
           geometry: { type: "Point" as const, coordinates: [midLng, midLat] },
           properties: { label },
+        });
+      }
+      // Real floor area (m²) at the centre of the shape being drawn.
+      if (polyCoords && polyCoords.length >= 4) {
+        const ring = polyCoords.slice(0, -1).map(([lng, lat]) => ({ lat, lng }));
+        const centre = ring.reduce((s, p) => ({ lat: s.lat + p.lat / ring.length, lng: s.lng + p.lng / ring.length }), { lat: 0, lng: 0 });
+        dimFeatures.push({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [centre.lng, centre.lat] },
+          properties: { label: formatArea(polygonAreaM2(ring)) },
         });
       }
 
@@ -1132,8 +1210,6 @@ function BuilderWorkspace() {
       } else if (selection.kind === "hallway") {
         measHalls = halls.filter((hw) => hw.id === selection.id);
       }
-      const R_M = 6371000;
-      const toRadM = (d: number) => (d * Math.PI) / 180;
       for (const hw of measHalls) {
         const pts = (hw as unknown as { points?: Array<{ lat: number; lng: number }> }).points;
         const segPts: number[][] = (Array.isArray(pts) && pts.length >= 2)
@@ -1143,10 +1219,7 @@ function BuilderWorkspace() {
           const a = segPts[i]; const b = segPts[i + 1];
           if (!a || !b) continue;
           const midLng = (a[0] + b[0]) / 2; const midLat = (a[1] + b[1]) / 2;
-          const dLat = toRadM(b[1] - a[1]); const dLng = toRadM(b[0] - a[0]);
-          const s2 = Math.sin(dLat / 2) ** 2 + Math.cos(toRadM(a[1])) * Math.cos(toRadM(b[1])) * Math.sin(dLng / 2) ** 2;
-          const dist = 2 * R_M * Math.asin(Math.sqrt(Math.min(1, s2)));
-          const label = dist < 10 ? `${dist.toFixed(2)} m` : dist < 1000 ? `${dist.toFixed(1)} m` : `${(dist / 1000).toFixed(2)} km`;
+          const label = formatLength(distanceLngLat(a, b));
           measFeatures.push({ type: "Feature", geometry: { type: "Point", coordinates: [midLng, midLat] }, properties: { label } });
         }
       }
@@ -1410,9 +1483,11 @@ function BuilderWorkspace() {
     const onHover = (e: MapMouseEvent) => {
       // For "connect" mode: snap to nearest node only (2× threshold),
       // no wall/vertex fallback.
+      // Same rule as the click: Snap/Grid on the toolbar decide what the
+      // indicator shows, so what you see is where the point lands.
       const snap = activeTool === "connect"
         ? (snapPointToNearestPoint({ lat: e.lngLat.lat, lng: e.lngLat.lng }, points.filter((p) => p.kind === "node"), 6) ?? undefined)
-        : computeSmartSnap({ lat: e.lngLat.lat, lng: e.lngLat.lng }, {
+        : placementSnap({ lat: e.lngLat.lat, lng: e.lngLat.lng }, {
             hallways,
             points,
             polygons: [...roomsForVerts, ...buildings],
@@ -1587,6 +1662,11 @@ function BuilderWorkspace() {
             : guideSnap
             ? new maplibregl.LngLat(guideSnap.lng, guideSnap.lat)
             : e.lngLat;
+          // Grid toggle: the first corner (no ghost preview yet) lands on the grid too.
+          if (!useSnap && !guideSnap && gridEnabledRef.current && !(orthoOn && wps.length >= 1)) {
+            const g = snapToGrid({ lat: p.lat, lng: p.lng }, gridStepFor(map.getZoom(), p.lat), GRID_ORIGIN);
+            p = new maplibregl.LngLat(g.lng, g.lat);
+          }
           if (orthoOn && wps.length >= 1) {
             const prev = wps[wps.length - 1];
             // Screen-space ortho: correct for any map rotation/bearing.
@@ -1653,7 +1733,7 @@ function BuilderWorkspace() {
       ];
 
       if (activeTool === "node") {
-        const snap = computeSmartSnap(rawClick, {
+        const snap = placementSnap(rawClick, {
           hallways: hallwaysQ.data ?? [],
           points: poisAll,
           polygons: [...roomsForVerts, ...bldgsForVerts],
@@ -1697,7 +1777,7 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-stairs") {
-        const snap = computeSmartSnap(rawClick, {
+        const snap = placementSnap(rawClick, {
           hallways: hallwaysQ.data ?? [],
           points: poisAll,
           polygons: [...roomsForVerts, ...bldgsForVerts],
@@ -1708,7 +1788,7 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-elevator") {
-        const snap = computeSmartSnap(rawClick, {
+        const snap = placementSnap(rawClick, {
           hallways: hallwaysQ.data ?? [],
           points: poisAll,
           polygons: [...roomsForVerts, ...bldgsForVerts],
@@ -1719,10 +1799,13 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-door" || activeTool === "poi-entrance") {
-        // Doors keep wall-snapping first (they visually belong ON a wall),
-        // then fall back to existing-door snapping so pairs line up.
-        const wallSnap = snapPointToNearestWall(rawClick, hallwaysQ.data ?? [], 3);
-        const target = wallSnap ?? rawClick;
+        // Doors belong ON a wall, so with Snap on they wall-snap first;
+        // with Snap off (or no wall nearby) the Grid toggle decides.
+        const wallSnap = snapEnabledRef.current
+          ? snapPointToNearestWall(rawClick, hallwaysQ.data ?? [], 3)
+          : null;
+        const target = wallSnap
+          ?? placementSnap(rawClick, { hallways: [], points: [], polygons: [], includeWalls: false }).snapped;
         // After wall snap, also check if an existing door is within 0.5 m —
         // that means the user is trying to reposition rather than duplicate.
         const nearDoor = snapPointToNearestPoint(target, doorsAll.map((d: any) => ({
@@ -1760,7 +1843,7 @@ function BuilderWorkspace() {
       };
       const genericKind = genericKindByTool[activeTool];
       if (genericKind) {
-        const snap = computeSmartSnap(rawClick, {
+        const snap = placementSnap(rawClick, {
           hallways: hallwaysQ.data ?? [],
           points: poisAll,
           polygons: [...roomsForVerts, ...bldgsForVerts],
@@ -1771,7 +1854,7 @@ function BuilderWorkspace() {
         return;
       }
       if (activeTool === "poi-panorama") {
-        const snap = computeSmartSnap(rawClick, {
+        const snap = placementSnap(rawClick, {
           hallways: hallwaysQ.data ?? [],
           points: poisAll,
           polygons: [...roomsForVerts, ...bldgsForVerts],
@@ -1907,10 +1990,9 @@ function BuilderWorkspace() {
       ) {
         e.preventDefault();
         const step = e.shiftKey ? 5 : 1; // metres
-        const metersPerDegLat = 111320;
-        // Use campus latitude for the lng scale — good enough.
+        // Scale at the map centre's latitude (WGS84), so 1 m is 1 m on the ground.
         const anchorLat = handleRef.current?.map.getCenter().lat ?? 60;
-        const metersPerDegLng = 111320 * Math.cos((anchorLat * Math.PI) / 180);
+        const { lat: metersPerDegLat, lng: metersPerDegLng } = metersPerDegree(anchorLat);
         const dLat = (e.key === "ArrowUp") ? step / metersPerDegLat
                    : (e.key === "ArrowDown") ? -step / metersPerDegLat
                    : 0;
@@ -2789,13 +2871,31 @@ function BuilderWorkspace() {
       endLng = snp.lng; endLat = snp.lat;
     }
 
+    // Grid (toolbar toggle): when no vertex/guide snap caught the cursor,
+    // land on the metre grid. With ortho on the direction is already fixed,
+    // so round the edge LENGTH to the grid step instead of the position.
+    if (gridEnabledRef.current && !useSnap && !guideSnapRef.current) {
+      const step = gridStepFor(map.getZoom(), endLat);
+      if (orthoEnabled && waypoints.length >= 1) {
+        const v = toLocalMeters(last, { lat: endLat, lng: endLng });
+        const len = Math.hypot(v.x, v.y);
+        if (len > 1e-9) {
+          const k = Math.max(step, Math.round(len / step) * step) / len;
+          const g = fromLocalMeters(last, v.x * k, v.y * k);
+          endLat = g.lat; endLng = g.lng;
+        }
+      } else {
+        const g = snapToGrid({ lat: endLat, lng: endLng }, step, GRID_ORIGIN);
+        endLat = g.lat; endLng = g.lng;
+      }
+    }
+
     // Distance constraint: if the user has typed a length, project the
     // endpoint to be exactly that many metres from the last waypoint in
     // the current direction (applied after ortho so both work together).
     const constraintM = parseFloat(distanceInputRef.current);
     if (!isNaN(constraintM) && constraintM > 0) {
-      const mPerLatC = 111320;
-      const mPerLngC = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      const { lat: mPerLatC, lng: mPerLngC } = metersPerDegree(last.lat);
       const dx = (endLng - last.lng) * mPerLngC;
       const dy = (endLat - last.lat) * mPerLatC;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -2812,8 +2912,7 @@ function BuilderWorkspace() {
 
     // Live segment length for the constraint panel display.
     {
-      const mPL = 111320;
-      const mPLng = 111320 * Math.cos((last.lat * Math.PI) / 180);
+      const { lat: mPL, lng: mPLng } = metersPerDegree(last.lat);
       const dx = (endLng - last.lng) * mPLng;
       const dy = (endLat - last.lat) * mPL;
       setLiveSegmentM(Math.sqrt(dx * dx + dy * dy));
@@ -2901,14 +3000,7 @@ function BuilderWorkspace() {
     for (let i = 0; i < waypoints.length - 1; i++) {
       const a = waypoints[i];
       const b = waypoints[i + 1];
-      const R = 6371000;
-      const toRad = (d: number) => (d * Math.PI) / 180;
-      const dLat = toRad(b.lat - a.lat);
-      const dLng = toRad(b.lng - a.lng);
-      const s =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-      total += 2 * R * Math.asin(Math.sqrt(s));
+      total += groundDistance(a, b);
     }
     return total;
   }, [activeTool, waypoints]);
@@ -2974,8 +3066,9 @@ function BuilderWorkspace() {
     if (selectedBuildingIds.size === 0 && selectedRoomIds.size === 0) return;
     const OFFSET_METERS = 5;
     const anchorLat = handleRef.current?.map.getCenter().lat ?? 60;
-    const dLat = OFFSET_METERS / 111320;
-    const dLng = OFFSET_METERS / (111320 * Math.cos((anchorLat * Math.PI) / 180));
+    const perDeg = metersPerDegree(anchorLat);
+    const dLat = OFFSET_METERS / perDeg.lat;
+    const dLng = OFFSET_METERS / perDeg.lng;
     let count = 0;
     for (const id of selectedBuildingIds) {
       const b = buildings.find((x) => x.id === id);
@@ -3044,14 +3137,7 @@ function BuilderWorkspace() {
     const byId = new Map(nodes.map((n) => [n.id, n]));
     if (!byId.has(startNodeId) || !byId.has(endNodeId)) return null;
     // Adjacency — Dijkstra needs neighbours + edge weight (metres).
-    const R = 6371000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const distMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
-      const dLat = toRad(b.lat - a.lat);
-      const dLng = toRad(b.lng - a.lng);
-      const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-      return 2 * R * Math.asin(Math.sqrt(s));
-    };
+    const distMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => groundDistance(a, b);
     const adj = new Map<string, Array<{ id: string; w: number }>>();
     for (const n of nodes) adj.set(n.id, []);
     for (const e of edges) {
@@ -3214,19 +3300,13 @@ function BuilderWorkspace() {
       return;
     }
     let added = 0;
-    // Haversine — good enough at campus scale.
-    const R = 6371000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i], b = nodes[j];
         // Same-floor only for now — inter-floor edges are the job of
         // dedicated stair/elevator nodes.
         if (a.floor !== b.floor) continue;
-        const dLat = toRad(b.lat - a.lat);
-        const dLng = toRad(b.lng - a.lng);
-        const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-        const dist = 2 * R * Math.asin(Math.sqrt(s));
+        const dist = groundDistance(a, b);
         if (dist <= maxMeters) {
           if (navGraph.addEdge(a.id, b.id)) added++;
         }
@@ -3661,16 +3741,7 @@ function BuilderWorkspace() {
            *  segment length + running total. Click Clear or Esc to
            *  reset. Copy button copies "12.3 m + 4.5 m = 16.8 m". */}
           {activeTool === "measure" && waypoints.length >= 2 && (() => {
-            const R = 6371000;
-            const toRad = (d: number) => (d * Math.PI) / 180;
-            const haversine = (a: {lat: number; lng: number}, b: {lat: number; lng: number}) => {
-              const dLat = toRad(b.lat - a.lat);
-              const dLng = toRad(b.lng - a.lng);
-              const s =
-                Math.sin(dLat / 2) ** 2 +
-                Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-              return 2 * R * Math.asin(Math.sqrt(s));
-            };
+            const haversine = (a: {lat: number; lng: number}, b: {lat: number; lng: number}) => groundDistance(a, b);
             const segments: number[] = [];
             for (let i = 0; i < waypoints.length - 1; i++) {
               segments.push(haversine(waypoints[i], waypoints[i + 1]));
@@ -4271,17 +4342,9 @@ function polygonCenter(pts: Array<{ lat: number; lng: number }>): { lat: number;
   return { lat: lat / pts.length, lng: lng / pts.length };
 }
 
-/** Great-circle distance in metres (haversine). Local to the builder
- *  so we don't have to depend on the shared package here. */
+/** Ground distance in metres (WGS84, see lib/geo). */
 function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+  return groundDistance(a, b);
 }
 
 /** Build the inverse-and-then-inverse pair for an undo/redo cycle of

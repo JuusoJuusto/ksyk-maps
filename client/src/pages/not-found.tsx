@@ -10,7 +10,7 @@ import { Home, LifeBuoy } from "lucide-react";
 export default function NotFound() {
   useEffect(() => {
     const prev = document.title;
-    document.title = "Page not found — KSYK Maps";
+    document.title = "Page not found - KSYK Maps";
     return () => { document.title = prev; };
   }, []);
 

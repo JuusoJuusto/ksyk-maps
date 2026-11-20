@@ -39,7 +39,9 @@
     "seed:campus": "tsx server/seedKSYKCampus.ts",
     "seed:campus:full": "tsx server/seedFirebase.ts && tsx server/seedKSYKCampus.ts && tsx server/seedRooms.ts",
     "test:seo": "tsx --test tests/seo/*.test.ts",
-    "test:security": "tsx --test tests/security/*.test.ts"
+    "test:security": "tsx --test tests/security/*.test.ts",
+    "test:geo": "tsx --test tests/geo/*.test.ts",
+    "test:site": "tsx --test tests/site/*.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

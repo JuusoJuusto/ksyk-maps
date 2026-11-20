@@ -27,17 +27,17 @@ before(async () => {
   handler = (await import(pathToFileURL(path.join(ROOT, "api/index.ts")).href)).default;
 });
 
-async function call(method: string, url: string, headers: Record<string, string> = {}) {
-  const out: { status?: number; body?: unknown } = {};
+async function call(method: string, url: string, headers: Record<string, string> = {}, body: unknown = {}) {
+  const out: { status?: number; body?: unknown; headers: Record<string, string> } = { headers: {} };
   const res = {
-    setHeader() { return res; },
+    setHeader(k: string, v: unknown) { out.headers[k.toLowerCase()] = String(v); return res; },
     getHeader() { return undefined; },
     status(code: number) { out.status = code; return res; },
-    json(body: unknown) { out.body = body; return res; },
-    send(body: unknown) { out.body = body; return res; },
+    json(b: unknown) { out.body = b; return res; },
+    send(b: unknown) { out.body = b; return res; },
     end() { return res; },
   };
-  const req = { method, url, headers: { "x-forwarded-for": "203.0.113.7", ...headers }, query: {}, body: {} };
+  const req = { method, url, headers: { "x-forwarded-for": "203.0.113.7", ...headers }, query: {}, body };
   await Promise.race([handler(req, res), new Promise((r) => setTimeout(r, 3000))]);
   return out;
 }
@@ -139,6 +139,44 @@ test("admin-refresh never returns the 2FA secret or backup codes", () => {
   for (const field of ["twoFactorSecret", "twoFactorBackupCodes", "password", "passwordResetToken"]) {
     assert.ok(new RegExp(`${field}: _\\w+`).test(branch), `${field} is stripped from the returned user`);
   }
+});
+
+// ── download switch + Play link ─────────────────────────────────────────────
+
+test("settings: the Play Store link is validated before anything is stored, and only admins can set it", async () => {
+  const body = (playStoreUrl: string) => ({ playStoreUrl });
+  assert.equal((await call("PUT", "/api/settings", {}, body("https://play.google.com/store/apps/details?id=fi.ksykmaps"))).status, 401, "anonymous");
+  const authorization = `Bearer ${adminToken()}`;
+  for (const bad of ["javascript:alert(1)", "https://evil.example/store/apps/details?id=x", "http://play.google.com/store/apps/details?id=x", "https://play.google.com/"]) {
+    const out = await call("PUT", "/api/settings", { authorization }, body(bad));
+    assert.equal(out.status, 400, `rejects ${bad}`);
+  }
+  // A valid link passes validation and reaches storage (which fails here: the DB is a closed port),
+  // i.e. the answer is not the validation 400.
+  const ok = await call("PUT", "/api/settings", { authorization }, body("https://play.google.com/store/apps/details?id=fi.ksykmaps"));
+  assert.notEqual(ok.status, 401);
+  assert.ok(!/playStoreUrl must be/.test(JSON.stringify(ok.body ?? "")), "a real Play link is not rejected by validation");
+});
+
+test("/api/download/android: permanent link to the current APK (302), never an arbitrary redirect", async () => {
+  const { apkPath } = await import(pathToFileURL(path.join(ROOT, "shared/release.ts")).href);
+  const out = await call("GET", "/api/download/android");
+  assert.equal(out.status, 302);
+  assert.equal(out.headers["location"], apkPath());
+  assert.match(out.headers["location"], /^\/releases\/ksykmaps-release-\d+\.\d+\.\d+\.apk$/, "same-origin path to the versioned APK");
+  assert.equal(out.headers["cache-control"], "no-store");
+  // the file it points at really is in the repo's release folder
+  assert.ok(fs.existsSync(path.join(ROOT, "public", out.headers["location"])), "the APK the link points at exists");
+});
+
+test("the new settings are in the API allow-list, the schema and the migration (no silent drops)", () => {
+  const api = read("api/index.ts"), schema = read("shared/schema.ts"), init = read("server/initDb.ts");
+  for (const [field, column] of [["downloadsEnabled", "downloads_enabled"], ["playStoreUrl", "play_store_url"], ["showChangelog", "show_changelog"]]) {
+    assert.ok(api.includes(`'${field}'`), `${field} is whitelisted for PUT /api/settings`);
+    assert.ok(schema.includes(`"${column}"`), `${field} has a schema column`);
+    assert.ok(init.includes(`ADD COLUMN IF NOT EXISTS ${column}`), `${column} is migrated`);
+  }
+  assert.ok(schema.includes('showChangelog: boolean("show_changelog").default(false)'), "the changelog is hidden by default");
 });
 
 test("new sign-ins get the same long TTL as refreshed tokens", () => {

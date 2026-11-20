@@ -12,9 +12,13 @@ _(empty — all items shipped)_
 
 ## 🚧 In progress
 
-_(empty)_
+- **v1.4.1 + Android 1.3.0 — analytics rebuilt + owner alerts.** Built and tested, not committed. To go live: commit together with `server/alerts.ts` / `server/insights.ts` (api/index.ts depends on them), then paste the Slack webhook in Analytics → Alerts, set `CRON_SECRET` on Vercel for the daily digest, install the 1.3.0 APK and switch on Notify this phone. Publishing the APK = copy to `public/releases/` and bump `shared/release.ts` in the same commit. See PROJECT-LOG 20-11-2026.
 
 ## 📋 Next (near-term)
+
+- **Security follow-ups** are tracked privately (the assessment is a local git-ignored file: the repo is public, so open findings are not published here)
+- **Builder: multiple maps** — `campus_maps` table + `map_id` on buildings/rooms/hallways/doors/stairs/elevators/pois, builder map switcher, draft vs published, public site reads the published map only (waits for the shared `api/index.ts` to settle)
+- **Re-index after v1.4.0 deploys:** Search Console → URL Inspection → Request indexing for `/`, `/download`, `/faq` (then `/lunch`, `/support`, `/privacy`), resubmit `https://www.ksykmaps.fi/sitemap.xml`
 
 - Audit the remaining admin screens for real UX/feature work (the "improve the admin panel" ask had no spec): `AdminPanelScreen.kt` sections other than Overview, `AdminDashboard.tsx` tabs, and the `android/admin` screens — needs the user to say what hurts
 - Sign-in (`/auth/admin-login`) still returns the full user row including 2FA secret/backup codes; only `/auth/admin-refresh` strips them
