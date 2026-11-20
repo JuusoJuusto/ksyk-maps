@@ -13,7 +13,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 object AdminApi {
-    private var baseUrl = "https://ksykmaps.fi/api"
+    private var baseUrl = "https://www.ksykmaps.fi/api"
 
     val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
@@ -27,7 +27,15 @@ object AdminApi {
 
     private fun request(path: String) = Request.Builder()
         .url("$baseUrl$path")
-        .apply { AdminSession.token?.let { tok -> header("Authorization", "Bearer $tok") } }
+        .apply {
+            AdminSession.token?.let { tok ->
+                header("Authorization", "Bearer $tok")
+                // OkHttp drops Authorization when a redirect changes host (an old
+                // ksykmaps.fi -> www hop used to 401 every admin call); the API
+                // accepts the same token here, which survives redirects.
+                header("x-admin-token", tok)
+            }
+        }
         .header("X-Admin-Client", "KSYK-Maps-Admin/1.0")
 
     @Throws(AdminApiException::class)
