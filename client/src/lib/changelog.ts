@@ -10,17 +10,30 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.4.1";
+export const APP_VERSION = "1.5.0";
 /** Latest Android APK version available in public/releases/ — defined once in shared/release.ts. */
 export { ANDROID_APP_VERSION } from "../../../shared/release";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.0",
+    date: "November 2026",
+    title: "Multiple campus maps in the builder, cleaner search snippets, fewer false error alerts",
+    titleFi: "Useita kampuskarttoja rakentimessa, siistimmät hakutulokset, vähemmän turhia virhehälytyksiä",
+    latest: true,
+    highlights: [
+      "**Multiple maps.** The builder toolbar has a map switcher: pick a map, create a new empty one, rename it, or **Make this map live**. Visitors and the apps always see the live map; editing another map never touches what students see. The existing campus is the \"Main campus\" map and nothing about it changed. Switching reloads the builder cleanly and keeps one local autosave per map.",
+      "**Safe by construction.** No database migration on the core tables: which map an entity belongs to is stored in a small `campus_map_items` table, every list endpoint falls back to the old behaviour if anything fails, and a draft map is never cached. Public lists are now cached for 60 s instead of 30 min, so a publish appears within a couple of minutes.",
+      "**Search results.** The cookie banner and the first-visit dialog are marked `data-nosnippet`, because Google used the banner text (\"Cookies. We use cookies...\") as the snippet for /lunch. Re-index the pages in Search Console to pick up the corrected titles and descriptions.",
+      "**Android 1.3.1.** Phone network drops (DNS and connection failures) are no longer sent to the server as errors, so they cannot trip the owner's error-spike alerts. The separate admin app 1.1.2 calls www directly and sends its token in a header that survives redirects.",
+      "**Tests:** 6 scoping tests (`test:site`) and 2 API checks (every public list is scoped, every create is assigned to its map). **Rollback** — `git revert df33d2e`; the `campus_map_items` table and the `campus_maps` setting can stay.",
+    ],
+  },
+  {
     version: "1.4.1",
     date: "November 2026",
     title: "Analytics rebuilt, errors grouped, owner alerts to Slack and your phone, Android logs finally arrive",
     titleFi: "Analytiikka uusittu, virheet ryhmitelty, omistajan hälytykset Slackiin ja puhelimeen, Android-lokit pääsevät perille",
-    latest: true,
     highlights: [
       "**The Analytics tab is rebuilt around seven views:** Overview, Usage, Errors, Sessions, Logs, Alerts and Feedback, with one range picker (remembered), an online-now counter and a refresh button. Overview shows visitors, sessions, pageviews, searches, feature uses and errors, each compared with the previous period, plus a pageviews-and-errors chart, the top errors and top features. The old stat-card grid, nested pills and Sentry launcher card are gone (Sentry is still one click away in Errors).",
       "**Errors are grouped like PostHog issues.** The same failure (ids and numbers masked) is one row with an event count, first and last seen, platforms, app versions, a trend and the stack trace. New errors are flagged, and Copy for bug report puts everything on the clipboard.",

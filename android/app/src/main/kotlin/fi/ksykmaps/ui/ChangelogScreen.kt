@@ -36,6 +36,20 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.3.1",
+        date = "November 2026",
+        titleFi = "Vähemmän turhia virheilmoituksia",
+        titleEn = "Fewer false error alerts",
+        highlightsFi = listOf(
+            "Puhelimen verkkokatkot (DNS- ja yhteysvirheet) eivät enää lähde palvelimelle virheinä, joten ne eivät laukaise turhia hälytyksiä.",
+            "Hallintapaneelin tilastot ja hälytykset toimivat nyt palvelimen uuden version kanssa.",
+        ),
+        highlightsEn = listOf(
+            "Phone network drops (DNS and connection failures) are no longer sent to the server as errors, so they no longer trigger false alerts.",
+            "Admin insights and alerts now work with the latest server release.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.3.0",
         date = "November 2026",
         titleFi = "Tilastot, virheet ja hälytykset ylläpitoon",

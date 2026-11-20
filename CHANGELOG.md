@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — November 2026
+
+- Multiple campus maps: `server/campusMaps.ts` (map list in `kv_settings`, entity assignments in `campus_map_items`), `GET/POST /api/maps`, `PATCH /api/maps/:id`, `POST /api/maps/:id/publish`; every public list endpoint (buildings, rooms, hallways, floors, doors/stairs/elevators, pois, map-package) is scoped to the published map, and an admin sending `X-Ksyk-Map` edits another map; creates are assigned to the map being edited; no change to core tables, fail-open on any error, list cache 60 s (was 30 min), drafts `no-store`
+- Builder: `MapSwitcher` in the toolbar (switch / new empty map / rename / make live), `lib/builderMap.ts` header helper (builder pages only), autosave key per map
+- SEO: `data-nosnippet` on the cookie banner and beta dialog (Google used the banner text as the /lunch snippet)
+- Android 1.3.1 (versionCode 119): offline/DNS warnings no longer forwarded to the server or reported as errors; admin app 1.1.2
+- Tests: `tests/site/campus-maps.test.ts` (6) + 2 API checks. Rollback: `git revert df33d2e`
+
 ## 1.4.1 — November 2026
 
 - Analytics tab rebuilt (`client/src/components/analytics/`): Overview, Usage, Errors, Sessions, Logs, Alerts, Feedback; one remembered range picker; every KPI compared with the previous period; the 2,000-line `AdminAnalyticsDashboard` is now `analytics/UsagePanels.tsx` with its default component, stat cards, range picker, timeseries chart and raw error list removed

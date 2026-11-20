@@ -150,10 +150,23 @@ object AppLog {
         } catch (_: Throwable) {}
         // Forward WARN/ERROR to server so the admin panel sees real-time
         // mobile issues. INFO/DEBUG stay local to keep bandwidth low.
-        if (level == Level.WARN || level == Level.ERROR) {
+        if ((level == Level.WARN || level == Level.ERROR) && !isDeviceOfflineNoise(message)) {
             try { forwardQueue.trySend(entry) } catch (_: Throwable) {}
         }
     }
+
+    /**
+     * The phone being offline (DNS or connect failures right after waking up or
+     * switching networks) is not a server problem. Forwarding it would flood the
+     * error board and trip the owner's "error spike" alerts, so it stays local.
+     * The same goes for an expired admin sign-in, which is routine.
+     */
+    private fun isDeviceOfflineNoise(message: String): Boolean =
+        message.contains("status=0") ||
+            message.contains("Unable to resolve host") ||
+            message.contains("Failed to connect to") ||
+            message.contains("timed out", ignoreCase = true) ||
+            message.contains("session expired")
 
     fun snapshot(): List<Entry> = ring.toList()
 

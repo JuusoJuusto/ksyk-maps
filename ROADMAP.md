@@ -17,7 +17,7 @@ _(empty — all items shipped)_
 ## 📋 Next (near-term)
 
 - **Security follow-ups** are tracked privately (the assessment is a local git-ignored file: the repo is public, so open findings are not published here)
-- **Builder: multiple maps** — `campus_maps` table + `map_id` on buildings/rooms/hallways/doors/stairs/elevators/pois, builder map switcher, draft vs published, public site reads the published map only (waits for the shared `api/index.ts` to settle)
+- **Maps follow-ups:** delete a map (must delete its entities too), duplicate an existing map as a starting point, per-map map defaults (centre/zoom)
 - **Re-index after v1.4.0 deploys:** Search Console → URL Inspection → Request indexing for `/`, `/download`, `/faq` (then `/lunch`, `/support`, `/privacy`), resubmit `https://www.ksykmaps.fi/sitemap.xml`
 
 - Audit the remaining admin screens for real UX/feature work (the "improve the admin panel" ask had no spec): `AdminPanelScreen.kt` sections other than Overview, `AdminDashboard.tsx` tabs, and the `android/admin` screens — needs the user to say what hurts
@@ -34,6 +34,8 @@ _(empty — all items shipped)_
 _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
+
+- v1.5.0 + Android 1.3.1 + Admin app 1.1.2 — multiple campus maps (switch, create, make live; visitors always see the live map), search-snippet fix (`data-nosnippet`), offline noise no longer reported as errors, public read rate limit raised for school-wide use; ships together with v1.4.1 (analytics rebuilt, owner alerts to Slack + phone, Android 1.3.0)
 
 - v1.3.2 + Android 1.2.2 + Admin app 1.1.1 — sliding admin sessions on the web admin and the Android admin app, 401 retry + "session expired" notice, admin-app login fixed for passwords containing `"`/`\`, honest Overview status, 2FA fields stripped from the refresh response; 9 new security tests
 - v1.3.1 + Android 1.2.1 — admin sessions no longer die after a week: 30-day sliding token via `POST /api/auth/admin-refresh`, app renews on launch, silent 401 retry, clear "Session expired" dialog; 4 new security tests. Needs the web deploy for the refresh to take effect (the 1.2.1 APK still works against the old server, it just can't renew)

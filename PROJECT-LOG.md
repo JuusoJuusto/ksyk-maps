@@ -36,6 +36,26 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 20-11-2026 — v1.5.0 / Android 1.3.1 / Admin app 1.1.2 — Multiple maps; everything in one release for the school demo
+
+**Asked.** One consolidated release for a whole-school demo: commit the finished work, take over from the Analytics session (single session from here), fix the errors in the phone's app log, correct the Google snippets (wrong `/download` name, wrong `/lunch` and FAQ descriptions), make the owner notifications and Slack alerts work, add multiple maps to the builder, and rebuild all apps.
+
+**Decided.**
+- The Analytics session's work (alerts, insights, analytics hub, Android Insights/Alerts screens) was already committed on top of v1.4.0; it was shipped as-is with Android 1.3.0 on the download page. The session ended without sending a handoff, so its behaviour was taken from its committed code: alert rules, the owner-only `/api/admin/alerts*` endpoints, phone registration through Admin → Alerts → "Notify this phone", and the tap route (`admin_alerts` → Admin tab → Alerts section).
+- **App-log errors:** the `404`s on `/admin/insights/*` and `/admin/alerts` were simply that code not being deployed yet (now `401` without sign-in); the single `401` was the expected one-time re-login after the token-signing fix. The repeated "Unable to resolve host" lines are the phone being offline; they were being forwarded to the server as errors, which would trip the new error-spike alerts, so `AppLog` no longer forwards offline/DNS/connect/timeout noise and `ErrorReporter.api` reports only 5xx (not status 0).
+- **Search snippets:** Google's current snippets are from the pre-prerender copy of the pages (`/download` titled "KSYK Maps", `/lunch` showing the cookie banner text, FAQ showing the homepage text). The prerendered pages already carry their own title and description; the cookie banner and the beta dialog now carry `data-nosnippet`. Google must re-crawl: request indexing in Search Console.
+- **Multiple maps:** the existing data is the default map; entity-to-map assignments live in `campus_map_items` (created on first use), the map list in `kv_settings.campus_maps`. No change to core tables, no migration race, fail-open on any error, a no-op until a second map exists. Visitors and apps see the published map; an admin sending `X-Ksyk-Map` (builder pages only) edits another. Not offered on purpose: deleting a map (it would have to delete its entities too).
+- **Demo load:** public reads were capped at 500 requests/minute per IP and a school shares one IP, so reads and telemetry now allow 8000/min; writes keep 500. Not changed: all `/api/*` responses are still `no-store` (vercel.json), so every visitor hits the function and database; the pooled DB connection (3 per instance) is the existing protection.
+- **Observed, not changed:** the live `downloadsEnabled` switch was OFF (saved at 09:42 Finnish time from the admin settings), so `/download` showed "coming soon". That is the admin's setting; it has to be turned on in Settings → Features → Downloads before the demo.
+
+**Shipped.** `e36aa78` (alerts + analytics + Android 1.3.0 + admin 1.1.2), `df33d2e` (multiple maps, snippet fix), then this release commit (Android 1.3.1 APK on the site, rate-limit change, release notes).
+- Web 1.5.0: `server/campusMaps.ts`, `api/index.ts` (scoping + `/api/maps` + rate limit), `client/src/components/builder/MapSwitcher.tsx`, `client/src/lib/builderMap.ts`, header plumbing in `queryClient.ts` / `fetchList.ts` / `adminAuth.ts`, per-map autosave key, `data-nosnippet` on two overlays; tests `tests/site/campus-maps.test.ts` (6) and 2 API checks.
+- Android main 1.3.1 (versionCode 119): `AppLog.kt`, `ErrorReporter.kt`, `ChangelogScreen.kt`; admin app 1.1.2 (versionCode 4): built, not hosted (path `android/admin/build/outputs/apk/release/ksykmaps-admin-release-1.1.2.apk`).
+- Gates: `tsc` clean, `npm run build` passes, `test:security` 39/39, `test:seo` 41/41, `test:geo` 12/12, `test:site` 9/9. The builder was driven in a real browser against a local mock API: map switcher, creating a map (the follow-up requests carry `X-Ksyk-Map`), the area/perimeter/size readouts (800.0 m², 120.0 m, 40.00 × 20.00 m on a 40 × 20 m building), the Grid toggle. Not verified: a real admin session on production (multi-map create/publish, Slack, the phone alert), the APKs on a device.
+- Rollback: `git revert` the release commits; `rollback-before-1-4-1` marks the pre-analytics state. `campus_map_items` and the `campus_maps` setting can stay.
+
+---
+
 ## 20-11-2026 — v1.4.0 + security hotfix `4d28b56`
 
 **Asked.** A very large list: improve all admin sections (web + mobile) and the mobile analytics; redo `/download` in the Wilma style with a working real latest APK; a whole-project security assessment; search titles (no em dash, `/download` + `/faq` titles and descriptions, all pages, only the www host); a "disable downloads / coming soon" admin option with a future Google Play link; remind them to re-index; error/crash/feedback alerts to Android + Slack; builder: every snap/tool controlled by the toolbar incl. POIs, **real measurements**, multiple maps (edit then publish); a hide-changelog admin toggle (off by default).

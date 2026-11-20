@@ -105,8 +105,10 @@ object ErrorReporter {
             "status_code"   to status,
         ) + extra)
         if (err != null) runCatching { SentrySDK.captureException(err) }
-        // Only report 5xx and network errors — 401/403/404 are expected during normal operation.
-        if (status == null || status == 0 || status >= 500) {
+        // Only report real server faults (5xx) and unexpected failures. 401/403/404 are
+        // routine, and status 0 means the phone had no network (DNS / connect), which
+        // is not the server's problem and would otherwise trip the owner's error alerts.
+        if (status == null || status >= 500) {
             reportToBackend("error", "${event} ${path ?: ""}: ${err?.message ?: "unknown"}", "api", err)
         }
     }

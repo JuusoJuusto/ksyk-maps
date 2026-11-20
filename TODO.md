@@ -10,12 +10,15 @@ Living list of what's done, in progress, and pending across sessions. Update inl
 
 ---
 
-## 🔴 Pending (20-11-2026)
+## 🔴 Before the school demo (21-11-2026)
 
-- ⏳ Security follow-ups are tracked privately (`SECURITY-ASSESSMENT.md` is git-ignored on purpose: this repository is public). The critical item found today is fixed and live.
-- ⏳ **Re-index in Search Console after the v1.4.0 deploy:** URL Inspection → Request indexing for `/`, `/download`, `/faq`, then resubmit `https://www.ksykmaps.fi/sitemap.xml`.
-- ✅ v1.4.0 (builder measurements + snapping, `/download` page, SEO titles, downloads/changelog toggles) is released; the other Claude session's alerts + analytics work ships separately.
-- ⏳ Not started: multiple maps in the builder; owner-alert Android notifications and mobile analytics (other session).
+- ⏳ **Turn downloads back ON:** Settings → Features → Downloads. It was found OFF (the page showed "coming soon").
+- ⏳ **Re-index in Search Console:** URL Inspection → Request indexing for `/`, `/download`, `/faq`, `/lunch`, then resubmit `https://www.ksykmaps.fi/sitemap.xml`. Google still shows the old titles/descriptions until it re-crawls.
+- ⏳ **Alerts:** Admin → Analytics → Alerts: paste the Slack Incoming Webhook URL and press Send test; on your phone (Android 1.3.1, signed in as owner) Admin → Alerts → Notify this phone, then Send test. Optional: `CRON_SECRET` in Vercel for the daily digest.
+- ⏳ **Install the new APK on the demo phones:** https://www.ksykmaps.fi/download (main app 1.3.1). Admin app 1.1.2 is built but not hosted.
+- ⏳ **Maps:** builder → toolbar map switcher → New empty map → build → Make this map live. Do a dry run before the demo; the live map is unchanged until you press Make live.
+- ⏳ Security follow-ups are tracked privately (`SECURITY-ASSESSMENT.md` is git-ignored on purpose: this repository is public).
+- ⏳ Not tested: real admin session on production for maps/alerts/Slack; the APKs on a device.
 
 ## ✅ Shipped (v1.3.2 + Android 1.2.2 + Admin app 1.1.1)
 

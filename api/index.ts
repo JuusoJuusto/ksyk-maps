@@ -149,7 +149,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     _pathForRl === '/api/analytics-event' ||
     _pathForRl.startsWith('/api/t/');
   const rateLimitKey = isAdminReq ? `admin:${adminToken!.slice(-16)}` : clientIP;
-  const maxReq = isAdminReq ? 2000 : (isTelemetry ? 2000 : 500);
+  // A whole school shares ONE public IP (NAT), so a per-IP cap of 500/min made a
+  // class-wide demo hit 429s: a single map load is ~10-40 reads. Reads and
+  // telemetry get a ceiling sized for hundreds of students; writes (tickets,
+  // feedback, anything that changes data) keep the strict 500.
+  const isPublicRead = req.method === 'GET' || req.method === 'HEAD';
+  const maxReq = isAdminReq ? 2000 : (isTelemetry || isPublicRead ? 8000 : 500);
   const rateLimit = checkRateLimit(rateLimitKey, maxReq, 60000);
 
   res.setHeader('X-RateLimit-Limit', maxReq.toString());
