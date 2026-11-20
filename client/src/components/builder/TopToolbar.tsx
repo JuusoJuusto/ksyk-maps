@@ -41,6 +41,8 @@ export interface TopToolbarProps {
   onToggleGuides?: () => void;
 
   onBack?: () => void;
+  /** Map switcher (switch / create / make live). */
+  mapSwitcher?: React.ReactNode;
   onSave: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -99,6 +101,13 @@ export default function TopToolbar(p: TopToolbarProps) {
           <IconButton onClick={p.onBack} label="Back to map">
             <ChevronLeft className="h-4 w-4" />
           </IconButton>
+          <Divider />
+        </>
+      )}
+
+      {p.mapSwitcher && (
+        <>
+          {p.mapSwitcher}
           <Divider />
         </>
       )}

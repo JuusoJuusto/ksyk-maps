@@ -6,6 +6,7 @@
  * it is open, so a session ends after a stretch of inactivity, not a fixed
  * time after sign-in.
  */
+import { mapScopeHeader } from './builderMap';
 
 const TOKEN_KEY = 'ksyk_admin_token';
 // Despite the name this is "last time the server confirmed the session":
@@ -29,7 +30,8 @@ export function getAdminToken(): string | null {
 
 export function getAdminHeaders(): Record<string, string> {
   const token = getAdminToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  // On builder pages also say which map is being edited (see lib/builderMap.ts).
+  return token ? { Authorization: `Bearer ${token}`, ...mapScopeHeader() } : {};
 }
 
 export function clearAdminSession(): void {

@@ -179,6 +179,41 @@ test("the new settings are in the API allow-list, the schema and the migration (
   assert.ok(schema.includes('showChangelog: boolean("show_changelog").default(false)'), "the changelog is hidden by default");
 });
 
+// ── multiple maps ───────────────────────────────────────────────────────────
+
+test("/api/maps: anyone can read the published map, only admins can create, rename or publish", async () => {
+  const pub = await call("GET", "/api/maps");
+  assert.equal(pub.status, 200);
+  const body = pub.body as { published: string; maps: { id: string }[] };
+  assert.equal(body.published, "default", "with no second map the published map is the default one");
+  assert.deepEqual(body.maps.map((m) => m.id), ["default"], "visitors only ever see the published map's entry");
+  assert.equal(pub.headers["cache-control"], "no-store");
+  for (const [method, url] of [["POST", "/api/maps"], ["PATCH", "/api/maps/new-wing"], ["POST", "/api/maps/new-wing/publish"]] as const) {
+    assert.equal((await call(method, url, {}, { name: "x" })).status, 401, `${method} ${url} anonymous`);
+  }
+  const authorization = `Bearer ${adminToken()}`;
+  assert.equal((await call("POST", "/api/maps", { authorization }, { name: "   " })).status, 400, "a map needs a name (rejected before any storage)");
+  assert.equal((await call("DELETE", "/api/maps/new-wing", { authorization })).status, 405, "deleting maps is not offered");
+});
+
+test("every public list endpoint is scoped to a map, and every create assigns the new row to it", () => {
+  const src = read("api/index.ts");
+  const need: [string, RegExp][] = [
+    ["buildings", /scopeList\(req, res, isAdminReq, Array\.isArray\(buildings\)/],
+    ["rooms", /scopeList\(req, res, isAdminReq, Array\.isArray\(rooms\)/],
+    ["hallways", /scopeList\(req, res, isAdminReq, Array\.isArray\(hallwaysList\)/],
+    ["floors (follow their building)", /Array\.isArray\(floors\) \? floors : \[\], \(f: any\) => f\?\.id, \(f: any\) => f\?\.buildingId\)/],
+    ["doors/stairs/elevators", /scopeList\(req, res, isAdminReq, poiRows\)/],
+    ["pois", /scopeList\(req, res, isAdminReq, allPois\)/],
+    ["map-package", /doors: \[\], stairs: \[\], elevators: \[\],/],
+  ];
+  for (const [what, re] of need) assert.ok(re.test(src), `GET ${what} is not scoped to a map`);
+  for (const kind of ["'building'", "'room'", "'hallway'"]) assert.ok(src.includes(`assignNewEntity((`) && src.includes(kind), `create ${kind} assigns to a map`);
+  assert.ok((src.match(/mapForNewEntity\(req\)/g) ?? []).length >= 5, "all five create handlers resolve the target map first");
+  // A draft view is never cached by the CDN and never reachable by visitors.
+  assert.ok(!src.includes("s-maxage=1800"), "no list endpoint may still cache for 30 minutes (a publish would not show up)");
+});
+
 test("new sign-ins get the same long TTL as refreshed tokens", () => {
   const src = read("api/index.ts");
   assert.ok(src.includes("exp: Date.now() + ADMIN_TOKEN_TTL_MS"), "tokens use the shared TTL constant");

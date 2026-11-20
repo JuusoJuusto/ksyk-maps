@@ -1,9 +1,11 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { recoverFromUnauthorized } from "@/lib/adminAuth";
+import { mapScopeHeader } from "@/lib/builderMap";
 
 function getAdminAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('ksyk_admin_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  // Builder pages also name the map being edited; nobody else sends it.
+  return token ? { Authorization: `Bearer ${token}`, ...mapScopeHeader() } : {};
 }
 
 /**

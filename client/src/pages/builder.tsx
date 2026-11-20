@@ -68,6 +68,8 @@ import {
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { refreshAdminSession, expireAdminSession } from "@/lib/adminAuth";
+import MapSwitcher from "@/components/builder/MapSwitcher";
+import { getBuilderMapId } from "@/lib/builderMap";
 import { validateMap } from "@ksyk/shared";
 import type { Building as SharedBuilding, Room, Hallway, Floor, Door, Stair, Elevator, MapPackage, ValidationEntityKind } from "@ksyk/shared";
 import { useAutosave } from "@/hooks/useAutosave";
@@ -751,7 +753,8 @@ function BuilderWorkspace() {
   }), [buildings, floorsQ.data, roomsQ.data, hallwaysQ.data, doorsQ.data, stairsQ.data, elevatorsQ.data]);
 
   const autosave = useAutosave<MapPackage>({
-    key: "builder-main",
+    // One local draft per map, so switching maps can never restore another map's draft.
+    key: `builder-${getBuilderMapId() ?? "main"}`,
     snapshot: buildSnapshot,
     // Remote persist is best-effort — swallow errors so the local copy
     // still wins.
@@ -3466,6 +3469,7 @@ function BuilderWorkspace() {
       {/* Top toolbar */}
       <div className="relative h-11 shrink-0">
         <TopToolbar
+          mapSwitcher={<MapSwitcher />}
           canUndo={history.canUndo}
           canRedo={history.canRedo}
           isPublishing={isPublishing}

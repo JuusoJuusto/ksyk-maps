@@ -55,6 +55,7 @@ export default function BetaWelcomeBanner() {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) dismiss(); }}>
       <DialogContent
+        data-nosnippet
         className={cn(
           "p-0 gap-0 overflow-hidden flex flex-col",
           "bg-white dark:bg-gray-950",

@@ -65,6 +65,38 @@ function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: st
   return payload;
 }
 
+// ── Multiple maps (server/campusMaps.ts) ───────────────────────────────────
+// Visitors and the apps always get the published map; an admin sending
+// X-Ksyk-Map gets that map (the builder). Both helpers fail open to the old
+// behaviour: if anything throws, the endpoint answers exactly as before.
+async function scopeList<T>(
+  req: VercelRequest, res: VercelResponse, isAdmin: boolean, rows: T[],
+  idOf?: (r: T) => string | undefined, parentOf?: (r: T) => string | undefined,
+): Promise<T[]> {
+  try {
+    const cm = await import('../server/campusMaps.js');
+    const scope = await cm.scopeForRequest(req.headers['x-ksyk-map'], isAdmin);
+    res.setHeader('Cache-Control', cm.scopedCacheControl(scope));
+    return cm.scopeRows(rows, scope, idOf, parentOf);
+  } catch {
+    return rows;
+  }
+}
+
+/** The map a new entity belongs to; non-default maps need working storage or the create is refused. */
+async function mapForNewEntity(req: VercelRequest): Promise<string> {
+  const cm = await import('../server/campusMaps.js');
+  const mapId = await cm.mapForWrite(req.headers['x-ksyk-map']);
+  if (mapId !== cm.DEFAULT_MAP_ID) await cm.ensureReady();
+  return mapId;
+}
+
+async function assignNewEntity(entityId: string | undefined, mapId: string, kind: string): Promise<void> {
+  if (mapId === 'default') return;
+  const cm = await import('../server/campusMaps.js');
+  await cm.assignEntity(entityId, mapId, kind);
+}
+
 // Run once per cold start — creates kv_settings, campus_pois, room_aliases,
 // unknown_locations tables if they don't exist yet (safe no-op otherwise).
 import('../server/initDb.js').then(m => m.ensureSchema()).catch(() => {});
@@ -1594,8 +1626,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method !== 'GET' && !requireAdminAuth(req, res)) return;
       if (req.method === 'GET' && apiPath === '/buildings') {
         const buildings = await storage.getBuildings();
-        res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
-        const list = Array.isArray(buildings) ? buildings : [];
+        const list = await scopeList(req, res, isAdminReq, Array.isArray(buildings) ? buildings : []);
         const withCoords = list.map((b: any) => {
           if (b.coordinates || !Array.isArray(b.points) || b.points.length < 3) return b;
           const pts = b.points as { lat: number; lng: number }[];
@@ -1607,7 +1638,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       if (req.method === 'POST' && apiPath === '/buildings') {
+        let writeMap = 'default';
+        try { writeMap = await mapForNewEntity(req); } catch { return res.status(503).json({ message: 'Map storage unavailable, try again' }); }
         const building = await storage.createBuilding(req.body);
+        try { await assignNewEntity((building as any)?.id, writeMap, 'building'); } catch (e: any) { return res.status(500).json({ message: 'Created but could not assign to the map', error: e?.message }); }
         return res.status(201).json(building);
       }
       
@@ -1670,8 +1704,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET' && apiPath === '/rooms') {
         const buildingId = req.query.buildingId as string | undefined;
         const rooms = await storage.getRooms(buildingId);
-        res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
-        const list = Array.isArray(rooms) ? rooms : [];
+        const list = await scopeList(req, res, isAdminReq, Array.isArray(rooms) ? rooms : []);
         const withCoords = list.map((r: any) => {
           if (r.coordinates || !Array.isArray(r.points) || r.points.length < 3) return r;
           const pts = r.points as { lat: number; lng: number }[];
@@ -1684,7 +1717,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (req.method === 'POST' && apiPath === '/rooms') {
         try {
+          let writeMap = 'default';
+          try { writeMap = await mapForNewEntity(req); } catch { return res.status(503).json({ message: 'Map storage unavailable, try again' }); }
           const room = await storage.createRoom(filterBody(req.body));
+          await assignNewEntity((room as any)?.id, writeMap, 'room');
           return res.status(201).json(room);
         } catch (e: any) {
           console.error('POST /api/rooms failed:', e?.message);
@@ -1729,7 +1765,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const buildingId = req.query.buildingId as string | undefined;
         try {
           const hallwaysList = await storage.getHallways(buildingId);
-          return res.status(200).json(hallwaysList);
+          return res.status(200).json(await scopeList(req, res, isAdminReq, Array.isArray(hallwaysList) ? hallwaysList : []));
         } catch (err: any) {
           console.error('getHallways error:', err?.message || err);
           return res.status(200).json([]);
@@ -1738,7 +1774,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (req.method === 'POST' && apiPath === '/hallways') {
         try {
+          let writeMap = 'default';
+          try { writeMap = await mapForNewEntity(req); } catch { return res.status(503).json({ message: 'Map storage unavailable, try again' }); }
           const hallway = await storage.createHallway(req.body);
+          await assignNewEntity((hallway as any)?.id, writeMap, 'hallway');
           return res.status(201).json(hallway);
         } catch (err: any) {
           console.error('createHallway error:', err?.message || err);
@@ -1776,7 +1815,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (apiPath === '/floors' && req.method === 'GET') {
       const buildingId = req.query.buildingId as string | undefined;
       const floors = await storage.getFloors(buildingId);
-      return res.status(200).json(floors);
+      // Floors follow their building into whichever map it belongs to.
+      return res.status(200).json(await scopeList(req, res, isAdminReq, Array.isArray(floors) ? floors : [], (f: any) => f?.id, (f: any) => f?.buildingId));
     }
     
     // Staff endpoint
@@ -2532,6 +2572,37 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
       }
     }
     
+    // ── Multiple maps ────────────────────────────────────────────────────────
+    // GET /api/maps       published map (visitors) or every map (admins)
+    // POST /api/maps      create an empty map            { name }
+    // PATCH /api/maps/:id rename                         { name }
+    // POST /api/maps/:id/publish  make it the map everyone sees
+    if (apiPath === '/maps' || apiPath.startsWith('/maps/')) {
+      const cm = await import('../server/campusMaps.js');
+      res.setHeader('Cache-Control', 'no-store');
+      if (apiPath === '/maps' && req.method === 'GET') {
+        const state = await cm.getState();
+        return res.status(200).json(isAdminReq ? state : { published: state.published, maps: state.maps.filter((m) => m.id === state.published) });
+      }
+      if (!requireAdminAuth(req, res)) return;
+      const mapBody = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        if (apiPath === '/maps' && req.method === 'POST') {
+          return res.status(201).json(await cm.createMap(String(mapBody.name ?? '')));
+        }
+        const mapMatch = apiPath.match(/^\/maps\/([a-z0-9-]{1,41})(\/publish)?$/);
+        if (mapMatch && mapMatch[2] && req.method === 'POST') {
+          return res.status(200).json(await cm.publishMap(mapMatch[1]));
+        }
+        if (mapMatch && !mapMatch[2] && (req.method === 'PATCH' || req.method === 'PUT')) {
+          return res.status(200).json(await cm.renameMap(mapMatch[1], String(mapBody.name ?? '')));
+        }
+      } catch (e: any) {
+        return res.status(400).json({ message: e?.message || 'Map request failed' });
+      }
+      return res.status(405).json({ message: 'Method not allowed' });
+    }
+
     // Permanent "latest Android app" link for posters / QR codes / the Play
     // listing. 302 to the current APK, or 503 while an admin has paused
     // downloads (Settings > Features > Downloads).
@@ -3911,7 +3982,8 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
     if (['/doors', '/stairs', '/elevators'].includes(apiPath) && req.method === 'GET') {
       try {
         const { getPoisByKind } = await import('../server/kvStorage.js');
-        return res.status(200).json(await getPoisByKind(apiPath.slice(1)));
+        const poiRows = await getPoisByKind(apiPath.slice(1));
+        return res.status(200).json(await scopeList(req, res, isAdminReq, poiRows));
       } catch {
         return res.status(200).json([]);
       }
@@ -3927,7 +3999,10 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         const lng = typeof (body.position as any)?.lng === 'number' ? (body.position as any).lng
                   : typeof body.mapPositionX === 'number' ? body.mapPositionX : null;
         if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+        let writeMap = 'default';
+        try { writeMap = await mapForNewEntity(req); } catch { return res.status(503).json({ message: 'Map storage unavailable, try again' }); }
         const record = await createPoi({ ...body, kind, position: { lat, lng } });
+        await assignNewEntity((record as any)?.id, writeMap, kind);
         return res.status(201).json(record);
       } catch (err) {
         return res.status(500).json({ message: `Failed to create ${apiPath.slice(1)}` });
@@ -3953,7 +4028,8 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
     if (apiPath === '/pois' && req.method === 'GET') {
       try {
         const { getAllPois } = await import('../server/kvStorage.js');
-        return res.status(200).json(await getAllPois());
+        const allPois = await getAllPois();
+        return res.status(200).json(await scopeList(req, res, isAdminReq, allPois));
       } catch {
         res.setHeader('X-Read-Soft-Fail', '1');
         return res.status(200).json([]);
@@ -3970,7 +4046,10 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         const lng = typeof (body.position as any)?.lng === 'number' ? (body.position as any).lng
                   : typeof body.mapPositionX === 'number' ? body.mapPositionX : null;
         if (lat === null || lng === null) return res.status(400).json({ message: 'Missing position' });
+        let writeMap = 'default';
+        try { writeMap = await mapForNewEntity(req); } catch { return res.status(503).json({ message: 'Map storage unavailable, try again' }); }
         const record = await createPoi({ ...body, position: { lat, lng } });
+        await assignNewEntity((record as any)?.id, writeMap, String(body.kind));
         return res.status(201).json(record);
       } catch {
         return res.status(500).json({ message: 'Failed to create POI' });
@@ -4070,7 +4149,11 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         return res.status(200).json({
           manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt: new Date().toISOString() },
           mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
-          buildings, floors, rooms, hallways, doors: [], stairs: [], elevators: [],
+          buildings: await scopeList(req, res, isAdminReq, buildings),
+          floors: await scopeList(req, res, isAdminReq, floors, (f: any) => f?.id, (f: any) => f?.buildingId),
+          rooms: await scopeList(req, res, isAdminReq, rooms),
+          hallways: await scopeList(req, res, isAdminReq, hallways),
+          doors: [], stairs: [], elevators: [],
         });
       } catch {
         return res.status(200).json({
@@ -4126,7 +4209,14 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         const pkg = {
           manifest: { version: '1.0.0', title: 'KSYK Campus', publishedAt, description: message },
           mapDefaults: { center: { lat: 0, lng: 0 }, zoom: 16, bearing: 0, pitch: 0, minZoom: 12, maxZoom: 22 },
-          buildings, floors, rooms, hallways, doors, stairs, elevators,
+          // Snapshot only the map being edited (X-Ksyk-Map), not every map in the database.
+          buildings: await scopeList(req, res, isAdminReq, buildings),
+          floors: await scopeList(req, res, isAdminReq, floors, (f: any) => f?.id, (f: any) => f?.buildingId),
+          rooms: await scopeList(req, res, isAdminReq, rooms),
+          hallways: await scopeList(req, res, isAdminReq, hallways),
+          doors: await scopeList(req, res, isAdminReq, doors),
+          stairs: await scopeList(req, res, isAdminReq, stairs),
+          elevators: await scopeList(req, res, isAdminReq, elevators),
         };
         await pgDb.insert(mapVersions).values({
           id: versionId, packageId: 'current', version: versionNumber,

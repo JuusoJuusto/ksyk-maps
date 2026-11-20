@@ -1,3 +1,4 @@
+import { mapScopeHeader } from "@/lib/builderMap";
 /**
  * fetchList — GET a JSON array, guaranteeing an array back.
  *
@@ -25,7 +26,7 @@ function authHeaders(): Record<string, string> {
     const t = typeof localStorage !== "undefined"
       ? localStorage.getItem("ksyk_admin_token")
       : null;
-    return t ? { Authorization: `Bearer ${t}` } : {};
+    return t ? { Authorization: `Bearer ${t}`, ...mapScopeHeader() } : {};
   } catch {
     return {};
   }

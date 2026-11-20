@@ -106,6 +106,9 @@ export default function CookieConsent() {
 
   return (
     <div
+      // Keep the banner's wording out of search results: Google used it as the
+      // snippet for /lunch ("Cookies. We use cookies...") instead of the page text.
+      data-nosnippet
       role="dialog"
       aria-modal="false"
       aria-label={t.aria}
