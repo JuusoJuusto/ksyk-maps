@@ -189,8 +189,10 @@ class MainActivity : ComponentActivity() {
                 "announcements", "news" -> "news"
                 "settings"              -> "settings"
                 "home"                  -> "home"
+                "admin_alerts"          -> "admin"
                 else                    -> null
             }
+            if (screen == "admin_alerts") fi.ksykmaps.ui.AdminPanelNav.pending = fi.ksykmaps.ui.ADMIN_SECTION_ALERTS
             if (tab != null) NotifNavIntent.pendingTab = tab
         }
         val data: Uri = intent.data ?: return
@@ -259,6 +261,7 @@ private fun AppShell() {
                 "timetable" -> { selectedTab = "timetable"; subScreen = null }
                 "map"       -> { selectedTab = "map"; subScreen = null; mapMounted = true }
                 "home"      -> { selectedTab = "home"; subScreen = null }
+                "admin"     -> if (isAdmin) { selectedTab = "admin"; subScreen = null }
             }
         }
     }

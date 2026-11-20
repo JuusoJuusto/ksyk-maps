@@ -348,9 +348,9 @@ fun SettingsScreen(
                         icon = Icons.Outlined.Public,
                         iconTint = Color(0xFF06B6D4),
                         title = if (isFi) "Avaa verkkosivusto" else "Open website",
-                        subtitle = "ksykmaps.fi",
+                        subtitle = "www.ksykmaps.fi",
                         onClick = {
-                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ksykmaps.fi"))) } catch (_: Exception) {}
+                            try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.ksykmaps.fi"))) } catch (_: Exception) {}
                         },
                     )
                     RowDivider()

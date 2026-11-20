@@ -163,6 +163,8 @@ export async function sendToTokens(
         });
         if (dead.length) {
           await db.execute(sql`DELETE FROM push_tokens WHERE fcm_token = ANY(${dead})`);
+          // Owner-alert phones live in their own table; the table may not exist yet.
+          await db.execute(sql`DELETE FROM alert_devices WHERE fcm_token = ANY(${dead})`).catch(() => {});
         }
       }
     } catch (e: any) {

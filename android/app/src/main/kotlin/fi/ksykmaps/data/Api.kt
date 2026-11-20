@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
  * the Windows app's Api.cs.
  */
 object Api {
-    var base = "https://ksykmaps.fi/api"
+    var base = "https://www.ksykmaps.fi/api"
     var sessionEmail: String? = null
     /** HMAC admin token issued by /auth/admin-login, renewed via /auth/admin-refresh (30-day sliding TTL). */
     var adminToken: String? = null
@@ -44,7 +44,7 @@ object Api {
         .header("Sec-Fetch-Site", "same-origin")
         .header("Sec-Fetch-Mode", "cors")
         .header("Sec-Fetch-Dest", "empty")
-        .header("Referer", "https://ksykmaps.fi/")
+        .header("Referer", "https://www.ksykmaps.fi/")
         .header("X-KSYK-Client", "KSYK-Maps-Android/1.0")
         // Vercel Attack Challenge Mode bypass. `x-vercel-protection-bypass`
         // is the well-known Vercel header (matches VERCEL_AUTOMATION_BYPASS_SECRET

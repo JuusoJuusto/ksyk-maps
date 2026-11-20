@@ -49,6 +49,13 @@ function verifyAdminToken(token: string): { userId: string; role: string } | nul
   } catch { return null; }
 }
 
+/** Await `p` but never longer than `ms` — serverless freezes after the response, so side effects must finish first. */
+function withinMs<T>(p: Promise<T>, ms: number): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([p, new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), ms); })])
+    .finally(() => { if (timer) clearTimeout(timer); });
+}
+
 function requireAdminAuth(req: VercelRequest, res: VercelResponse): { userId: string; role: string } | null {
   const header = (req.headers['authorization'] || req.headers['x-admin-token']) as string | undefined;
   const token = header?.replace(/^Bearer\s+/i, '').trim();
@@ -2119,26 +2126,85 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Logs endpoint - for error logging
+    // Logs endpoint - single entry. Two producers: the web ErrorBoundary
+    // ({ type, details: { stack, path } }) and Android's ErrorReporter / crash
+    // handler ({ level, source, errorStack, metadata }). The Android shape used
+    // to be ignored, which stored every Android error as `info` with no stack.
     if ((apiPath === '/logs' || apiPath === '/api/logs') && req.method === 'POST') {
       try {
         const { db: pgDb } = await import('../server/db.js');
         const { appLogs } = await import('../shared/schema.js');
         const body = req.body || {};
-        const level = (['error', 'warn', 'warning', 'info', 'debug', 'success']
-          .includes(String(body.type)) ? String(body.type).replace('warning', 'warn') : 'info');
+        const ua = (req.headers['user-agent'] || '').toString().slice(0, 300);
+        const raw = String(body.level ?? body.type ?? 'info').toLowerCase().replace('warning', 'warn');
+        const received = ['fatal', 'error', 'warn', 'info', 'debug', 'success'].includes(raw) ? raw : 'info';
+        // `fatal` is stored as `error` because every dashboard filters on it;
+        // the alert engine still sees the original so crashes page the owner.
+        const level = received === 'fatal' ? 'error' : received;
+        const message = (body.message || 'log').toString().slice(0, 1000);
+        const source = ['web', 'android', 'server'].includes(String(body.source))
+          ? String(body.source)
+          : (/android/i.test(ua) ? 'android' : 'web');
+        const meta = body.metadata && typeof body.metadata === 'object' && JSON.stringify(body.metadata).length < 4000
+          ? body.metadata : null;
+        let stored = true;
         await pgDb.insert(appLogs).values({
           level,
-          message: (body.message || 'log').toString().slice(0, 1000),
-          errorStack: ((body.details?.stack || body.stack || null) as string | null)?.slice(0, 2000) ?? null,
-          userAgent: (req.headers['user-agent'] || '').toString().slice(0, 300),
+          message,
+          source,
+          errorStack: ((body.errorStack || body.details?.stack || body.stack || null) as string | null)?.toString().slice(0, 2000) ?? null,
+          metadata: meta,
+          userAgent: ua,
           url: (body.details?.path || body.url || '').toString().slice(0, 200),
           ipAddress: clientIP.slice(0, 45),
-        } as any).catch(() => {});
+        } as any).catch(() => { stored = false; });
+        if (stored && level === 'error') {
+          const { onErrorsLogged } = await import('../server/alerts.js');
+          await withinMs(onErrorsLogged([{ level: received === 'fatal' ? 'fatal' : 'error', message, source, appVersion: meta?.app_version ?? meta?.appVersion ?? null }]), 4000);
+        }
         return res.status(200).json({ message: "Log received" });
       } catch (error: any) {
         console.error('Error processing log:', error);
         return res.status(500).json({ message: "Failed to process log" });
+      }
+    }
+
+    // Android AppLog forwards WARN/ERROR in batches. This route only existed in
+    // the dev server (server/routes.ts), so in production every batch 404'd and
+    // no Android log ever reached the admin panel.
+    if (apiPath === '/logs/batch' && req.method === 'POST') {
+      try {
+        const body = req.body || {};
+        const entries: any[] = Array.isArray(body.entries) ? body.entries.slice(0, 100) : [];
+        if (!entries.length) return res.status(200).json({ success: true, inserted: 0 });
+        const { db: pgDb } = await import('../server/db.js');
+        const { appLogs } = await import('../shared/schema.js');
+        const appVersion = String(body.appVersion || '').slice(0, 40);
+        const device = String(body.device || '').slice(0, 80);
+        const clean = (v: unknown, n: number) => String(v ?? '').slice(0, n);
+        const rows = entries.map((e) => {
+          const lvl = clean(e?.level, 10).toLowerCase().replace('warning', 'warn');
+          return {
+            level: ['error', 'warn', 'info', 'debug'].includes(lvl) ? lvl : 'info',
+            message: clean(e?.message, 1000) || 'log',
+            source: 'android',
+            metadata: { appVersion, device, sessionId: clean(body.sessionId, 64) },
+            userAgent: `KSYK-Maps-Android/${appVersion} (${device})`,
+            url: e?.tag ? `android:${clean(e.tag, 60)}` : null,
+            errorInfo: e?.tag ? { tag: clean(e.tag, 60), ts: clean(e.ts, 40) } : null,
+            ipAddress: clientIP.slice(0, 45),
+          };
+        });
+        await pgDb.insert(appLogs).values(rows as any);
+        const failures = rows.filter((r) => r.level === 'error');
+        if (failures.length) {
+          const { onErrorsLogged } = await import('../server/alerts.js');
+          await withinMs(onErrorsLogged(failures.map((r) => ({ level: 'error', message: r.message, source: 'android', appVersion }))), 4000);
+        }
+        return res.status(200).json({ success: true, inserted: rows.length });
+      } catch (error: any) {
+        console.error('Error processing log batch:', error?.message);
+        return res.status(500).json({ message: 'Failed to process batch' });
       }
     }
     // v4.7.18 — GET /api/logs with real server-side pagination.
@@ -2192,7 +2258,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             id: r.id,
             level: r.level,
             message: r.message,
-            source: (r.userAgent || '').includes('KSYK-Maps-Android') ? 'android' : 'web',
+            source: r.source || ((r.userAgent || '').includes('Android') ? 'android' : 'web'),
             timestamp: r.createdAt,
           })),
           nextCursor,
@@ -2234,7 +2300,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: ticketData.status || 'pending',
           priority: ticketData.priority || 'normal',
         });
-        
+        {
+          const { onTicket } = await import('../server/alerts.js');
+          await withinMs(onTicket({ type: String(ticketData.type), title: String(ticketData.title), ticketId }), 3000);
+        }
+
         // SEND EMAILS AND DISCORD NOTIFICATIONS
         if (ticketData.email && ticketData.email.trim()) {
           
@@ -2880,7 +2950,9 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         });
       }
 
+      const alerts = await import('../server/alerts.js');
       if (!user) {
+        await withinMs(alerts.onLoginFailure(email, clientIP), 3000);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
@@ -2893,11 +2965,13 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
 
       const ok = await verifyAndUpgrade(password, user.password, user.id);
       if (!ok) {
+        await withinMs(alerts.onLoginFailure(email, clientIP), 3000);
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       const { password: _pw2, passwordResetToken: _tk2, passwordResetExpiry: _ex2, ...safeUser } = user as any;
       const adminToken = generateAdminToken(user.id, user.role || 'admin');
+      await withinMs(alerts.onAdminLogin(email, clientIP), 3000);
       return res.status(200).json({
         success: true,
         user: safeUser,
@@ -4817,6 +4891,95 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
           ...(meta ?? {}),
         });
       } catch { /* audit is best-effort */ }
+    }
+
+    // ── Insights + owner alerts ───────────────────────────────────────────
+    // Summary + grouped errors are for any admin. Alert settings hold the Slack
+    // webhook and the owner's device tokens, so they are owner-only.
+    if (apiPath === '/admin/insights/summary' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      const { getSummary, parseRange } = await import('../server/insights.js');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(await getSummary(parseRange((req.query as any)?.range)));
+    }
+
+    if (apiPath === '/admin/insights/errors' && req.method === 'GET') {
+      if (!requireAdminAuth(req, res)) return;
+      const { getErrorGroups, parseRange } = await import('../server/insights.js');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(await getErrorGroups(parseRange((req.query as any)?.range)));
+    }
+
+    // Vercel cron (see vercel.json). Vercel sends `Authorization: Bearer $CRON_SECRET`
+    // when the env var exists; without it this route stays closed rather than public.
+    if (apiPath === '/cron/daily-digest' && req.method === 'GET') {
+      const secret = process.env.CRON_SECRET;
+      const given = ((req.headers['authorization'] as string) || '').replace(/^Bearer\s+/i, '');
+      const a = Buffer.from(given), b = Buffer.from(secret || '');
+      if (!secret || a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      const { sendDailyDigest } = await import('../server/alerts.js');
+      return res.status(200).json(await sendDailyDigest());
+    }
+
+    if (apiPath.startsWith('/admin/alerts')) {
+      const claim = requireAdminAuth(req, res);
+      if (!claim) return;
+      let owner = claim.role === 'owner' || claim.userId === 'owner-admin-user';
+      if (!owner) {
+        try {
+          const u: any = await withinMs(storage.getUser(claim.userId), 2500);
+          owner = u?.role === 'owner' || (u?.email || '').toLowerCase() === (process.env.OWNER_EMAIL || 'juusojuusto112@gmail.com').toLowerCase();
+        } catch { owner = false; }
+      }
+      if (!owner) return res.status(403).json({ message: 'Only the owner can manage alerts' });
+      res.setHeader('Cache-Control', 'no-store');
+      const alerts = await import('../server/alerts.js');
+      const body = (req.body || {}) as any;
+
+      if (apiPath === '/admin/alerts' && req.method === 'GET') {
+        const [settings, devices, history] = await Promise.all([
+          alerts.getSettings(), alerts.listDevices(), alerts.getHistory(50),
+        ]);
+        return res.status(200).json({ settings: alerts.toPublicSettings(settings), devices, history });
+      }
+      if (apiPath === '/admin/alerts/settings' && req.method === 'PUT') {
+        try {
+          const saved = await alerts.saveSettings(body);
+          await auditView('alert_settings_changed', { slack: !!saved.slackWebhookUrl, push: saved.pushEnabled });
+          return res.status(200).json(alerts.toPublicSettings(saved));
+        } catch (e: any) {
+          return res.status(400).json({ message: e?.message || 'Invalid settings' });
+        }
+      }
+      if (apiPath === '/admin/alerts/slack' && req.method === 'DELETE') {
+        await alerts.clearSlackWebhook();
+        await auditView('alert_slack_removed');
+        return res.status(200).json(alerts.toPublicSettings(await alerts.getSettings()));
+      }
+      if (apiPath === '/admin/alerts/devices' && req.method === 'POST') {
+        const token = typeof body.fcmToken === 'string' ? body.fcmToken.trim() : '';
+        if (token.length < 20 || token.length > 400) return res.status(400).json({ message: 'fcmToken required' });
+        await alerts.registerDevice(
+          token, claim.userId,
+          typeof body.label === 'string' ? body.label.slice(0, 60) : null,
+          typeof body.appVersion === 'string' ? body.appVersion.slice(0, 30) : null,
+        );
+        await auditView('alert_device_registered');
+        return res.status(200).json({ success: true, devices: await alerts.listDevices() });
+      }
+      if (apiPath === '/admin/alerts/devices/unregister' && req.method === 'POST') {
+        if (typeof body.fcmToken === 'string' && body.fcmToken) await alerts.removeDevice(body.fcmToken.trim());
+        return res.status(200).json({ success: true, devices: await alerts.listDevices() });
+      }
+      if (apiPath === '/admin/alerts/test' && req.method === 'POST') {
+        return res.status(200).json(await alerts.sendTestAlert());
+      }
+      if (apiPath === '/admin/alerts/digest' && req.method === 'POST') {
+        return res.status(200).json(await alerts.sendDailyDigest(true));
+      }
+      return res.status(404).json({ message: 'Not found' });
     }
 
     // GET /api/admin/analytics/overview

@@ -218,6 +218,12 @@ class KsykApp : Application() {
             "Push-ilmoitukset",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply { description = "Reaaliaikaiset ilmoitukset koulusta" })
+
+        nm.createNotificationChannel(NotificationChannel(
+            CHANNEL_OWNER_ALERTS,
+            "Omistajan hälytykset",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply { description = "Kaatumiset, virhepiikit ja tietoturvahälytykset (vain ylläpito)" })
     }
 
     companion object {
@@ -228,6 +234,7 @@ class KsykApp : Application() {
         const val CHANNEL_NAVIGATION = "ksyk_navigation"
         const val CHANNEL_GENERAL    = "ksyk_general"
         const val CHANNEL_PUSH       = "ksyk_push"
+        const val CHANNEL_OWNER_ALERTS = "ksyk_owner_alerts"
 
         /**
          * Register (or re-register) the FCM token with the KSYK backend.

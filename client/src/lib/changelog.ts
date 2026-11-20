@@ -10,17 +10,33 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.4.1";
 /** Latest Android APK version available in public/releases/ — defined once in shared/release.ts. */
 export { ANDROID_APP_VERSION } from "../../../shared/release";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.1",
+    date: "November 2026",
+    title: "Analytics rebuilt, errors grouped, owner alerts to Slack and your phone, Android logs finally arrive",
+    titleFi: "Analytiikka uusittu, virheet ryhmitelty, omistajan hälytykset Slackiin ja puhelimeen, Android-lokit pääsevät perille",
+    latest: true,
+    highlights: [
+      "**The Analytics tab is rebuilt around seven views:** Overview, Usage, Errors, Sessions, Logs, Alerts and Feedback, with one range picker (remembered), an online-now counter and a refresh button. Overview shows visitors, sessions, pageviews, searches, feature uses and errors, each compared with the previous period, plus a pageviews-and-errors chart, the top errors and top features. The old stat-card grid, nested pills and Sentry launcher card are gone (Sentry is still one click away in Errors).",
+      "**Errors are grouped like PostHog issues.** The same failure (ids and numbers masked) is one row with an event count, first and last seen, platforms, app versions, a trend and the stack trace. New errors are flagged, and Copy for bug report puts everything on the clipboard.",
+      "**Owner alerts to Slack and your phone.** Crash, new error, error spike, failed admin sign-ins (5 in 10 minutes by default), new support ticket, optional every admin sign-in, and a daily digest. Each rule has its own thresholds and a quiet period so a crash loop pings once. Alerts tab: connect a Slack incoming webhook, see registered phones, send a test, read the history. Owner only; the webhook is write-only and the server never sends it back.",
+      "**Android:** new Insights and Alerts pills in the admin panel (Android 1.3.0): the same overview, grouped errors and logs, plus a Notify this phone switch, rule switches and a test button. Tapping an alert opens the Alerts pill.",
+      "**Fixed: Android logs never reached production.** `POST /api/logs/batch` only existed in the dev server and returned 404 on the live site. It now exists in the production handler.",
+      "**Fixed: Android errors and crashes were stored as info.** `POST /api/logs` ignored the `level`, `source`, `errorStack` and `metadata` the app sends, so every Android error and crash landed as an info row with no stack. They are now stored as errors with their stack and version, and the Logs source filter reads the stored source.",
+      "**To switch on:** paste a Slack webhook in Analytics, Alerts. Push uses the FIREBASE_* variables broadcasts already use. The daily digest runs from a Vercel cron and needs a `CRON_SECRET` environment variable; until it is set, use Send digest now.",
+      "**Tests and rollback:** 11 new cases in `test:security` (owner-only access, webhook validation, secret never returned, cron closed without the secret, fingerprint grouping). Rollback: `git reset --hard rollback-before-1-4-1`. DB: three tables are created on first use (`alert_devices`, `alert_events`, `alert_signals`); rolling back leaves them in place, which is safe.",
+    ],
+  },
+  {
     version: "1.4.0",
     date: "November 2026",
     title: "Real builder measurements, toolbar-controlled snapping, new /download page, search titles",
     titleFi: "Oikeat mitat rakentimessa, työkalupalkin ohjaama tarttuminen, uusi /download-sivu, hakutulosten otsikot",
-    latest: true,
     highlights: [
       "**Builder measurements are now real.** Every length, area and offset goes through one WGS84 module (`lib/geo.ts`) at the point's own latitude, checked against an independent geodesic reference to the millimetre. Before, three formulas disagreed (a flat 111 320 m/degree, a spherical haversine and a per-file cosine), so a typed 100 m showed as 99.89 m on its label while the shape was really 100.25 m on the ground.",
       "**Resizing a rotated building no longer skews it.** Width and height are measured in the shape's own frame, so a building turned 30 degrees reports its real side lengths and stays a true rectangle at the size you type. Properties now show real area (m²) and perimeter; drawing shows live side lengths and m².",

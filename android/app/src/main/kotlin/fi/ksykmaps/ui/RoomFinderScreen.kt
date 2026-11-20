@@ -227,7 +227,7 @@ fun RoomFinderScreen(onOpenOnMap: ((String) -> Unit)? = null) {
             } else {
                 // Fallback: open the web link (used if this screen is
                 // ever hosted outside the standard NavHost).
-                val uri = if (id != null) "https://ksykmaps.fi/?room=$id" else "https://ksykmaps.fi"
+                val uri = if (id != null) "https://www.ksykmaps.fi/?room=$id" else "https://www.ksykmaps.fi"
                 try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: Exception) { }
             }
             selected = null
@@ -389,7 +389,7 @@ private fun RoomDetailSheet(r: JsonObject, onDismiss: () -> Unit, onOpenInMap: (
                         val share = Intent(Intent.ACTION_SEND).apply {
                             setType("text/plain")
                             val roomLabel = if (lang == "fi") "Luokka" else "Room"
-                            putExtra(Intent.EXTRA_TEXT, "$roomLabel $num · https://ksykmaps.fi/?room=$id")
+                            putExtra(Intent.EXTRA_TEXT, "$roomLabel $num · https://www.ksykmaps.fi/?room=$id")
                         }
                         try {
                             ctx.startActivity(Intent.createChooser(

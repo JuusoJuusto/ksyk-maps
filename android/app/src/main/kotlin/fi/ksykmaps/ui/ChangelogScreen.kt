@@ -36,6 +36,22 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.3.0",
+        date = "November 2026",
+        titleFi = "Tilastot, virheet ja hälytykset ylläpitoon",
+        titleEn = "Insights, errors and alerts for admins",
+        highlightsFi = listOf(
+            "Hallintapaneelin Tilastot: kävijät, istunnot, sivunäytöt, haut ja virheet verrattuna edelliseen jaksoon, sekä ryhmitellyt virheet pinoineen.",
+            "Uusi Hälytykset-välilehti omistajalle: push-ilmoitus tähän puhelimeen kaatumisista, virhepiikeistä, epäilyttävistä kirjautumisista ja uusista tukipyynnöistä. Slack-yhteys asetetaan verkon hallinnassa.",
+            "Korjattu: sovelluksen virheet ja kaatumiset tallentuivat palvelimelle väärällä tasolla ja ilman pinoa, ja Android-lokit eivät päässeet perille ollenkaan.",
+        ),
+        highlightsEn = listOf(
+            "Admin Insights: visitors, sessions, pageviews, searches and errors compared with the previous period, plus errors grouped with their stack traces.",
+            "New Alerts tab for the owner: a push notification on this phone for crashes, error spikes, suspicious sign-ins and new support tickets. Slack is connected on the web admin.",
+            "Fixed: app errors and crashes were stored on the server at the wrong level and without a stack, and Android logs never arrived at all.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.2.2",
         date = "November 2026",
         titleFi = "Hallintapaneelin yleiskatsaus kertoo totuuden",

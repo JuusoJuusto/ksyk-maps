@@ -545,7 +545,7 @@ export default function AppLogsManager() {
           <CardTitle>Live log stream</CardTitle>
           <CardDescription>
             Raw event stream, logins, and app events (latest 100 · filters apply).
-            For aggregate metrics, features, and sessions see the <b>Analytics</b> pill.
+            For aggregate metrics, features, and sessions see the <b>Overview</b> and <b>Usage</b> tabs.
           </CardDescription>
         </CardHeader>
         <CardContent>

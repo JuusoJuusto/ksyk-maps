@@ -89,6 +89,10 @@ fun AdminPanelScreen(
     val scope = rememberCoroutineScope()
 
     var selectedSection by rememberSaveableInt(0)
+    // A tap on an owner-alert notification opens the Alerts pill directly.
+    LaunchedEffect(AdminPanelNav.pending) {
+        AdminPanelNav.pending?.let { selectedSection = it; AdminPanelNav.pending = null }
+    }
     var showSignOutConfirm by remember { mutableStateOf(false) }
 
     if (showSignOutConfirm) {
@@ -202,7 +206,8 @@ fun AdminPanelScreen(
                 onSelect = { selectedSection = it },
                 tabs = if (isFi) listOf(
                     Icons.Outlined.GridView to "Yleiskatsaus",
-                    Icons.Outlined.BarChart to "Aktiviteetti",
+                    Icons.Outlined.BarChart to "Tilastot",
+                    Icons.Outlined.NotificationsActive to "Hälytykset",
                     Icons.Outlined.Campaign to "Ilmoitukset",
                     Icons.Outlined.Wifi to "Wi-Fi",
                     Icons.Outlined.GpsFixed to "Sijainti",
@@ -210,7 +215,8 @@ fun AdminPanelScreen(
                     Icons.Outlined.Tune to "Toiminnot",
                 ) else listOf(
                     Icons.Outlined.GridView to "Overview",
-                    Icons.Outlined.BarChart to "Activity",
+                    Icons.Outlined.BarChart to "Insights",
+                    Icons.Outlined.NotificationsActive to "Alerts",
                     Icons.Outlined.Campaign to "News",
                     Icons.Outlined.Wifi to "Wi-Fi",
                     Icons.Outlined.GpsFixed to "Live",
@@ -221,12 +227,13 @@ fun AdminPanelScreen(
             val onSessionExpired: () -> Unit = { onSignOut() }
             when (selectedSection) {
                 0 -> AdminOverviewSection(isFi, scope)
-                1 -> AdminActivitySection(isFi, onSessionExpired)
-                2 -> AdminAnnouncementsSection(isFi, scope)
-                3 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
-                4 -> AdminLiveSection(isFi)
-                5 -> AdminUsersSection(isFi, onSessionExpired)
-                6 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
+                1 -> AdminInsightsSection(isFi, onSessionExpired)
+                ADMIN_SECTION_ALERTS -> AdminAlertsSection(isFi, onSessionExpired)
+                3 -> AdminAnnouncementsSection(isFi, scope)
+                4 -> AdminWifiSection(isFi, ctx, scope, onOpenBeaconCapture)
+                5 -> AdminLiveSection(isFi)
+                6 -> AdminUsersSection(isFi, onSessionExpired)
+                7 -> AdminActionsSection(isFi, ctx, onSignOut, scope)
             }
         }
     }
@@ -1130,7 +1137,7 @@ private fun AdminActionsSection(
                         ctx.startActivity(
                             android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://ksykmaps.fi/builder"),
+                                android.net.Uri.parse("https://www.ksykmaps.fi/builder"),
                             )
                         )
                     } catch (_: Exception) {}
@@ -1150,7 +1157,7 @@ private fun AdminActionsSection(
                         ctx.startActivity(
                             android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://ksykmaps.fi/admin"),
+                                android.net.Uri.parse("https://www.ksykmaps.fi/admin"),
                             )
                         )
                     } catch (_: Exception) {}
@@ -2481,7 +2488,7 @@ private data class ActivityStats(
 )
 
 @Composable
-private fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {}) {
+internal fun AdminActivitySection(isFi: Boolean, onSessionExpired: () -> Unit = {}) {
     var rows by remember { mutableStateOf<List<ActivityRow>>(emptyList()) }
     var stats by remember { mutableStateOf<ActivityStats?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -2914,7 +2921,7 @@ private fun formatShortTime(iso: String): String {
 }
 
 @Composable
-private fun SessionExpiredCard(isFi: Boolean, onReLogin: () -> Unit) {
+internal fun SessionExpiredCard(isFi: Boolean, onReLogin: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()

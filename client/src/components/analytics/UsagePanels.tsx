@@ -1,14 +1,8 @@
 /**
- * AdminAnalyticsDashboard — real-Postgres analytics for KSYK Maps admins.
- *
- * v4.5.55 rewrite: sticky range picker, sparkline mini-charts in each
- * stat card, stacked-area time-series of pageviews by platform, session
- * drill-in modal, CSV export per panel, richer empty states, per-panel
- * refresh timestamp, mobile-first responsive layout.
- *
- * All data is powered by /api/admin/analytics/{overview,timeseries,
- * sessions,session/:id,features,errors,performance,easter-eggs,
- * recent-events,audit}. No hardcoded numbers anywhere.
+ * Usage + session detail panels shown inside the Analytics tab (Usage and
+ * Sessions). The tab shell, overview, errors and alerts live next to this file;
+ * these are the long-tail drill-downs: features, search gaps, devices,
+ * retention, performance, session replays and the raw event stream.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,205 +10,18 @@ import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fetchList, fetchObject } from "@/lib/fetchList";
 import { EASTER_EGGS } from "@/lib/easterEggRegistry";
 import {
-  Activity, AlertTriangle, ArrowRight, BarChart3, Clock, Download,
-  Eye, Filter, Gauge, MousePointer2, Pause, Play, RefreshCw, Search, Shield,
-  Sparkles, TrendingUp, Users, MapPin, Navigation, Video,
+  Activity, AlertTriangle, ArrowRight, Clock, Download,
+  Filter, MousePointer2, Pause, Play, RefreshCw, Search,
+  Sparkles, Users, MapPin, Navigation,
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart,
-} from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Line, LineChart } from "recharts";
 import { RrwebSessionsCard, RrwebPlayerModal as RrwebPlayerModalInline } from "@/components/RrwebReplay";
-import { PostHogReplaysPanel } from "@/components/PostHogReplaysPanel";
-import { cn } from "@/lib/utils";
 import ErrorRetry from "@/components/ErrorRetry";
-
-type Range = "24h" | "7d" | "30d" | "90d";
-
-// ── Range picker (sticky in dashboard header) ───────────────────────
-// v4.7.13 apple-design pass — proper segmented control feel, tighter
-// spacing, active state uses subtle shadow + blue fill rather than
-// competing chrome.
-function RangePicker({ range, onChange }: { range: Range; onChange: (r: Range) => void }) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Date range"
-      className="inline-flex items-center gap-0.5 rounded-lg bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800"
-    >
-      {(["24h", "7d", "30d", "90d"] as Range[]).map((r) => {
-        const active = range === r;
-        return (
-          <button
-            key={r}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(r)}
-            className={cn(
-              "px-3 h-7 rounded-md text-[11px] font-semibold tabular-nums transition-all min-w-[42px]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-900",
-              active
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50",
-            )}
-          >
-            {r}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Overview ────────────────────────────────────────────────────────
-interface Overview {
-  range: string;
-  since: string;
-  pageviews: number; searches: number; errors: number;
-  featureUses: number; easterEggs: number; sessions: number;
-  navigations: number;
-  bySource: Record<string, number>;
-  fetchedAt: string;
-}
-function useOverview(range: Range) {
-  return useQuery<Overview | null>({
-    queryKey: ["admin-analytics-overview", range],
-    queryFn: () => fetchObject<Overview>(`/api/admin/analytics/overview?range=${range}`),
-    refetchInterval: 30_000,
-  });
-}
-
-// ── Timeseries ──────────────────────────────────────────────────────
-interface TimeseriesRow { ts: string; platform?: string; feature?: string; n: number; }
-interface Timeseries { bucket: string; pageviews: TimeseriesRow[]; errors: TimeseriesRow[]; features: TimeseriesRow[]; }
-function useTimeseries(range: Range) {
-  return useQuery<Timeseries | null>({
-    queryKey: ["admin-analytics-timeseries", range],
-    queryFn: () => fetchObject<Timeseries>(`/api/admin/analytics/timeseries?range=${range}`),
-    refetchInterval: 60_000,
-  });
-}
-
-function TimeseriesChart({ range }: { range: Range }) {
-  const { data, isLoading } = useTimeseries(range);
-  // Reshape pageviews (rows have ts + platform + n) → wide rows per ts
-  // with a column per platform, ready for AreaChart.
-  const rows = useMemo(() => {
-    const map = new Map<string, Record<string, any>>();
-    for (const r of data?.pageviews ?? []) {
-      const key = r.ts;
-      const existing = map.get(key) || { ts: key };
-      existing[r.platform || "unknown"] = (existing[r.platform || "unknown"] || 0) + Number(r.n);
-      map.set(key, existing);
-    }
-    for (const r of data?.errors ?? []) {
-      const key = r.ts;
-      const existing = map.get(key) || { ts: key };
-      existing.errors = Number(r.n);
-      map.set(key, existing);
-    }
-    return [...map.values()].sort((a, b) => a.ts.localeCompare(b.ts));
-  }, [data]);
-
-  const platforms = useMemo(() => {
-    const s = new Set<string>();
-    for (const r of data?.pageviews ?? []) s.add(r.platform || "unknown");
-    return [...s].sort();
-  }, [data]);
-  const colours: Record<string, string> = {
-    web:     "#3b82f6",
-    android: "#10b981",
-    ios:     "#f59e0b",
-    unknown: "#9ca3af",
-    server:  "#8b5cf6",
-  };
-
-  const fmt = (v: string) => {
-    try {
-      const d = new Date(v);
-      if (data?.bucket === "day") return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-    } catch { return v; }
-  };
-
-  return (
-    <Card className="border-slate-200 dark:border-slate-800">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Pageviews by platform
-            </CardTitle>
-            <CardDescription className="text-xs">Live time-series from Postgres</CardDescription>
-          </div>
-          {platforms.length > 0 && (
-            <div className="flex gap-2 text-[10px]">
-              {platforms.map((p) => (
-                <span key={p} className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full" style={{ background: colours[p] || "#9ca3af" }} />
-                  {p}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="pl-0 pr-2 pb-2">
-        {isLoading && (
-          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
-            Loading…
-          </div>
-        )}
-        {!isLoading && rows.length === 0 && (
-          <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-            <BarChart3 className="h-6 w-6 opacity-40" />
-            <p className="text-sm">Not enough data</p>
-            <p className="text-xs text-muted-foreground mt-1">Pageviews will appear here as they're recorded.</p>
-          </div>
-        )}
-        {rows.length > 0 && (
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={rows} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
-              <defs>
-                {platforms.map((p) => (
-                  <linearGradient key={p} id={`grad-${p}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={colours[p] || "#9ca3af"} stopOpacity={0.5} />
-                    <stop offset="100%" stopColor={colours[p] || "#9ca3af"} stopOpacity={0} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <XAxis dataKey="ts" tickFormatter={fmt} tick={{ fontSize: 10 }} stroke="#94a3b8" />
-              <YAxis width={28} tick={{ fontSize: 10 }} stroke="#94a3b8" />
-              <Tooltip
-                labelFormatter={fmt}
-                contentStyle={{
-                  background: "rgba(15,23,42,0.95)", border: 0,
-                  borderRadius: 8, fontSize: 12, color: "#f8fafc",
-                }}
-              />
-              {platforms.map((p) => (
-                <Area
-                  key={p}
-                  type="monotone"
-                  dataKey={p}
-                  stackId="pv"
-                  stroke={colours[p] || "#9ca3af"}
-                  strokeWidth={2}
-                  fill={`url(#grad-${p})`}
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+import type { Range } from "./shared";
 
 // v4.7.10 — Popular rooms card. Was a 🔥 toggle on the public map;
 // moved here because the audience for aggregate room-view data is
@@ -228,7 +35,7 @@ function useRoomPopularity(range: Range) {
     refetchInterval: 300_000,
   });
 }
-function RoomPopularityCard({ range }: { range: Range }) {
+export function RoomPopularityCard({ range }: { range: Range }) {
   const { data, isLoading } = useRoomPopularity(range);
   // Also fetch rooms so we can show human-readable numbers instead of UUIDs.
   const { data: rooms } = useQuery<Array<{ id: string; roomNumber?: string; name?: string }>>({
@@ -318,7 +125,7 @@ function useRoutePopularity(range: Range) {
     refetchInterval: 300_000,
   });
 }
-function RoutePopularityCard({ range }: { range: Range }) {
+export function RoutePopularityCard({ range }: { range: Range }) {
   const { data = [], isLoading } = useRoutePopularity(range);
   const total = data.reduce((s, r) => s + r.count, 0);
   const max = data[0]?.count ?? 1;
@@ -400,7 +207,7 @@ function useAnnouncementCtr(range: Range) {
     refetchInterval: 300_000,
   });
 }
-function AnnouncementCtrCard({ range }: { range: Range }) {
+export function AnnouncementCtrCard({ range }: { range: Range }) {
   const { data = [], isLoading } = useAnnouncementCtr(range);
   const totalViews = data.reduce((s, r) => s + r.views, 0);
   const totalClicks = data.reduce((s, r) => s + r.clicks, 0);
@@ -482,7 +289,7 @@ function useRetention(range: Range) {
   });
 }
 
-function RetentionChart({ range }: { range: Range }) {
+export function RetentionChart({ range }: { range: Range }) {
   const { data, isLoading } = useRetention(range);
   const rows = data?.days ?? [];
   const cohortSize = data?.cohortSize ?? 0;
@@ -552,58 +359,6 @@ function RetentionChart({ range }: { range: Range }) {
   );
 }
 
-// ── Stat card with sparkline ────────────────────────────────────────
-function StatCard({
-  icon: Icon, label, value, sparkline, tone = "blue", trend,
-}: {
-  icon: any;
-  label: string;
-  value: string | number;
-  sparkline?: number[];
-  tone?: "blue" | "amber" | "red" | "emerald" | "violet";
-  trend?: string;
-}) {
-  // Apple-native: neutral card, one accent color on the number only.
-  const accent: Record<string, { text: string; stroke: string }> = {
-    blue:    { text: "text-blue-600 dark:text-blue-400",       stroke: "#3b82f6" },
-    amber:   { text: "text-amber-600 dark:text-amber-400",     stroke: "#f59e0b" },
-    red:     { text: "text-red-600 dark:text-red-400",         stroke: "#ef4444" },
-    emerald: { text: "text-emerald-600 dark:text-emerald-400", stroke: "#10b981" },
-    violet:  { text: "text-violet-600 dark:text-violet-400",   stroke: "#8b5cf6" },
-  };
-  const t = accent[tone];
-  const chartData = (sparkline || []).map((n, i) => ({ i, n }));
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-      <div className="p-4 pb-3">
-        <div className="flex items-start gap-3">
-          <Icon className="h-[18px] w-[18px] text-gray-400 shrink-0 mt-1" strokeWidth={1.75} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              {label}
-            </p>
-            <p className={cn("text-[26px] font-semibold leading-none mt-1 tabular-nums tracking-[-0.02em]", t.text)}>
-              {value}
-            </p>
-            {trend && (
-              <p className="text-[11px] text-muted-foreground mt-1">{trend}</p>
-            )}
-          </div>
-        </div>
-      </div>
-      {chartData.length > 1 && (
-        <div className="h-8 opacity-70 pointer-events-none">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-              <Line type="monotone" dataKey="n" stroke={t.stroke} strokeWidth={1.5} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── CSV helper ──────────────────────────────────────────────────────
 function downloadCSV(rows: Record<string, unknown>[], filename: string) {
   if (!rows.length) return;
@@ -648,7 +403,7 @@ interface RrwebStatus {
   sampleFirstEventType?: number | null;
 }
 
-function SessionsPanel({ range }: { range: Range }) {
+export function SessionsPanel({ range }: { range: Range }) {
   const [drillSid, setDrillSid] = useState<string | null>(null);
   // v4.7.23 — Replay-inline: fetch which sessions have rrweb recordings
   // so the row Play button and the "Session replays" card share one
@@ -1191,7 +946,7 @@ function SessionReplayTimeline({ rows }: { rows: Array<{ ts: string; kind: strin
 
 // ── Features panel ──────────────────────────────────────────────────
 interface FeatureRow { feature: string; action: string; n: number; }
-function FeaturesPanel({ range }: { range: Range }) {
+export function FeaturesPanel({ range }: { range: Range }) {
   const queryResult = useQuery<FeatureRow[]>({
     queryKey: ["admin-analytics-features", range],
     queryFn: () => fetchList<FeatureRow>(`/api/admin/analytics/features?range=${range}`),
@@ -1245,8 +1000,6 @@ function FeaturesPanel({ range }: { range: Range }) {
   );
 }
 
-// ── Errors ──────────────────────────────────────────────────────────
-interface ErrorRow { id: string; level: string; message: string; url: string | null; errorStack: string | null; createdAt: string; }
 /**
  * v1.84.0 — new admin insight panels grouped into one tab so the top-level
  * Analytics view doesn't drown in nested tabs. Four sub-cards inside:
@@ -1260,7 +1013,7 @@ interface PeakUsageRow { dow: number; hour: number; n: number; }
 interface DeviceBreakdown { platform: { k: string; n: number }[]; appVersion: { k: string; n: number }[]; os: { k: string; n: number }[]; }
 interface BounceRow { route: string; sessions: number; bounced: number; bounce_pct: number; }
 
-function InsightsPanels({ range }: { range: Range }) {
+export function InsightsPanels({ range }: { range: Range }) {
   return (
     <div className="space-y-4">
       <SearchZeroResults range={range} />
@@ -1500,74 +1253,9 @@ function BounceRateCard({ range }: { range: Range }) {
   );
 }
 
-function ErrorsPanel({ range }: { range: Range }) {
-  const queryResult = useQuery<ErrorRow[]>({
-    queryKey: ["admin-analytics-errors", range],
-    queryFn: () => fetchList<ErrorRow>(`/api/admin/analytics/errors?range=${range}`),
-    refetchInterval: 30_000,
-  });
-  const { data = [], isLoading } = queryResult;
-  const [expanded, setExpanded] = useState<string | null>(null);
-  return (
-    <div className="space-y-3 pt-3">
-      <ErrorRetry query={queryResult} label="error log" />
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
-          {isLoading ? "Loading…" : `${data.length} error${data.length === 1 ? "" : "s"}`}
-        </p>
-        <button
-          type="button"
-          onClick={() => downloadCSV(data as any, "ksyk-errors.csv")}
-          disabled={!data.length}
-          className="h-7 px-2 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-        >
-          <Download className="h-3 w-3" /> CSV
-        </button>
-      </div>
-      {/* v4.7.16 — dropped the outer bordered card. Rows carry their
-       *  own visual rhythm via the divider list. */}
-      {isLoading && <p role="status" aria-live="polite" className="text-sm text-slate-500 py-6 text-center">Loading errors…</p>}
-      {!isLoading && data.length === 0 && !queryResult.isError && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-slate-700 dark:text-slate-200">No errors</p>
-          <p className="text-xs text-slate-500 mt-1">Nothing has been reported in this range.</p>
-        </div>
-      )}
-      {data.length > 0 && (
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800 border-t border-b border-slate-100 dark:border-slate-800">
-          {data.map((e) => (
-            <li key={e.id} className="py-3">
-              <button
-                type="button"
-                onClick={() => setExpanded(expanded === e.id ? null : e.id)}
-                aria-expanded={expanded === e.id}
-                className="w-full flex items-start justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{e.message}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    {new Date(e.createdAt).toLocaleString()}
-                    {e.url && <span> · {e.url}</span>}
-                  </p>
-                </div>
-                <Badge variant="destructive" className="shrink-0">{e.level}</Badge>
-              </button>
-              {expanded === e.id && e.errorStack && (
-                <pre className="mt-2 text-[10px] font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded overflow-x-auto max-h-64">
-                  {e.errorStack}
-                </pre>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 // ── Performance ─────────────────────────────────────────────────────
 interface PerfRow { metric_name: string; n: number; p50: number; p95: number; p99: number; avg: number; }
-function PerformancePanel({ range }: { range: Range }) {
+export function PerformancePanel({ range }: { range: Range }) {
   const queryResult = useQuery<PerfRow[]>({
     queryKey: ["admin-analytics-perf", range],
     queryFn: () => fetchList<PerfRow>(`/api/admin/analytics/performance?range=${range}`),
@@ -1637,7 +1325,7 @@ interface EggsPanelData {
   recent: any[];
   kvCounters: Record<string, number>;
 }
-function EggsPanel() {
+export function EggsPanel() {
   const { data, isLoading, refetch } = useQuery<EggsPanelData | null>({
     queryKey: ["admin-analytics-eggs"],
     queryFn: () => fetchObject<EggsPanelData>("/api/admin/analytics/easter-eggs?range=90d"),
@@ -1733,7 +1421,7 @@ function EggsPanel() {
 }
 
 // ── Recent events firehose ──────────────────────────────────────────
-function RecentEventsPanel({ range }: { range: Range }) {
+export function RecentEventsPanel({ range }: { range: Range }) {
   const queryResult = useQuery<any[]>({
     queryKey: ["admin-analytics-recent", range],
     queryFn: () => fetchList<any>(`/api/admin/analytics/recent-events?limit=200&range=${range}`),
@@ -1789,7 +1477,7 @@ function RecentEventsPanel({ range }: { range: Range }) {
 }
 
 // ── Audit ───────────────────────────────────────────────────────────
-function AuditPanel() {
+export function AuditPanel() {
   const { data = [], isLoading } = useQuery<any[]>({
     queryKey: ["admin-analytics-audit"],
     queryFn: () => fetchList<any>("/api/admin/analytics/audit?limit=200"),
@@ -1828,234 +1516,6 @@ function AuditPanel() {
             ))}
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Top-level ───────────────────────────────────────────────────────
-export default function AdminAnalyticsDashboard() {
-  const [range, setRange] = useState<Range>("24h");
-  const [usageTab, setUsageTab] = useState("features");
-  const [healthTab, setHealthTab] = useState("errors");
-  const overviewQ = useOverview(range);
-  const { data: overview, dataUpdatedAt } = overviewQ;
-  const { data: timeseries } = useTimeseries(range);
-
-  // Sparklines derived from timeseries so we don't fetch twice.
-  const pvSpark = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of timeseries?.pageviews ?? []) {
-      map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
-    }
-    return [...map.entries()].sort().map(([, n]) => n);
-  }, [timeseries]);
-  const errSpark = useMemo(() => (timeseries?.errors ?? []).map((r) => Number(r.n)), [timeseries]);
-
-  // Sparklines for the remaining 4 stat cards, derived from the features timeseries.
-  // features rows have { ts, feature, n } — aggregate by bucket timestamp.
-  const featureUsesSpark = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of timeseries?.features ?? []) {
-      map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
-    }
-    return [...map.entries()].sort().map(([, n]) => n);
-  }, [timeseries]);
-  const searchesSpark = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of timeseries?.features ?? []) {
-      if (r.feature && r.feature.toLowerCase().includes("search")) {
-        map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
-      }
-    }
-    return [...map.entries()].sort().map(([, n]) => n);
-  }, [timeseries]);
-  const navigationsSpark = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of timeseries?.features ?? []) {
-      const f = r.feature?.toLowerCase() ?? "";
-      if (f.includes("navigat") || f.includes("route")) {
-        map.set(r.ts, (map.get(r.ts) || 0) + Number(r.n));
-      }
-    }
-    return [...map.entries()].sort().map(([, n]) => n);
-  }, [timeseries]);
-
-  return (
-    <div className="space-y-4">
-      {/* v4.7.49 — AdminDashboard renders the section masthead above
-       *  every panel, so no duplicate H2 here.  Just a compact meta
-       *  strip with live indicator + range picker. */}
-      <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-white dark:bg-gray-950 border-b border-[#d5dae0] dark:border-[#2a3040] flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap font-semibold">
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
-            <span className="opacity-60">·</span>
-            <span>auto-refresh 30 s</span>
-            {dataUpdatedAt && (
-              <>
-                <span className="opacity-60">·</span>
-                <span className="tabular-nums">
-                  updated {new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                </span>
-              </>
-            )}
-          </p>
-        </div>
-        <RangePicker range={range} onChange={setRange} />
-      </div>
-      <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-2 italic">
-        Range affects every card except Eggs (lifetime) &amp; the audit log (fixed 7d window).
-      </p>
-
-      {/* v4.7.15 — surface fetch failures instead of silently
-       *  showing zeros across every card. Retry actually calls
-       *  react-query's refetch. */}
-      <ErrorRetry query={overviewQ} label="analytics overview" />
-
-      {/* ── Product Analytics ─────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-2.5">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-            Product Analytics
-          </h3>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatCard icon={Users} label="Sessions" value={overview?.sessions ?? "…"} tone="blue" />
-          <StatCard icon={Eye} label="Pageviews" value={overview?.pageviews ?? "…"} sparkline={pvSpark} tone="blue" />
-          <StatCard icon={Search} label="Searches" value={overview?.searches ?? "…"} sparkline={searchesSpark} tone="violet" />
-          <StatCard icon={MousePointer2} label="Feature uses" value={overview?.featureUses ?? "…"} sparkline={featureUsesSpark} tone="emerald" />
-          <StatCard icon={Activity} label="Navigations" value={overview?.navigations ?? "…"} sparkline={navigationsSpark} tone="blue" />
-          <StatCard
-            icon={TrendingUp}
-            label="Web · Android"
-            value={overview
-              ? `${overview.bySource?.web ?? 0} · ${overview.bySource?.android ?? 0}`
-              : "…"}
-            tone="emerald"
-          />
-        </div>
-      </div>
-
-      {/* ── Technical Health ──────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-2.5">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-            Technical Health
-          </h3>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatCard icon={AlertTriangle} label="Errors" value={overview?.errors ?? "…"} sparkline={errSpark} tone="red" />
-          <StatCard icon={Sparkles} label="Easter eggs" value={overview?.easterEggs ?? "…"} tone="amber" />
-        </div>
-      </div>
-
-      {/* Timeseries chart */}
-      <TimeseriesChart range={range} />
-
-      {/* v4.7.10 — retention + popular rooms side-by-side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <RetentionChart range={range} />
-        <RoomPopularityCard range={range} />
-      </div>
-      {/* v4.7.11 — routes + announcement CTR side-by-side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <RoutePopularityCard range={range} />
-        <AnnouncementCtrCard range={range} />
-      </div>
-
-      {/* v4.7.23 — session replays moved INTO the Sessions sub-tab
-       *  below. Previously this stood alone above the tabs; folding
-       *  it in gives admins a single "which sessions can I replay"
-       *  answer instead of two competing tables. */}
-
-      {/* Detail tabs */}
-      <div className="pt-2">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-            Drill-down
-          </h3>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-        </div>
-        {/* Usage tabs */}
-        <div className="space-y-1 mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
-              Usage
-            </span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
-          </div>
-        </div>
-        <Tabs value={usageTab} onValueChange={setUsageTab}>
-          <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg mb-1">
-            <TabsTrigger value="features" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Gauge className="h-3 w-3" />Features
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Search className="h-3 w-3" />Insights
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Users className="h-3 w-3" />Sessions
-            </TabsTrigger>
-            <TabsTrigger value="recent" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Filter className="h-3 w-3" />Recent
-            </TabsTrigger>
-            <TabsTrigger value="eggs" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Sparkles className="h-3 w-3" />Eggs
-            </TabsTrigger>
-            <TabsTrigger value="posthog" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Video className="h-3 w-3" />PostHog
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="features"><FeaturesPanel range={range} /></TabsContent>
-          <TabsContent value="insights"><InsightsPanels range={range} /></TabsContent>
-          <TabsContent value="sessions"><SessionsPanel range={range} /></TabsContent>
-          <TabsContent value="eggs"><EggsPanel /></TabsContent>
-          <TabsContent value="recent"><RecentEventsPanel range={range} /></TabsContent>
-          <TabsContent value="posthog" className="pt-3"><PostHogReplaysPanel range={range} /></TabsContent>
-        </Tabs>
-
-        {/* Health tabs */}
-        <div className="space-y-1 mt-3 mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-600 shrink-0">
-              Health
-            </span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/60" />
-          </div>
-        </div>
-        <Tabs value={healthTab} onValueChange={setHealthTab}>
-          <TabsList className="inline-flex gap-0.5 h-8 bg-slate-100/80 dark:bg-slate-900 p-0.5 border border-slate-200/70 dark:border-slate-800 rounded-lg mb-1">
-            <TabsTrigger value="errors" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md data-[state=active]:text-red-600 dark:data-[state=active]:text-red-400">
-              <AlertTriangle className="h-3 w-3" />Errors
-            </TabsTrigger>
-            <TabsTrigger value="perf" className="text-[11px] h-7 font-semibold gap-1 px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 rounded-md">
-              <Clock className="h-3 w-3" />Performance
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="errors"><ErrorsPanel range={range} /></TabsContent>
-          <TabsContent value="perf"><PerformancePanel range={range} /></TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Audit log — its own section, unstyled container instead of a card
-       *  so it lives next to the details tab list, not floating separately. */}
-      <div className="pt-4">
-        <div className="flex items-baseline justify-between mb-2">
-          <h3 className="text-[13px] font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-            <Shield className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-            Admin audit log
-          </h3>
-          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
-            Last 7 days of privileged actions
-          </p>
-        </div>
-        <AuditPanel />
       </div>
     </div>
   );

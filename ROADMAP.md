@@ -12,7 +12,7 @@ _(empty — all items shipped)_
 
 ## 🚧 In progress
 
-- **v1.4.1 + Android 1.3.0 — analytics rebuilt + owner alerts.** Built and tested, not committed. To go live: commit together with `server/alerts.ts` / `server/insights.ts` (api/index.ts depends on them), then paste the Slack webhook in Analytics → Alerts, set `CRON_SECRET` on Vercel for the daily digest, install the 1.3.0 APK and switch on Notify this phone. Publishing the APK = copy to `public/releases/` and bump `shared/release.ts` in the same commit. See PROJECT-LOG 20-11-2026.
+- **v1.4.1 + Android 1.3.0 — analytics rebuilt + owner alerts.** Built, tested and committed locally on top of v1.4.0 (`73ee497`), not pushed. To go live: `git pull --rebase --autostash`, push, then paste the Slack webhook in Analytics → Alerts, set `CRON_SECRET` on Vercel for the daily digest, install the 1.3.0 APK and switch on Notify this phone. Publishing the APK = copy to `public/releases/` and bump `shared/release.ts` in the same commit. See PROJECT-LOG 20-11-2026.
 
 ## 📋 Next (near-term)
 

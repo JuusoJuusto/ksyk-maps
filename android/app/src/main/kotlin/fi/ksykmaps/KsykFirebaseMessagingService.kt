@@ -6,6 +6,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import fi.ksykmaps.data.AdminAlerts
 import fi.ksykmaps.data.Api
 import fi.ksykmaps.data.AppLog
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +23,7 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         AppLog.info("FCM", "New token — registering with server")
         scope.launch {
+            AdminAlerts.onTokenRefreshed(applicationContext, token)
             try {
                 val body = buildJsonObject {
                     put("fcmToken", token)
@@ -72,6 +74,7 @@ class KsykFirebaseMessagingService : FirebaseMessagingService() {
 
         val channel = when (message.data["type"]) {
             "schedule_change", "timetable" -> KsykApp.CHANNEL_TIMETABLE
+            "owner_alert" -> KsykApp.CHANNEL_OWNER_ALERTS
             else -> KsykApp.CHANNEL_PUSH
         }
         step("[4/6] channel=$channel")

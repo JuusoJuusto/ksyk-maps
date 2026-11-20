@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1 — November 2026
+
+- Analytics tab rebuilt (`client/src/components/analytics/`): Overview, Usage, Errors, Sessions, Logs, Alerts, Feedback; one remembered range picker; every KPI compared with the previous period; the 2,000-line `AdminAnalyticsDashboard` is now `analytics/UsagePanels.tsx` with its default component, stat cards, range picker, timeseries chart and raw error list removed
+- Grouped errors: `GET /api/admin/insights/errors` fingerprints messages (ids, numbers and URLs masked) into issues with count, first/last seen, platforms, versions, trend, stack and a new-in-range flag; `GET /api/admin/insights/summary` returns current vs previous period plus online-now
+- Owner alerts (`server/alerts.ts`): Slack incoming webhook + FCM push to registered owner phones; rules crash, new error, error spike, failed admin sign-ins, admin sign-in (off), new ticket, daily digest; per-key cooldown claimed atomically in `alert_events`; owner-only `/api/admin/alerts*`; webhook write-only and restricted to `hooks.slack.com/services/…`; `GET /api/cron/daily-digest` (Vercel cron 06:00 UTC, closed unless `CRON_SECRET` matches)
+- Fixed: `POST /api/logs/batch` returned 404 in production (route only existed in `server/routes.ts`); `POST /api/logs` ignored Android's `level`/`source`/`errorStack`/`metadata`, storing every Android error and crash as `info` without a stack; the Logs source filter now reads the stored `source`
+- Android 1.3.0 (versionCode 118): admin panel Insights (overview, grouped errors, logs) and Alerts pills (`ui/AdminInsightsScreen.kt`, `data/AdminAlerts.kt`), owner-alert notification channel, push tap opens Alerts, FCM token rotation re-registers the owner phone
+- Tests: 11 new `test:security` cases (`tests/security/owner-alerts.test.ts`)
+- Rollback: `git reset --hard rollback-before-1-4-1`; three tables created on first use (`alert_devices`, `alert_events`, `alert_signals`), safe to leave in place
+
 ## 1.4.0 — November 2026
 
 - Builder geometry: new `client/src/lib/geo.ts` (WGS84 metres-per-degree at the point's latitude, distance, area, perimeter, oriented size, transform, grid helpers), verified against an independent Vincenty implementation; replaces ~45 hand-rolled `111320` / haversine copies across builder, selection handles, property panel, image overlay, svg import, campus overlay, route panel and GPS accuracy circle

@@ -19,13 +19,11 @@ import AdminProfileDialog from "@/components/AdminProfileDialog";
 // Admin sidebar links out to /builder instead of embedding the editor.
 import KSYKMapView from "@/components/KSYKMapView";
 import AppSettingsManager from "@/components/AppSettingsManager";
-import AppLogsManager from "@/components/AppLogsManager";
-import AdminAnalyticsDashboard from "@/components/AdminAnalyticsDashboard";
+import AnalyticsHub from "@/components/analytics/AnalyticsHub";
 import TicketManager from "@/components/TicketManager";
 import TwoFactorAuth from "@/components/TwoFactorAuth";
 import SecuritySettingsPanel from "@/components/SecuritySettingsPanel";
 import BeaconSurveyor from "@/components/BeaconSurveyor";
-import AnalyticsExternalPanel from "@/components/AnalyticsExternalPanel";
 import OverviewInsightsCards from "@/components/OverviewInsightsCards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -607,145 +605,9 @@ function NotificationsPanel({
   );
 }
 
-/**
- * v1.71.0 — single "Analytics & Logs" tab that groups the four separate
- * old sidebar entries (Analytics, Logs, Feedback, External analytics)
- * behind nested pills. Reduces sidebar clutter and keeps everything an
- * admin needs when investigating an issue on one screen.
- */
+/** Analytics & Logs tab. The tab shell lives in components/analytics; the feedback view stays here. */
 function InsightsPanel() {
-  // v4.7.6 — reorganized. Pills now group by *purpose*:
-  //   Analytics  → usage metrics, features, sessions (aggregate views)
-  //   Live logs  → raw log stream (login/app/live events)
-  //   Errors     → Sentry launcher
-  //   Feedback   → user-submitted feedback + crashes
-  //   External   → third-party dashboards (PostHog etc.)
-  // Aggregate views used to live in BOTH Analytics and Logs — the Logs
-  // tabs have been pruned to raw streams only.
-  type Pill = "analytics" | "logs" | "errors" | "feedback" | "external";
-  const VALID_PILLS: Pill[] = ["analytics", "logs", "errors", "feedback", "external"];
-  // v4.7.11 — persist pill selection in URL hash so reload / share
-  // links land on the same sub-view. Also listens for browser back/
-  // forward so hash navigation works.
-  const readHash = (): Pill => {
-    if (typeof window === "undefined") return "analytics";
-    const h = window.location.hash.replace(/^#/, "") as Pill;
-    return VALID_PILLS.includes(h) ? h : "analytics";
-  };
-  const [inner, setInnerRaw] = useState<Pill>(readHash);
-  const setInner = (p: Pill) => {
-    setInnerRaw(p);
-    if (typeof window !== "undefined") {
-      const next = `#${p}`;
-      if (window.location.hash !== next) {
-        history.replaceState(null, "", next);
-      }
-    }
-  };
-  useEffect(() => {
-    const onHash = () => setInnerRaw(readHash());
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-  const pills: { key: Pill; label: string; hint: string }[] = [
-    { key: "analytics", label: "Analytics",     hint: "Usage metrics, features, sessions" },
-    { key: "logs",      label: "Live logs",     hint: "Raw event stream + logins + app events" },
-    { key: "errors",    label: "Errors",        hint: "Sentry issues launcher" },
-    { key: "feedback",  label: "Feedback",      hint: "User feedback, bugs & crashes" },
-    { key: "external",  label: "External",      hint: "Third-party dashboards" },
-  ];
-  const activePill = pills.find(p => p.key === inner);
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-1.5 border-b border-gray-100 dark:border-gray-800 pb-3">
-        {pills.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => setInner(p.key)}
-            title={p.hint}
-            className={cn(
-              "h-9 px-3.5 rounded-xl text-[13px] font-medium transition-colors",
-              inner === p.key
-                ? "bg-blue-600 text-white"
-                : "border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900",
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-      {inner === "analytics" && <AdminAnalyticsDashboard />}
-      {inner === "logs"      && <AppLogsManager />}
-      {inner === "errors"    && <ErrorsPanel />}
-      {inner === "feedback"  && <FeedbackPanel />}
-      {inner === "external"  && <AnalyticsExternalPanel />}
-    </div>
-  );
-}
-
-/**
- * v1.75.0 — Sentry issues surfacer. Sentry's Web API requires a bearer
- * token that we deliberately don't ship to the client; instead we render
- * a launch card + link out. Post-launch we can add a server-side proxy
- * that pulls the top N issues via /api/errors/sentry and drops the
- * bearer here, but for now the honest thing is to link out.
- */
-function ErrorsPanel() {
-  const SENTRY_ORG = "ksyk";
-  const SENTRY_PROJECT = "ksyk-maps";
-  return (
-    <div className="space-y-4">
-      <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
-        <CardHeader>
-          <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-            <AlertTriangle className="h-[18px] w-[18px] text-gray-400" strokeWidth={1.75} />
-            Sentry error tracking
-          </CardTitle>
-          <CardDescription className="text-[13px]">
-            Web + Android crashes and unhandled exceptions are captured by Sentry.
-            Individual event pages carry the linked <span className="font-mono text-[11px]">posthog_session</span> tag to jump to the replay.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`https://${SENTRY_ORG}.sentry.io/issues/?project=${SENTRY_PROJECT}&statsPeriod=24h`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-blue-600 text-white text-[14px] font-medium hover:bg-blue-700"
-            >
-              <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
-              Open Sentry Issues (24 h)
-            </a>
-            <a
-              href={`https://${SENTRY_ORG}.sentry.io/discover/?project=${SENTRY_PROJECT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-[14px] font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
-            >
-              Discover events
-            </a>
-            <a
-              href={`https://${SENTRY_ORG}.sentry.io/replays/?project=${SENTRY_PROJECT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-[14px] font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
-            >
-              Sentry replays
-            </a>
-          </div>
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 text-[13px] text-muted-foreground">
-            <p className="font-semibold text-gray-900 dark:text-white mb-1">Also see:</p>
-            <ul className="space-y-1">
-              <li>· <strong>Feedback → Crashes</strong> tab: mobile crashes uploaded from the app's <em>Sovellus kaatui viimeksi</em> card.</li>
-              <li>· <strong>Logs</strong> tab: server-side app_logs Postgres feed.</li>
-              <li>· <strong>Analytics</strong> tab: session drill dialog "Watch replay in PostHog" button links to the session's recording.</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <AnalyticsHub feedback={<FeedbackPanel />} />;
 }
 
 function FeedbackPanel() {
