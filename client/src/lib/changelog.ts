@@ -10,17 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.5.1";
 /** Latest Android APK version available in public/releases/ — defined once in shared/release.ts. */
 export { ANDROID_APP_VERSION } from "../../../shared/release";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.1",
+    date: "November 2026",
+    title: "Alerts can no longer break sign-in, log uploads or support tickets",
+    titleFi: "Hälytykset eivät enää voi rikkoa kirjautumista, lokien lähetystä tai tukipyyntöjä",
+    latest: true,
+    highlights: [
+      "**Alert hooks are best-effort.** If the alerts code, Slack or the push service fails or hangs, the sign-in, the log upload and the support ticket still succeed. Before, a failed alerts import would have returned an error for all three, and the phone would have re-sent the same logs. Each hook waits at most 3-4 seconds. **Rollback** — `git reset --hard rollback-before-1-5-1`; no database change.",
+    ],
+    highlightsFi: [
+      "**Hälytykset ovat \"parhaan yrityksen\" toimintoja.** Jos hälytyskoodi, Slack tai push-palvelu epäonnistuu tai jumittuu, kirjautuminen, lokin lähetys ja tukipyyntö onnistuvat silti. Jokainen koukku odottaa enintään 3-4 sekuntia.",
+    ],
+  },
+  {
     version: "1.5.0",
     date: "November 2026",
     title: "Multiple campus maps in the builder, cleaner search snippets, fewer false error alerts",
     titleFi: "Useita kampuskarttoja rakentimessa, siistimmät hakutulokset, vähemmän turhia virhehälytyksiä",
-    latest: true,
     highlights: [
       "**Multiple maps.** The builder toolbar has a map switcher: pick a map, create a new empty one, rename it, or **Make this map live**. Visitors and the apps always see the live map; editing another map never touches what students see. The existing campus is the \"Main campus\" map and nothing about it changed. Switching reloads the builder cleanly and keeps one local autosave per map.",
       "**Safe by construction.** No database migration on the core tables: which map an entity belongs to is stored in a small `campus_map_items` table, every list endpoint falls back to the old behaviour if anything fails, and a draft map is never cached. Public lists are now cached for 60 s instead of 30 min, so a publish appears within a couple of minutes.",

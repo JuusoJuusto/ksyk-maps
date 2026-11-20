@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 — November 2026
+
+- Alert hooks (admin sign-in, `/api/logs`, `/api/logs/batch`, tickets) run through `server/bestEffort.ts`: a failed import, a thrown error or a slow Slack/FCM call is logged and swallowed, waits capped at 3-4 s. Before, a broken `server/alerts.ts` would have 500'd all of them (and made the Android app re-send logs)
+- Tests: `tests/security/best-effort.test.ts` (5, incl. a guard that only the owner-only and cron routes import alerts unguarded). Rollback: `git reset --hard rollback-before-1-5-1`; no DB change
+
 ## 1.5.0 — November 2026
 
 - Multiple campus maps: `server/campusMaps.ts` (map list in `kv_settings`, entity assignments in `campus_map_items`), `GET/POST /api/maps`, `PATCH /api/maps/:id`, `POST /api/maps/:id/publish`; every public list endpoint (buildings, rooms, hallways, floors, doors/stairs/elevators, pois, map-package) is scoped to the published map, and an admin sending `X-Ksyk-Map` edits another map; creates are assigned to the map being edited; no change to core tables, fail-open on any error, list cache 60 s (was 30 min), drafts `no-store`

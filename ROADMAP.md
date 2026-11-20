@@ -12,7 +12,7 @@ _(empty — all items shipped)_
 
 ## 🚧 In progress
 
-- **v1.4.1 + Android 1.3.0 — analytics rebuilt + owner alerts.** Built, tested and committed locally on top of v1.4.0 (`73ee497`), not pushed. To go live: `git pull --rebase --autostash`, push, then paste the Slack webhook in Analytics → Alerts, set `CRON_SECRET` on Vercel for the daily digest, install the 1.3.0 APK and switch on Notify this phone. Publishing the APK = copy to `public/releases/` and bump `shared/release.ts` in the same commit. See PROJECT-LOG 20-11-2026.
+_(empty — v1.4.1 analytics/alerts shipped inside v1.5.0; what is left is configuration, not code: paste the Slack webhook in Analytics → Alerts, `CRON_SECRET` on Vercel, Notify this phone on the owner's phone)_
 
 ## 📋 Next (near-term)
 
@@ -35,6 +35,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.5.1 — alert hooks (sign-in, log upload, log batch, tickets) are best-effort via `server/bestEffort.ts`, so a failing alerts module, Slack or push can no longer 500 them; 5 tests. Rollback tag `rollback-before-1-5-1`
 - v1.5.0 + Android 1.3.1 + Admin app 1.1.2 — multiple campus maps (switch, create, make live; visitors always see the live map), search-snippet fix (`data-nosnippet`), offline noise no longer reported as errors, public read rate limit raised for school-wide use; ships together with v1.4.1 (analytics rebuilt, owner alerts to Slack + phone, Android 1.3.0)
 
 - v1.3.2 + Android 1.2.2 + Admin app 1.1.1 — sliding admin sessions on the web admin and the Android admin app, 401 retry + "session expired" notice, admin-app login fixed for passwords containing `"`/`\`, honest Overview status, 2FA fields stripped from the refresh response; 9 new security tests

@@ -15,6 +15,16 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 20-11-2026 — v1.5.1 — Alert hooks made best-effort
+
+**Asked.** Continue after the Analytics session's handoff, which flagged that admin sign-in would 500 if `server/alerts.js` failed to import.
+
+**Decided.** Reading the hooks showed the same unguarded `await import('../server/alerts.js')` on four request paths, not one: sign-in, `POST /api/logs`, `POST /api/logs/batch` and ticket creation. In the last three it ran after the row was stored, so a failure would have returned 500 for work that had succeeded, and the Android app would have re-sent the same logs. One helper, `server/bestEffort.ts` (swallow import failures, throws and rejections; cap the wait at 3-4 s; ignore a late rejection), wraps all of them. The two remaining bare imports sit behind the owner check and the cron secret, where failing loudly is right; a test pins that count.
+
+**Shipped.** `server/bestEffort.ts` (new), `api/index.ts`, `tests/security/best-effort.test.ts` (5), `client/src/lib/changelog.ts` + `CHANGELOG.md` (1.5.1), this log, ROADMAP (stale "not pushed" card removed). Deleted the merged safety branch `backup/analytics-v1.4.1`. Rollback: tag `rollback-before-1-5-1` → `6315ad3`; `git reset --hard rollback-before-1-5-1`; no DB change. Gates: `tsc` clean; `test:security` 44/44, `test:seo` 41/41, `test:geo` 12/12, `test:site` 9/9.
+
+---
+
 ## 20-11-2026 — v1.4.1 / Android 1.3.0 — Analytics rebuilt, errors grouped, owner alerts (Slack + phone)
 
 **Asked.**
@@ -28,7 +38,7 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 - Not done, flagged: the separate `android/admin` app is untouched. Only the owner can create the Slack webhook and the `CRON_SECRET`. The alert path (table creation, Slack post, push to a real phone) has never run against a real database, Slack or device; tests cover the gate, validation and secrecy. Confirm the Vercel plan allows the daily cron.
 - Coordination: another session ("Mobile admin panel session expiry") was editing the same checkout for v1.4.0. `api/index.ts` and `vercel.json` held both sets of hunks. I refused its proposal to commit my files, because `api/index.ts` imports `server/alerts.ts` on the admin sign-in path and would 500 every sign-in if shipped without it. It shipped v1.4.0 from a separate worktree (`73ee497`); that commit also carried this entry and the ROADMAP card while they still said "not committed", corrected here.
 
-**Shipped.** Committed locally on top of `73ee497` (v1.4.0), not pushed. The commit also carries the other session's small `www` URL edits to `Api.kt`, `RoomFinderScreen.kt`, `SettingsScreen.kt` and two URL lines in `AdminPanelScreen.kt`, because the 1.3.0 APK was built with them; `android/admin` was left out (not rebuilt). Contents:
+**Shipped.** Committed as `14d9ef5` on top of `73ee497` (v1.4.0) and released with v1.5.0 (`6315ad3`); the 1.3.0 APK was superseded by Android 1.3.1 on `/download`. The commit also carries the other session's small `www` URL edits to `Api.kt`, `RoomFinderScreen.kt`, `SettingsScreen.kt` and two URL lines in `AdminPanelScreen.kt`, because the 1.3.0 APK was built with them; `android/admin` was left out (not rebuilt). Contents:
 - Web v1.4.1: `server/alerts.ts`, `server/insights.ts` (new); `server/fcm.ts` (dead tokens also pruned from `alert_devices`); `api/index.ts` (`/logs`, `/logs/batch`, `/admin/insights/*`, `/admin/alerts*`, `/cron/daily-digest`, sign-in and ticket hooks); `vercel.json` (crons); `client/src/components/analytics/` (AnalyticsHub, OverviewTab, ErrorsTab, AlertsTab, shared, UsagePanels = the old AdminAnalyticsDashboard stripped of its default component); `AdminDashboard.tsx`, `AppLogsManager.tsx`; `tests/security/owner-alerts.test.ts` (11 tests); `client/src/lib/changelog.ts`, `CHANGELOG.md`
 - Android 1.3.0 (versionCode 118): `ui/AdminInsightsScreen.kt`, `data/AdminAlerts.kt` (new); `AdminPanelScreen.kt` (pills: Insights, Alerts), `MainActivity.kt`, `KsykApp.kt`, `KsykFirebaseMessagingService.kt`, `ChangelogScreen.kt`, `build.gradle.kts`. APK `android/app/build/outputs/apk/release/ksykmaps-release-1.3.0.apk` (63 MB, SHA-256 `7735ecc8da16d67c…`) is **not** in `public/releases/` and `shared/release.ts` is **not** bumped: the build guard fails when the version points at a missing APK.
 - Rollback: tag `rollback-before-1-4-1` → `73ee497`; `git reset --hard rollback-before-1-4-1`. DB: three tables are created on first use (`alert_devices`, `alert_events`, `alert_signals`); rollback leaves them (safe).

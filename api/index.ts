@@ -4,6 +4,7 @@ import { emitLog, flushLogs } from '../server/posthogLogger.js';
 import { capture as posthogCapture, flush as posthogFlush } from '../server/posthogNode.js';
 import { LUNCH_FEED_URL } from '../shared/lunchFeed.js';
 import { toPublicStaff } from '../shared/staffPublic.js';
+import { bestEffort } from '../server/bestEffort.js';
 import crypto from 'node:crypto';
 
 // â”€â”€ Stateless admin token (HMAC-signed, 7-day TTL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2204,8 +2205,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ipAddress: clientIP.slice(0, 45),
         } as any).catch(() => { stored = false; });
         if (stored && level === 'error') {
-          const { onErrorsLogged } = await import('../server/alerts.js');
-          await withinMs(onErrorsLogged([{ level: received === 'fatal' ? 'fatal' : 'error', message, source, appVersion: meta?.app_version ?? meta?.appVersion ?? null }]), 4000);
+          await bestEffort(async () => {
+            const { onErrorsLogged } = await import('../server/alerts.js');
+            await onErrorsLogged([{ level: received === 'fatal' ? 'fatal' : 'error', message, source, appVersion: meta?.app_version ?? meta?.appVersion ?? null }]);
+          }, 4000, 'alerts.errors');
         }
         return res.status(200).json({ message: "Log received" });
       } catch (error: any) {
@@ -2243,8 +2246,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await pgDb.insert(appLogs).values(rows as any);
         const failures = rows.filter((r) => r.level === 'error');
         if (failures.length) {
-          const { onErrorsLogged } = await import('../server/alerts.js');
-          await withinMs(onErrorsLogged(failures.map((r) => ({ level: 'error', message: r.message, source: 'android', appVersion }))), 4000);
+          await bestEffort(async () => {
+            const { onErrorsLogged } = await import('../server/alerts.js');
+            await onErrorsLogged(failures.map((r) => ({ level: 'error', message: r.message, source: 'android', appVersion })));
+          }, 4000, 'alerts.errors');
         }
         return res.status(200).json({ success: true, inserted: rows.length });
       } catch (error: any) {
@@ -2345,10 +2350,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: ticketData.status || 'pending',
           priority: ticketData.priority || 'normal',
         });
-        {
+        await bestEffort(async () => {
           const { onTicket } = await import('../server/alerts.js');
-          await withinMs(onTicket({ type: String(ticketData.type), title: String(ticketData.title), ticketId }), 3000);
-        }
+          await onTicket({ type: String(ticketData.type), title: String(ticketData.title), ticketId });
+        }, 3000, 'alerts.ticket');
 
         // SEND EMAILS AND DISCORD NOTIFICATIONS
         if (ticketData.email && ticketData.email.trim()) {
@@ -3026,9 +3031,12 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
         });
       }
 
-      const alerts = await import('../server/alerts.js');
+      const loginFailed = () => bestEffort(async () => {
+        const alerts = await import('../server/alerts.js');
+        await alerts.onLoginFailure(email, clientIP);
+      }, 3000, 'alerts.loginFailure');
       if (!user) {
-        await withinMs(alerts.onLoginFailure(email, clientIP), 3000);
+        await loginFailed();
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
@@ -3041,13 +3049,16 @@ Need immediate help? Visit our website at https://www.ksykmaps.fi`;
 
       const ok = await verifyAndUpgrade(password, user.password, user.id);
       if (!ok) {
-        await withinMs(alerts.onLoginFailure(email, clientIP), 3000);
+        await loginFailed();
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       const { password: _pw2, passwordResetToken: _tk2, passwordResetExpiry: _ex2, ...safeUser } = user as any;
       const adminToken = generateAdminToken(user.id, user.role || 'admin');
-      await withinMs(alerts.onAdminLogin(email, clientIP), 3000);
+      await bestEffort(async () => {
+        const alerts = await import('../server/alerts.js');
+        await alerts.onAdminLogin(email, clientIP);
+      }, 3000, 'alerts.adminLogin');
       return res.status(200).json({
         success: true,
         user: safeUser,
