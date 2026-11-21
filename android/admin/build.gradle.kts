@@ -14,8 +14,8 @@ android {
         applicationId = "fi.ksykmaps.admin"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.2"
+        versionCode = 5
+        versionName = "1.1.3"
 
         val projectEnv = Properties().apply {
             rootProject.projectDir.parentFile.resolve(".env").takeIf { it.isFile }
@@ -62,7 +62,7 @@ android {
 
 dependencies {
     val compose = "1.6.0"
-    implementation("com.posthog:posthog-android:3.+")
+    implementation("com.posthog:posthog-android:4.0.0")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")

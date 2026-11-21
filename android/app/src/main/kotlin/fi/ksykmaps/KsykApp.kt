@@ -82,7 +82,7 @@ class KsykApp : Application() {
         }
         runCatching {
             val host = BuildConfig.POSTHOG_HOST ?: "https://us.i.posthog.com"
-            val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
+            val config = PostHogAndroidConfig(projectToken = apiKey, host = host).apply {
                 // v1.71.0: broadened replay config so admins can watch users
                 // navigate the map/timetable in the panel. Images are NOT
                 // masked (map tiles need to render) but text inputs ARE
@@ -94,7 +94,6 @@ class KsykApp : Application() {
                 sessionReplayConfig.maskAllImages = false
                 sessionReplayConfig.maskAllTextInputs = true
                 sessionReplayConfig.captureLogcat = true
-                sessionReplayConfig.screenshot = true
                 sessionReplayConfig.throttleDelayMs = 500
             }
             PostHogAndroid.setup(this, config)

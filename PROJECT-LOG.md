@@ -15,6 +15,21 @@ Hub: [[BRAIN.md]]  ·  Board: [[ROADMAP.md]]
 
 ---
 
+## 21-11-2026 — v1.5.2 / Android 1.3.2 / Admin app 1.1.3 — posthog-android 4.0.0
+
+**Asked.** PostHog health checks flag the Android apps as on an old SDK (3.72.1 and 3.77.1). Move both Android modules to posthog-android 4.0.0 and supersede draft PR #57 (3.76.1 pin, stale against app 1.3.1).
+
+**Decided.**
+- Both modules declared `3.+`, so Gradle never picks up 4.x. Pin `4.0.0` exactly, so each build uses the same SDK.
+- 4.0.0 removes the `apiKey` parameter of `PostHogAndroidConfig` and `sessionReplayConfig.screenshot`. Use `projectToken`. Drop `screenshot`: 4.x always records screenshots, which is the mode the app already used.
+- Keep `maskAllImages = false` (map tiles must show in replay) and `maskAllTextInputs = true`. In screenshot mode these flags control the masks the same way as before, so replay privacy does not change.
+- 4.0.0 depends on `com.posthog:posthog` 7.0.0 with Kotlin stdlib 2.1.21, the same stdlib as 3.77.1, so the Kotlin 1.9.22 toolchain with `-Xskip-metadata-version-check` still compiles.
+- No release APK in this change. The sandbox has no `phc_` project token, and an APK without it turns analytics off. `ANDROID_APP_VERSION` stays 1.3.1 until the owner adds the APK.
+
+**Shipped.** `android/app/build.gradle.kts`, `android/admin/build.gradle.kts`, `KsykApp.kt`, `KsykAdminApp.kt`, `ChangelogScreen.kt` (1.3.2 entry), `client/src/lib/changelog.ts` + `CHANGELOG.md` (1.5.2), this log, ROADMAP. Rollback: tag `rollback-before-1-5-2` → `324ff0a`; `git reset --hard rollback-before-1-5-2`; no DB change. Gates: `tsc` clean; Gradle `:app:assembleDebug` OK; `:admin:assembleDebug` OK with a temporary `LogsScreen` stub (the real file is hidden by the root `.gitignore` `logs` rule, an existing break on `main`). Not run: a release build with the real token, install on a phone, a replay check on a device.
+
+---
+
 ## 20-11-2026 — v1.5.1 — Alert hooks made best-effort
 
 **Asked.** Continue after the Analytics session's handoff, which flagged that admin sign-in would 500 if `server/alerts.js` failed to import.

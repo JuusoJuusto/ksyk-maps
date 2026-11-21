@@ -12,7 +12,8 @@ _(empty — all items shipped)_
 
 ## 🚧 In progress
 
-_(empty — v1.4.1 analytics/alerts shipped inside v1.5.0; what is left is configuration, not code: paste the Slack webhook in Analytics → Alerts, `CRON_SECRET` on Vercel, Notify this phone on the owner's phone)_
+- **Android 1.3.2 APK on /download** (posthog-android 4.0.0, code in v1.5.2): build `assembleRelease` with the `phc_` project token in `POSTHOG_API_KEY`, copy `ksykmaps-release-1.3.2.apk` to `public/releases/`, set `ANDROID_APP_VERSION = "1.3.2"` in `shared/release.ts`. Then check one Android replay: text inputs masked, map tiles visible
+- v1.4.1 analytics/alerts shipped inside v1.5.0; what is left is configuration, not code: paste the Slack webhook in Analytics → Alerts, `CRON_SECRET` on Vercel, Notify this phone on the owner's phone
 
 ## 📋 Next (near-term)
 
@@ -35,6 +36,7 @@ _(empty — all roadmap items shipped in v1.1.0)_
 
 ## ✅ Shipped (recent)
 
+- v1.5.2 + Android 1.3.2 + Admin app 1.1.3 (code only, APK pending) — posthog-android pinned to 4.0.0 in both Android modules (`projectToken`, `screenshot` option removed). Rollback tag `rollback-before-1-5-2`
 - v1.5.1 — alert hooks (sign-in, log upload, log batch, tickets) are best-effort via `server/bestEffort.ts`, so a failing alerts module, Slack or push can no longer 500 them; 5 tests. Rollback tag `rollback-before-1-5-1`
 - v1.5.0 + Android 1.3.1 + Admin app 1.1.2 — multiple campus maps (switch, create, make live; visitors always see the live map), search-snippet fix (`data-nosnippet`), offline noise no longer reported as errors, public read rate limit raised for school-wide use; ships together with v1.4.1 (analytics rebuilt, owner alerts to Slack + phone, Android 1.3.0)
 

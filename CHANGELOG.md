@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2 — November 2026
+
+- Android 1.3.2 (versionCode 120) and admin app 1.1.3 (versionCode 5): `com.posthog:posthog-android` pinned to `4.0.0` (was `3.+`, which never resolves a new major). `PostHogAndroidConfig(projectToken = …)` replaces the removed `apiKey` parameter; `sessionReplayConfig.screenshot` removed (4.x always records screenshots). Replay masks unchanged: text inputs masked, images not masked (map tiles)
+- Release APK not in this commit: build `assembleRelease` with the `phc_` project token in `POSTHOG_API_KEY`, add it to `public/releases/`, then set `ANDROID_APP_VERSION` to 1.3.2 in `shared/release.ts`
+- Rollback: `git reset --hard rollback-before-1-5-2` (`324ff0a`); no DB change
+
 ## 1.5.1 — November 2026
 
 - Alert hooks (admin sign-in, `/api/logs`, `/api/logs/batch`, tickets) run through `server/bestEffort.ts`: a failed import, a thrown error or a slow Slack/FCM call is logged and swallowed, waits capped at 3-4 s. Before, a broken `server/alerts.ts` would have 500'd all of them (and made the Android app re-send logs)
