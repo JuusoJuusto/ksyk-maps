@@ -86,8 +86,7 @@ class KsykApp : Application() {
                 // v1.71.0: broadened replay config so admins can watch users
                 // navigate the map/timetable in the panel. Images are NOT
                 // masked (map tiles need to render) but text inputs ARE
-                // (search, name fields — anything PII). SDK 4.x always
-                // records screenshots, so the masks above are the only guard.
+                // (search, name fields — anything PII).
                 sessionReplay = true
                 captureApplicationLifecycleEvents = true
                 captureDeepLinks = true
