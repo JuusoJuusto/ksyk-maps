@@ -10,17 +10,29 @@ export type ChangelogEntry = {
   latest?: boolean;
 };
 
-export const APP_VERSION = "1.5.1";
+export const APP_VERSION = "1.5.2";
 /** Latest Android APK version available in public/releases/ — defined once in shared/release.ts. */
 export { ANDROID_APP_VERSION } from "../../../shared/release";
 
 export const KSYK_CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.2",
+    date: "November 2026",
+    title: "Android apps move to PostHog Android SDK 4.0",
+    titleFi: "Android-sovellukset siirtyvät PostHog Android SDK 4.0:aan",
+    latest: true,
+    highlights: [
+      "**Android 1.3.2 and admin app 1.1.3** use posthog-android 4.0.0. The SDK version is pinned, so each build uses the same SDK. Session replay still masks text inputs and still shows map tiles. **Rollback** — `git reset --hard rollback-before-1-5-2`; no database change.",
+    ],
+    highlightsFi: [
+      "**Android 1.3.2 ja ylläpitosovellus 1.1.3** käyttävät posthog-android 4.0.0:aa. SDK-versio on lukittu, joten jokainen käännös käyttää samaa SDK:ta. Istuntotallenne peittää yhä tekstikentät ja näyttää karttalaatat.",
+    ],
+  },
+  {
     version: "1.5.1",
     date: "November 2026",
     title: "Alerts can no longer break sign-in, log uploads or support tickets",
     titleFi: "Hälytykset eivät enää voi rikkoa kirjautumista, lokien lähetystä tai tukipyyntöjä",
-    latest: true,
     highlights: [
       "**Alert hooks are best-effort.** If the alerts code, Slack or the push service fails or hangs, the sign-in, the log upload and the support ticket still succeed. Before, a failed alerts import would have returned an error for all three, and the phone would have re-sent the same logs. Each hook waits at most 3-4 seconds. **Rollback** — `git reset --hard rollback-before-1-5-1`; no database change.",
     ],

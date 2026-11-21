@@ -40,7 +40,7 @@ class KsykAdminApp : Application() {
             return
         }
 
-        PostHogAndroid.setup(this, PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
+        PostHogAndroid.setup(this, PostHogAndroidConfig(projectToken = apiKey, host = host).apply {
             errorTrackingConfig.autoCapture = true
         })
     }

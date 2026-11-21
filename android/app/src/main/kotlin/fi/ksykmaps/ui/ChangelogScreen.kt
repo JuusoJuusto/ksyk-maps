@@ -36,6 +36,18 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.3.2",
+        date = "November 2026",
+        titleFi = "Päivitetty analytiikkakirjasto",
+        titleEn = "Updated analytics library",
+        highlightsFi = listOf(
+            "Sovellus käyttää PostHog Android SDK 4.0:aa. Tekstikentät peitetään yhä istuntotallenteissa.",
+        ),
+        highlightsEn = listOf(
+            "The app uses PostHog Android SDK 4.0. Text inputs are still masked in session recordings.",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.3.1",
         date = "November 2026",
         titleFi = "Vähemmän turhia virheilmoituksia",
